@@ -267,6 +267,7 @@ export default function SmartKitchen(){
   const [recipes,setRecipes]=useState([]);
   const [recipeError,setRecipeError]=useState("");
   const [mealPlan,setMealPlan]=useState(()=>loadLocal("sk_mealPlan",[]));
+  const [sportsNights,setSportsNights]=useState(()=>loadLocal('sk_sportsNights',[]));
   const [shopping,setShopping]=useState([]);
   const [desserts,setDesserts]=useState([]);
   const [activeDessert,setActiveDessert]=useState(null);
@@ -307,6 +308,7 @@ export default function SmartKitchen(){
   useEffect(()=>{try{localStorage.setItem("sk_mealPlan",JSON.stringify(mealPlan));}catch{}},[mealPlan]);
   useEffect(()=>{try{localStorage.setItem("sk_familySize",JSON.stringify(familySize));}catch{}},[familySize]);
   useEffect(()=>{try{localStorage.setItem("sk_familyProfiles",JSON.stringify(familyProfiles));}catch{}},[familyProfiles]);
+  useEffect(()=>{try{localStorage.setItem("sk_sportsNights",JSON.stringify(sportsNights));}catch{}},[sportsNights]);
 
   // -- Computed values --------------------------------------------------------
   const blendItem=inventory.find(i=>i.vegType==="sauteBlend");
@@ -476,6 +478,46 @@ export default function SmartKitchen(){
       if(s===-1||e===-1) throw new Error("No plan returned");
       setMealPlan(JSON.parse(raw.slice(s,e+1)));
     } catch(err){ alert("Could not build meal plan: "+err.message); }
+    setLoading(false);
+  };
+
+  const quickMealForDay=async(dayIdx)=>{
+    const day=mealPlan[dayIdx];
+    if(!day) return;
+    setLoading(true); setLoadMsg("Finding quick meal for "+day.day+"...");
+    try{
+      const proteins=proteinItems.map(i=>i.name+" "+i.qty+" portions").join(", ");
+      const fs=familySummary();
+      const raw=await callClaude({
+        system:"Return ONLY a single JSON object (not an array). No other text. Keys: {day,meal,proteinUsed,sauteBagsUsed,sideUsed,shoppingNeeded}. shoppingNeeded is array of {name,qty,unit}.",
+        prompt:"Proteins: "+proteins+". Saute blend: "+(blendItem?.qty||0)+" bags. "+fs+"Busy night on "+day.day+". ONE quick dinner under 20 min: tacos, stir fry, or sandwiches. Use existing proteins.",
+        maxTokens:500,
+      });
+      const s=raw.indexOf("{"),e=raw.lastIndexOf("}");
+      if(s===-1||e===-1) throw new Error("No meal returned");
+      const newDay={...JSON.parse(raw.slice(s,e+1)),day:day.day,quickMeal:true};
+      setMealPlan(prev=>prev.map((d,i)=>i===dayIdx?newDay:d));
+      setSportsNights(prev=>prev.includes(dayIdx)?prev:[...prev,dayIdx]);
+    } catch(err){ alert("Could not get quick meal: "+err.message); }
+    setLoading(false);
+  };
+
+  const clearQuickMeal=async(dayIdx)=>{
+    setSportsNights(prev=>prev.filter(i=>i!==dayIdx));
+    setLoading(true); setLoadMsg("Restoring meal for "+mealPlan[dayIdx]?.day+"...");
+    try{
+      const proteins=proteinItems.map(i=>i.name+" "+i.qty+" portions").join(", ");
+      const fs=familySummary();
+      const raw=await callClaude({
+        system:"Return ONLY a single JSON object (not an array). No other text. Keys: {day,meal,proteinUsed,sauteBagsUsed,sideUsed,shoppingNeeded}. shoppingNeeded is array of {name,qty,unit}.",
+        prompt:"Proteins: "+proteins+". Saute blend: "+(blendItem?.qty||0)+" bags. "+fs+"Regular weeknight dinner for "+mealPlan[dayIdx]?.day+". 30-45 min OK.",
+        maxTokens:500,
+      });
+      const s=raw.indexOf("{"),e=raw.lastIndexOf("}");
+      if(s===-1||e===-1) throw new Error("No meal returned");
+      const newDay={...JSON.parse(raw.slice(s,e+1)),day:mealPlan[dayIdx]?.day,quickMeal:false};
+      setMealPlan(prev=>prev.map((d,i)=>i===dayIdx?newDay:d));
+    } catch(err){ alert("Could not restore meal: "+err.message); }
     setLoading(false);
   };
 
@@ -760,12 +802,14 @@ export default function SmartKitchen(){
                 </div>
                 <div style={{display:"flex",flexDirection:"column",gap:9}}>
                   {mealPlan.map((day,i)=>(
-                    <div key={i} style={{background:C.card,border:"1px solid "+C.border,borderRadius:12,padding:15,display:"grid",gridTemplateColumns:"80px 1fr auto",gap:14,alignItems:"start"}}>
+                    <div key={i} style={{background:day.quickMeal?"#1a1a2e":C.card,border:"1px solid "+(day.quickMeal?"#f59e0b":C.border),borderRadius:12,padding:15,display:"grid",gridTemplateColumns:"80px 1fr auto",gap:14,alignItems:"start"}}>
                       <div>
                         <div style={{fontFamily:FM,fontSize:9,color:C.muted,marginBottom:3}}>DAY {i+1}</div>
                         <div style={{fontWeight:700,color:C.accent,fontSize:18,fontFamily:FD}}>{day.day}</div>
+                        <button onClick={()=>day.quickMeal?clearQuickMeal(i):quickMealForDay(i)} style={{marginTop:6,background:day.quickMeal?"#f59e0b22":"transparent",border:"1px solid "+(day.quickMeal?"#f59e0b":C.border),borderRadius:6,color:day.quickMeal?"#f59e0b":C.muted,cursor:"pointer",fontFamily:FM,fontSize:10,padding:"3px 7px",width:"100%"}}>{day.quickMeal?"⚡ Busy Night":"⚡ Busy Night?"}</button>
                       </div>
                       <div>
+                        {day.quickMeal&&<span style={{fontSize:10,background:"#f59e0b22",color:"#f59e0b",padding:"2px 6px",borderRadius:4,fontFamily:FM,display:"inline-block",marginBottom:4}}>⚡ BUSY NIGHT — under 20 min</span>}
                         <div style={{fontFamily:FD,fontSize:16,marginBottom:7}}>{day.meal}</div>
                         <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
                           {day.proteinUsed&&<span style={bTag(PROTEIN_TAG_COLOR(day.proteinUsed))}>🥩 {day.proteinUsed}</span>}
