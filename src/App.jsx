@@ -306,6 +306,12 @@ export default function SmartKitchen(){
   const [rpVSessions,setRpVSessions]=useState([{id:1,preset:{name:"Mixed Sauté Blend",cupsPerUnit:3,bagCups:2,color:C.orange},count:"",bags:null}]);
   const fileRef=useRef();
 
+  // -- Persist to localStorage ------------------------------------------------
+  useEffect(()=>{ try{ localStorage.setItem("sk_inventory",JSON.stringify(inventory)); }catch{} },[inventory]);
+  useEffect(()=>{ try{ localStorage.setItem("sk_mealPlan",JSON.stringify(mealPlan)); }catch{} },[mealPlan]);
+  useEffect(()=>{ try{ localStorage.setItem("sk_familySize",JSON.stringify(familySize)); }catch{} },[familySize]);
+  useEffect(()=>{ try{ localStorage.setItem("sk_familyProfiles",JSON.stringify(familyProfiles)); }catch{} },[familyProfiles]);
+
   // -- Computed values --------------------------------------------------------
   const blendItem=inventory.find(i=>i.vegType==="sauteBlend");
   const proteinItems=inventory.filter(i=>i.isBulkProtein);
