@@ -256,6 +256,10 @@ function fileToBase64(f){return new Promise((res,rej)=>{const r=new FileReader()
 function LoadingDots(){
   const [tick,setTick]=useState(0);
   useEffect(()=>{const t=setInterval(()=>setTick(n=>n+1),400);return()=>clearInterval(t);},[]);
+  useEffect(()=>{try{localStorage.setItem("sk_inventory",JSON.stringify(inventory));}catch{}},[inventory]);
+  useEffect(()=>{try{localStorage.setItem("sk_mealPlan",JSON.stringify(mealPlan));}catch{}},[mealPlan]);
+  useEffect(()=>{try{localStorage.setItem("sk_familySize",JSON.stringify(familySize));}catch{}},[familySize]);
+  useEffect(()=>{try{localStorage.setItem("sk_familyProfiles",JSON.stringify(familyProfiles));}catch{}},[familyProfiles]);
   return <span style={{fontFamily:"monospace",color:C.accent,fontSize:18,letterSpacing:2}}>{"...".slice(0,(tick%3)+1).padEnd(3,"\u00a0")}</span>;
 }
 
@@ -263,10 +267,10 @@ function LoadingDots(){
 export default function SmartKitchen(){
   // -- State ------------------------------------------------------------------
   const [tab,setTab]=useState("inventory");
-  const [inventory,setInventory]=useState(INITIAL_INVENTORY);
+  const loadLocal=(key,fb)=>{try{const v=localStorage.getItem(key);return v?JSON.parse(v):fb;}catch{return fb;}};const [inventory,setInventory]=useState(()=>loadLocal("sk_inventory",INITIAL_INVENTORY));
   const [recipes,setRecipes]=useState([]);
   const [recipeError,setRecipeError]=useState("");
-  const [mealPlan,setMealPlan]=useState([]);
+  const [mealPlan,setMealPlan]=useState(()=>loadLocal("sk_mealPlan",[]));
   const [shopping,setShopping]=useState([]);
   const [desserts,setDesserts]=useState([]);
   const [activeDessert,setActiveDessert]=useState(null);
@@ -279,8 +283,8 @@ export default function SmartKitchen(){
   const [showAdd,setShowAdd]=useState(false);
   const [newItem,setNewItem]=useState({name:"",qty:"",unit:"",category:"Pantry",location:"Pantry"});
   const [activeRecipe,setActiveRecipe]=useState(null);
-  const [familySize,setFamilySize]=useState(3);
-  const [familyProfiles,setFamilyProfiles]=useState(DEFAULT_PROFILES);
+  const [familySize,setFamilySize]=useState(()=>loadLocal("sk_familySize",3));
+  const [familyProfiles,setFamilyProfiles]=useState(()=>loadLocal("sk_familyProfiles",DEFAULT_PROFILES));
   const [profileModalOpen,setProfileModalOpen]=useState(false);
   const [editingProfile,setEditingProfile]=useState(null);
   const [printModal,setPrintModal]=useState(null);
