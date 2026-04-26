@@ -233,7 +233,7 @@ const bInp={background:"#1f2436",border:"1px solid "+C.border,borderRadius:8,pad
 const Label=({children})=><div style={{fontSize:10,color:C.muted,fontFamily:FM,letterSpacing:0.8,marginBottom:5}}>{children}</div>;
 
 // -- Claude API ----------------------------------------------------------------
-async function callClaude({system,prompt,imageBase64,imageType}){
+async function callClaude({system,prompt,imageBase64,imageType,maxTokens=1800}){
   const content=[];
   if(imageBase64) content.push({type:"image",source:{type:"base64",media_type:imageType||"image/jpeg",data:imageBase64}});
   content.push({type:"text",text:prompt});
@@ -241,7 +241,7 @@ async function callClaude({system,prompt,imageBase64,imageType}){
   const res=await fetch("https://api.anthropic.com/v1/messages",{
     method:"POST",
     headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-    body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1800,system,messages:[{role:"user",content}]}),
+    body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:maxTokens,system,messages:[{role:"user",content}]}),
     signal:AbortSignal.timeout(25000),
   });
   if(!res.ok) throw new Error("API error "+res.status);
@@ -464,6 +464,7 @@ export default function SmartKitchen(){
       const raw=await callClaude({
         system:"Return ONLY a JSON array of 7 dinner plan objects. No other text. Start with [ end with ]. Each: {day,meal,proteinUsed,sauteBagsUsed,sideUsed,shoppingNeeded}. day is Monday through Sunday. proteinUsed is string or null. sauteBagsUsed is number. sideUsed is string or null. shoppingNeeded is array of {name,qty,unit}.",
         prompt:"Proteins: "+proteins+". Saute blend: "+(blendItem?.qty||0)+" bags. Frozen sides: broccoli 3 bags, corn, peas. Pantry: pasta, rice, egg noodles, Cream of Chicken, tomato sauce, taco seasoning, soy sauce, BBQ sauce. "+fs+"Full 7-day dinner plan Mon-Sun. Max 3 chicken meals. At least 1 beef. At least 1 pork or kielbasa. Vary proteins across the week — no same protein two days in a row.",
+        maxTokens:3000,
       });
       const s=raw.indexOf("["),e=raw.lastIndexOf("]");
       if(s===-1||e===-1) throw new Error("No plan returned");
