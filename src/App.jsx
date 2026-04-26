@@ -489,7 +489,7 @@ export default function SmartKitchen(){
       const proteins=proteinItems.map(i=>i.name+" "+i.qty+" portions").join(", ");
       const fs=familySummary();
       const raw=await callClaude({
-        system:"Return ONLY a single JSON object (not an array). No other text. Keys: {day,meal,proteinUsed,sauteBagsUsed,sideUsed,shoppingNeeded}. shoppingNeeded is array of {name,qty,unit}.",
+        system:"Return ONLY raw JSON — no markdown, no code fences, no backticks, no explanation. A single JSON object with these exact keys: day, meal, proteinUsed, sauteBagsUsed, sideUsed, shoppingNeeded. shoppingNeeded is array of {name,qty,unit}. Start your response with { and end with }.",
         prompt:"Proteins: "+proteins+". Saute blend: "+(blendItem?.qty||0)+" bags. "+fs+"Busy night on "+day.day+". ONE quick dinner under 20 min: tacos, stir fry, or sandwiches. Use existing proteins.",
         maxTokens:500,
       });
@@ -510,7 +510,7 @@ export default function SmartKitchen(){
       const proteins=proteinItems.map(i=>i.name+" "+i.qty+" portions").join(", ");
       const fs=familySummary();
       const raw=await callClaude({
-        system:"Return ONLY a single JSON object (not an array). No other text. Keys: {day,meal,proteinUsed,sauteBagsUsed,sideUsed,shoppingNeeded}. shoppingNeeded is array of {name,qty,unit}.",
+        system:"Return ONLY raw JSON — no markdown, no code fences, no backticks, no explanation. A single JSON object with these exact keys: day, meal, proteinUsed, sauteBagsUsed, sideUsed, shoppingNeeded. shoppingNeeded is array of {name,qty,unit}. Start your response with { and end with }.",
         prompt:"Proteins: "+proteins+". Saute blend: "+(blendItem?.qty||0)+" bags. "+fs+"Regular weeknight dinner for "+mealPlan[dayIdx]?.day+". 30-45 min OK.",
         maxTokens:500,
       });
