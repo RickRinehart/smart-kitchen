@@ -490,7 +490,7 @@ export default function SmartKitchen(){
       const fs=familySummary();
       const raw=await callClaude({
         system:"Return ONLY raw JSON — no markdown, no code fences, no backticks, no explanation. A single JSON object with these exact keys: day, meal, proteinUsed, sauteBagsUsed, sideUsed, shoppingNeeded. shoppingNeeded is array of {name,qty,unit}. Start your response with { and end with }.",
-        prompt:"Proteins: "+proteins+". Saute blend: "+(blendItem?.qty||0)+" bags. "+fs+"Busy night on "+day.day+". ONE quick dinner under 20 min: tacos, stir fry, or sandwiches. Use existing proteins.",
+        prompt:"Proteins: "+proteins+". Saute blend: "+(blendItem?.qty||0)+" bags. "+fs+"Busy night on "+day.day+". Already this week: "+mealPlan.filter((_,ii)=>ii!==dayIdx).map(d=>d.meal).filter(Boolean).join(", ")+". Give ONE DIFFERENT quick dinner under 20 min — tacos, stir fry, sandwiches, or wraps. No duplicates.",
         maxTokens:500,
       });
       const cleaned=raw.replace(/```json|```/g,"").trim();
@@ -520,6 +520,27 @@ export default function SmartKitchen(){
       const newDay={...JSON.parse(cleaned.slice(s,e+1)),day:mealPlan[dayIdx]?.day,quickMeal:false};
       setMealPlan(prev=>prev.map((d,i)=>i===dayIdx?newDay:d));
     } catch(err){ alert("Could not restore meal: "+err.message); }
+    setLoading(false);
+  };
+
+  const regenerateDay=async(dayIdx)=>{
+    const day=mealPlan[dayIdx];
+    if(!day) return;
+    setLoading(true); setLoadMsg("Finding new meal for "+day.day+"...");
+    try{
+      const proteins=proteinItems.map(i=>i.name+" "+i.qty+" portions").join(", ");
+      const fs=familySummary();
+      const otherMeals=mealPlan.filter((_,ii)=>ii!==dayIdx).map(d=>d.meal).filter(Boolean).join(", ");
+      const raw=await callClaude({
+        system:"Return ONLY raw JSON — no markdown, no code fences, no backticks, no explanation. A single JSON object with these exact keys: day, meal, proteinUsed, sauteBagsUsed, sideUsed, shoppingNeeded. shoppingNeeded is array of {name,qty,unit}. Start your response with { and end with }.",
+        prompt:"Proteins: "+proteins+". Saute blend: "+(blendItem?.qty||0)+" bags. "+fs+"Already planned: "+otherMeals+". ONE DIFFERENT weeknight dinner for "+day.day+" — must differ from all above. 30-45 min OK.",
+        maxTokens:500,
+      });
+      const s=raw.indexOf("{"),e=raw.lastIndexOf("}");
+      if(s===-1||e===-1) throw new Error("No meal returned");
+      const newDay={...JSON.parse(raw.slice(s,e+1)),day:day.day,quickMeal:false};
+      setMealPlan(prev=>prev.map((d,i)=>i===dayIdx?newDay:d));
+    } catch(err){ alert("Could not regenerate meal: "+err.message); }
     setLoading(false);
   };
 
@@ -1358,4 +1379,4 @@ export default function SmartKitchen(){
       )}
     </div>
   );
-}
+}<button onClick={()=>regenerateDay(i)} style={{marginTop:4,background:"transparent",border:"1px solid "+C.border,borderRadius:6,color:C.muted,cursor:"pointer",fontFamily:FM,fontSize:10,padding:"3px 7px",width:"100%"}}>🔄 New Meal</button>
