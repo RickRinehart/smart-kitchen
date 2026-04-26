@@ -830,7 +830,6 @@ export default function SmartKitchen(){
                         <div style={{fontFamily:FM,fontSize:9,color:C.muted,marginBottom:3}}>DAY {i+1}</div>
                         <div style={{fontWeight:700,color:C.accent,fontSize:18,fontFamily:FD}}>{day.day}</div>
                         <button onClick={()=>day.quickMeal?clearQuickMeal(i):quickMealForDay(i)} style={{marginTop:6,background:day.quickMeal?"#f59e0b22":"transparent",border:"1px solid "+(day.quickMeal?"#f59e0b":C.border),borderRadius:6,color:day.quickMeal?"#f59e0b":C.muted,cursor:"pointer",fontFamily:FM,fontSize:10,padding:"3px 7px",width:"100%"}}>{day.quickMeal?"⚡ Busy Night":"⚡ Busy Night?"}</button>
-                        <button onClick={()=>regenerateDay(i)} style={{marginTop:4,background:"transparent",border:"1px solid "+C.border,borderRadius:6,color:C.muted,cursor:"pointer",fontFamily:FM,fontSize:10,padding:"3px 7px",width:"100%"}}>🔄 New Meal</button>
                       </div>
                       <div>
                         {day.quickMeal&&<span style={{fontSize:10,background:"#f59e0b22",color:"#f59e0b",padding:"2px 6px",borderRadius:4,fontFamily:FM,display:"inline-block",marginBottom:4}}>⚡ BUSY NIGHT — under 20 min</span>}
@@ -1380,4 +1379,4 @@ export default function SmartKitchen(){
       )}
     </div>
   );
-}
+}<button onClick={()=>regenerateDay(i)} style={{marginTop:4,background:"transparent",border:"1px solid "+C.border,borderRadius:6,color:C.muted,cursor:"pointer",fontFamily:FM,fontSize:10,padding:"3px 7px",width:"100%"}}>🔄 New Meal</button>
