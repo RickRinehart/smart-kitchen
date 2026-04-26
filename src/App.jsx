@@ -241,7 +241,7 @@ async function callClaude({system,prompt,imageBase64,imageType}){
   const res=await fetch("https://api.anthropic.com/v1/messages",{
     method:"POST",
     headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-    body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1800,system,messages:[{role:"user",content}]}),
+    body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:1800,system,messages:[{role:"user",content}]}),
     signal:AbortSignal.timeout(25000),
   });
   if(!res.ok) throw new Error("API error "+res.status);
