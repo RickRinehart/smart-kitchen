@@ -286,6 +286,10 @@ export default function SmartKitchen(){
   const [familySize,setFamilySize]=useState(()=>loadLocal("sk_familySize",3));
   const [familyProfiles,setFamilyProfiles]=useState(()=>loadLocal("sk_familyProfiles",DEFAULT_PROFILES));
   const [profileModalOpen,setProfileModalOpen]=useState(false);
+  const [showInstallBanner,setShowInstallBanner]=useState(()=>{
+    try{ return localStorage.getItem("sk_installDismissed")!=="1"; }catch{ return true; }
+  });
+  const dismissInstall=()=>{ setShowInstallBanner(false); try{ localStorage.setItem("sk_installDismissed","1"); }catch{} };
   const [editingProfile,setEditingProfile]=useState(null);
   const [printModal,setPrintModal]=useState(null);
   const [scanOpen,setScanOpen]=useState(false);
@@ -305,12 +309,6 @@ export default function SmartKitchen(){
   const [rpPPreview,setRpPPreview]=useState(null);
   const [rpVSessions,setRpVSessions]=useState([{id:1,preset:{name:"Mixed Sauté Blend",cupsPerUnit:3,bagCups:2,color:C.orange},count:"",bags:null}]);
   const fileRef=useRef();
-
-  // -- Persist to localStorage ------------------------------------------------
-  useEffect(()=>{ try{ localStorage.setItem("sk_inventory",JSON.stringify(inventory)); }catch{} },[inventory]);
-  useEffect(()=>{ try{ localStorage.setItem("sk_mealPlan",JSON.stringify(mealPlan)); }catch{} },[mealPlan]);
-  useEffect(()=>{ try{ localStorage.setItem("sk_familySize",JSON.stringify(familySize)); }catch{} },[familySize]);
-  useEffect(()=>{ try{ localStorage.setItem("sk_familyProfiles",JSON.stringify(familyProfiles)); }catch{} },[familyProfiles]);
 
   // -- Computed values --------------------------------------------------------
   const blendItem=inventory.find(i=>i.vegType==="sauteBlend");
@@ -567,6 +565,25 @@ export default function SmartKitchen(){
   return(
     <div style={{minHeight:"100vh",background:C.bg,color:C.text,fontFamily:FB}}>
       <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+
+      {/* -- Install Banner -- */}
+      {showInstallBanner&&(
+        <div style={{background:"#1a1f35",borderBottom:"2px solid "+C.accent,padding:"10px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            <span style={{fontSize:22}}>📱</span>
+            <div>
+              <div style={{fontFamily:FM,fontSize:12,fontWeight:600,color:C.accent}}>Install Smart Kitchen on your phone</div>
+              <div style={{fontFamily:FM,fontSize:11,color:C.muted,marginTop:2}}>
+                {/iPhone|iPad|iPod/.test(navigator.userAgent)
+                  ? "Tap the Share button ↑ then \"Add to Home Screen\""
+                  : "Tap ⋮ menu → \"Add to Home Screen\" or \"Install app\""
+                }
+              </div>
+            </div>
+          </div>
+          <button onClick={dismissInstall} style={{background:"transparent",border:"1px solid "+C.border,borderRadius:8,color:C.muted,cursor:"pointer",fontFamily:FM,fontSize:11,padding:"5px 10px",whiteSpace:"nowrap"}}>✕ Got it</button>
+        </div>
+      )}
 
       {/* -- Header -- */}
       <div style={{background:C.surface,borderBottom:"1px solid "+C.border,padding:"14px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,flexWrap:"wrap"}}>
