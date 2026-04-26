@@ -493,9 +493,10 @@ export default function SmartKitchen(){
         prompt:"Proteins: "+proteins+". Saute blend: "+(blendItem?.qty||0)+" bags. "+fs+"Busy night on "+day.day+". ONE quick dinner under 20 min: tacos, stir fry, or sandwiches. Use existing proteins.",
         maxTokens:500,
       });
-      const s=raw.indexOf("{"),e=raw.lastIndexOf("}");
+      const cleaned=raw.replace(/```json|```/g,"").trim();
+      const s=cleaned.indexOf("{"),e=cleaned.lastIndexOf("}");
       if(s===-1||e===-1) throw new Error("No meal returned");
-      const newDay={...JSON.parse(raw.slice(s,e+1)),day:day.day,quickMeal:true};
+      const newDay={...JSON.parse(cleaned.slice(s,e+1)),day:day.day,quickMeal:true};
       setMealPlan(prev=>prev.map((d,i)=>i===dayIdx?newDay:d));
       setSportsNights(prev=>prev.includes(dayIdx)?prev:[...prev,dayIdx]);
     } catch(err){ alert("Could not get quick meal: "+err.message); }
@@ -513,9 +514,10 @@ export default function SmartKitchen(){
         prompt:"Proteins: "+proteins+". Saute blend: "+(blendItem?.qty||0)+" bags. "+fs+"Regular weeknight dinner for "+mealPlan[dayIdx]?.day+". 30-45 min OK.",
         maxTokens:500,
       });
-      const s=raw.indexOf("{"),e=raw.lastIndexOf("}");
+      const cleaned=raw.replace(/```json|```/g,"").trim();
+      const s=cleaned.indexOf("{"),e=cleaned.lastIndexOf("}");
       if(s===-1||e===-1) throw new Error("No meal returned");
-      const newDay={...JSON.parse(raw.slice(s,e+1)),day:mealPlan[dayIdx]?.day,quickMeal:false};
+      const newDay={...JSON.parse(cleaned.slice(s,e+1)),day:mealPlan[dayIdx]?.day,quickMeal:false};
       setMealPlan(prev=>prev.map((d,i)=>i===dayIdx?newDay:d));
     } catch(err){ alert("Could not restore meal: "+err.message); }
     setLoading(false);
