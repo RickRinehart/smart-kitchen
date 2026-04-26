@@ -241,7 +241,7 @@ async function callClaude({system,prompt,imageBase64,imageType}){
   const res=await fetch("https://api.anthropic.com/v1/messages",{
     method:"POST",
     headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-    body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:1800,system,messages:[{role:"user",content}]}),
+    body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1800,system,messages:[{role:"user",content}]}),
     signal:AbortSignal.timeout(25000),
   });
   if(!res.ok) throw new Error("API error "+res.status);
@@ -462,8 +462,8 @@ export default function SmartKitchen(){
       const proteins=proteinItems.map(i=>i.name+" "+i.qty+" portions").join(", ");
       const fs=familySummary();
       const raw=await callClaude({
-        system:"Return ONLY a JSON array of 5 dinner plan objects. No other text. Start with [ end with ]. Each: {day,meal,proteinUsed,sauteBagsUsed,sideUsed,shoppingNeeded}. day is Monday through Friday. proteinUsed is string or null. sauteBagsUsed is number. sideUsed is string or null. shoppingNeeded is array of {name,qty,unit}.",
-        prompt:"Proteins: "+proteins+". Saute blend: "+(blendItem?.qty||0)+" bags. Frozen sides: broccoli 3 bags, corn, peas. Pantry: pasta, rice, egg noodles, Cream of Chicken, tomato sauce, taco seasoning, soy sauce, BBQ sauce. "+fs+"Mon-Fri dinner plan. Max 2 chicken meals. At least 1 beef. At least 1 pork or kielbasa.",
+        system:"Return ONLY a JSON array of 7 dinner plan objects. No other text. Start with [ end with ]. Each: {day,meal,proteinUsed,sauteBagsUsed,sideUsed,shoppingNeeded}. day is Monday through Sunday. proteinUsed is string or null. sauteBagsUsed is number. sideUsed is string or null. shoppingNeeded is array of {name,qty,unit}.",
+        prompt:"Proteins: "+proteins+". Saute blend: "+(blendItem?.qty||0)+" bags. Frozen sides: broccoli 3 bags, corn, peas. Pantry: pasta, rice, egg noodles, Cream of Chicken, tomato sauce, taco seasoning, soy sauce, BBQ sauce. "+fs+"Full 7-day dinner plan Mon-Sun. Max 3 chicken meals. At least 1 beef. At least 1 pork or kielbasa. Vary proteins across the week — no same protein two days in a row.",
       });
       const s=raw.indexOf("["),e=raw.lastIndexOf("]");
       if(s===-1||e===-1) throw new Error("No plan returned");
@@ -533,7 +533,7 @@ export default function SmartKitchen(){
       const daysToMon=today.getDay()===0?1:8-today.getDay();
       const monday=new Date(today);
       monday.setDate(today.getDate()+daysToMon);
-      const offsets={Monday:0,Tuesday:1,Wednesday:2,Thursday:3,Friday:4};
+      const offsets={Monday:0,Tuesday:1,Wednesday:2,Thursday:3,Friday:4,Saturday:5,Sunday:6};
       for(const day of mealPlan){
         const d=new Date(monday);
         d.setDate(monday.getDate()+(offsets[day.day]??0));
@@ -730,7 +730,7 @@ export default function SmartKitchen(){
         {!loading&&tab==="mealplan"&&(
           <div>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18,flexWrap:"wrap",gap:10}}>
-              <div style={{fontFamily:FD,fontSize:24}}>5-Day Dinner Plan <span style={{fontSize:13,color:C.muted,fontFamily:FB}}>· {activeProfiles.length} people</span></div>
+              <div style={{fontFamily:FD,fontSize:24}}>7-Day Dinner Plan <span style={{fontSize:13,color:C.muted,fontFamily:FB}}>· {activeProfiles.length} people</span></div>
               <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                 <button style={bBtn("ghost")} onClick={buildMealPlan}>🔄 Regenerate</button>
                 {mealPlan.length>0&&<><button style={bBtn("ghost")} onClick={printMealPlan}>🖨 Print</button><button style={bBtn("ghost")} onClick={pushToCalendar}>📅 Calendar</button><button style={bBtn("primary")} onClick={genShopping}>🛒 Shopping List</button></>}
