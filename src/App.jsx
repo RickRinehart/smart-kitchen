@@ -1,5 +1,5 @@
 // Smart Kitchen v2.1 - April 26 2026
-import { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 
 // -- Design tokens -------------------------------------------------------------
 const C={
@@ -255,7 +255,7 @@ function fileToBase64(f){return new Promise((res,rej)=>{const r=new FileReader()
 // -- Loading dots --------------------------------------------------------------
 function LoadingDots(){
   const [tick,setTick]=useState(0);
-  React.useEffect(()=>{const t=setInterval(()=>setTick(n=>n+1),400);return()=>clearInterval(t);},[]);
+  useEffect(()=>{const t=setInterval(()=>setTick(n=>n+1),400);return()=>clearInterval(t);},[]);
   return <span style={{fontFamily:"monospace",color:C.accent,fontSize:18,letterSpacing:2}}>{"...".slice(0,(tick%3)+1).padEnd(3,"\u00a0")}</span>;
 }
 
