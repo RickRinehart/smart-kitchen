@@ -320,7 +320,7 @@ export default function SmartKitchen(){
   const [wizardStep,setWizardStep]=useState(0);
   const [wizardProteins,setWizardProteins]=useState([]);
   const [wizardProteinInput,setWizardProteinInput]=useState({name:"",qty:"",oz:"6"});
-  const [pantryChecklist,setPantryChecklist]=useState(()=>COMMON_PANTRY.map(i=>({...i,checked:true})));
+  const [pantryChecklist,setPantryChecklist]=useState(()=>COMMON_PANTRY.map(i=>({...i,checked:false})));
   const [showInstallBanner,setShowInstallBanner]=useState(()=>{try{return localStorage.getItem("sk_installDismissed")!=="1";}catch{return true;}});
   const dismissInstall=()=>{setShowInstallBanner(false);try{localStorage.setItem("sk_installDismissed","1");}catch{}};
   const [editingProfile,setEditingProfile]=useState(null);
