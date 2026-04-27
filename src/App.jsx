@@ -54,7 +54,8 @@ const DEFAULT_PROFILES=[
 ];
 
 // -- Inventory -----------------------------------------------------------------
-const INITIAL_INVENTORY=[
+// Rick's personal inventory
+const YOUR_INVENTORY=[
   // Freezer - portioned proteins
   {id:51,name:"Chicken Breast",  qty:9, unit:"portions",category:"Protein",location:"Freezer",isBulkProtein:true,portionOz:6},
   {id:52,name:"Chicken Thighs",  qty:12,unit:"portions",category:"Protein",location:"Freezer",isBulkProtein:true,portionOz:5},
@@ -216,6 +217,8 @@ const INITIAL_INVENTORY=[
   {id:169,name:"Diced Tomatoes",  qty:2,unit:"cans",     category:"Pantry",location:"Pantry"},
 ];
 
+const INITIAL_INVENTORY=[];
+
 // -- UI helpers ----------------------------------------------------------------
 const bBtn=(v="primary",ex={})=>({
   padding:"9px 20px",borderRadius:9,border:"none",cursor:"pointer",
@@ -283,6 +286,11 @@ export default function SmartKitchen(){
   const [familySize,setFamilySize]=useState(()=>loadLocal("sk_familySize",3));
   const [familyProfiles,setFamilyProfiles]=useState(()=>loadLocal("sk_familyProfiles",DEFAULT_PROFILES));
   const [profileModalOpen,setProfileModalOpen]=useState(false);
+  const [recipeSite,setRecipeSite]=useState(()=>loadLocal("sk_recipeSite","google"));
+  const [showWizard,setShowWizard]=useState(()=>{try{return localStorage.getItem("sk_setupDone")!=="1"&&loadLocal("sk_inventory",[]).length===0;}catch{return false;}});
+  const [wizardStep,setWizardStep]=useState(0);
+  const [wizardProteins,setWizardProteins]=useState([]);
+  const [wizardProteinInput,setWizardProteinInput]=useState({name:"",qty:"",oz:"6"});
   const [showInstallBanner,setShowInstallBanner]=useState(()=>{try{return localStorage.getItem("sk_installDismissed")!=="1";}catch{return true;}});
   const dismissInstall=()=>{setShowInstallBanner(false);try{localStorage.setItem("sk_installDismissed","1");}catch{}};
   const [editingProfile,setEditingProfile]=useState(null);
@@ -544,6 +552,9 @@ export default function SmartKitchen(){
     setLoading(false);
   };
 
+  const getRecipeUrl=(meal)=>{const q=encodeURIComponent(meal+" recipe");const sites={google:"https://www.google.com/search?q=",allrecipes:"https://www.allrecipes.com/search?q=",pinterest:"https://www.pinterest.com/search/pins/?q=",foodnetwork:"https://www.foodnetwork.com/search/"+encodeURIComponent(meal)};if(recipeSite==="foodnetwork")return sites.foodnetwork;return(sites[recipeSite]||sites.google)+q;};
+  const madeMeal=(day)=>{if(!day)return;setInventory(prev=>prev.map(item=>{if(day.proteinUsed&&item.name.toLowerCase().includes(day.proteinUsed.toLowerCase())&&item.isBulkProtein)return{...item,qty:Math.max(0,item.qty-1)};if((day.sauteBagsUsed||0)>0&&item.vegType==="sauteBlend")return{...item,qty:Math.max(0,item.qty-(day.sauteBagsUsed||0))};if(day.sideUsed&&item.name.toLowerCase().includes(day.sideUsed.toLowerCase()))return{...item,qty:Math.max(0,item.qty-1)};return item;}));alert("Meal logged! Inventory updated.");};
+  const completeWizard=()=>{if(wizardProteins.length>0){const newItems=wizardProteins.map((p,i)=>({id:900+i,name:p.name,qty:parseInt(p.qty)||0,unit:"portions",category:"Protein",location:"Freezer",isBulkProtein:true,portionOz:parseInt(p.oz)||6}));setInventory(newItems);}try{localStorage.setItem("sk_setupDone","1");}catch{}setShowWizard(false);};
   const genShopping=async()=>{
     if(!mealPlan.length) return;
     setLoading(true); setLoadMsg("Building shopping list…");
@@ -629,6 +640,43 @@ export default function SmartKitchen(){
     <div style={{minHeight:"100vh",background:C.bg,color:C.text,fontFamily:FB}}>
       <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
 
+      {showWizard&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+          <div style={{background:C.surface,borderRadius:16,padding:28,maxWidth:440,width:"100%",border:"1px solid "+C.border}}>
+            {wizardStep===0&&(<div>
+              <div style={{fontFamily:FD,fontSize:24,color:C.accent,marginBottom:8}}>👋 Welcome to Smart Kitchen!</div>
+              <div style={{fontFamily:FM,fontSize:13,color:C.muted,marginBottom:20,lineHeight:1.6}}>Let's set up your kitchen in 2 minutes. We'll start by adding your freezer proteins — the foundation of your meal plan.</div>
+              <button style={{...bBtn("primary"),width:"100%",padding:14,fontSize:14}} onClick={()=>setWizardStep(1)}>Get Started →</button>
+            </div>)}
+            {wizardStep===1&&(<div>
+              <div style={{fontFamily:FD,fontSize:20,color:C.accent,marginBottom:6}}>🥩 Add Your Proteins</div>
+              <div style={{fontFamily:FM,fontSize:12,color:C.muted,marginBottom:16}}>What proteins do you have in your freezer?</div>
+              <div style={{display:"flex",gap:8,marginBottom:10}}>
+                <input placeholder="Protein name" style={{...bInp,flex:2}} value={wizardProteinInput.name} onChange={e=>setWizardProteinInput(p=>({...p,name:e.target.value}))}/>
+                <input placeholder="Qty" style={{...bInp,flex:1,width:60}} value={wizardProteinInput.qty} onChange={e=>setWizardProteinInput(p=>({...p,qty:e.target.value}))} type="number"/>
+                <input placeholder="Oz" style={{...bInp,flex:1,width:60}} value={wizardProteinInput.oz} onChange={e=>setWizardProteinInput(p=>({...p,oz:e.target.value}))} type="number"/>
+              </div>
+              <button style={{...bBtn("primary"),marginBottom:16,width:"100%"}} onClick={()=>{if(wizardProteinInput.name&&wizardProteinInput.qty){setWizardProteins(p=>[...p,{...wizardProteinInput}]);setWizardProteinInput({name:"",qty:"",oz:"6"});}}}>+ Add Protein</button>
+              {wizardProteins.map((p,i)=><div key={i} style={{fontFamily:FM,fontSize:12,color:C.text,padding:"6px 10px",background:C.card,borderRadius:8,marginBottom:6,display:"flex",justifyContent:"space-between"}}><span>{p.name} — {p.qty} portions ({p.oz}oz)</span><span style={{cursor:"pointer",color:C.red}} onClick={()=>setWizardProteins(prev=>prev.filter((_,j)=>j!==i))}>✕</span></div>)}
+              <div style={{display:"flex",gap:8,marginTop:8}}>
+                <button style={{...bBtn("ghost"),flex:1}} onClick={()=>setWizardStep(2)}>Skip</button>
+                <button style={{...bBtn("primary"),flex:2}} onClick={()=>setWizardStep(2)}>Next →</button>
+              </div>
+            </div>)}
+            {wizardStep===2&&(<div>
+              <div style={{fontFamily:FD,fontSize:20,color:C.accent,marginBottom:6}}>🔍 Recipe Search</div>
+              <div style={{fontFamily:FM,fontSize:12,color:C.muted,marginBottom:16}}>When you tap a meal name, which site opens for detailed recipes?</div>
+              {[["google","🔍 Google Recipes"],["allrecipes","🍳 AllRecipes"],["pinterest","📌 Pinterest"],["foodnetwork","📺 Food Network"]].map(([key,label])=>(
+                <div key={key} onClick={()=>setRecipeSite(key)} style={{padding:"12px 16px",borderRadius:10,marginBottom:8,cursor:"pointer",border:"2px solid "+(recipeSite===key?C.accent:C.border),background:recipeSite===key?C.accent+"11":C.card,fontFamily:FM,fontSize:13,color:recipeSite===key?C.accent:C.text}}>{label}</div>
+              ))}
+              <div style={{display:"flex",gap:8,marginTop:16}}>
+                <button style={{...bBtn("ghost"),flex:1}} onClick={()=>setWizardStep(1)}>← Back</button>
+                <button style={{...bBtn("primary"),flex:2}} onClick={completeWizard}>Start Cooking! 🍳</button>
+              </div>
+            </div>)}
+          </div>
+        </div>
+      )}
       {showInstallBanner&&(<div style={{background:"#1a1f35",borderBottom:"2px solid "+C.accent,padding:"10px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}><div style={{display:"flex",alignItems:"center",gap:10}}><span style={{fontSize:22}}>📱</span><div><div style={{fontFamily:FM,fontSize:12,fontWeight:600,color:C.accent}}>Install Smart Kitchen on your phone</div><div style={{fontFamily:FM,fontSize:11,color:C.muted,marginTop:2}}>{/iPhone|iPad|iPod/.test(navigator.userAgent)?"Tap Share then Add to Home Screen":"Tap menu then Add to Home Screen"}</div></div></div><button onClick={dismissInstall} style={{background:"transparent",border:"1px solid "+C.border,borderRadius:8,color:C.muted,cursor:"pointer",fontFamily:FM,fontSize:11,padding:"5px 10px"}}>Got it</button></div>)}
       {/* -- Header -- */}
       <div style={{background:C.surface,borderBottom:"1px solid "+C.border,padding:"14px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,flexWrap:"wrap"}}>
@@ -780,7 +828,7 @@ export default function SmartKitchen(){
                       onMouseEnter={e=>{e.currentTarget.style.borderColor=C.accent;e.currentTarget.style.background=C.cardHover;}}
                       onMouseLeave={e=>{e.currentTarget.style.borderColor=C.border;e.currentTarget.style.background=C.card;}}>
                       <div style={{display:"flex",justifyContent:"space-between",marginBottom:8,alignItems:"flex-start"}}>
-                        <div style={{fontFamily:FD,fontSize:19,lineHeight:1.3,flex:1}}>{r.name}</div>
+                        <div style={{fontFamily:FD,fontSize:19,lineHeight:1.3,flex:1}}><a href={getRecipeUrl(r.name)} target="_blank" rel="noopener noreferrer" style={{color:C.accent,textDecoration:"none"}}>🔍 {r.name}</a></div>
                         <span style={{...bTag(r.difficulty==="Easy"?C.green:r.difficulty==="Hard"?C.red:C.accent),marginLeft:8}}>{r.difficulty}</span>
                       </div>
                       <div style={{color:C.muted,fontSize:13,marginBottom:12,lineHeight:1.5}}>{r.description}</div>
@@ -833,7 +881,7 @@ export default function SmartKitchen(){
                       </div>
                       <div>
                         {day.quickMeal&&<span style={{fontSize:10,background:"#f59e0b22",color:"#f59e0b",padding:"2px 6px",borderRadius:4,fontFamily:FM,display:"inline-block",marginBottom:4}}>⚡ BUSY NIGHT — under 20 min</span>}
-                        <div style={{fontFamily:FD,fontSize:16,marginBottom:7}}>{day.meal}</div>
+                        <div style={{fontFamily:FD,fontSize:16,marginBottom:7}}><a href={getRecipeUrl(day.meal)} target="_blank" rel="noopener noreferrer" style={{color:C.accent,textDecoration:"none"}}>🔍 {day.meal}</a></div>
                         <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
                           {day.proteinUsed&&<span style={bTag(PROTEIN_TAG_COLOR(day.proteinUsed))}>🥩 {day.proteinUsed}</span>}
                           {(day.sauteBagsUsed||0)>0&&<span style={bTag(C.orange)}>🫕 {day.sauteBagsUsed} bag</span>}
@@ -844,6 +892,7 @@ export default function SmartKitchen(){
                         {(day.shoppingNeeded||[]).length===0
                           ?<span style={bTag(C.green)}>✅ Ready</span>
                           :<div><div style={{fontSize:9,color:C.muted,marginBottom:3,fontFamily:FM}}>NEED</div>{(day.shoppingNeeded||[]).map((s,j)=><div key={j} style={{fontSize:11,color:C.red,marginBottom:2}}>· {s.qty} {s.unit} {s.name}</div>)}</div>}
+                        <button onClick={()=>madeMeal(day)} style={{marginTop:8,background:"#3ecf8e22",border:"1px solid #3ecf8e44",borderRadius:6,color:"#3ecf8e",cursor:"pointer",fontFamily:FM,fontSize:10,padding:"4px 8px",width:"100%"}}>✅ Made It!</button>
                       </div>
                     </div>
                   ))}
