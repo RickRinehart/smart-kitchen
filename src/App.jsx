@@ -785,6 +785,23 @@ export default function SmartKitchen(){
             <button style={{...bBtn('ghost'),flex:1}} onClick={()=>setWizardStep(0)}>← Back</button>
           </div>
         </div>}
+        {wizardStep===5&&<div>
+          <div style={{fontFamily:FD,fontSize:20,color:C.accent,marginBottom:6}}>📷 Add Your Inventory</div>
+          <div style={{fontFamily:FM,fontSize:13,color:C.muted,marginBottom:20,lineHeight:1.6}}>How would you like to add items to your kitchen?</div>
+          <div style={{display:'flex',flexDirection:'column',gap:10}}>
+            <button style={{...bBtn('primary'),padding:'16px',textAlign:'left'}} onClick={()=>setWizardStep(1)}>
+              <div style={{fontFamily:FD,fontSize:14}}>📸 Scan items with camera</div>
+              <div style={{fontFamily:FM,fontSize:12,color:C.muted,marginTop:4}}>Take photos of receipts, packages, or pantry items</div>
+            </button>
+            <button style={{...bBtn('ghost'),padding:'16px',textAlign:'left'}} onClick={()=>setWizardStep(1)}>
+              <div style={{fontFamily:FD,fontSize:14}}>✏️ Enter items manually</div>
+              <div style={{fontFamily:FM,fontSize:12,color:C.muted,marginTop:4}}>Type in your proteins, produce, and pantry staples</div>
+            </button>
+          </div>
+          <div style={{display:'flex',gap:8,marginTop:16}}>
+            <button style={{...bBtn('ghost'),flex:1}} onClick={()=>setWizardStep(0)}>← Back</button>
+          </div>
+        </div>}
         {wizardStep===3&&<div>
           <div style={{fontFamily:FD,fontSize:20,color:C.accent,marginBottom:6}}>📦 Inventory Setup</div>
           <div style={{fontFamily:FM,fontSize:13,color:C.muted,marginBottom:20,lineHeight:1.6}}>How do you want to start your pantry inventory?</div>
