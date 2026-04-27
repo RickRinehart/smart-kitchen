@@ -588,7 +588,16 @@ export default function SmartKitchen(){
 
   const getRecipeUrl=(meal)=>{const q=encodeURIComponent(meal+" recipe");const sites={google:"https://www.google.com/search?q=",allrecipes:"https://www.allrecipes.com/search?q=",pinterest:"https://www.pinterest.com/search/pins/?q=",foodnetwork:"https://www.foodnetwork.com/search/"+encodeURIComponent(meal)};if(recipeSite==="foodnetwork")return sites.foodnetwork;return(sites[recipeSite]||sites.google)+q;};
   const madeMeal=(day)=>{if(!day)return;setInventory(prev=>prev.map(item=>{if(day.proteinUsed&&item.name.toLowerCase().includes(day.proteinUsed.toLowerCase())&&item.isBulkProtein)return{...item,qty:Math.max(0,item.qty-1)};if((day.sauteBagsUsed||0)>0&&item.vegType==="sauteBlend")return{...item,qty:Math.max(0,item.qty-(day.sauteBagsUsed||0))};if(day.sideUsed&&item.name.toLowerCase().includes(day.sideUsed.toLowerCase()))return{...item,qty:Math.max(0,item.qty-1)};return item;}));alert("Meal logged! Inventory updated.");};
-  const completeWizard=()=>{if(wizardProteins.length>0){const newItems=wizardProteins.map((p,i)=>({id:900+i,name:p.name,qty:parseInt(p.qty)||0,unit:"portions",category:"Protein",location:"Freezer",isBulkProtein:true,portionOz:parseInt(p.oz)||6}));setInventory(newItems);}try{localStorage.setItem("sk_setupDone","1");}catch{}setShowWizard(false);};
+  const completeWizard=(includePantry=false,openScan=false)=>{
+    const proteins=wizardProteins.map((p,i)=>({id:900+i,name:p.name,qty:parseInt(p.qty)||0,unit:"portions",category:"Protein",location:"Freezer",isBulkProtein:true,portionOz:parseInt(p.oz)||6}));
+    const pantry=includePantry?pantryChecklist.filter(i=>i.checked).map(({checked,...i})=>i):[];
+    const missing=includePantry?pantryChecklist.filter(i=>!i.checked):[];
+    if(proteins.length>0||pantry.length>0) setInventory([...proteins,...pantry]);
+    if(missing.length>0){const wantList=window.confirm("You don't have "+missing.length+" staples. Add them to your Shopping List?");if(wantList){setShopping(missing.map(i=>({name:i.name,qty:i.qty,unit:i.unit,category:i.category,checked:false,suggestBulk:false})));setTab("shopping");}}
+    try{ localStorage.setItem("sk_setupDone","1"); }catch{}
+    setShowWizard(false);
+    if(openScan) setTimeout(()=>setScanOpen(true),300);
+  };
   const genShopping=async()=>{
     if(!mealPlan.length) return;
     setLoading(true); setLoadMsg("Building shopping list…");
@@ -742,6 +751,51 @@ export default function SmartKitchen(){
       {/* -- Content -- */}
       <div style={{padding:"20px",maxWidth:940,margin:"0 auto"}}>
         {loading&&<div style={{textAlign:"center",padding:80}}><div style={{fontFamily:FD,fontSize:28,color:C.accent,marginBottom:12}}>{loadMsg}</div><LoadingDots/><div style={{fontSize:11,color:C.dim,fontFamily:FM,marginTop:10}}>this may take 10–20 seconds</div></div>}
+        {wizardStep===3&&<div>
+          <div style={{fontFamily:FD,fontSize:20,color:C.accent,marginBottom:6}}>📦 Inventory Setup</div>
+          <div style={{fontFamily:FM,fontSize:13,color:C.muted,marginBottom:20,lineHeight:1.6}}>How do you want to start your pantry inventory?</div>
+          <div style={{display:'flex',flexDirection:'column',gap:10}}>
+            <button style={{...bBtn('primary'),padding:'16px',textAlign:'left'}} onClick={()=>{setPantryChecklist(COMMON_PANTRY.map(i=>({...i,checked:true})));setWizardStep(4)}}>
+              <div style={{fontFamily:FD,fontSize:14}}>✅ Start with common pantry items</div>
+              <div style={{fontFamily:FM,fontSize:12,color:C.muted,marginTop:4}}>We'll pre-check ~30 staples — just uncheck what you don't have</div>
+            </button>
+            <button style={{...bBtn('ghost'),padding:'16px',textAlign:'left'}} onClick={()=>{setPantryChecklist(COMMON_PANTRY.map(i=>({...i,checked:false})));setWizardStep(4)}}>
+              <div style={{fontFamily:FD,fontSize:14}}>🔲 Start from scratch</div>
+              <div style={{fontFamily:FM,fontSize:12,color:C.muted,marginTop:4}}>Manually check off what you have</div>
+            </button>
+          </div>
+          <div style={{display:'flex',gap:8,marginTop:16}}>
+            <button style={{...bBtn('ghost'),flex:1}} onClick={()=>setWizardStep(2)}>← Back</button>
+          </div>
+        </div>}
+        {wizardStep===4&&<div>
+          <div style={{fontFamily:FD,fontSize:20,color:C.accent,marginBottom:6}}>🧺 Pantry Checklist</div>
+          <div style={{fontFamily:FM,fontSize:13,color:C.muted,marginBottom:12}}>Check off what you have on hand:</div>
+          <div style={{maxHeight:320,overflowY:'auto',marginBottom:12}}>
+            {pantryChecklist.map((item,i)=>(
+              <div key={i} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 4px',borderBottom:'1px solid '+C.border}}>
+                <input type='checkbox' checked={item.checked} onChange={e=>{
+                  const updated=[...pantryChecklist];
+                  updated[i]={...updated[i],checked:e.target.checked};
+                  setPantryChecklist(updated);
+                }} style={{width:18,height:18,cursor:'pointer'}}/>
+                <span style={{fontFamily:FM,fontSize:14,color:C.text}}>{item.name}</span>
+                <span style={{fontFamily:FM,fontSize:11,color:C.muted,marginLeft:'auto'}}>{item.category}</span>
+              </div>
+            ))}
+          </div>
+          <div style={{display:'flex',gap:8}}>
+            <button style={{...bBtn('ghost'),flex:1}} onClick={()=>setWizardStep(3)}>← Back</button>
+            <button style={{...bBtn('primary'),flex:2}} onClick={()=>{
+              const checked=pantryChecklist.filter(i=>i.checked).map(i=>i.name);
+              if(checked.length>0){
+                const newItems=checked.map(name=>({id:Date.now()+Math.random(),name,quantity:1,unit:'item',category:pantryChecklist.find(p=>p.name===name)?.category||'Pantry',addedDate:new Date().toISOString().split('T')[0]}));
+                setInventory(prev=>[...prev,...newItems.filter(ni=>!prev.some(p=>p.name===ni.name))]);
+              }
+              completeWizard();
+            }}>🎉 Finish Setup ({pantryChecklist.filter(i=>i.checked).length} items)</button>
+          </div>
+        </div>}
 
         {/* == INVENTORY == */}
         {!loading&&tab==="inventory"&&(
