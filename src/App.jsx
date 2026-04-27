@@ -591,6 +591,7 @@ export default function SmartKitchen(){
   const completeWizard=(includePantry=false,openScan=false)=>{
     const proteins=wizardProteins.map((p,i)=>({id:900+i,name:p.name,qty:parseInt(p.qty)||0,unit:"portions",category:"Protein",location:"Freezer",isBulkProtein:true,portionOz:parseInt(p.oz)||6}));
     const pantry=includePantry?pantryChecklist.filter(i=>i.checked).map(({checked,...i})=>i):[];
+    if(openScan){try{localStorage.setItem("sk_setupDone","1");}catch{} setShowWizard(false);setTimeout(()=>setScanOpen(true),300);return;}
     const missing=includePantry?pantryChecklist.filter(i=>!i.checked):[];
     if(proteins.length>0||pantry.length>0) setInventory([...proteins,...pantry]);
     if(missing.length>0){const wantList=window.confirm("You don't have "+missing.length+" staples. Add them to your Shopping List?");if(wantList){setShopping(missing.map(i=>({name:i.name,qty:i.qty,unit:i.unit,category:i.category,checked:false,suggestBulk:false})));setTab("shopping");}}
