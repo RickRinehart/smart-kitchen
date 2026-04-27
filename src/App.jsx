@@ -596,7 +596,7 @@ export default function SmartKitchen(){
     if(missing.length>0){const wantList=window.confirm("You don't have "+missing.length+" staples. Add them to your Shopping List?");if(wantList){setShopping(missing.map(i=>({name:i.name,qty:i.qty,unit:i.unit,category:i.category,checked:false,suggestBulk:false})));setTab("shopping");}}
     try{ localStorage.setItem("sk_setupDone","1"); }catch{}
     setShowWizard(false);
-    if(openScan) setTimeout(()=>setScanOpen(true),300);
+    if(openScan){setTimeout(()=>setScanOpen(true),300);setTab("inventory");}
   };
   const genShopping=async()=>{
     if(!mealPlan.length) return;
