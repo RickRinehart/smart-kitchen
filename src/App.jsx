@@ -691,7 +691,7 @@ export default function SmartKitchen(){
               <div style={{fontFamily:FM,fontSize:13,color:C.muted,marginBottom:20,lineHeight:1.6}}>Let's set up your kitchen in 2 minutes. We'll start by adding your freezer proteins — the foundation of your meal plan.</div>
               <div style={{fontFamily:FM,fontSize:13,color:C.muted,marginBottom:12}}>How would you like to get started?</div>
           <div style={{display:"flex",flexDirection:"column",gap:10}}>
-            <button style={{...bBtn("primary"),padding:"14px",textAlign:"left"}} onClick={()=>setWizardStep(1)}>
+            <button style={{...bBtn("primary"),padding:"14px",textAlign:"left"}} onClick={()=>completeWizard({includePantry:false,openScan:true})}>
               <div style={{fontFamily:FD,fontSize:14}}>📸 Scan items with camera</div>
               <div style={{fontFamily:FM,fontSize:12,color:C.muted,marginTop:4}}>Take photos of receipts, packages, or pantry items</div>
             </button>
