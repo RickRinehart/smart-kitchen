@@ -395,6 +395,7 @@ export default function SmartKitchen(){
   };
   const analyzeReceipt=async()=>{
     if(!scanB64) return;
+    setScanStage("analyzing");
     setLoading(true); setLoadMsg("Reading receipt…");
     try{
       const raw=await callClaude({
@@ -414,6 +415,7 @@ export default function SmartKitchen(){
 
   const analyzePhoto=async()=>{
     if(!scanB64) return;
+    setScanStage("analyzing");
     setLoading(true); setLoadMsg("Scanning shelf photo…");
     try{
       const raw=await callClaude({
@@ -1268,6 +1270,14 @@ export default function SmartKitchen(){
                 </div>
               </div>
             )}
+            {scanStage==="analyzing"&&(
+              <div style={{textAlign:"center",padding:40}}>
+                <div style={{fontSize:48,marginBottom:16}}>⏳</div>
+                <div style={{fontFamily:FD,fontSize:20,color:C.accent,marginBottom:8}}>{scanMode==="receipt"?"Reading Receipt...":"Analyzing Photo..."}</div>
+                <div style={{fontFamily:FM,fontSize:12,color:C.muted,marginBottom:24}}>This may take 10-20 seconds</div>
+                {scanPreview&&<img src={scanPreview} alt="" style={{width:"100%",borderRadius:8,maxHeight:180,objectFit:"cover",opacity:0.5}}/>}
+              </div>
+            )}
             {scanStage==="review"&&scanResults&&(
               <div>
                 {scanPreview&&<img src={scanPreview} alt="" style={{width:"100%",borderRadius:8,maxHeight:100,objectFit:"cover",marginBottom:10,opacity:0.65}}/>}
@@ -1277,14 +1287,23 @@ export default function SmartKitchen(){
                 </div>
                 <div style={{display:"flex",flexDirection:"column",gap:6,maxHeight:320,overflowY:"auto"}}>
                   {scanResults.map((item,i)=>(
-                    <div key={i} onClick={()=>setScanResults(p=>p.map((si,sii)=>sii===i?{...si,selected:!si.selected}:si))}
-                      style={{background:item.selected?"#1f2a40":C.card,border:"1px solid "+(item.selected?C.borderLight:C.border),borderRadius:10,padding:"10px 14px",cursor:"pointer",display:"flex",alignItems:"center",gap:10,opacity:item.selected?1:0.5}}>
-                      <div style={{width:18,height:18,borderRadius:4,border:"2px solid "+(item.selected?C.green:C.border),background:item.selected?C.green:"transparent",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,flexShrink:0}}>{item.selected&&"✓"}</div>
-                      <div style={{flex:1}}>
-                        <div style={{fontSize:13,fontWeight:600}}>{item.name}</div>
-                        <div style={{fontSize:11,color:C.muted,fontFamily:FM}}>{item.qty} {item.unit} · {item.category}{item.price?" · "+item.price:""}</div>
+                    <div key={i} style={{background:item.selected?"#1f2a40":C.card,border:"1px solid "+(item.selected?C.borderLight:C.border),borderRadius:10,padding:"10px 14px"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:item.selected?8:0,cursor:"pointer"}} onClick={()=>setScanResults(p=>p.map((si,sii)=>sii===i?{...si,selected:!si.selected}:si))}>
+                        <div style={{width:18,height:18,borderRadius:4,border:"2px solid "+(item.selected?C.green:C.border),background:item.selected?C.green:"transparent",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,flexShrink:0}}>{item.selected&&"✓"}</div>
+                        <div style={{flex:1}}>
+                          <div style={{fontSize:13,fontWeight:600}}>{item.name}</div>
+                          <div style={{fontSize:11,color:C.muted,fontFamily:FM}}>{item.qty} {item.unit} · {item.category} · {item.location||"Pantry"}{item.price?" · "+item.price:""}</div>
+                        </div>
+                        <span style={bTag(item.action==="update"?C.blue:C.green)}>{item.action==="update"?"UPDATE":"NEW"}</span>
                       </div>
-                      <span style={bTag(item.action==="update"?C.blue:C.green)}>{item.action==="update"?"UPDATE":"NEW"}</span>
+                      {item.selected&&(
+                        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginTop:4}} onClick={e=>e.stopPropagation()}>
+                          <div><div style={{fontSize:9,color:C.muted,fontFamily:FM,marginBottom:3}}>QTY</div><input type="number" value={item.qty} onChange={e=>setScanResults(p=>p.map((si,sii)=>sii===i?{...si,qty:parseFloat(e.target.value)||si.qty}:si))} style={{...bInp,padding:"5px 8px",fontSize:12}}/></div>
+                          <div><div style={{fontSize:9,color:C.muted,fontFamily:FM,marginBottom:3}}>UNIT</div><input value={item.unit} onChange={e=>setScanResults(p=>p.map((si,sii)=>sii===i?{...si,unit:e.target.value}:si))} style={{...bInp,padding:"5px 8px",fontSize:12}}/></div>
+                          <div><div style={{fontSize:9,color:C.muted,fontFamily:FM,marginBottom:3}}>LOCATION</div><select value={item.location||"Pantry"} onChange={e=>setScanResults(p=>p.map((si,sii)=>sii===i?{...si,location:e.target.value}:si))} style={{...bInp,padding:"5px 8px",fontSize:12}}><option>Pantry</option><option>Fridge</option><option>Freezer</option></select></div>
+                          <div><div style={{fontSize:9,color:C.muted,fontFamily:FM,marginBottom:3}}>CATEGORY</div><select value={item.category||"Pantry"} onChange={e=>setScanResults(p=>p.map((si,sii)=>sii===i?{...si,category:e.target.value}:si))} style={{...bInp,padding:"5px 8px",fontSize:12}}><option>Protein</option><option>Produce</option><option>Dairy</option><option>Pantry</option><option>Frozen</option><option>Grains</option><option>Condiments</option></select></div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
