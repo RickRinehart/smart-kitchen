@@ -689,7 +689,17 @@ export default function SmartKitchen(){
             {wizardStep===0&&(<div>
               <div style={{fontFamily:FD,fontSize:24,color:C.accent,marginBottom:8}}>👋 Welcome to Smart Kitchen!</div>
               <div style={{fontFamily:FM,fontSize:13,color:C.muted,marginBottom:20,lineHeight:1.6}}>Let's set up your kitchen in 2 minutes. We'll start by adding your freezer proteins — the foundation of your meal plan.</div>
-              <button style={{...bBtn("primary"),width:"100%",padding:14,fontSize:14}} onClick={()=>setWizardStep(1)}>Get Started →</button>
+              <div style={{fontFamily:FM,fontSize:13,color:C.muted,marginBottom:12}}>How would you like to get started?</div>
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            <button style={{...bBtn("primary"),padding:"14px",textAlign:"left"}} onClick={()=>setWizardStep(1)}>
+              <div style={{fontFamily:FD,fontSize:14}}>📸 Scan items with camera</div>
+              <div style={{fontFamily:FM,fontSize:12,color:C.muted,marginTop:4}}>Take photos of receipts, packages, or pantry items</div>
+            </button>
+            <button style={{...bBtn("ghost"),padding:"14px",textAlign:"left"}} onClick={()=>setWizardStep(1)}>
+              <div style={{fontFamily:FD,fontSize:14}}>✏️ Enter items manually</div>
+              <div style={{fontFamily:FM,fontSize:12,color:C.muted,marginTop:4}}>Type in your proteins, produce, and pantry staples</div>
+            </button>
+          </div>
             </div>)}
             {wizardStep===1&&(<div>
               <div style={{fontFamily:FD,fontSize:20,color:C.accent,marginBottom:6}}>🥩 Add Your Proteins</div>
