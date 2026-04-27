@@ -219,6 +219,35 @@ const YOUR_INVENTORY=[
 
 const INITIAL_INVENTORY=[];
 
+// Common pantry staples for new user setup
+const COMMON_PANTRY=[
+  {id:801,name:"Olive Oil",qty:1,unit:"bottle",category:"Pantry",location:"Pantry"},
+  {id:802,name:"Vegetable Oil",qty:1,unit:"bottle",category:"Pantry",location:"Pantry"},
+  {id:803,name:"All-Purpose Flour",qty:1,unit:"bag",category:"Pantry",location:"Pantry"},
+  {id:804,name:"Granulated Sugar",qty:1,unit:"bag",category:"Pantry",location:"Pantry"},
+  {id:805,name:"Salt",qty:1,unit:"container",category:"Spices",location:"Pantry"},
+  {id:806,name:"Black Pepper",qty:1,unit:"container",category:"Spices",location:"Pantry"},
+  {id:807,name:"Garlic Powder",qty:1,unit:"jar",category:"Spices",location:"Pantry"},
+  {id:808,name:"Onion Powder",qty:1,unit:"jar",category:"Spices",location:"Pantry"},
+  {id:809,name:"Italian Seasoning",qty:1,unit:"jar",category:"Spices",location:"Pantry"},
+  {id:810,name:"Taco Seasoning",qty:1,unit:"packet",category:"Spices",location:"Pantry"},
+  {id:811,name:"Cream of Chicken Soup",qty:2,unit:"cans",category:"Pantry",location:"Pantry"},
+  {id:812,name:"Tomato Sauce",qty:2,unit:"cans",category:"Pantry",location:"Pantry"},
+  {id:813,name:"Chicken Broth",qty:2,unit:"cans",category:"Pantry",location:"Pantry"},
+  {id:814,name:"Soy Sauce",qty:1,unit:"bottle",category:"Condiments",location:"Fridge"},
+  {id:815,name:"Ketchup",qty:1,unit:"bottle",category:"Condiments",location:"Fridge"},
+  {id:816,name:"Mayonnaise",qty:1,unit:"jar",category:"Condiments",location:"Fridge"},
+  {id:817,name:"Butter",qty:1,unit:"box",category:"Dairy",location:"Fridge"},
+  {id:818,name:"Eggs",qty:12,unit:"count",category:"Protein",location:"Fridge"},
+  {id:819,name:"White Rice",qty:1,unit:"bag",category:"Grains",location:"Pantry"},
+  {id:820,name:"Pasta",qty:2,unit:"boxes",category:"Grains",location:"Pantry"},
+  {id:821,name:"Egg Noodles",qty:1,unit:"bag",category:"Grains",location:"Pantry"},
+  {id:822,name:"Bread",qty:1,unit:"loaf",category:"Pantry",location:"Pantry"},
+  {id:823,name:"Frozen Corn",qty:1,unit:"bag",category:"Frozen",location:"Freezer"},
+  {id:824,name:"Frozen Broccoli",qty:1,unit:"bag",category:"Frozen",location:"Freezer"},
+  {id:825,name:"Frozen Peas",qty:1,unit:"bag",category:"Frozen",location:"Freezer"},
+];
+
 // -- UI helpers ----------------------------------------------------------------
 const bBtn=(v="primary",ex={})=>({
   padding:"9px 20px",borderRadius:9,border:"none",cursor:"pointer",
@@ -291,6 +320,7 @@ export default function SmartKitchen(){
   const [wizardStep,setWizardStep]=useState(0);
   const [wizardProteins,setWizardProteins]=useState([]);
   const [wizardProteinInput,setWizardProteinInput]=useState({name:"",qty:"",oz:"6"});
+  const [pantryChecklist,setPantryChecklist]=useState(()=>COMMON_PANTRY.map(i=>({...i,checked:true})));
   const [showInstallBanner,setShowInstallBanner]=useState(()=>{try{return localStorage.getItem("sk_installDismissed")!=="1";}catch{return true;}});
   const dismissInstall=()=>{setShowInstallBanner(false);try{localStorage.setItem("sk_installDismissed","1");}catch{}};
   const [editingProfile,setEditingProfile]=useState(null);
@@ -675,7 +705,7 @@ export default function SmartKitchen(){
               ))}
               <div style={{display:"flex",gap:8,marginTop:16}}>
                 <button style={{...bBtn("ghost"),flex:1}} onClick={()=>setWizardStep(1)}>← Back</button>
-                <button style={{...bBtn("primary"),flex:2}} onClick={completeWizard}>Start Cooking! 🍳</button>
+                <button style={{...bBtn("primary"),flex:2}} onClick={()=>setWizardStep(3)}>Next →</button>
               </div>
             </div>)}
           </div>
