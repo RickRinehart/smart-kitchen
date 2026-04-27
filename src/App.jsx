@@ -399,7 +399,7 @@ export default function SmartKitchen(){
     setLoading(true); setLoadMsg("Reading receipt…");
     try{
       const raw=await callClaude({
-        system:"You are a grocery receipt parser. Analyze this receipt image and extract every food/grocery item purchased. Return ONLY a valid JSON array. Each object: {name(string, clean product name), qty(number, default 1), unit(string, best guess like bottle can bag box lb oz count), category(Protein|Produce|Dairy|Pantry|Grains|Spices|Frozen|Condiments|Other), isProtein(boolean), price(string)}. Skip non-food items like bags, tax lines, totals. Clean up product names — remove store codes and abbreviations.",
+        system:"You are a grocery receipt parser. Analyze this receipt image and extract every food/grocery item purchased. Return ONLY a valid JSON array. Each object: {name(string, clean product name), qty(number, default 1), unit(string, best guess like bottle can bag box lb oz count), category(Protein|Produce|Dairy|Pantry|Grains|Spices|Frozen|Condiments|Other), location(Freezer|Fridge|Pantry - Protein=Freezer Dairy=Fridge Condiments=Fridge Frozen=Freezer else=Pantry), isProtein(boolean), price(string)}. Skip non-food items. Clean up product names.",
         prompt:"Parse this grocery receipt. Extract every food item purchased with quantity and category.",
         imageBase64:scanB64,imageType:scanMime,
       });
@@ -407,7 +407,8 @@ export default function SmartKitchen(){
       if(s===-1) throw new Error("Could not read receipt");
       const parsed=JSON.parse(raw.slice(s,e+1));
       const isUpd=(name)=>inventory.some(i=>i.name.toLowerCase()===name.toLowerCase());
-      setScanResults(parsed.map(i=>({...i,location:"Pantry",action:isUpd(i.name)?"update":"add",selected:true})));
+      const smartLoc=(item)=>{if(item.location&&item.location!=="Pantry")return item.location;if(item.category==="Protein")return"Freezer";if(item.category==="Dairy")return"Fridge";if(item.category==="Condiments")return"Fridge";if(item.category==="Frozen")return"Freezer";if(item.category==="Produce")return"Fridge";return"Pantry";};
+      setScanResults(parsed.map(i=>({...i,location:smartLoc(i),action:isUpd(i.name)?"update":"add",selected:true})));
       setScanStage("review");
     } catch(e){ alert("Receipt scan failed: "+e.message); }
     setLoading(false);
