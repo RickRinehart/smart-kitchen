@@ -312,6 +312,7 @@ export default function SmartKitchen(){
   const [rpPPreview,setRpPPreview]=useState(null);
   const [rpVSessions,setRpVSessions]=useState([{id:1,preset:{name:"Mixed Sauté Blend",cupsPerUnit:3,bagCups:2,color:C.orange},count:"",bags:null}]);
   const fileRef=useRef();
+  const galleryRef=useRef();
   useEffect(()=>{try{localStorage.setItem("sk_inventory",JSON.stringify(inventory));}catch{}},[inventory]);
   useEffect(()=>{try{localStorage.setItem("sk_mealPlan",JSON.stringify(mealPlan));}catch{}},[mealPlan]);
   useEffect(()=>{try{localStorage.setItem("sk_familySize",JSON.stringify(familySize));}catch{}},[familySize]);
@@ -1251,11 +1252,13 @@ export default function SmartKitchen(){
                     <div style={{textAlign:"center",padding:30}}>
                       <div style={{fontSize:32,marginBottom:8}}>{scanMode==="receipt"?"🧾":"📷"}</div>
                       <div style={{fontFamily:FD,fontSize:16,color:C.text}}>{scanMode==="receipt"?"Tap to photograph receipt":"Tap to photograph shelf"}</div>
-                      <div style={{fontSize:12,color:C.muted}}>opens camera directly</div>
+                      <div style={{fontSize:12,color:C.muted,marginBottom:12}}>opens camera directly</div>
+                      <button onClick={e=>{e.stopPropagation();galleryRef.current.click();}} style={{background:"transparent",border:"1px solid "+C.border,borderRadius:8,color:C.muted,cursor:"pointer",fontFamily:FM,fontSize:11,padding:"6px 14px"}}>📂 Choose from Gallery</button>
                     </div>
                   )}
                 </div>
                 <input ref={fileRef} type="file" accept="image/*" capture="environment" style={{display:"none"}} onChange={e=>onFile(e.target.files[0])}/>
+                <input ref={galleryRef} type="file" accept="image/*" style={{display:"none"}} onChange={e=>onFile(e.target.files[0])}/>
                 <div style={{display:"flex",gap:8}}>
                   <button style={{flex:1,padding:"9px",borderRadius:9,border:"1px solid "+C.border,background:"transparent",color:C.muted,cursor:"pointer",fontFamily:FM,fontSize:12,fontWeight:600}} onClick={()=>setScanOpen(false)}>Cancel</button>
                   <button style={{flex:2,padding:"9px",borderRadius:9,border:"none",background:scanB64?C.accent:"#333",color:scanB64?"#0c0e14":C.muted,cursor:scanB64?"pointer":"not-allowed",fontFamily:FM,fontSize:12,fontWeight:700,opacity:scanB64?1:0.5}}
