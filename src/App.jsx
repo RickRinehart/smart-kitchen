@@ -1,4 +1,4 @@
-// Smart Kitchen v2.1 - April 26 2026
+// Smart Kitchen App v2.1 - April 26 2026
 import React, { useState, useRef, useEffect } from "react";
 
 // -- Design tokens -------------------------------------------------------------
@@ -1536,3 +1536,4 @@ export default function SmartKitchen(){
     </div>
   );
 }<button onClick={()=>regenerateDay(i)} style={{marginTop:4,background:"transparent",border:"1px solid "+C.border,borderRadius:6,color:C.muted,cursor:"pointer",fontFamily:FM,fontSize:10,padding:"3px 7px",width:"100%"}}>🔄 New Meal</button>
+
