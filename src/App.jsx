@@ -513,8 +513,8 @@ export default function SmartKitchen(){
       const proteins=proteinItems.map(i=>i.name+" "+i.qty+" portions").join(", ");
       const fs=familySummary();
       const raw=await callClaude({
-        system:"Return ONLY a JSON array of 7 dinner plan objects. No other text. Start with [ end with ]. Each: {day,meal,proteinUsed,sauteBagsUsed,sideUsed,shoppingNeeded}. day is Monday through Sunday. proteinUsed is string or null. sauteBagsUsed is number. sideUsed is string or null. shoppingNeeded is array of {name,qty,unit}.",
-        prompt:"Proteins: "+proteins+". Saute blend: "+(blendItem?.qty||0)+" bags. Frozen sides: broccoli 3 bags, corn, peas. Pantry: pasta, rice, egg noodles, Cream of Chicken, tomato sauce, taco seasoning, soy sauce, BBQ sauce. "+fs+"Full 7-day dinner plan Mon-Sun. Max 3 chicken meals. At least 1 beef. At least 1 pork or kielbasa. Vary proteins across the week — no same protein two days in a row.",
+        system:"Return ONLY a JSON array of 7 dinner plan objects. No other text. Start with [ end with ]. Each: {day,meal,proteinUsed,sauteBagsUsed,sideUsed,shoppingNeeded}. day is Monday through Sunday. proteinUsed is string or null. sauteBagsUsed is number. sideUsed is string or null. shoppingNeeded is array of {name,qty,unit} — ONLY items NOT in the inventory list.",
+        prompt:"Proteins available: "+proteins+". Saute blend: "+(blendItem?.qty||0)+" bags. Full inventory on hand (DO NOT put these in shoppingNeeded): "+inventory.map(i=>String(i.name||"")).filter(Boolean).join(", ")+". "+fs+"Plan 7 dinners Mon-Sun using proteins and inventory above. Max 3 chicken meals. At least 1 beef. At least 1 pork or kielbasa. No same protein two days in a row. shoppingNeeded must ONLY list items not found in the inventory list above.",
         maxTokens:3000,
       });
       const s=raw.indexOf("["),e=raw.lastIndexOf("]");
