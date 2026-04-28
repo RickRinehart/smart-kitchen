@@ -1384,7 +1384,7 @@ export default function SmartKitchen(){
                 <div style={{display:"flex",flexDirection:"column",gap:6,maxHeight:320,overflowY:"auto"}}>
                   {scanResults.map((item,i)=>(
                     <div key={i} style={{background:item.selected?"#1f2a40":C.card,border:"1px solid "+(item.selected?C.borderLight:C.border),borderRadius:10,padding:"10px 14px"}}>
-                      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:item.selected?8:0,cursor:"pointer"}} onClick={()=>setScanResults(p=>p.map((si,sii)=>sii===i?{...si,selected:!si.selected}:si))}>
+                      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:item.selected?8:0,cursor:"pointer"}} onClick={e=>{if(e.target.tagName==="INPUT"||e.target.tagName==="SELECT")return;setScanResults(p=>p.map((si,sii)=>sii===i?{...si,selected:!si.selected}:si))}}>
                         <div style={{width:18,height:18,borderRadius:4,border:"2px solid "+(item.selected?C.green:C.border),background:item.selected?C.green:"transparent",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,flexShrink:0}}>{item.selected&&"✓"}</div>
                         <div style={{flex:1}}>
                           <input style={{fontSize:13,fontWeight:600,border:"1px solid #555",borderRadius:4,padding:"2px 6px",width:"100%",background:"#1e1e1e",color:"#ffffff"}} value={item.name} onClick={e=>e.stopPropagation()} onFocus={e=>e.stopPropagation()} onChange={e=>{const updated=[...scanResults];updated[idx]={...updated[idx],name:e.target.value};setScanResults(updated)}} />
