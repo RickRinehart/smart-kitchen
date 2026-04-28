@@ -1131,7 +1131,10 @@ export default function SmartKitchen(){
                         {(d.usesFromInventory||[]).length>0&&<span style={bTag(C.green)}>✅ {d.usesFromInventory.length} on hand</span>}
                         {(d.missingIngredients||[]).length>0&&<span style={bTag(C.red)}>🛒 {d.missingIngredients.length} needed</span>}
                       </div>
-                      <div style={{fontSize:11,color:C.accent,fontFamily:FM}}>TAP FOR RECIPE →</div>
+                      <div style={{display:"flex",gap:10,alignItems:"center"}}>
+                        <span style={{fontSize:11,color:C.accent,fontFamily:FM,letterSpacing:0.5}}>TAP FOR RECIPE →</span>
+                        <a href={getRecipeUrl(d.name)} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{fontSize:10,color:"#60a5fa",fontFamily:FM,textDecoration:"none",fontWeight:600}}>🌐 web</a>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -1498,6 +1501,10 @@ export default function SmartKitchen(){
               <span style={bTag("#f472b6")}>{activeDessert.category}</span>
               <span style={bTag(activeDessert.difficulty==="Easy"?C.green:activeDessert.difficulty==="Hard"?C.red:C.accent)}>{activeDessert.difficulty}</span>
               {activeDessert.servings&&<span style={bTag(C.blue)}>🍽 {activeDessert.servings} servings</span>}
+            </div>
+            <div style={{marginBottom:12}}>
+              <a href={getRecipeUrl(activeDessert.name)} target="_blank" rel="noopener noreferrer" style={{fontSize:11,color:"#f59e0b",fontFamily:FM,textDecoration:"none",fontWeight:600,letterSpacing:0.5}}>TAP FOR FULL RECIPE →</a>
+              <a href={getRecipeUrl(activeDessert.name)} target="_blank" rel="noopener noreferrer" style={{fontSize:10,color:"#60a5fa",fontFamily:FM,textDecoration:"none",fontWeight:600,marginLeft:10}}>🌐 web search</a>
             </div>
             {(activeDessert.missingIngredients||[]).length>0&&(
               <div style={{background:C.red+"15",border:"1px solid "+C.red+"33",borderRadius:10,padding:12,marginBottom:14}}>
