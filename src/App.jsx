@@ -642,6 +642,24 @@ export default function SmartKitchen(){
     alert("✅ \""+r.name+"\" cooked! Inventory updated.");
   };
 
+  const openMealPlanRecipe=async(day)=>{
+    const invList=inventory.map(i=>String(i.name||"")).filter(Boolean).join(", ");
+    setActiveRecipe({name:day.meal,description:"Loading recipe...",time:"...",difficulty:"Easy",instructions:[],missingIngredients:[],usesFromInventory:[]});
+    try{
+      const raw=await callClaude({
+        system:"Recipe AI. Return ONLY valid JSON, no markdown. Single object.",
+        prompt:`Give a simple home recipe for "${day.meal}". Full inventory on hand: ${invList}. Return JSON: {name,description,time,difficulty,instructions:[4 short strings],usesFromInventory:[items from inventory used],missingIngredients:[items NOT in inventory]}`,
+        maxTokens:600
+      });
+      const text=typeof raw==="string"?raw:Array.isArray(raw)?raw.map(r=>r.text||"").join(""):raw?.content?.[0]?.text||"";
+      const clean=text.replace(/\`\`\`json|\`\`\`/g,"").trim();
+      const s=clean.indexOf("{"),e=clean.lastIndexOf("}");
+      const parsed=JSON.parse(clean.slice(s,e+1));
+      setActiveRecipe({...parsed,name:parsed.name||day.meal});
+    }catch(err){
+      setActiveRecipe({name:day.meal,description:"See full recipe online.",time:"~30 min",difficulty:"Easy",instructions:["Tap TAP FOR FULL RECIPE to see detailed instructions online."],missingIngredients:day.shoppingNeeded?.map(s=>s.name)||[],usesFromInventory:[]});
+    }
+  };
   const addItem=()=>{
     if(!newItem.name||!newItem.qty) return;
     const isProtein=newItem.category==="Protein";
@@ -995,7 +1013,7 @@ export default function SmartKitchen(){
                       </div>
                       <div>
                         {day.quickMeal&&<span style={{fontSize:10,background:"#f59e0b22",color:"#f59e0b",padding:"2px 6px",borderRadius:4,fontFamily:FM,display:"inline-block",marginBottom:4}}>⚡ BUSY NIGHT — under 20 min</span>}
-                        <div><div style={{fontFamily:FD,fontSize:16,marginBottom:4}}>🔍 {day.meal}</div><a href={getRecipeUrl(day.meal)} target="_blank" rel="noopener noreferrer" style={{display:"inline-block",fontSize:11,color:C.accent,fontFamily:FM,textDecoration:"none",letterSpacing:0.5,marginBottom:day.ingredients&&day.ingredients.length>0?6:0}}>TAP FOR FULL RECIPE →</a>{day.ingredients&&day.ingredients.length>0&&<div style={{marginTop:6,padding:"8px 10px",background:"rgba(255,255,255,0.05)",borderRadius:6,fontSize:11,fontFamily:FM}}><div style={{fontWeight:600,marginBottom:4,color:C.muted}}>INGREDIENTS</div>{day.ingredients.map((ing,ii)=><div key={ii} style={{color:C.text,marginBottom:2}}>· {ing}</div>)}</div>}</div>
+                        <div><div onClick={()=>openMealPlanRecipe(day)} style={{fontFamily:FD,fontSize:16,marginBottom:4,color:C.accent,cursor:"pointer"}}>🔍 {day.meal}</div><div style={{display:"flex",gap:10,alignItems:"center",marginBottom:day.ingredients&&day.ingredients.length>0?6:0}}><span onClick={()=>openMealPlanRecipe(day)} style={{fontSize:11,color:C.accent,fontFamily:FM,cursor:"pointer",letterSpacing:0.5}}>TAP FOR FULL RECIPE →</span><a href={getRecipeUrl(day.meal)} target="_blank" rel="noopener noreferrer" style={{fontSize:10,color:C.muted,fontFamily:FM,textDecoration:"none"}}>🌐 web</a></div>{day.ingredients&&day.ingredients.length>0&&<div style={{marginTop:6,padding:"8px 10px",background:"rgba(255,255,255,0.05)",borderRadius:6,fontSize:11,fontFamily:FM}}><div style={{fontWeight:600,marginBottom:4,color:C.muted}}>INGREDIENTS</div>{day.ingredients.map((ing,ii)=><div key={ii} style={{color:C.text,marginBottom:2}}>· {ing}</div>)}</div>}</div>
                         <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
                           {day.proteinUsed&&<span style={bTag(PROTEIN_TAG_COLOR(day.proteinUsed))}>🥩 {day.proteinUsed}</span>}
                           {(day.sauteBagsUsed||0)>0&&<span style={bTag(C.orange)}>🫕 {day.sauteBagsUsed} bag</span>}
