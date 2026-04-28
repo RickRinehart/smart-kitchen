@@ -496,7 +496,7 @@ export default function SmartKitchen(){
       const fs=familySummary();
       const raw=await callClaude({
         system:"Return ONLY a JSON array of 4 dinner recipes. No other text. Start with [ end with ]. Each object has exactly these keys: id (number), name (string), time (string like 30 min), difficulty (Easy or Medium or Hard), description (one short sentence), usesFromInventory (array of 3 strings max), missingIngredients (array of strings), instructions (array of 4 short strings). Keep all strings short.",
-        prompt:"Proteins: "+proteins+". Saute blend bags: "+(blendItem?.qty||0)+". Make 4 simple weeknight dinners for 3 people. Vary proteins — include beef and pork not just chicken.",
+        prompt:"Proteins: "+proteins+". Saute blend bags: "+(blendItem?.qty||0)+". Make 4 simple weeknight dinners for 3 people. Vary proteins — include beef and pork not just chicken. Pantry/fridge inventory (match case-insensitively): "+inventory.map(i=>i.name).join(", ")+". For missingIngredients only list items NOT in that inventory.",
       });
       const s=raw.indexOf("["),e=raw.lastIndexOf("]");
       if(s===-1||e===-1) throw new Error("No recipes returned");
