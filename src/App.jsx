@@ -429,7 +429,7 @@ export default function SmartKitchen(){
     setLoading(true); setLoadMsg("Reading receipt…");
     try{
       const raw=await callClaude({
-        system:"You are a grocery receipt parser. Analyze this receipt image and extract every food/grocery item purchased. Return ONLY a valid JSON array. Each object: {name(string, clean product name), qty(number, default 1), unit(string, best guess like bottle can bag box lb oz count), category(Protein|Produce|Dairy|Pantry|Grains|Spices|Frozen|Condiments|Other), location(Freezer|Fridge|Pantry - Protein=Freezer Dairy=Fridge Condiments=Fridge Frozen=Freezer else=Pantry), isProtein(boolean), price(string)}. Skip non-food items. Clean up product names.",
+        system:"You are a grocery receipt parser. Analyze this receipt image and extract every food/grocery item purchased. Return ONLY a valid JSON array. Each object: {name(string, clean product name), qty(number, default 1), unit(string, best guess like bottle can bag box lb oz count), category(Protein|Produce|Dairy|Pantry|Grains|Spices|Frozen|Condiments|Other), location(MUST use these exact rules: Protein/Meat/Seafood=Freezer, Dairy/Eggs/Fresh Produce/Condiments/Dressings/Sauces=Fridge, Canned goods/Dry goods/Spices/Grains/Baking/Snacks/Beverages/Frozen=Pantry or Freezer based on item type), isProtein(boolean), price(string)}. Skip non-food items. Clean up product names.",
         prompt:"Parse this grocery receipt. Extract every food item purchased with quantity and category.",
         imageBase64:scanB64,imageType:scanMime,
       });
@@ -1387,8 +1387,8 @@ export default function SmartKitchen(){
                       <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:item.selected?8:0,cursor:"pointer"}} onClick={()=>setScanResults(p=>p.map((si,sii)=>sii===i?{...si,selected:!si.selected}:si))}>
                         <div style={{width:18,height:18,borderRadius:4,border:"2px solid "+(item.selected?C.green:C.border),background:item.selected?C.green:"transparent",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,flexShrink:0}}>{item.selected&&"✓"}</div>
                         <div style={{flex:1}}>
-                          <div style={{fontSize:13,fontWeight:600}}>{item.name}</div>
-                          <div style={{fontSize:11,color:C.muted,fontFamily:FM}}>{item.qty} {item.unit} · {item.category} · {item.location||"Pantry"}{item.price?" · "+item.price:""}</div>
+                          <input style={{fontSize:13,fontWeight:600,border:"1px solid #ccc",borderRadius:4,padding:"2px 6px",width:"100%",background:"transparent"}} value={item.name} onChange={e=>{const updated=[...scanResults];updated[idx]={...updated[idx],name:e.target.value};setScanResults(updated)}} />
+                          <div style={{fontSize:11,color:C.muted,fontFamily:FM,display:"flex",alignItems:"center",gap:4,flexWrap:"wrap"}}><input type="number" style={{width:50,fontSize:11,border:"1px solid #ccc",borderRadius:3,padding:"1px 4px",background:"transparent"}} value={item.qty} onChange={e=>{const updated=[...scanResults];updated[idx]={...updated[idx],qty:e.target.value};setScanResults(updated)}} /><input style={{width:60,fontSize:11,border:"1px solid #ccc",borderRadius:3,padding:"1px 4px",background:"transparent"}} value={item.unit} onChange={e=>{const updated=[...scanResults];updated[idx]={...updated[idx],unit:e.target.value};setScanResults(updated)}} /> · {item.category} · {item.location||"Pantry"}{item.price?" · "+item.price:""}</div>
                         </div>
                         <span style={bTag(item.action==="update"?C.blue:C.green)}>{item.action==="update"?"UPDATE":"NEW"}</span>
                       </div>
