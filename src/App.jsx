@@ -852,23 +852,13 @@ export default function SmartKitchen(){
             </div>
 
             {showAdd&&(
-              <div style={{background:C.card,border:"1px solid "+C.border,borderRadius:12,padding:14,marginBottom:14}}>
-                <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr auto",gap:8,alignItems:"end",marginBottom:10}}>
-                  {[{l:"Name",k:"name",ph:"Item name"},{l:"Qty",k:"qty",ph:"1",t:"number"},{l:"Unit",k:"unit",ph:"cup"}].map(f=>(
-                    <div key={f.k}><Label>{f.l}</Label><input style={bInp} placeholder={f.ph} type={f.t||"text"} value={newItem[f.k]} onChange={e=>setNewItem(p=>({...p,[f.k]:e.target.value}))}/></div>
-                  ))}
-                  <button style={{...bBtn("primary"),whiteSpace:"nowrap",alignSelf:"flex-end"}} onClick={addItem}>Add</button>
-                </div>
-                <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
-                  <span style={{fontFamily:FM,fontSize:11,color:C.muted,marginRight:2}}>Category:</span>
-                  {[["Protein","#ef4444"],["Produce","#22c55e"],["Dairy","#60a5fa"],["Frozen","#a78bfa"],["Pantry","#f59e0b"],["Grains","#d97706"],["Condiments","#94a3b8"],["Other","#6b7280"]].map(([cat,col])=>(
-                    <button key={cat} onClick={()=>{const autoLoc=cat==="Protein"?"Freezer":cat==="Dairy"||cat==="Produce"?"Fridge":cat==="Frozen"?"Freezer":newItem.location;setNewItem(p=>({...p,category:cat,location:autoLoc}));}} style={{padding:"4px 10px",borderRadius:20,border:"2px solid "+(newItem.category===cat?col:"transparent"),background:newItem.category===cat?col+"22":"transparent",color:newItem.category===cat?col:C.muted,fontFamily:FM,fontSize:11,fontWeight:600,cursor:"pointer",transition:"all 0.15s"}}>{cat}</button>
-                  ))}
-                  <span style={{marginLeft:"auto",fontFamily:FM,fontSize:11,color:C.muted}}>Location:</span>
-                  {["Freezer","Fridge","Pantry"].map(loc=>(
-                    <button key={loc} onClick={()=>setNewItem(p=>({...p,location:loc}))} style={{padding:"4px 10px",borderRadius:20,border:"2px solid "+(newItem.location===loc?C.accent:"transparent"),background:newItem.location===loc?C.accent+"22":"transparent",color:newItem.location===loc?C.accent:C.muted,fontFamily:FM,fontSize:11,fontWeight:600,cursor:"pointer",transition:"all 0.15s"}}>{loc}</button>
-                  ))}
-                </div>
+              <div style={{background:C.card,border:"1px solid "+C.border,borderRadius:12,padding:14,marginBottom:14,display:"grid",gridTemplateColumns:"2fr 1fr 1fr 1.2fr 1.2fr auto",gap:8,alignItems:"end"}}>
+                {[{l:"Name",k:"name",ph:"Item name"},{l:"Qty",k:"qty",ph:"1",t:"number"},{l:"Unit",k:"unit",ph:"cup"}].map(f=>(
+                  <div key={f.k}><Label>{f.l}</Label><input style={bInp} placeholder={f.ph} type={f.t||"text"} value={newItem[f.k]} onChange={e=>setNewItem(p=>({...p,[f.k]:e.target.value}))}/></div>
+                ))}
+                <div><Label>Category</Label><select style={{...bInp,padding:"9px 10px"}} value={newItem.category} onChange={e=>{const cat=e.target.value;const autoLoc=cat==="Protein"?"Freezer":cat==="Dairy"||cat==="Produce"?"Fridge":cat==="Frozen"?"Freezer":newItem.location;setNewItem(p=>({...p,category:cat,location:autoLoc}));}}>{CATEGORIES.map(c=><option key={c}>{c}</option>)}</select></div>
+                <div><Label>Location</Label><select style={{...bInp,padding:"9px 10px"}} value={newItem.location} onChange={e=>setNewItem(p=>({...p,location:e.target.value}))}>{LOCATIONS.map(l=><option key={l}>{l}</option>)}</select></div>
+                <button style={{...bBtn("primary"),whiteSpace:"nowrap"}} onClick={addItem}>Add</button>
               </div>
             )}
 
