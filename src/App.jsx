@@ -322,6 +322,20 @@ export default function SmartKitchen(){
   const [wizardProteinInput,setWizardProteinInput]=useState({name:"",qty:"",oz:"6"});
   const [pantryChecklist,setPantryChecklist]=useState(()=>COMMON_PANTRY.map(i=>({...i,checked:false})));
   const [showInstallBanner,setShowInstallBanner]=useState(()=>{try{return localStorage.getItem("sk_installDismissed")!=="1";}catch{return true;}});
+  const [showInventoryReminder,setShowInventoryReminder]=useState(()=>{
+    try{
+      const day=new Date().getDay(); // 0=Sun, 3=Wed
+      if(day!==0&&day!==3) return false;
+      const dismissed=localStorage.getItem("sk_reminderDismissed");
+      if(!dismissed) return true;
+      const lastDismissed=new Date(dismissed);
+      const today=new Date();
+      today.setHours(0,0,0,0);
+      lastDismissed.setHours(0,0,0,0);
+      return lastDismissed.getTime()<today.getTime();
+    }catch{return false;}
+  });
+  const dismissReminder=()=>{try{localStorage.setItem("sk_reminderDismissed",new Date().toISOString());}catch{}setShowInventoryReminder(false);};
   const dismissInstall=()=>{setShowInstallBanner(false);try{localStorage.setItem("sk_installDismissed","1");}catch{}};
   const [editingProfile,setEditingProfile]=useState(null);
   const [printModal,setPrintModal]=useState(null);
@@ -800,6 +814,21 @@ export default function SmartKitchen(){
         </div>
       )}
       {showInstallBanner&&(<div style={{background:"#1a1f35",borderBottom:"2px solid "+C.accent,padding:"10px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}><div style={{display:"flex",alignItems:"center",gap:10}}><span style={{fontSize:22}}>📱</span><div><div style={{fontFamily:FM,fontSize:12,fontWeight:600,color:C.accent}}>Install Smart Kitchen on your phone</div><div style={{fontFamily:FM,fontSize:11,color:C.muted,marginTop:2}}>{/iPhone|iPad|iPod/.test(navigator.userAgent)?"Tap Share then Add to Home Screen":"Tap menu then Add to Home Screen"}</div></div></div><button onClick={dismissInstall} style={{background:"transparent",border:"1px solid "+C.border,borderRadius:8,color:C.muted,cursor:"pointer",fontFamily:FM,fontSize:11,padding:"5px 10px"}}>Got it</button></div>)}
+      {showInventoryReminder&&(
+        <div style={{background:"#1a2e1a",borderBottom:"2px solid #22c55e",padding:"10px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            <span style={{fontSize:20}}>📦</span>
+            <div>
+              <div style={{fontFamily:FM,fontSize:12,fontWeight:600,color:"#22c55e"}}>{new Date().getDay()===0?"Sunday":"Wednesday"} Inventory Check</div>
+              <div style={{fontFamily:FM,fontSize:11,color:"#86efac",marginTop:2}}>Take a moment to verify your inventory is accurate — scan new items or adjust quantities.</div>
+            </div>
+          </div>
+          <div style={{display:"flex",gap:8,flexShrink:0}}>
+            <button onClick={()=>{dismissReminder();setTab("inventory");}} style={{background:"#22c55e",border:"none",borderRadius:8,color:"#0a0a0a",cursor:"pointer",fontFamily:FM,fontSize:11,fontWeight:600,padding:"5px 12px"}}>✅ Review Now</button>
+            <button onClick={dismissReminder} style={{background:"transparent",border:"1px solid #22c55e44",borderRadius:8,color:"#86efac",cursor:"pointer",fontFamily:FM,fontSize:11,padding:"5px 10px"}}>Dismiss</button>
+          </div>
+        </div>
+      )}
       {/* -- Header -- */}
       <div style={{background:C.surface,borderBottom:"1px solid "+C.border,padding:"14px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,flexWrap:"wrap"}}>
         <div>
