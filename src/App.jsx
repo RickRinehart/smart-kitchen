@@ -451,7 +451,7 @@ export default function SmartKitchen(){
     setLoading(true); setLoadMsg("Scanning shelf photo…");
     try{
       const raw=await callClaude({
-        system:"Kitchen inventory AI. Analyze the photo. Return ONLY valid JSON array. Each item: {name,qty,unit,category,location,confidence}. category is one of: Protein, Produce, Dairy, Pantry, Grains, Spices, Frozen, Condiments, Other. location is one of: Freezer, Fridge, Pantry. Use Freezer for frozen foods, Fridge for dairy/fresh produce/opened condiments, Pantry for dry goods/canned goods/unopened condiments/spices/grains. confidence is high, medium, or low.",
+        system:"Kitchen inventory AI. Analyze the photo. Return ONLY valid JSON array. Each item: {name,qty,unit,category,location,confidence}. category is one of: Protein, Produce, Dairy, Pantry, Grains, Spices, Frozen, Condiments, Other. location rules (MUST follow): Protein/Meat/Seafood/Poultry/Pork/Beef/Fish = Freezer. Dairy/Eggs/Fresh Produce/Deli meats/Condiments/Dressings = Fridge. Canned goods/Dry goods/Spices/Grains/Baking/Snacks/Beverages = Pantry. Frozen packaged foods = Freezer. confidence is high, medium, or low.",
         prompt:"List every visible food item stored here. For each item, determine the most likely storage location based on the food type: use Freezer for frozen foods, Fridge for dairy/fresh produce/condiments, Pantry for dry goods/canned goods/snacks/spices.",
         imageBase64:scanB64,imageType:scanMime,
       });
