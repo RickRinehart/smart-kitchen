@@ -451,7 +451,7 @@ export default function SmartKitchen(){
     try{
       const raw=await callClaude({
         system:"Kitchen inventory AI. Analyze the photo. Return ONLY valid JSON array. Each item: {name,qty,unit,category,confidence}. category is one of: Protein, Produce, Dairy, Pantry, Grains, Spices, Frozen, Condiments, Other. confidence is high, medium, or low.",
-        prompt:"Location: Freezer. List every visible food item stored here.",
+        prompt:"List every visible food item stored here. For each item, determine the most likely storage location based on the food type: use Freezer for frozen foods, Fridge for dairy/fresh produce/condiments, Pantry for dry goods/canned goods/snacks/spices.",
         imageBase64:scanB64,imageType:scanMime,
       });
       const s=raw.indexOf("["),e=raw.lastIndexOf("]");
