@@ -326,7 +326,7 @@ export default function SmartKitchen(){
   const [editingProfile,setEditingProfile]=useState(null);
   const [printModal,setPrintModal]=useState(null);
   const [scanOpen,setScanOpen]=useState(false);
-  const [scanLoc,setScanLoc]=useState("Freezer");
+  const [scanLoc,setScanLoc]=useState("");
   const [scanShelf,setScanShelf]=useState("");
   const [scanPreview,setScanPreview]=useState(null);
   const [scanB64,setScanB64]=useState(null);
@@ -458,7 +458,7 @@ export default function SmartKitchen(){
       if(s===-1) throw new Error("No data");
       const parsed=JSON.parse(raw.slice(s,e+1));
       const isUpd=(name)=>inventory.some(i=>i.name.toLowerCase()===name.toLowerCase());
-      setScanResults(parsed.map(i=>({...i,location:scanLoc,action:isUpd(i.name)?"update":"add",selected:true})));
+      setScanResults(parsed.map(i=>({...i,location:i.location||scanLoc||smartLoc(i),action:isUpd(i.name)?"update":"add",selected:true})));
       setScanStage("review");
     } catch(e){ alert("Scan failed — try a clearer photo."); }
     setLoading(false);
