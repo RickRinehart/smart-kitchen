@@ -343,7 +343,7 @@ export default function SmartKitchen(){
   const [rpVSessions,setRpVSessions]=useState([{id:1,preset:{name:"Mixed Sauté Blend",cupsPerUnit:3,bagCups:2,color:C.orange},count:"",bags:null}]);
   const fileRef=useRef();
   const galleryRef=useRef();
-  useEffect(()=>{setInventory(prev=>{const needsFix=prev.some(i=>i.category==="Protein"&&!i.isBulkProtein);if(!needsFix)return prev;return prev.map(i=>i.category==="Protein"&&!i.isBulkProtein?{...i,isBulkProtein:true,location:i.location||"Freezer",portionOz:i.portionOz||6}:i);});},[]);
+  useEffect(()=>{setInventory(prev=>{const skipUnits=["lb","oz","g","kg","can","jar","bottle","stick","bunch","gallon","slice","slices"];const isBulkCandidate=i=>i.category==="Protein"&&!i.isBulkProtein&&(i.location==="Freezer"||!i.location)&&!skipUnits.includes((i.unit||"").toLowerCase())&&(parseFloat(i.qty)||0)<=50;const needsFix=prev.some(isBulkCandidate);if(!needsFix)return prev;return prev.map(i=>isBulkCandidate(i)?{...i,isBulkProtein:true,location:"Freezer",portionOz:i.portionOz||6}:i);});},[]);
   useEffect(()=>{try{localStorage.setItem("sk_inventory",JSON.stringify(inventory));}catch{}},[inventory]);
   useEffect(()=>{try{localStorage.setItem("sk_mealPlan",JSON.stringify(mealPlan));}catch{}},[mealPlan]);
   useEffect(()=>{try{localStorage.setItem("sk_familySize",JSON.stringify(familySize));}catch{}},[familySize]);
@@ -865,7 +865,7 @@ export default function SmartKitchen(){
                   {[["Protein","#ef4444"],["Produce","#22c55e"],["Dairy","#60a5fa"],["Frozen","#a78bfa"],["Pantry","#f59e0b"],["Grains","#d97706"],["Condiments","#94a3b8"],["Other","#6b7280"]].map(([cat,col])=>(
                     <button key={cat} onClick={()=>{const autoLoc=cat==="Protein"?"Freezer":cat==="Dairy"||cat==="Produce"?"Fridge":cat==="Frozen"?"Freezer":newItem.location;setNewItem(p=>({...p,category:cat,location:autoLoc}));}} style={{padding:"4px 10px",borderRadius:20,border:"2px solid "+(newItem.category===cat?col:"transparent"),background:newItem.category===cat?col+"22":"transparent",color:newItem.category===cat?col:C.muted,fontFamily:FM,fontSize:11,fontWeight:600,cursor:"pointer",transition:"all 0.15s"}}>{cat}</button>
                   ))}
-                  <span style={{marginLeft:"auto",fontFamily:FM,fontSize:11,color:C.muted,whiteSpace:"nowrap"}}>Location:</span>
+                  <span style={{marginLeft:"auto",fontFamily:FM,fontSize:11,color:C.muted,whiteSpace:"nowrap",paddingLeft:8}}>📍 Location:</span>
                   <div style={{display:"flex",gap:6,flexShrink:0}}>
                     {["Freezer","Fridge","Pantry"].map(loc=>(
                       <button key={loc} onClick={()=>setNewItem(p=>({...p,location:loc}))} style={{padding:"4px 10px",borderRadius:20,border:"2px solid "+(newItem.location===loc?C.accent:"transparent"),background:newItem.location===loc?C.accent+"22":"transparent",color:newItem.location===loc?C.accent:C.muted,fontFamily:FM,fontSize:11,fontWeight:600,cursor:"pointer",transition:"all 0.15s",whiteSpace:"nowrap"}}>{loc}</button>
