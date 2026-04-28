@@ -992,6 +992,7 @@ export default function SmartKitchen(){
                           ?<span style={bTag(C.green)}>✅ Ready</span>
                           :<div><div style={{fontSize:9,color:C.muted,marginBottom:3,fontFamily:FM}}>NEED</div>{(day.shoppingNeeded||[]).map((s,j)=><div key={j} style={{fontSize:11,color:C.red,marginBottom:2}}>· {s.qty} {s.unit} {s.name}</div>)}</div>}
                         <button onClick={()=>madeMeal(day)} style={{marginTop:8,background:"#3ecf8e22",border:"1px solid #3ecf8e44",borderRadius:6,color:"#3ecf8e",cursor:"pointer",fontFamily:FM,fontSize:10,padding:"4px 8px",width:"100%"}}>✅ Made It!</button>
+        <button onClick={()=>{setChangeMealModal(i);setChangeMealRequest("");}} style={{marginTop:6,background:"transparent",border:"1px solid "+C.border,borderRadius:4,color:C.muted,fontFamily:FM,fontSize:10,padding:"4px 8px",width:"100%",cursor:"pointer"}}>🔄 Change Meal</button>
                       </div>
                     </div>
                   ))}
