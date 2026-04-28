@@ -348,6 +348,7 @@ export default function SmartKitchen(){
   const [scanResults,setScanResults]=useState(null);const [changeMealModal,setChangeMealModal]=useState(null);const [expandedDay,setExpandedDay]=useState(null);const [changeMealRequest,setChangeMealRequest]=useState("");const [changeMealLoading,setChangeMealLoading]=useState(false);
   const [scanStage,setScanStage]=useState("upload");
   const [scanMode,setScanMode]=useState("shelf");
+  const [saleItems,setSaleItems]=useState(()=>{try{return JSON.parse(localStorage.getItem("sk_saleItems")||"[]");}catch{return [];}});
   const [rpOpen,setRpOpen]=useState(false);
   const [rpMode,setRpMode]=useState("protein");
   const [rpPName,setRpPName]=useState("");
@@ -360,6 +361,7 @@ export default function SmartKitchen(){
   useEffect(()=>{setInventory(prev=>{const skipUnits=["lb","oz","g","kg","can","jar","bottle","stick","bunch","gallon","slice","slices"];const isBulkCandidate=i=>i.category==="Protein"&&!i.isBulkProtein&&(i.location==="Freezer"||!i.location)&&!skipUnits.includes((i.unit||"").toLowerCase())&&(parseFloat(i.qty)||0)<=50;const needsFix=prev.some(isBulkCandidate);if(!needsFix)return prev;return prev.map(i=>isBulkCandidate(i)?{...i,isBulkProtein:true,location:"Freezer",portionOz:i.portionOz||6}:i);});},[]);
   useEffect(()=>{try{localStorage.setItem("sk_inventory",JSON.stringify(inventory));}catch{}},[inventory]);
   useEffect(()=>{try{localStorage.setItem("sk_mealPlan",JSON.stringify(mealPlan));}catch{}},[mealPlan]);
+  useEffect(()=>{try{localStorage.setItem("sk_saleItems",JSON.stringify(saleItems));}catch{}},[saleItems]);
   useEffect(()=>{try{localStorage.setItem("sk_familySize",JSON.stringify(familySize));}catch{}},[familySize]);
   useEffect(()=>{try{localStorage.setItem("sk_familyProfiles",JSON.stringify(familyProfiles));}catch{}},[familyProfiles]);
   useEffect(()=>{try{localStorage.setItem("sk_sportsNights",JSON.stringify(sportsNights));}catch{}},[sportsNights]);
@@ -478,6 +480,25 @@ export default function SmartKitchen(){
     } catch(e){ alert("Scan failed — try a clearer photo."); }
     setLoading(false);
   };
+  const analyzeWeeklyAd=async()=>{
+    if(!scanB64) return;
+    setScanStage("analyzing");
+    setLoading(true); setLoadMsg("Reading weekly ad…");
+    try{
+      const raw=await callClaude({
+        system:"You are a grocery store weekly ad parser. Analyze this store ad image and extract food/grocery sale items. Return ONLY a valid JSON array. Each object: {name(string, clean product name), salePrice(string, e.g. '$2.99'), regularPrice(string or null), unit(string, e.g. 'lb' 'each' 'pkg'), category(Protein|Produce|Dairy|Pantry|Grains|Frozen|Condiments|Other), savings(string, e.g. 'Save $1.00' or 'BOGO' or '2 for $5')}. Focus on food items only. Skip non-food deals.",
+        prompt:"Extract all food sale items from this weekly grocery ad. Include sale price, unit, and any savings details visible.",
+        imageBase64:scanB64,imageType:scanMime,
+      });
+      const s=raw.indexOf("["),e=raw.lastIndexOf("]");
+      if(s===-1) throw new Error("Could not read ad");
+      const parsed=JSON.parse(raw.slice(s,e+1));
+      setSaleItems(parsed);
+      setScanStage("review");
+      setScanResults(parsed.map(i=>({...i,selected:true,qty:1,location:"Store",action:"sale"})));
+    } catch(e){ alert("Ad scan failed: "+e.message); }
+    setLoading(false);
+  };
   const commitScan=()=>{
     const chosen=scanResults.filter(i=>i.selected);
     const hasProteins=chosen.some(i=>i.isProtein||i.category==="Protein");
@@ -521,6 +542,25 @@ export default function SmartKitchen(){
     setLoading(false);
   };
 
+  const buildSaleMealPlan=async()=>{
+    if(saleItems.length===0){alert("No sale items loaded. Scan a weekly ad first.");return;}
+    setLoading(true); setLoadMsg("Building sale meal plan…"); setTab("mealplan");
+    try{
+      const proteins=proteinItems.map(i=>i.name+" "+i.qty+" portions").join(", ");
+      const saleList=saleItems.map(i=>i.name+(i.salePrice?" ("+i.salePrice+")":"")+(i.savings?" — "+i.savings:"")).join(", ");
+      const invList=inventory.map(i=>String(i.name||"")).filter(Boolean).join(", ");
+      const fs=familySummary();
+      const raw=await callClaude({
+        system:"Return ONLY a JSON array of 7 dinner plan objects. No other text. Start with [ end with ]. Each: {day,meal,proteinUsed,sauteBagsUsed,sideUsed,shoppingNeeded}. day is Monday through Sunday. shoppingNeeded is array of {name,qty,unit} — ONLY items NOT in inventory.",
+        prompt:"This week's Meijer sale items: "+saleList+". Proteins on hand: "+proteins+". Full inventory (do NOT list in shoppingNeeded): "+invList+". "+fs+"Build a 7-day dinner plan that PRIORITIZES sale items to maximize savings. Use sale proteins and produce first. shoppingNeeded should only list items not in inventory, and prefer sale-priced items when shopping is needed.",
+        maxTokens:3000,
+      });
+      const s=raw.indexOf("["),e=raw.lastIndexOf("]");
+      if(s===-1||e===-1) throw new Error("No plan returned");
+      setMealPlan(JSON.parse(raw.slice(s,e+1)));
+    } catch(err){ alert("Could not build sale meal plan: "+err.message); }
+    setLoading(false);
+  };
   const buildMealPlan=async()=>{
     setLoading(true); setLoadMsg("Building meal plan…"); setTab("mealplan");
     try{
@@ -1012,6 +1052,18 @@ export default function SmartKitchen(){
         {/* == MEAL PLAN == */}
         {!loading&&tab==="mealplan"&&(
           <div>
+            {saleItems.length>0&&(
+              <div style={{background:"#1a1500",border:"1px solid #f59e0b",borderRadius:12,padding:"12px 16px",marginBottom:16,display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
+                <div>
+                  <div style={{fontFamily:FD,fontSize:14,color:"#f59e0b"}}>🏷️ {saleItems.length} Meijer Sale Items Loaded</div>
+                  <div style={{fontFamily:FM,fontSize:11,color:"#fbbf24",marginTop:2}}>{saleItems.slice(0,4).map(i=>i.name).join(", ")}{saleItems.length>4?" + "+(saleItems.length-4)+" more":""}</div>
+                </div>
+                <div style={{display:"flex",gap:8}}>
+                  <button style={{...bBtn("ghost"),fontSize:11,padding:"6px 12px",border:"1px solid #f59e0b44",color:"#f59e0b"}} onClick={()=>setSaleItems([])}>✕ Clear</button>
+                  <button style={{padding:"8px 16px",borderRadius:9,border:"none",background:"#f59e0b",color:"#0c0e14",fontFamily:FM,fontSize:12,fontWeight:700,cursor:"pointer"}} onClick={buildSaleMealPlan}>🏷️ Build Sale Meal Plan</button>
+                </div>
+              </div>
+            )}
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18,flexWrap:"wrap",gap:10}}>
               <div style={{fontFamily:FD,fontSize:24}}>7-Day Dinner Plan <span style={{fontSize:13,color:C.muted,fontFamily:FB}}>· {activeProfiles.length} people</span></div>
               <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
@@ -1389,7 +1441,7 @@ export default function SmartKitchen(){
         <div style={{position:"fixed",inset:0,background:"#000c",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:16}} onClick={()=>{if(scanStage!=="review")setScanOpen(false);}}>
           <div style={{background:C.surface,border:"1px solid "+C.borderLight,borderRadius:18,padding:"12px 16px",maxWidth:540,width:"100%",maxHeight:"92vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-              <div style={{fontSize:12,fontFamily:FM,color:C.muted}}>{scanMode==="receipt"?"🧾 Receipt Scanner":"📷 Shelf Scanner"} · {scanStage==="review"?"Review items":"tap photo or browse"}</div>
+              <div style={{fontSize:12,fontFamily:FM,color:C.muted}}>{scanMode==="receipt"?"🧾 Receipt Scanner":scanMode==="weeklyad"?"🏷️ Weekly Ad Scanner":"📷 Shelf Scanner"} · {scanStage==="review"?"Review items":"tap photo or browse"}</div>
               <button onClick={()=>setScanOpen(false)} style={{background:"transparent",border:"none",color:C.muted,cursor:"pointer",fontSize:20}}>✕</button>
             </div>
             {scanStage==="upload"&&(
@@ -1403,10 +1455,19 @@ export default function SmartKitchen(){
                     style={{flex:1,padding:"12px",borderRadius:9,border:"1px solid "+(scanMode==="receipt"?C.accent:C.border),background:scanMode==="receipt"?C.accent+"22":"transparent",color:scanMode==="receipt"?C.accent:C.muted,cursor:"pointer",fontFamily:FM,fontSize:13,fontWeight:700}}>
                     🧾 Receipt
                   </button>
+                  <button onClick={()=>{setScanMode("weeklyad");setScanPreview(null);setScanB64(null);}}
+                    style={{flex:1,padding:"12px",borderRadius:9,border:"1px solid "+(scanMode==="weeklyad"?"#f59e0b":C.border),background:scanMode==="weeklyad"?"#f59e0b22":"transparent",color:scanMode==="weeklyad"?"#f59e0b":C.muted,cursor:"pointer",fontFamily:FM,fontSize:13,fontWeight:700}}>
+                    🏷️ Weekly Ad
+                  </button>
                 </div>
                 {scanMode==="receipt"&&(
                   <div style={{background:"#1a2018",borderRadius:10,padding:12,marginBottom:12,fontSize:12,color:C.muted,lineHeight:1.6}}>
                     📸 Lay receipt flat, good lighting, capture full receipt in frame.
+                  </div>
+                )}
+                {scanMode==="weeklyad"&&(
+                  <div style={{background:"#1a1a00",borderRadius:10,padding:12,marginBottom:12,fontSize:12,color:"#fbbf24",lineHeight:1.6}}>
+                    🏷️ Screenshot the weekly ad from your Meijer app, or photograph a printed flyer page by page. Sale items will be extracted and used to build a budget meal plan.
                   </div>
                 )}
                 <div onClick={()=>fileRef.current.click()}
@@ -1418,8 +1479,8 @@ export default function SmartKitchen(){
                     </div>
                   ):(
                     <div style={{textAlign:"center",padding:30}}>
-                      <div style={{fontSize:32,marginBottom:8}}>{scanMode==="receipt"?"🧾":"📷"}</div>
-                      <div style={{fontFamily:FD,fontSize:16,color:C.text}}>{scanMode==="receipt"?"Tap to photograph receipt":"Tap to photograph shelf"}</div>
+                      <div style={{fontSize:32,marginBottom:8}}>{scanMode==="receipt"?"🧾":scanMode==="weeklyad"?"🏷️":"📷"}</div>
+                      <div style={{fontFamily:FD,fontSize:16,color:C.text}}>{scanMode==="receipt"?"Tap to photograph receipt":scanMode==="weeklyad"?"Tap to screenshot weekly ad":"Tap to photograph shelf"}</div>
                       <div style={{fontSize:12,color:C.muted,marginBottom:12}}>opens camera directly</div>
                       <button onClick={e=>{e.stopPropagation();galleryRef.current.click();}} style={{background:"transparent",border:"1px solid "+C.border,borderRadius:8,color:C.muted,cursor:"pointer",fontFamily:FM,fontSize:11,padding:"6px 14px"}}>📂 Choose from Gallery</button>
                     </div>
@@ -1430,8 +1491,8 @@ export default function SmartKitchen(){
                 <div style={{display:"flex",gap:8}}>
                   <button style={{flex:1,padding:"9px",borderRadius:9,border:"1px solid "+C.border,background:"transparent",color:C.muted,cursor:"pointer",fontFamily:FM,fontSize:12,fontWeight:600}} onClick={()=>setScanOpen(false)}>Cancel</button>
                   <button style={{flex:2,padding:"9px",borderRadius:9,border:"none",background:scanB64?C.accent:"#333",color:scanB64?"#0c0e14":C.muted,cursor:scanB64?"pointer":"not-allowed",fontFamily:FM,fontSize:12,fontWeight:700,opacity:scanB64?1:0.5}}
-                    onClick={scanMode==="receipt"?analyzeReceipt:analyzePhoto} disabled={!scanB64}>
-                    {scanMode==="receipt"?"🧾 Read Receipt":"🔍 Analyze Photo"}
+                    onClick={scanMode==="receipt"?analyzeReceipt:scanMode==="weeklyad"?analyzeWeeklyAd:analyzePhoto} disabled={!scanB64}>
+                    {scanMode==="receipt"?"🧾 Read Receipt":scanMode==="weeklyad"?"🏷️ Extract Sale Items":"🔍 Analyze Photo"}
                   </button>
                 </div>
               </div>
