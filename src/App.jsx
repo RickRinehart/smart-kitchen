@@ -620,9 +620,10 @@ export default function SmartKitchen(){
   const fetchDesserts=async()=>{
     setDessertLoading(true); setDessertError(""); setTab("desserts");
     try{
+      const invList=inventory.map(i=>String(i.name||"")).filter(Boolean).join(", ");
       const raw=await callClaude({
-        system:"Return ONLY a JSON array of 3 dessert recipes. No other text. Start response with [ and end with ]. Each object has these keys only: id (number), name (string under 5 words), time (string), difficulty (Easy or Medium or Hard), category (Baked or No-Bake or Quick-Treat), description (under 10 words), steps (array of 2 strings under 15 words each), servings (number). Be very brief.",
-        prompt:"Baking supplies: brownie mix, muffin mix, pie crusts, cream cheese, condensed milk, pie filling, butter, eggs, flour, sugar, vanilla. Give 3 easy dessert ideas.",
+        system:"Return ONLY a JSON array of 3 dessert recipes. No other text. Start with [ end with ]. Each object: {id(number),name(string),time(string),difficulty(Easy|Medium|Hard),category(Baked|No-Bake|Quick-Treat),description(one sentence),steps(array of 3 short strings),servings(number),usesFromInventory(array of ingredient names from inventory),missingIngredients(array of items NOT in inventory)}.",
+        prompt:"Full pantry/fridge inventory: "+invList+". Suggest 3 easy desserts using what's on hand. Prefer ingredients already in inventory. missingIngredients must ONLY list items NOT in the inventory above.",
       });
       const s=raw.indexOf("["),e=raw.lastIndexOf("]");
       if(s===-1||e===-1) throw new Error("No desserts returned");
@@ -1127,6 +1128,8 @@ export default function SmartKitchen(){
                         <span style={bTag(C.muted)}>⏱ {d.time}</span>
                         <span style={bTag("#f472b6")}>{d.category}</span>
                         {d.servings&&<span style={bTag(C.blue)}>🍽 {d.servings} servings</span>}
+                        {(d.usesFromInventory||[]).length>0&&<span style={bTag(C.green)}>✅ {d.usesFromInventory.length} on hand</span>}
+                        {(d.missingIngredients||[]).length>0&&<span style={bTag(C.red)}>🛒 {d.missingIngredients.length} needed</span>}
                       </div>
                       <div style={{fontSize:11,color:C.accent,fontFamily:FM}}>TAP FOR RECIPE →</div>
                     </div>
@@ -1509,18 +1512,27 @@ export default function SmartKitchen(){
                 <div style={{fontSize:13,lineHeight:1.7,color:C.text}}>{step}</div>
               </div>
             ))}
-            <button style={{...bBtn("primary"),width:"100%",marginTop:10,padding:12,background:"#f472b6",color:"#0c0e14"}}
-              onClick={()=>{
-                setShopping(prev=>{
-                  const missing=(activeDessert.missingIngredients||[]).map(name=>({name,qty:1,unit:"as needed",category:"Pantry",checked:false,suggestBulk:false}));
-                  const toAdd=missing.filter(m=>!prev.some(p=>p.name.toLowerCase()===m.name.toLowerCase()));
-                  return [...prev,...toAdd];
-                });
-                setActiveDessert(null);
-                alert("🛒 Missing ingredients added to shopping list!");
-              }}>
-              🛒 Add Missing to Shopping List
-            </button>
+            <div style={{display:"flex",gap:8,marginTop:10}}>
+              {(activeDessert.missingIngredients||[]).length>0&&<button style={{...bBtn("ghost"),flex:1,padding:12,border:"1px solid #f472b6",color:"#f472b6"}}
+                onClick={()=>{
+                  setShopping(prev=>{
+                    const missing=(activeDessert.missingIngredients||[]).map(name=>({name,qty:1,unit:"as needed",category:"Pantry",checked:false,suggestBulk:false}));
+                    const toAdd=missing.filter(m=>!prev.some(p=>p.name.toLowerCase()===m.name.toLowerCase()));
+                    return [...prev,...toAdd];
+                  });
+                  setActiveDessert(null);
+                  alert("🛒 Missing ingredients added to shopping list!");
+                }}>🛒 Add Missing to List</button>}
+              <button style={{...bBtn("primary"),flex:2,padding:12,background:"#f472b6",color:"#0c0e14"}}
+                onClick={()=>{
+                  setInventory(p=>p.map(i=>{
+                    if(!(activeDessert.usesFromInventory||[]).some(u=>u.toLowerCase()===i.name.toLowerCase()))return i;
+                    return {...i,qty:Math.max(0,+(i.qty-1).toFixed(1))};
+                  }));
+                  setActiveDessert(null);
+                  alert("✅ \""+activeDessert.name+"\" made! Inventory updated.");
+                }}>🍰 I Made This — Update Inventory</button>
+            </div>
           </div>
         </div>
       )}
