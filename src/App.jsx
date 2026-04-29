@@ -992,7 +992,7 @@ export default function SmartKitchen(){
         </div>
         <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
           <button style={bBtn("ghost")} onClick={()=>setProfileModalOpen(true)}>👨‍👩‍👧 Family</button>
-          <button style={{...bBtn(seniorMode?"primary":"ghost"),fontSize:seniorMode?13:11,padding:seniorMode?"10px 16px":"7px 12px"}} onClick={()=>setSeniorMode(m=>!m)}>{seniorMode?"🔤 Senior ON":"🔤 Senior"}</button>
+          <button style={{...bBtn(seniorMode?"primary":"ghost"),fontSize:11,padding:"7px 10px"}} onClick={()=>setSeniorMode(m=>!m)}>{seniorMode?"🔤 ON":"🔤 Senior"}</button>
           <button style={bBtn("ghost")} onClick={()=>openRepack("veg")}>🫕 Prep Veg</button>
           <button style={bBtn("orange")} onClick={()=>openRepack("protein")}>🥩 Repackage</button>
           <button style={bBtn("ghost")} onClick={()=>{setScanOpen(true);setScanStage("upload");setScanResults(null);setScanPreview(null);setScanB64(null);setScanMode("shelf");}}>📷 Scan</button>
@@ -1204,15 +1204,15 @@ export default function SmartKitchen(){
                 </div>
                 <div style={{display:"flex",flexDirection:"column",gap:9}}>
                   {mealPlan.map((day,i)=>(
-                    <div key={i} style={{background:day.quickMeal?"#1a1a2e":C.card,border:"1px solid "+(day.quickMeal?"#f59e0b":C.border),borderRadius:12,padding:15,display:"grid",gridTemplateColumns:"80px 1fr auto",gap:14,alignItems:"start"}}>
+                    <div key={i} style={{background:day.quickMeal?"#1a1a2e":C.card,border:"1px solid "+(day.quickMeal?"#f59e0b":C.border),borderRadius:12,padding:15,display:"grid",gridTemplateColumns:"80px 1fr auto",gap:10,alignItems:"start"}}>
                       <div>
                         <div style={{fontFamily:FM,fontSize:9,color:C.muted,marginBottom:3}}>DAY {i+1}</div>
-                        <div style={{fontWeight:700,color:C.accent,fontSize:seniorMode?32:18,fontFamily:FD}}>{day.day}</div>
+                        <div style={{fontWeight:700,color:C.accent,fontSize:seniorMode?18:16,fontFamily:FD,whiteSpace:"nowrap"}}>{day.day}</div>
                         <button onClick={()=>day.quickMeal?clearQuickMeal(i):quickMealForDay(i)} style={{marginTop:6,background:day.quickMeal?"#f59e0b22":"transparent",border:"1px solid "+(day.quickMeal?"#f59e0b":C.border),borderRadius:6,color:day.quickMeal?"#f59e0b":C.muted,cursor:"pointer",fontFamily:FM,fontSize:10,padding:"3px 7px",width:"100%"}}>{day.quickMeal?"⚡ Busy Night":"⚡ Busy Night?"}</button>
                       </div>
                       <div>
                         {day.quickMeal&&<span style={{fontSize:10,background:"#f59e0b22",color:"#f59e0b",padding:"2px 6px",borderRadius:4,fontFamily:FM,display:"inline-block",marginBottom:4}}>⚡ BUSY NIGHT — under 20 min</span>}
-                        <div><div onClick={()=>openMealPlanRecipe(day)} style={{fontFamily:FD,fontSize:16,marginBottom:4,color:C.accent,cursor:"pointer"}}>🔍 {day.meal}</div><div style={{display:"flex",gap:10,alignItems:"center",marginBottom:day.ingredients&&day.ingredients.length>0?6:0}}><span onClick={()=>openMealPlanRecipe(day)} style={{fontSize:seniorMode?18:11,color:"#f59e0b",fontFamily:FM,cursor:"pointer",letterSpacing:0.5,fontWeight:600}}>TAP FOR FULL RECIPE →</span><a href={getRecipeUrl(day.meal)} target="_blank" rel="noopener noreferrer" style={{fontSize:10,color:"#60a5fa",fontFamily:FM,textDecoration:"none",fontWeight:600}}>🌐 web</a></div>{day.ingredients&&day.ingredients.length>0&&<div style={{marginTop:6,padding:"8px 10px",background:"rgba(255,255,255,0.05)",borderRadius:6,fontSize:11,fontFamily:FM}}><div style={{fontWeight:600,marginBottom:4,color:C.muted}}>INGREDIENTS</div>{day.ingredients.map((ing,ii)=><div key={ii} style={{color:C.text,marginBottom:2}}>· {ing}</div>)}</div>}</div>
+                        <div><div onClick={()=>openMealPlanRecipe(day)} style={{fontFamily:FD,fontSize:seniorMode?15:14,marginBottom:4,color:C.accent,cursor:"pointer",lineHeight:1.4}}>🔍 {day.meal}</div><div style={{display:"flex",gap:10,alignItems:"center",marginBottom:day.ingredients&&day.ingredients.length>0?6:0}}><span onClick={()=>openMealPlanRecipe(day)} style={{fontSize:seniorMode?13:11,color:"#f59e0b",fontFamily:FM,cursor:"pointer",letterSpacing:0.3,fontWeight:700,whiteSpace:"nowrap"}}>TAP FOR FULL RECIPE →</span><a href={getRecipeUrl(day.meal)} target="_blank" rel="noopener noreferrer" style={{fontSize:10,color:"#60a5fa",fontFamily:FM,textDecoration:"none",fontWeight:600}}>🌐 web</a></div>{day.ingredients&&day.ingredients.length>0&&<div style={{marginTop:6,padding:"8px 10px",background:"rgba(255,255,255,0.05)",borderRadius:6,fontSize:11,fontFamily:FM}}><div style={{fontWeight:600,marginBottom:4,color:C.muted}}>INGREDIENTS</div>{day.ingredients.map((ing,ii)=><div key={ii} style={{color:C.text,marginBottom:2}}>· {ing}</div>)}</div>}</div>
                         <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
                           {day.proteinUsed&&<span style={bTag(PROTEIN_TAG_COLOR(day.proteinUsed))}>🥩 {day.proteinUsed}</span>}
                           {(day.sauteBagsUsed||0)>0&&<span style={bTag(C.orange)}>🫕 {day.sauteBagsUsed} bag</span>}
@@ -1222,9 +1222,9 @@ export default function SmartKitchen(){
                       <div style={{minWidth:120}}>
                         {(day.shoppingNeeded||[]).length===0
                           ?<span style={bTag(C.green)}>✅ Ready</span>
-                          :<div><div style={{fontSize:9,color:C.muted,marginBottom:3,fontFamily:FM}}>NEED</div>{(day.shoppingNeeded||[]).map((s,j)=><div key={j} style={{fontSize:11,color:C.red,marginBottom:2}}>· {s.qty} {s.unit} {s.name}</div>)}</div>}
-                        <button onClick={()=>madeMeal(day)} style={{marginTop:8,background:"#3ecf8e22",border:"1px solid #3ecf8e44",borderRadius:6,color:"#3ecf8e",cursor:"pointer",fontFamily:FM,fontSize:10,padding:"4px 8px",width:"100%"}}>✅ Made It!</button>
-        <button onClick={()=>{setChangeMealModal(i);setChangeMealRequest("");}} style={{marginTop:6,background:"transparent",border:"1px solid "+C.border,borderRadius:4,color:C.muted,fontFamily:FM,fontSize:10,padding:"4px 8px",width:"100%",cursor:"pointer"}}>🔄 Change Meal</button>
+                          :<div><div style={{fontSize:9,color:C.muted,marginBottom:3,fontFamily:FM}}>NEED</div>{(day.shoppingNeeded||[]).map((s,j)=><div key={j} style={{fontSize:seniorMode?14:11,color:C.red,marginBottom:2}}>· {s.qty} {s.unit} {s.name}</div>)}</div>}
+                        <button onClick={()=>madeMeal(day)} style={{marginTop:8,background:"#3ecf8e22",border:"1px solid #3ecf8e44",borderRadius:6,color:"#3ecf8e",cursor:"pointer",fontFamily:FM,fontSize:seniorMode?14:10,padding:seniorMode?"8px 8px":"4px 8px",width:"100%"}}>✅ Made It!</button>
+        <button onClick={()=>{setChangeMealModal(i);setChangeMealRequest("");}} style={{marginTop:6,background:"transparent",border:"1px solid "+C.border,borderRadius:4,color:C.muted,fontFamily:FM,fontSize:seniorMode?14:10,padding:seniorMode?"8px 8px":"4px 8px",width:"100%",cursor:"pointer"}}>🔄 Change Meal</button>
                       </div>
                     </div>
                   ))}
