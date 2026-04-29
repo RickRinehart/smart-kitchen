@@ -314,6 +314,9 @@ export default function SmartKitchen(){
   const [activeRecipe,setActiveRecipe]=useState(null);
   const [familySize,setFamilySize]=useState(()=>loadLocal("sk_familySize",3));
   const [familyProfiles,setFamilyProfiles]=useState(()=>loadLocal("sk_familyProfiles",DEFAULT_PROFILES));
+  const [tempProfiles,setTempProfiles]=useState(()=>loadLocal("sk_tempProfiles",[]));
+  const [showTempForm,setShowTempForm]=useState(false);
+  const [newTemp,setNewTemp]=useState({name:"",reason:"",restriction:"lowSodium",customNotes:"",startDate:new Date().toISOString().split("T")[0],endDate:"",duration:7});
   const [profileModalOpen,setProfileModalOpen]=useState(false);
   const [recipeSite,setRecipeSite]=useState(()=>loadLocal("sk_recipeSite","google"));
   const [showWizard,setShowWizard]=useState(()=>{try{return localStorage.getItem("sk_setupDone")!=="1"&&loadLocal("sk_inventory",[]).length===0;}catch{return false;}});
@@ -364,6 +367,7 @@ export default function SmartKitchen(){
   useEffect(()=>{try{localStorage.setItem("sk_saleItems",JSON.stringify(saleItems));}catch{}},[saleItems]);
   useEffect(()=>{try{localStorage.setItem("sk_familySize",JSON.stringify(familySize));}catch{}},[familySize]);
   useEffect(()=>{try{localStorage.setItem("sk_familyProfiles",JSON.stringify(familyProfiles));}catch{}},[familyProfiles]);
+  useEffect(()=>{try{localStorage.setItem("sk_tempProfiles",JSON.stringify(tempProfiles));}catch{}},[tempProfiles]);
   useEffect(()=>{try{localStorage.setItem("sk_sportsNights",JSON.stringify(sportsNights));}catch{}},[sportsNights]);
 
   // -- Computed values --------------------------------------------------------
@@ -374,6 +378,10 @@ export default function SmartKitchen(){
   const activeProfiles=familyProfiles.filter(p=>p.active);
   const restrictedProfiles=activeProfiles.filter(p=>p.restriction!=="none"&&p.restriction!=="standard"&&p.restriction!=="athlete");
   const activeFlags=activeProfiles.flatMap(p=>RESTRICTION_PRESETS[p.restriction]?.flags||[]);
+  const today=new Date().toISOString().split("T")[0];
+  const activeTempProfiles=tempProfiles.filter(t=>t.startDate<=today&&(!t.endDate||t.endDate>=today));
+  const tempFlags=activeTempProfiles.flatMap(t=>RESTRICTION_PRESETS[t.restriction]?.flags||[]);
+  const allActiveFlags=[...new Set([...activeFlags,...tempFlags])];
   const hasNoWhiteRice=activeFlags.includes("no-white-rice");
   const hasNoRegularPasta=activeFlags.includes("no-regular-pasta");
   const hasZeroSugar=activeFlags.includes("zero-sugar");
@@ -1426,6 +1434,54 @@ export default function SmartKitchen(){
                 );
               })}
             </div>
+            <div style={{marginTop:20,borderTop:"1px solid "+C.border,paddingTop:16}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                  <div style={{fontFamily:FD,fontSize:16,color:"#a78bfa"}}>⚕️ Temporary Medical Diets</div>
+                  <button style={{...bBtn("ghost"),fontSize:11,padding:"4px 10px",border:"1px solid #a78bfa",color:"#a78bfa"}} onClick={()=>setShowTempForm(f=>!f)}>+ Add</button>
+                </div>
+                {showTempForm&&(
+                  <div style={{background:"#1a0a2e",borderRadius:10,padding:14,marginBottom:12,border:"1px solid #a78bfa44"}}>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
+                      <div><div style={{fontFamily:FM,fontSize:10,color:C.muted,marginBottom:3}}>PERSON</div><input style={bInp} placeholder="e.g. Rick" value={newTemp.name} onChange={e=>setNewTemp(p=>({...p,name:e.target.value}))}/></div>
+                      <div><div style={{fontFamily:FM,fontSize:10,color:C.muted,marginBottom:3}}>REASON</div><input style={bInp} placeholder="e.g. Post-surgery" value={newTemp.reason} onChange={e=>setNewTemp(p=>({...p,reason:e.target.value}))}/></div>
+                    </div>
+                    <div style={{marginBottom:8}}><div style={{fontFamily:FM,fontSize:10,color:C.muted,marginBottom:3}}>DIETARY RESTRICTION</div>
+                      <select style={{...bInp,padding:"8px 10px"}} value={newTemp.restriction} onChange={e=>setNewTemp(p=>({...p,restriction:e.target.value}))}>
+                        {Object.entries(RESTRICTION_PRESETS).map(([k,r])=><option key={k} value={k}>{r.icon} {r.label}</option>)}
+                      </select>
+                    </div>
+                    <div style={{marginBottom:8}}><div style={{fontFamily:FM,fontSize:10,color:C.muted,marginBottom:3}}>ADDITIONAL NOTES (optional)</div><input style={bInp} placeholder="e.g. soft foods only, no raw vegetables" value={newTemp.customNotes} onChange={e=>setNewTemp(p=>({...p,customNotes:e.target.value}))}/></div>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
+                      <div><div style={{fontFamily:FM,fontSize:10,color:C.muted,marginBottom:3}}>START DATE</div><input type="date" style={bInp} value={newTemp.startDate} onChange={e=>setNewTemp(p=>({...p,startDate:e.target.value}))}/></div>
+                      <div><div style={{fontFamily:FM,fontSize:10,color:C.muted,marginBottom:3}}>END DATE</div><input type="date" style={bInp} value={newTemp.endDate} onChange={e=>setNewTemp(p=>({...p,endDate:e.target.value}))}/></div>
+                    </div>
+                    <button style={{...bBtn("primary"),width:"100%",background:"#7c3aed"}} onClick={()=>{
+                      if(!newTemp.name||!newTemp.reason){alert("Please enter a name and reason.");return;}
+                      setTempProfiles(p=>[...p,{...newTemp,id:Date.now()}]);
+                      setNewTemp({name:"",reason:"",restriction:"lowSodium",customNotes:"",startDate:new Date().toISOString().split("T")[0],endDate:"",duration:7});
+                      setShowTempForm(false);
+                    }}>⚕️ Save Temporary Diet</button>
+                  </div>
+                )}
+                {tempProfiles.length===0&&!showTempForm&&<div style={{fontFamily:FM,fontSize:12,color:C.muted,textAlign:"center",padding:"12px 0"}}>No temporary diets active</div>}
+                {tempProfiles.map(t=>{
+                  const isActive=t.startDate<=today&&(!t.endDate||t.endDate>=today);
+                  const isExpired=t.endDate&&t.endDate<today;
+                  const daysLeft=t.endDate?Math.ceil((new Date(t.endDate)-new Date(today))/(1000*60*60*24)):null;
+                  return(
+                    <div key={t.id} style={{background:isExpired?"#1a1a1a":isActive?"#1a0a2e":"#0f0f1a",borderRadius:10,padding:12,marginBottom:8,border:"1px solid "+(isExpired?C.border:isActive?"#7c3aed44":C.border+"44")}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                        <div>
+                          <div style={{fontFamily:FD,fontSize:13,color:isExpired?C.muted:isActive?"#a78bfa":C.muted}}>{RESTRICTION_PRESETS[t.restriction]?.icon} {t.name} — {t.reason}</div>
+                          <div style={{fontFamily:FM,fontSize:11,color:C.muted,marginTop:2}}>{RESTRICTION_PRESETS[t.restriction]?.label}{t.customNotes?" · "+t.customNotes:""}</div>
+                          <div style={{fontFamily:FM,fontSize:10,marginTop:4,color:isExpired?"#ef4444":daysLeft<=3?"#f59e0b":"#86efac"}}>{isExpired?"⚠ Expired "+t.endDate:isActive?daysLeft===null?"Active (no end date)":daysLeft<=3?"⚠ Ends in "+daysLeft+" day"+(daysLeft===1?"":"s"):"✅ Active until "+t.endDate:"Starts "+t.startDate}</div>
+                        </div>
+                        <button onClick={()=>setTempProfiles(p=>p.filter(x=>x.id!==t.id))} style={{background:"transparent",border:"none",color:C.muted,cursor:"pointer",fontSize:14}}>✕</button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             <button style={{...bBtn("primary"),width:"100%",marginTop:14,padding:12}} onClick={()=>setProfileModalOpen(false)}>✅ Save & Close</button>
           </div>
         </div>
