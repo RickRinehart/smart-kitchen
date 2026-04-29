@@ -362,7 +362,23 @@ export default function SmartKitchen(){
   const [rpVSessions,setRpVSessions]=useState([{id:1,preset:{name:"Mixed Sauté Blend",cupsPerUnit:3,bagCups:2,color:C.orange},count:"",bags:null}]);
   const fileRef=useRef();
   const galleryRef=useRef();
-  useEffect(()=>{setInventory(prev=>{const skipUnits=["lb","oz","g","kg","can","jar","bottle","stick","bunch","gallon","slice","slices"];const isBulkCandidate=i=>i.category==="Protein"&&!i.isBulkProtein&&(i.location==="Freezer"||!i.location)&&!skipUnits.includes((i.unit||"").toLowerCase())&&(parseFloat(i.qty)||0)<=50;const needsFix=prev.some(isBulkCandidate);if(!needsFix)return prev;return prev.map(i=>isBulkCandidate(i)?{...i,isBulkProtein:true,location:"Freezer",portionOz:i.portionOz||6}:i);});},[]);
+  // Migration: promote Protein items + fix corrupted portion counts > 50
+  useEffect(()=>{
+    const fixed=localStorage.getItem("sk_portionFixV2");
+    setInventory(prev=>{
+      const skipUnits=["lb","oz","g","kg","can","jar","bottle","stick","bunch","gallon","slice","slices"];
+      const isBulkCandidate=i=>i.category==="Protein"&&!i.isBulkProtein&&(i.location==="Freezer"||!i.location)&&!skipUnits.includes((i.unit||"").toLowerCase())&&(parseFloat(i.qty)||0)<=50;
+      const hasCorrupted=!fixed&&prev.some(i=>i.isBulkProtein&&(parseFloat(i.qty)||0)>50);
+      const needsPromo=prev.some(isBulkCandidate);
+      if(!needsPromo&&!hasCorrupted)return prev;
+      if(hasCorrupted)localStorage.setItem("sk_portionFixV2","1");
+      return prev.map(i=>{
+        if(isBulkCandidate(i))return{...i,isBulkProtein:true,location:"Freezer",portionOz:i.portionOz||6};
+        if(!fixed&&i.isBulkProtein&&(parseFloat(i.qty)||0)>50){const unit=(i.unit||"").toLowerCase();const reasonable=unit.includes("portion")?6:unit.includes("package")?2:unit.includes("count")?4:3;return{...i,qty:reasonable};}
+        return i;
+      });
+    });
+  },[]);
   useEffect(()=>{try{localStorage.setItem("sk_inventory",JSON.stringify(inventory));}catch{}},[inventory]);
   useEffect(()=>{try{localStorage.setItem("sk_mealPlan",JSON.stringify(mealPlan));}catch{}},[mealPlan]);
   useEffect(()=>{try{localStorage.setItem("sk_saleItems",JSON.stringify(saleItems));}catch{}},[saleItems]);
