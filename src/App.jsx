@@ -790,22 +790,30 @@ export default function SmartKitchen(){
               </button>
             </div>)}
             {wizardStep===-1&&(<div style={{padding:"4px 0"}}>
-              <div style={{fontFamily:FD,fontSize:22,color:C.accent,marginBottom:6,textAlign:"center"}}>Here's what we'll set up</div>
-              <div style={{fontFamily:"system-ui,-apple-system,sans-serif",fontSize:13,color:C.muted,marginBottom:20,textAlign:"center",lineHeight:1.6}}>Just 3 quick steps — takes about 2 minutes.</div>
-              <div style={{display:"flex",flexDirection:"column",gap:12,marginBottom:24}}>
-                {[
-                  ["👨‍👩‍👧","Family Profile","Who's eating and any dietary needs or restrictions"],
-                  ["📦","Your Inventory","Proteins, pantry staples, and what you have on hand"],
-                  ["🍽️","Meal Preferences","Recipe site and planning style"],
-                ].map(([icon,title,desc],i)=>(
-                  <div key={i} style={{display:"flex",gap:14,alignItems:"flex-start",background:C.card,borderRadius:12,padding:"14px"}}>
-                    <div style={{width:36,height:36,borderRadius:10,background:C.accent+"22",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>{icon}</div>
-                    <div style={{flex:1}}>
-                      <div style={{fontFamily:"system-ui,-apple-system,sans-serif",fontSize:14,fontWeight:700,color:C.text,marginBottom:3}}>{i+1}. {title}</div>
-                      <div style={{fontFamily:"system-ui,-apple-system,sans-serif",fontSize:12,color:C.muted,lineHeight:1.5}}>{desc}</div>
-                    </div>
+              <div style={{fontFamily:FD,fontSize:22,color:C.accent,marginBottom:4,textAlign:"center"}}>Here's what we'll set up</div>
+              <div style={{fontFamily:"system-ui,-apple-system,sans-serif",fontSize:13,color:C.muted,marginBottom:18,textAlign:"center",lineHeight:1.6}}>Just 3 quick steps — takes about 2 minutes.</div>
+              <div style={{display:"flex",flexDirection:"column",gap:12,marginBottom:20}}>
+                <div style={{display:"flex",gap:14,alignItems:"flex-start",background:C.card,borderRadius:12,padding:"14px"}}>
+                  <div style={{width:36,height:36,borderRadius:10,background:C.accent+"22",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>👨‍👩‍👧</div>
+                  <div style={{flex:1}}>
+                    <div style={{fontFamily:"system-ui,-apple-system,sans-serif",fontSize:14,fontWeight:700,color:C.text,marginBottom:4}}>1. Family Profile</div>
+                    <div style={{fontFamily:"system-ui,-apple-system,sans-serif",fontSize:12,color:C.muted,lineHeight:1.6}}>Tell us who you're cooking for and any dietary or medical needs — <strong style={{color:C.text}}>diabetic-friendly, low sodium, gluten-free</strong>, and more. Smart Kitchen will <strong style={{color:"#22c55e"}}>automatically enforce these in every recipe and meal plan.</strong></div>
                   </div>
-                ))}
+                </div>
+                <div style={{display:"flex",gap:14,alignItems:"flex-start",background:C.card,borderRadius:12,padding:"14px"}}>
+                  <div style={{width:36,height:36,borderRadius:10,background:C.accent+"22",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>📦</div>
+                  <div style={{flex:1}}>
+                    <div style={{fontFamily:"system-ui,-apple-system,sans-serif",fontSize:14,fontWeight:700,color:C.text,marginBottom:4}}>2. Your Inventory</div>
+                    <div style={{fontFamily:"system-ui,-apple-system,sans-serif",fontSize:12,color:C.muted,lineHeight:1.6}}>We'll quickly add proteins, pantry staples, and what you already have on hand — scan or type, whichever is easier.</div>
+                  </div>
+                </div>
+                <div style={{display:"flex",gap:14,alignItems:"flex-start",background:C.card,borderRadius:12,padding:"14px"}}>
+                  <div style={{width:36,height:36,borderRadius:10,background:C.accent+"22",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>🍽️</div>
+                  <div style={{flex:1}}>
+                    <div style={{fontFamily:"system-ui,-apple-system,sans-serif",fontSize:14,fontWeight:700,color:C.text,marginBottom:4}}>3. Meal Preferences</div>
+                    <div style={{fontFamily:"system-ui,-apple-system,sans-serif",fontSize:12,color:C.muted,lineHeight:1.6}}>How your family likes to eat — quick weeknight meals, busy sports nights, favorite cuisines, and more.</div>
+                  </div>
+                </div>
               </div>
               <div style={{background:"#1a2e1a",borderRadius:10,padding:"10px 14px",marginBottom:20,display:"flex",gap:10,alignItems:"center"}}>
                 <span style={{fontSize:16}}>💡</span>
