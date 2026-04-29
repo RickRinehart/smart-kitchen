@@ -1010,7 +1010,7 @@ export default function SmartKitchen(){
       </div>
 
       {/* -- Content -- */}
-      <div style={{padding:"20px",maxWidth:940,margin:"0 auto",fontSize:seniorMode?"20px":"14px"}}>
+      <div style={{padding:"20px",maxWidth:940,margin:"0 auto",fontSize:seniorMode?"22px":"14px"}}>
         {loading&&<div style={{textAlign:"center",padding:80}}><div style={{fontFamily:FD,fontSize:28,color:C.accent,marginBottom:12}}>{loadMsg}</div><LoadingDots/><div style={{fontSize:11,color:C.dim,fontFamily:FM,marginTop:10}}>this may take 10–20 seconds</div></div>}
         {/* == INVENTORY == */}
         {!loading&&tab==="inventory"&&(
@@ -1147,17 +1147,17 @@ export default function SmartKitchen(){
                       onMouseEnter={e=>{e.currentTarget.style.borderColor=C.accent;e.currentTarget.style.background=C.cardHover;}}
                       onMouseLeave={e=>{e.currentTarget.style.borderColor=C.border;e.currentTarget.style.background=C.card;}}>
                       <div style={{display:"flex",justifyContent:"space-between",marginBottom:8,alignItems:"flex-start"}}>
-                        <div style={{fontFamily:FD,fontSize:19,lineHeight:1.3,flex:1}}><a href={getRecipeUrl(r.name)} target="_blank" rel="noopener noreferrer" style={{color:C.accent,textDecoration:"none"}}>🔍 {r.name}</a></div>
+                        <div style={{fontFamily:FD,fontSize:seniorMode?26:19,lineHeight:1.3,flex:1}}><a href={getRecipeUrl(r.name)} target="_blank" rel="noopener noreferrer" style={{color:C.accent,textDecoration:"none"}}>🔍 {r.name}</a></div>
                         <span style={{...bTag(r.difficulty==="Easy"?C.green:r.difficulty==="Hard"?C.red:C.accent),marginLeft:8}}>{r.difficulty}</span>
                       </div>
-                      <div style={{color:C.muted,fontSize:13,marginBottom:12,lineHeight:1.5}}>{r.description}</div>
+                      <div style={{color:C.muted,fontSize:seniorMode?17:13,marginBottom:12,lineHeight:1.6}}>{r.description}</div>
                       <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
-                        <span style={bTag(C.muted)}>⏱ {r.time}</span>
+                        <span style={{...bTag(C.muted),fontSize:seniorMode?14:undefined}}>⏱ {r.time}</span>
                         <span style={bTag(C.blue)}>👨‍👩‍👧 {activeProfiles.length} people</span>
-                        <span style={bTag(C.green)}>✅ {(r.usesFromInventory||[]).length} on hand</span>
-                        {(r.missingIngredients||[]).length>0&&<span style={bTag(C.red)}>🛒 {r.missingIngredients.length} needed</span>}
+                        <span style={{...bTag(C.green),fontSize:seniorMode?14:undefined}}>✅ {(r.usesFromInventory||[]).length} on hand</span>
+                        {(r.missingIngredients||[]).length>0&&<span style={{...bTag(C.red),fontSize:seniorMode?14:undefined}}>🛒 {r.missingIngredients.length} needed</span>}
                       </div>
-                      <div style={{fontSize:11,color:C.accent,fontFamily:FM}}>TAP FOR FULL RECIPE →</div>
+                      <div style={{fontSize:seniorMode?17:11,color:C.accent,fontFamily:FM,fontWeight:seniorMode?700:400}}>TAP FOR FULL RECIPE →</div>
                     </div>
                   ))}
                 </div>
