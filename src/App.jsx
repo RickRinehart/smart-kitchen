@@ -790,8 +790,8 @@ export default function SmartKitchen(){
               </button>
             </div>)}
             {wizardStep===0&&(<div>
-              <div style={{fontFamily:FD,fontSize:24,color:C.accent,marginBottom:8}}>👋 Welcome to Smart Kitchen!</div>
-              <div style={{fontFamily:FM,fontSize:13,color:C.muted,marginBottom:20,lineHeight:1.6}}>Let's set up your kitchen in 2 minutes. We'll start by adding your freezer proteins — the foundation of your meal plan.</div>
+              <div style={{fontFamily:FD,fontSize:24,color:C.accent,marginBottom:8}}>👋 Let's set up your kitchen!</div>
+              <div style={{fontFamily:"system-ui,-apple-system,sans-serif",fontSize:14,color:C.muted,marginBottom:20,lineHeight:1.7}}>Takes about 2 minutes. We'll start with your <strong>family profile</strong> — dietary needs and restrictions — then add your <strong>proteins</strong> so we can build your first personalized meal plan.</div>
               <div style={{fontFamily:FM,fontSize:13,color:C.muted,marginBottom:12}}>How would you like to get started?</div>
           <div style={{display:"flex",flexDirection:"column",gap:10}}>
             <button style={{...bBtn("primary"),padding:"14px",textAlign:"left"}} onClick={()=>{try{localStorage.setItem('sk_setupDone','1');}catch{} setShowWizard(false);setTimeout(()=>setScanOpen(true),300);}}>
