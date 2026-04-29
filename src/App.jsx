@@ -790,6 +790,48 @@ export default function SmartKitchen(){
               </button>
             </div>)}
             {wizardStep===0&&(<div>
+              <div style={{fontFamily:FD,fontSize:20,color:C.accent,marginBottom:6}}>👨‍👩‍👧 Family Profile</div>
+              <div style={{fontFamily:"system-ui,-apple-system,sans-serif",fontSize:13,color:C.muted,marginBottom:16,lineHeight:1.6}}>Tell us about your household so meal plans respect everyone's needs.</div>
+              <div style={{background:C.card,borderRadius:10,padding:14,marginBottom:14}}>
+                <div style={{fontSize:10,fontFamily:FM,color:C.muted,marginBottom:8,letterSpacing:0.8}}>FAMILY SIZE</div>
+                <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
+                  {[1,2,3,4,5,6,7,8].map(n=>(
+                    <button key={n} onClick={()=>{setFamilySize(n);setFamilyProfiles(p=>p.map((pr,i)=>({...pr,active:i<n})));}}
+                      style={{width:38,height:38,borderRadius:8,border:"1px solid "+(familySize===n?C.accent:C.border),background:familySize===n?C.accent+"22":"transparent",color:familySize===n?C.accent:C.muted,cursor:"pointer",fontFamily:FM,fontSize:14,fontWeight:600}}>
+                      {n}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:9,maxHeight:280,overflowY:"auto",marginBottom:14}}>
+                {familyProfiles.filter(p=>p.active).map((profile,idx)=>{
+                  const preset=RESTRICTION_PRESETS[profile.restriction]||RESTRICTION_PRESETS.standard;
+                  return(
+                    <div key={profile.id} style={{background:C.card,borderRadius:12,padding:14}}>
+                      <div style={{display:"flex",gap:10,alignItems:"center",marginBottom:10}}>
+                        <div style={{fontSize:18}}>{preset.icon}</div>
+                        <input style={{...bInp,flex:1}} placeholder={"Person "+(idx+1)+" name"} value={profile.name}
+                          onChange={e=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,name:e.target.value}:pr))}/>
+                      </div>
+                      <div style={{fontSize:10,fontFamily:FM,color:C.muted,marginBottom:6,letterSpacing:0.8}}>DIETARY NEEDS</div>
+                      <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+                        {Object.entries(RESTRICTION_PRESETS).map(([k,r])=>(
+                          <button key={k} onClick={()=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,restriction:k}:pr))}
+                            style={{padding:"4px 10px",borderRadius:20,border:"1px solid "+(profile.restriction===k?r.color:C.border),background:profile.restriction===k?r.color+"22":"transparent",color:profile.restriction===k?r.color:C.muted,fontFamily:FM,fontSize:11,cursor:"pointer"}}>
+                            {r.icon} {r.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div style={{display:"flex",gap:8}}>
+                <button style={{...bBtn("ghost"),flex:1}} onClick={()=>setWizardStep(-1)}>← Back</button>
+                <button style={{...bBtn("primary"),flex:2}} onClick={()=>setWizardStep(1)}>Next →</button>
+              </div>
+            </div>)}
+            {wizardStep===1&&(<div>
               <div style={{fontFamily:FD,fontSize:24,color:C.accent,marginBottom:8}}>👋 Let's set up your kitchen!</div>
               <div style={{fontFamily:"system-ui,-apple-system,sans-serif",fontSize:14,color:C.muted,marginBottom:20,lineHeight:1.7}}>Takes about 2 minutes. We'll start with your <strong>family profile</strong> — dietary needs and restrictions — then add your <strong>proteins</strong> so we can build your first personalized meal plan.</div>
               <div style={{fontFamily:FM,fontSize:13,color:C.muted,marginBottom:12}}>How would you like to get started?</div>
@@ -798,13 +840,13 @@ export default function SmartKitchen(){
               <div style={{fontFamily:FD,fontSize:14}}>📸 Scan items with camera</div>
               <div style={{fontFamily:FM,fontSize:12,color:C.muted,marginTop:4}}>Take photos of receipts, packages, or pantry items</div>
             </button>
-            <button style={{...bBtn("ghost"),padding:"14px",textAlign:"left"}} onClick={()=>setWizardStep(1)}>
+            <button style={{...bBtn("ghost"),padding:"14px",textAlign:"left"}} onClick={()=>setWizardStep(2)}>
               <div style={{fontFamily:FD,fontSize:14}}>✏️ Enter items manually</div>
               <div style={{fontFamily:FM,fontSize:12,color:C.muted,marginTop:4}}>Type in your proteins, produce, and pantry staples</div>
             </button>
           </div>
             </div>)}
-            {wizardStep===1&&(<div>
+            {wizardStep===2&&(<div>
               <div style={{fontFamily:FD,fontSize:20,color:C.accent,marginBottom:6}}>🥩 Add Your Proteins</div>
               <div style={{fontFamily:FM,fontSize:12,color:C.muted,marginBottom:16}}>What proteins do you have in your freezer?</div>
               <div style={{display:"flex",gap:8,marginBottom:10}}>
@@ -815,39 +857,39 @@ export default function SmartKitchen(){
               <button style={{...bBtn("primary"),marginBottom:16,width:"100%"}} onClick={()=>{if(wizardProteinInput.name&&wizardProteinInput.qty){setWizardProteins(p=>[...p,{...wizardProteinInput}]);setWizardProteinInput({name:"",qty:"",oz:"6"});}}}>+ Add Protein</button>
               {wizardProteins.map((p,i)=><div key={i} style={{fontFamily:FM,fontSize:12,color:C.text,padding:"6px 10px",background:C.card,borderRadius:8,marginBottom:6,display:"flex",justifyContent:"space-between"}}><span>{p.name} — {p.qty} portions ({p.oz}oz)</span><span style={{cursor:"pointer",color:C.red}} onClick={()=>setWizardProteins(prev=>prev.filter((_,j)=>j!==i))}>✕</span></div>)}
               <div style={{display:"flex",gap:8,marginTop:8}}>
-                <button style={{...bBtn("ghost"),flex:1}} onClick={()=>setWizardStep(2)}>Skip</button>
-                <button style={{...bBtn("primary"),flex:2}} onClick={()=>setWizardStep(2)}>Next →</button>
+                <button style={{...bBtn("ghost"),flex:1}} onClick={()=>setWizardStep(3)}>Skip</button>
+                <button style={{...bBtn("primary"),flex:2}} onClick={()=>setWizardStep(3)}>Next →</button>
               </div>
             </div>)}
-            {wizardStep===2&&(<div>
+            {wizardStep===3&&(<div>
               <div style={{fontFamily:FD,fontSize:20,color:C.accent,marginBottom:6}}>🔍 Recipe Search</div>
               <div style={{fontFamily:FM,fontSize:12,color:C.muted,marginBottom:16}}>When you tap a meal name, which site opens for detailed recipes?</div>
               {[["google","🔍 Google Recipes"],["allrecipes","🍳 AllRecipes"],["pinterest","📌 Pinterest"],["foodnetwork","📺 Food Network"]].map(([key,label])=>(
                 <div key={key} onClick={()=>setRecipeSite(key)} style={{padding:"12px 16px",borderRadius:10,marginBottom:8,cursor:"pointer",border:"2px solid "+(recipeSite===key?C.accent:C.border),background:recipeSite===key?C.accent+"11":C.card,fontFamily:FM,fontSize:13,color:recipeSite===key?C.accent:C.text}}>{label}</div>
               ))}
               <div style={{display:"flex",gap:8,marginTop:16}}>
-                <button style={{...bBtn("ghost"),flex:1}} onClick={()=>setWizardStep(1)}>← Back</button>
-                <button style={{...bBtn("primary"),flex:2}} onClick={()=>setWizardStep(3)}>Next →</button>
+                <button style={{...bBtn("ghost"),flex:1}} onClick={()=>setWizardStep(2)}>← Back</button>
+                <button style={{...bBtn("primary"),flex:2}} onClick={()=>setWizardStep(4)}>Next →</button>
               </div>
             </div>)}
-            {wizardStep===3&&(<div>
+            {wizardStep===4&&(<div>
               <div style={{fontFamily:FD,fontSize:20,color:C.accent,marginBottom:6}}>📦 Inventory Setup</div>
               <div style={{fontFamily:FM,fontSize:13,color:C.muted,marginBottom:20,lineHeight:1.6}}>How do you want to start your pantry inventory?</div>
               <div style={{display:'flex',flexDirection:'column',gap:10}}>
-                <button style={{...bBtn('primary'),padding:'16px',textAlign:'left'}} onClick={()=>{setPantryChecklist(COMMON_PANTRY.map(i=>({...i,checked:true})));setWizardStep(4)}}>
+                <button style={{...bBtn('primary'),padding:'16px',textAlign:'left'}} onClick={()=>{setPantryChecklist(COMMON_PANTRY.map(i=>({...i,checked:true})));setWizardStep(5)}}>
                   <div style={{fontFamily:FD,fontSize:14}}>✅ Start with common pantry items</div>
                   <div style={{fontFamily:FM,fontSize:12,color:C.muted,marginTop:4}}>We'll pre-check ~30 staples — just uncheck what you don't have</div>
                 </button>
-                <button style={{...bBtn('ghost'),padding:'16px',textAlign:'left'}} onClick={()=>{setPantryChecklist(COMMON_PANTRY.map(i=>({...i,checked:false})));setWizardStep(4)}}>
+                <button style={{...bBtn('ghost'),padding:'16px',textAlign:'left'}} onClick={()=>{setPantryChecklist(COMMON_PANTRY.map(i=>({...i,checked:false})));setWizardStep(5)}}>
                   <div style={{fontFamily:FD,fontSize:14}}>🔲 Start from scratch</div>
                   <div style={{fontFamily:FM,fontSize:12,color:C.muted,marginTop:4}}>Manually check off what you have</div>
                 </button>
               </div>
               <div style={{display:'flex',gap:8,marginTop:16}}>
-                <button style={{...bBtn('ghost'),flex:1}} onClick={()=>setWizardStep(2)}>← Back</button>
+                <button style={{...bBtn('ghost'),flex:1}} onClick={()=>setWizardStep(3)}>← Back</button>
               </div>
             </div>)}
-            {wizardStep===4&&(<div>
+            {wizardStep===5&&(<div>
               <div style={{fontFamily:FD,fontSize:20,color:C.accent,marginBottom:6}}>🧺 Pantry Checklist</div>
               <div style={{fontFamily:FM,fontSize:13,color:C.muted,marginBottom:12}}>Check off what you have on hand:</div>
               <div style={{maxHeight:320,overflowY:'auto',marginBottom:12}}>
@@ -864,7 +906,7 @@ export default function SmartKitchen(){
                 ))}
               </div>
               <div style={{display:'flex',gap:8}}>
-                <button style={{...bBtn('ghost'),flex:1}} onClick={()=>setWizardStep(3)}>← Back</button>
+                <button style={{...bBtn('ghost'),flex:1}} onClick={()=>setWizardStep(4)}>← Back</button>
                 <button style={{...bBtn('primary'),flex:2}} onClick={()=>{
                   const checked=pantryChecklist.filter(i=>i.checked).map(i=>i.name);
                   if(checked.length>0){
