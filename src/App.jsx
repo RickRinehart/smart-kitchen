@@ -315,6 +315,7 @@ export default function SmartKitchen(){
   const [familySize,setFamilySize]=useState(()=>loadLocal("sk_familySize",3));
   const [familyProfiles,setFamilyProfiles]=useState(()=>loadLocal("sk_familyProfiles",DEFAULT_PROFILES));
   const [tempProfiles,setTempProfiles]=useState(()=>loadLocal("sk_tempProfiles",[]));
+  const [seniorMode,setSeniorMode]=useState(()=>{try{return localStorage.getItem("sk_seniorMode")==="1";}catch{return false;}});
   const [showTempForm,setShowTempForm]=useState(false);
   const [newTemp,setNewTemp]=useState({name:"",reason:"",restriction:"lowSodium",customNotes:"",startDate:new Date().toISOString().split("T")[0],endDate:"",duration:7});
   const [profileModalOpen,setProfileModalOpen]=useState(false);
@@ -368,6 +369,7 @@ export default function SmartKitchen(){
   useEffect(()=>{try{localStorage.setItem("sk_familySize",JSON.stringify(familySize));}catch{}},[familySize]);
   useEffect(()=>{try{localStorage.setItem("sk_familyProfiles",JSON.stringify(familyProfiles));}catch{}},[familyProfiles]);
   useEffect(()=>{try{localStorage.setItem("sk_tempProfiles",JSON.stringify(tempProfiles));}catch{}},[tempProfiles]);
+  useEffect(()=>{try{localStorage.setItem("sk_seniorMode",seniorMode?"1":"0");}catch{}},[seniorMode]);
   useEffect(()=>{try{localStorage.setItem("sk_sportsNights",JSON.stringify(sportsNights));}catch{}},[sportsNights]);
 
   // -- Computed values --------------------------------------------------------
@@ -963,6 +965,7 @@ export default function SmartKitchen(){
         </div>
       )}
       {showInstallBanner&&(<div style={{background:"#1a1f35",borderBottom:"2px solid "+C.accent,padding:"10px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}><div style={{display:"flex",alignItems:"center",gap:10}}><span style={{fontSize:22}}>📱</span><div><div style={{fontFamily:FM,fontSize:12,fontWeight:600,color:C.accent}}>Install Smart Kitchen on your phone</div><div style={{fontFamily:FM,fontSize:11,color:C.muted,marginTop:2}}>{/iPhone|iPad|iPod/.test(navigator.userAgent)?"Tap Share then Add to Home Screen":"Tap menu then Add to Home Screen"}</div></div></div><button onClick={dismissInstall} style={{background:"transparent",border:"1px solid "+C.border,borderRadius:8,color:C.muted,cursor:"pointer",fontFamily:FM,fontSize:11,padding:"5px 10px"}}>Got it</button></div>)}
+      {seniorMode&&<div style={{background:"#1a2e3a",borderBottom:"2px solid #60a5fa",padding:"6px 16px",display:"flex",alignItems:"center",justifyContent:"space-between"}}><span style={{fontFamily:"system-ui",fontSize:14,color:"#93c5fd",fontWeight:600}}>👴 Senior Mode Active — Large Text & Buttons</span><button onClick={()=>setSeniorMode(false)} style={{background:"transparent",border:"1px solid #60a5fa44",borderRadius:6,color:"#93c5fd",cursor:"pointer",fontFamily:"system-ui",fontSize:12,padding:"3px 10px"}}>Turn Off</button></div>}
       {showInventoryReminder&&(
         <div style={{background:"#1a2e1a",borderBottom:"2px solid #22c55e",padding:"10px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
@@ -989,6 +992,7 @@ export default function SmartKitchen(){
         </div>
         <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
           <button style={bBtn("ghost")} onClick={()=>setProfileModalOpen(true)}>👨‍👩‍👧 Family</button>
+          <button style={{...bBtn(seniorMode?"primary":"ghost"),fontSize:seniorMode?13:11,padding:seniorMode?"10px 16px":"7px 12px"}} onClick={()=>setSeniorMode(m=>!m)}>{seniorMode?"🔤 Senior ON":"🔤 Senior"}</button>
           <button style={bBtn("ghost")} onClick={()=>openRepack("veg")}>🫕 Prep Veg</button>
           <button style={bBtn("orange")} onClick={()=>openRepack("protein")}>🥩 Repackage</button>
           <button style={bBtn("ghost")} onClick={()=>{setScanOpen(true);setScanStage("upload");setScanResults(null);setScanPreview(null);setScanB64(null);setScanMode("shelf");}}>📷 Scan</button>
@@ -999,14 +1003,14 @@ export default function SmartKitchen(){
       {/* -- Tabs -- */}
       <div style={{display:"flex",background:C.surface,borderBottom:"1px solid "+C.border,paddingLeft:12,overflowX:"auto"}}>
         {[["inventory","📦","Inventory"],["recipes","🍽","Recipes"],["mealplan","📅","Meal Plan"],["shopping","🛒","Shopping"],["desserts","🍰","Desserts"]].map(([k,ic,lb])=>(
-          <button key={k} onClick={()=>setTab(k)} style={{background:"transparent",border:"none",borderBottom:"2px solid "+(tab===k?C.accent:"transparent"),padding:"11px 16px",color:tab===k?C.accent:C.muted,cursor:"pointer",fontFamily:FM,fontSize:11,fontWeight:600,letterSpacing:0.8,whiteSpace:"nowrap",transition:"all 0.15s"}}>
+          <button key={k} onClick={()=>setTab(k)} style={{background:"transparent",border:"none",borderBottom:"2px solid "+(tab===k?C.accent:"transparent"),padding:"11px 16px",color:tab===k?C.accent:C.muted,cursor:"pointer",fontFamily:FM,fontSize:seniorMode?14:11,fontWeight:600,letterSpacing:0.8,whiteSpace:"nowrap",transition:"all 0.15s",padding:seniorMode?"14px 20px":"11px 16px"}}>
             {ic} {lb.toUpperCase()}
           </button>
         ))}
       </div>
 
       {/* -- Content -- */}
-      <div style={{padding:"20px",maxWidth:940,margin:"0 auto"}}>
+      <div style={{padding:"20px",maxWidth:940,margin:"0 auto",fontSize:seniorMode?"17px":"14px"}}>
         {loading&&<div style={{textAlign:"center",padding:80}}><div style={{fontFamily:FD,fontSize:28,color:C.accent,marginBottom:12}}>{loadMsg}</div><LoadingDots/><div style={{fontSize:11,color:C.dim,fontFamily:FM,marginTop:10}}>this may take 10–20 seconds</div></div>}
         {/* == INVENTORY == */}
         {!loading&&tab==="inventory"&&(
@@ -1080,7 +1084,7 @@ export default function SmartKitchen(){
                   <div key={item.id} style={{background:C.card,border:"1px solid "+item.isLow?C.red:C.border,borderRadius:12,padding:13,display:"flex",flexDirection:"column",gap:8}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                       <div>
-                        <div style={{fontWeight:600,fontSize:13,lineHeight:1.3}}>{item.name}</div>
+                        <div style={{fontWeight:600,fontSize:seniorMode?17:13,lineHeight:1.3}}>{item.name}</div>
                         {item.blendNote&&<div style={{fontSize:10,color:C.muted,marginTop:1}}>{item.blendNote}</div>}
                         {item.isLow&&<div style={bTag(C.red)}>⚠️ Low</div>}
                       </div>
@@ -1097,9 +1101,9 @@ export default function SmartKitchen(){
                       {isDV&&<span style={bTag(C.orange)}>{item.cupsPerBag}c bag</span>}
                     </div>
                     <div style={{display:"flex",alignItems:"center",gap:6}}>
-                      <button onClick={()=>setInventory(p=>p.map(i=>i.id===item.id?{...i,qty:Math.max(0,i.qty-1)}:i))} style={{width:24,height:24,borderRadius:5,background:C.surface,border:"1px solid "+C.border,color:C.text,cursor:"pointer",fontSize:14,display:"flex",alignItems:"center",justifyContent:"center"}}>−</button>
+                      <button onClick={()=>setInventory(p=>p.map(i=>i.id===item.id?{...i,qty:Math.max(0,i.qty-1)}:i))} style={{width:seniorMode?40:24,height:seniorMode?40:24,borderRadius:5,background:C.surface,border:"1px solid "+C.border,color:C.text,cursor:"pointer",fontSize:seniorMode?20:14,display:"flex",alignItems:"center",justifyContent:"center"}}>−</button>
                       <span style={{fontFamily:FM,fontSize:13,minWidth:56,textAlign:"center",color:item.qty===0?C.red:C.text}}>{item.qty} <span style={{fontSize:10,color:C.muted}}>{item.unit}</span></span>
-                      <button onClick={()=>setInventory(p=>p.map(i=>i.id===item.id?{...i,qty:i.qty+1}:i))} style={{width:24,height:24,borderRadius:5,background:C.surface,border:"1px solid "+C.border,color:C.text,cursor:"pointer",fontSize:14,display:"flex",alignItems:"center",justifyContent:"center"}}>+</button>
+                      <button onClick={()=>setInventory(p=>p.map(i=>i.id===item.id?{...i,qty:i.qty+1}:i))} style={{width:seniorMode?40:24,height:seniorMode?40:24,borderRadius:5,background:C.surface,border:"1px solid "+C.border,color:C.text,cursor:"pointer",fontSize:seniorMode?20:14,display:"flex",alignItems:"center",justifyContent:"center"}}>+</button>
                       {item.qty===0&&<span style={bTag(C.red)}>OUT</span>}
                     </div>
                     {(isBP||isDV)&&<button onClick={()=>openRepack(isBP?"protein":"veg")} style={{...bBtn("ghost"),padding:"4px 8px",fontSize:10,width:"100%"}}>{isBP?"🥩 Add Batch":"🫕 Prep More"}</button>}
@@ -1203,12 +1207,12 @@ export default function SmartKitchen(){
                     <div key={i} style={{background:day.quickMeal?"#1a1a2e":C.card,border:"1px solid "+(day.quickMeal?"#f59e0b":C.border),borderRadius:12,padding:15,display:"grid",gridTemplateColumns:"80px 1fr auto",gap:14,alignItems:"start"}}>
                       <div>
                         <div style={{fontFamily:FM,fontSize:9,color:C.muted,marginBottom:3}}>DAY {i+1}</div>
-                        <div style={{fontWeight:700,color:C.accent,fontSize:18,fontFamily:FD}}>{day.day}</div>
+                        <div style={{fontWeight:700,color:C.accent,fontSize:seniorMode?26:18,fontFamily:FD}}>{day.day}</div>
                         <button onClick={()=>day.quickMeal?clearQuickMeal(i):quickMealForDay(i)} style={{marginTop:6,background:day.quickMeal?"#f59e0b22":"transparent",border:"1px solid "+(day.quickMeal?"#f59e0b":C.border),borderRadius:6,color:day.quickMeal?"#f59e0b":C.muted,cursor:"pointer",fontFamily:FM,fontSize:10,padding:"3px 7px",width:"100%"}}>{day.quickMeal?"⚡ Busy Night":"⚡ Busy Night?"}</button>
                       </div>
                       <div>
                         {day.quickMeal&&<span style={{fontSize:10,background:"#f59e0b22",color:"#f59e0b",padding:"2px 6px",borderRadius:4,fontFamily:FM,display:"inline-block",marginBottom:4}}>⚡ BUSY NIGHT — under 20 min</span>}
-                        <div><div onClick={()=>openMealPlanRecipe(day)} style={{fontFamily:FD,fontSize:16,marginBottom:4,color:C.accent,cursor:"pointer"}}>🔍 {day.meal}</div><div style={{display:"flex",gap:10,alignItems:"center",marginBottom:day.ingredients&&day.ingredients.length>0?6:0}}><span onClick={()=>openMealPlanRecipe(day)} style={{fontSize:11,color:"#f59e0b",fontFamily:FM,cursor:"pointer",letterSpacing:0.5,fontWeight:600}}>TAP FOR FULL RECIPE →</span><a href={getRecipeUrl(day.meal)} target="_blank" rel="noopener noreferrer" style={{fontSize:10,color:"#60a5fa",fontFamily:FM,textDecoration:"none",fontWeight:600}}>🌐 web</a></div>{day.ingredients&&day.ingredients.length>0&&<div style={{marginTop:6,padding:"8px 10px",background:"rgba(255,255,255,0.05)",borderRadius:6,fontSize:11,fontFamily:FM}}><div style={{fontWeight:600,marginBottom:4,color:C.muted}}>INGREDIENTS</div>{day.ingredients.map((ing,ii)=><div key={ii} style={{color:C.text,marginBottom:2}}>· {ing}</div>)}</div>}</div>
+                        <div><div onClick={()=>openMealPlanRecipe(day)} style={{fontFamily:FD,fontSize:16,marginBottom:4,color:C.accent,cursor:"pointer"}}>🔍 {day.meal}</div><div style={{display:"flex",gap:10,alignItems:"center",marginBottom:day.ingredients&&day.ingredients.length>0?6:0}}><span onClick={()=>openMealPlanRecipe(day)} style={{fontSize:seniorMode?15:11,color:"#f59e0b",fontFamily:FM,cursor:"pointer",letterSpacing:0.5,fontWeight:600}}>TAP FOR FULL RECIPE →</span><a href={getRecipeUrl(day.meal)} target="_blank" rel="noopener noreferrer" style={{fontSize:10,color:"#60a5fa",fontFamily:FM,textDecoration:"none",fontWeight:600}}>🌐 web</a></div>{day.ingredients&&day.ingredients.length>0&&<div style={{marginTop:6,padding:"8px 10px",background:"rgba(255,255,255,0.05)",borderRadius:6,fontSize:11,fontFamily:FM}}><div style={{fontWeight:600,marginBottom:4,color:C.muted}}>INGREDIENTS</div>{day.ingredients.map((ing,ii)=><div key={ii} style={{color:C.text,marginBottom:2}}>· {ing}</div>)}</div>}</div>
                         <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
                           {day.proteinUsed&&<span style={bTag(PROTEIN_TAG_COLOR(day.proteinUsed))}>🥩 {day.proteinUsed}</span>}
                           {(day.sauteBagsUsed||0)>0&&<span style={bTag(C.orange)}>🫕 {day.sauteBagsUsed} bag</span>}
@@ -1463,7 +1467,7 @@ export default function SmartKitchen(){
                     }}>⚕️ Save Temporary Diet</button>
                   </div>
                 )}
-                {tempProfiles.length===0&&!showTempForm&&<div style={{fontFamily:FM,fontSize:12,color:C.muted,textAlign:"center",padding:"12px 0"}}>No temporary diets active</div>}
+                {tempProfiles.length===0&&!showTempForm&&<div style={{fontFamily:"system-ui,-apple-system,sans-serif",fontSize:12,color:C.muted,textAlign:"center",padding:"12px 0"}}>No temporary diets active</div>}
                 {tempProfiles.map(t=>{
                   const isActive=t.startDate<=today&&(!t.endDate||t.endDate>=today);
                   const isExpired=t.endDate&&t.endDate<today;
