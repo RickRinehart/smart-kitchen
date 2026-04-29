@@ -1078,9 +1078,13 @@ export default function SmartKitchen(){
                       </div>
                       <button onClick={()=>setInventory(p=>p.filter(i=>i.id!==item.id))} style={{background:"transparent",border:"none",color:C.dim,cursor:"pointer",fontSize:14,padding:2}}>✕</button>
                     </div>
-                    <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
-                      <span style={bTag(CAT_COLORS[item.category]||C.muted)}>{item.category}</span>
-                      <span style={bTag(LOC_COLORS[item.location]||C.muted)}>{LOC_ICONS[item.location]} {item.location}</span>
+                    <div style={{display:"flex",gap:4,flexWrap:"wrap",alignItems:"center"}}>
+                      <select value={item.category} onChange={e=>{const cat=e.target.value;const autoLoc=cat==="Protein"?"Freezer":cat==="Dairy"||cat==="Produce"?"Fridge":cat==="Frozen"?"Freezer":cat==="Baking"?"Pantry":item.location;setInventory(p=>p.map(i=>i.id===item.id?{...i,category:cat,location:autoLoc}:i));}} onClick={e=>e.stopPropagation()} style={{fontSize:11,fontWeight:600,padding:"2px 4px",borderRadius:8,border:"1px solid "+(CAT_COLORS[item.category]||C.muted)+"88",background:(CAT_COLORS[item.category]||C.muted)+"22",color:CAT_COLORS[item.category]||C.muted,cursor:"pointer",maxWidth:100}}>
+                        {CATEGORIES.map(c=><option key={c} value={c}>{c}</option>)}
+                      </select>
+                      <select value={item.location||"Pantry"} onChange={e=>setInventory(p=>p.map(i=>i.id===item.id?{...i,location:e.target.value}:i))} onClick={e=>e.stopPropagation()} style={{fontSize:11,fontWeight:600,padding:"2px 4px",borderRadius:8,border:"1px solid "+(LOC_COLORS[item.location]||C.muted)+"88",background:(LOC_COLORS[item.location]||C.muted)+"22",color:LOC_COLORS[item.location]||C.muted,cursor:"pointer"}}>
+                        {["Freezer","Fridge","Pantry"].map(l=><option key={l} value={l}>{LOC_ICONS[l]} {l}</option>)}
+                      </select>
                       {isBP&&<span style={bTag(C.red)}>{item.portionOz}oz</span>}
                       {isDV&&<span style={bTag(C.orange)}>{item.cupsPerBag}c bag</span>}
                     </div>
