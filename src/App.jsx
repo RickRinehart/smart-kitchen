@@ -1655,7 +1655,7 @@ export default function SmartKitchen(){
                 </div>
                 {scanMode==="receipt"&&(
                   <div style={{background:"#1a2018",borderRadius:10,padding:12,marginBottom:12,fontSize:12,color:C.muted,lineHeight:1.6}}>
-                    📸 Lay receipt flat, good lighting, capture full receipt in frame.
+                    📸 Lay receipt flat, good lighting, capture full receipt in frame. For long receipts, scan in sections � top half first, then bottom half.
                   </div>
                 )}
                 {scanMode==="weeklyad"&&(
@@ -1888,6 +1888,7 @@ export default function SmartKitchen(){
     </div>
   );
 }<button onClick={()=>regenerateDay(i)} style={{marginTop:4,background:"transparent",border:"1px solid "+C.border,borderRadius:6,color:C.muted,cursor:"pointer",fontFamily:FM,fontSize:10,padding:"3px 7px",width:"100%"}}>🔄 New Meal</button>
+
 
 
 
