@@ -613,7 +613,7 @@ export default function SmartKitchen(){
       const fs=familySummary();
       const raw=await callClaude({
         system:"Return ONLY raw JSON — no markdown, no code fences, no backticks, no explanation. A single JSON object with these exact keys: day, meal, proteinUsed, sauteBagsUsed, sideUsed, shoppingNeeded. shoppingNeeded is array of {name,qty,unit}. Start your response with { and end with }.",
-        prompt:"Proteins: "+proteins+". Saute blend: "+(blendItem?.qty||0)+" bags. "+fs+"Busy night on "+day.day+". Already this week: "+mealPlan.filter((_,ii)=>ii!==dayIdx).map(d=>d.meal).filter(Boolean).join(", ")+". Give ONE DIFFERENT quick dinner under 20 min — tacos, stir fry, sandwiches, or wraps. No duplicates.",
+        prompt:"Proteins: "+proteins+". Saute blend: "+(blendItem?.qty||0)+" bags. "+fs+"Busy night on "+day.day+". Already this week: "+mealPlan.filter((_,ii)=>ii!==dayIdx).map(d=>d.meal).filter(Boolean).join(", ")+". Give ONE DIFFERENT quick dinner under 20 min — tacos, stir fry, sandwiches, or wraps. No duplicates"+". INVENTORY OWNED (do NOT include these in shoppingNeeded — match by keyword, ignore quantities and units): "+inventory.map(i=>String(i.name||"")).filter(Boolean).join(", ")+". RULE: if a shoppingNeeded item name contains any word from an inventory item name (or vice versa), it is already owned — omit it. E.g. if inventory has Eggs, do not add 2 whole Eggs. If inventory has Instant Rice, do not add Quick Fried Rice.",
         maxTokens:500,
       });
       const cleaned=raw.replace(/```json|```/g,"").trim();
@@ -634,7 +634,7 @@ export default function SmartKitchen(){
       const fs=familySummary();
       const raw=await callClaude({
         system:"Return ONLY raw JSON — no markdown, no code fences, no backticks, no explanation. A single JSON object with these exact keys: day, meal, proteinUsed, sauteBagsUsed, sideUsed, shoppingNeeded. shoppingNeeded is array of {name,qty,unit}. Start your response with { and end with }.",
-        prompt:"Proteins: "+proteins+". Saute blend: "+(blendItem?.qty||0)+" bags. "+fs+"Regular weeknight dinner for "+mealPlan[dayIdx]?.day+". 30-45 min OK.",
+        prompt:"Proteins: "+proteins+". Saute blend: "+(blendItem?.qty||0)+" bags. "+fs+"Regular weeknight dinner for "+mealPlan[dayIdx]?.day+". 30-45 min OK"+". INVENTORY OWNED (do NOT include these in shoppingNeeded — match by keyword, ignore quantities and units): "+inventory.map(i=>String(i.name||"")).filter(Boolean).join(", ")+". RULE: if a shoppingNeeded item name contains any word from an inventory item name (or vice versa), it is already owned — omit it. E.g. if inventory has Eggs, do not add 2 whole Eggs. If inventory has Instant Rice, do not add Quick Fried Rice.",
         maxTokens:500,
       });
       const cleaned=raw.replace(/```json|```/g,"").trim();
