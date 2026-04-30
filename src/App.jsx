@@ -265,7 +265,7 @@ const bInp={background:"#1f2436",border:"1px solid "+C.border,borderRadius:8,pad
 const Label=({children})=><div style={{fontSize:10,color:C.muted,fontFamily:FM,letterSpacing:0.8,marginBottom:5}}>{children}</div>;
 
 // -- Claude API ----------------------------------------------------------------
-async function callClaude({system,prompt,imageBase64,imageType,maxTokens=1800}){
+async function callClaude({system,prompt,imageBase64,imageType,maxTokens=4000}){
   const content=[];
   if(imageBase64) content.push({type:"image",source:{type:"base64",media_type:imageType||"image/jpeg",data:imageBase64}});
   content.push({type:"text",text:prompt});
@@ -1888,5 +1888,6 @@ export default function SmartKitchen(){
     </div>
   );
 }<button onClick={()=>regenerateDay(i)} style={{marginTop:4,background:"transparent",border:"1px solid "+C.border,borderRadius:6,color:C.muted,cursor:"pointer",fontFamily:FM,fontSize:10,padding:"3px 7px",width:"100%"}}>🔄 New Meal</button>
+
 
 
