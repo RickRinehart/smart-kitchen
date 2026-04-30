@@ -393,9 +393,9 @@ export default function SmartKitchen(){
   useEffect(()=>{try{localStorage.setItem("sk_sportsNights",JSON.stringify(sportsNights));}catch{}},[sportsNights]);
 
   // -- Computed values --------------------------------------------------------
-  const blendItem=inventory.find(i=>i.vegType==="sauteBlend");
+  const blendItem=inventory.find(i=>i.vegType==="sauteBlend")||inventory.find(i=>i.name.toLowerCase().includes("saute")&&i.category==="Frozen");
   const proteinItems=inventory.filter(i=>i.isBulkProtein);
-  const totalPortions=proteinItems.reduce((a,i)=>a+i.qty,0);
+  const totalPortions=proteinItems.reduce((a,i)=>a+(parseFloat(i.qty)||0),0);
   const condimentItems=inventory.filter(i=>i.isCondiment);
   const activeProfiles=familyProfiles.filter(p=>p.active);
   const restrictedProfiles=activeProfiles.filter(p=>p.restriction!=="none"&&p.restriction!=="standard"&&p.restriction!=="athlete");
