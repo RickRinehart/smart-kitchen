@@ -282,7 +282,7 @@ async function callClaude({system,prompt,imageBase64,imageType,maxTokens=4000}){
   return(data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("").replace(/```json\n?/g,"").replace(/```\n?/g,"").trim();
 }
 
-function fileToBase64(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(",")[1]);r.onerror=rej;r.readAsDataURL(f);});}
+function fileToBase64(f){return new Promise((res,rej)=>{const img=new Image();const url=URL.createObjectURL(f);img.onload=()=>{const MAX=1600;const scale=Math.min(1,MAX/Math.max(img.width,img.height));const c=document.createElement("canvas");c.width=Math.round(img.width*scale);c.height=Math.round(img.height*scale);c.getContext("2d").drawImage(img,0,0,c.width,c.height);res(c.toDataURL("image/jpeg",0.85).split(",")[1]);URL.revokeObjectURL(url);};img.onerror=rej;img.src=url;});}
 
 // -- Loading dots --------------------------------------------------------------
 function LoadingDots(){
@@ -1888,6 +1888,7 @@ export default function SmartKitchen(){
     </div>
   );
 }<button onClick={()=>regenerateDay(i)} style={{marginTop:4,background:"transparent",border:"1px solid "+C.border,borderRadius:6,color:C.muted,cursor:"pointer",fontFamily:FM,fontSize:10,padding:"3px 7px",width:"100%"}}>🔄 New Meal</button>
+
 
 
 
