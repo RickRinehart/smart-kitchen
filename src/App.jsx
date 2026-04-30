@@ -17,8 +17,8 @@ const FM="'JetBrains Mono', monospace";
 const LOCATIONS=["Pantry","Fridge","Freezer"];
 const LOC_ICONS={Pantry:"🗄",Fridge:"❄️",Freezer:"🧊"};
 const LOC_COLORS={Pantry:C.accent,Fridge:C.blue,Freezer:C.purple};
-const CATEGORIES=["Protein","Produce","Dairy","Pantry","Grains","Spices","Frozen","Condiments","Other"];
-const CAT_COLORS={Protein:C.red,Produce:C.green,Dairy:C.blue,Pantry:C.accent,Grains:"#c9a96e",Spices:C.purple,Frozen:"#6be3f0",Condiments:"#94a3b8",Other:C.muted};
+const CATEGORIES=["Protein","Produce","Dairy","Pantry","Grains","Spices","Frozen","Condiments","Snacks","Beverages","Household","Cleaning","Personal Care","Pet","Other"];
+const CAT_COLORS={Protein:C.red,Produce:C.green,Dairy:C.blue,Pantry:C.accent,Grains:"#c9a96e",Spices:C.purple,Frozen:"#6be3f0",Condiments:"#94a3b8",Snacks:"#f59e0b",Beverages:"#06b6d4",Household:"#84cc16",Cleaning:"#22d3ee",["Personal Care"]:"#e879f9",Pet:"#fb923c",Other:C.muted};
 const PROTEIN_TAG_COLOR=(name)=>{
   if(!name) return C.muted;
   const n=name.toLowerCase();
@@ -310,7 +310,7 @@ export default function SmartKitchen(){
   const [dessertError,setDessertError]=useState("");
   const [loading,setLoading]=useState(false);
   const [loadMsg,setLoadMsg]=useState("");
-  const [filterCat,setFilterCat]=useState("All");
+  const [filterCat,setFilterCat]=useState("All");const [invSearch,setInvSearch]=useState("");const [invSort,setInvSort]=useState("category");
   const [filterLoc,setFilterLoc]=useState("All");
   const [showAdd,setShowAdd]=useState(false);
   const [newItem,setNewItem]=useState({name:"",qty:"",unit:"",category:"Pantry",location:"Pantry"});
@@ -784,7 +784,7 @@ export default function SmartKitchen(){
     } catch(e){ alert("Calendar push failed: "+e.message); }
   };
 
-  const filtered=inventory.filter(i=>(filterCat==="All"||i.category===filterCat)&&(filterLoc==="All"||i.location===filterLoc));
+  const filtered=[...inventory.filter(i=>(filterCat==="All"||i.category===filterCat)&&(filterLoc==="All"||i.location===filterLoc)&&(invSearch===""||i.name.toLowerCase().includes(invSearch.toLowerCase())))].sort((a,b)=>invSort==="category"?(a.category||"").localeCompare(b.category||"")||a.name.localeCompare(b.name):a.name.localeCompare(b.name));
 
   // -- Render -----------------------------------------------------------------
   return(
@@ -1063,7 +1063,7 @@ export default function SmartKitchen(){
               </div>
             </div>
 
-            {/* Filters */}
+            {/* Filters */}{/* Search + Sort */}<div style={{display:"flex",gap:8,marginBottom:12,alignItems:"center"}}><input value={invSearch} onChange={e=>setInvSearch(e.target.value)} placeholder="Search inventory..." style={{flex:1,padding:"8px 12px",borderRadius:8,border:"1px solid "+C.border,background:C.surface,color:C.text,fontFamily:"FM",fontSize:13}}/><select value={invSort} onChange={e=>setInvSort(e.target.value)} style={{padding:"8px 10px",borderRadius:8,border:"1px solid "+C.border,background:C.surface,color:C.text,fontFamily:"FM",fontSize:12}}><option value="category">Sort: Category</option><option value="name">Sort: A-Z</option></select></div>
             <div style={{display:"flex",gap:7,marginBottom:16,flexWrap:"wrap",alignItems:"center"}}>
               {["All",...LOCATIONS].map(l=>(
                 <button key={l} onClick={()=>setFilterLoc(l)} style={{...bBtn("ghost"),padding:"6px 12px",fontSize:11,background:filterLoc===l?(LOC_COLORS[l]||C.accent)+"22":"transparent",color:filterLoc===l?(LOC_COLORS[l]||C.accent):C.muted,border:"1px solid "+(filterLoc===l?(LOC_COLORS[l]||C.accent):C.border)}}>
