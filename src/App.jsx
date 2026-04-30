@@ -320,6 +320,7 @@ export default function SmartKitchen(){
   const [newTemp,setNewTemp]=useState({name:"",reason:"",restriction:"lowSodium",customNotes:"",startDate:new Date().toISOString().split("T")[0],endDate:"",duration:7});
   const [profileModalOpen,setProfileModalOpen]=useState(false);
   const [recipeSite,setRecipeSite]=useState(()=>loadLocal("sk_recipeSite","google"));
+  const [showSettings,setShowSettings]=useState(false);
   const [showWizard,setShowWizard]=useState(()=>{try{return localStorage.getItem("sk_setupDone")!=="1"&&loadLocal("sk_inventory",[]).length===0;}catch{return false;}});
   const [wizardStep,setWizardStep]=useState(-2);
   const [wizardProteins,setWizardProteins]=useState([]);
@@ -787,7 +788,9 @@ export default function SmartKitchen(){
     <div style={{minHeight:"100vh",background:C.bg,color:C.text,fontFamily:FB}}>
       <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
 
-      {showWizard&&(
+  
+      {showSettings&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setShowSettings(false)}><div style={{background:C.card,borderRadius:16,padding:28,width:340,maxWidth:"90vw"}} onClick={e=>e.stopPropagation()}><div style={{fontFamily:FD,fontSize:20,fontWeight:700,color:C.text,marginBottom:4}}>Settings</div><div style={{fontSize:11,color:C.muted,fontFamily:FM,marginBottom:20}}>Smart Kitchen v1.5</div><div style={{display:"flex",flexDirection:"column",gap:12}}><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>Reset Inventory</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Clears all inventory items. Keeps profiles, meal plan, and preferences.</div><button style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.red,color:C.red}} onClick={()=>{if(window.confirm("Clear all inventory? Cannot be undone.")){localStorage.removeItem("sk_inventory");localStorage.removeItem("sk_portionFixV2");setInventory([]);setShowSettings(false);alert("Inventory cleared.");}}}>Clear Inventory</button></div><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>Reset All Data</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Wipes everything and restarts the Setup Wizard. Use for demo resets.</div><button style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.red,color:C.red}} onClick={()=>{if(window.confirm("Reset ALL data? Cannot be undone.")){["sk_inventory","sk_familyProfiles","sk_familySize","sk_mealPlan","sk_sportsNights","sk_recipeSite","sk_seniorMode","sk_setupDone","sk_portionFixV2","sk_installDismissed","sk_reminderDismissed","sk_saleItems","sk_tempProfiles"].forEach(k=>localStorage.removeItem(k));window.location.reload();}}}>Reset All Data</button></div></div><button style={{...bBtn("ghost"),width:"100%",marginTop:16}} onClick={()=>setShowSettings(false)}>Close</button></div></div>}
+    {showWizard&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
           <div style={{background:C.surface,borderRadius:16,padding:28,maxWidth:440,width:"100%",border:"1px solid "+C.border,maxHeight:"90vh",overflowY:"auto"}}>
             {wizardStep===-2&&(<div style={{textAlign:"center",padding:"8px 0",maxHeight:"70vh",overflowY:"auto"}}>
@@ -1013,6 +1016,7 @@ export default function SmartKitchen(){
           <button style={bBtn("orange")} onClick={()=>openRepack("protein")}>🥩 Repackage</button>
           <button style={bBtn("ghost")} onClick={()=>{setScanOpen(true);setScanStage("upload");setScanResults(null);setScanPreview(null);setScanB64(null);setScanMode("shelf");}}>📷 Scan</button>
           <button style={bBtn("primary")} onClick={fetchRecipes}>✨ Recipes</button>
+          <button style={{...bBtn("ghost"),fontSize:16,padding:"7px 10px"}} onClick={()=>setShowSettings(true)}>Settings</button>
         </div>
       </div>
 
