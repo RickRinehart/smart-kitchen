@@ -282,7 +282,7 @@ async function callClaude({system,prompt,imageBase64,imageType,maxTokens=4000}){
   return(data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("").replace(/```json\n?/g,"").replace(/```\n?/g,"").trim();
 }
 
-function fileToBase64(f){return new Promise((res,rej)=>{const img=new Image();const url=URL.createObjectURL(f);img.onload=()=>{const MAX=1600;const scale=Math.min(1,MAX/Math.max(img.width,img.height));const c=document.createElement("canvas");c.width=Math.round(img.width*scale);c.height=Math.round(img.height*scale);c.getContext("2d").drawImage(img,0,0,c.width,c.height);res(c.toDataURL("image/jpeg",0.85).split(",")[1]);URL.revokeObjectURL(url);};img.onerror=rej;img.src=url;});}
+function fileToBase64(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(",")[1]);r.onerror=rej;r.readAsDataURL(f);});}
 
 // -- Loading dots --------------------------------------------------------------
 function LoadingDots(){
@@ -1655,7 +1655,7 @@ export default function SmartKitchen(){
                 </div>
                 {scanMode==="receipt"&&(
                   <div style={{background:"#1a2018",borderRadius:10,padding:12,marginBottom:12,fontSize:12,color:C.muted,lineHeight:1.6}}>
-                    📸 Lay receipt flat, good lighting, capture full receipt in frame. For long receipts, scan in sections � top half first, then bottom half.
+                    📸 Lay receipt flat, good lighting, capture full receipt in frame.
                   </div>
                 )}
                 {scanMode==="weeklyad"&&(
@@ -1718,7 +1718,7 @@ export default function SmartKitchen(){
                       </div>
                       {item.selected&&(
                         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginTop:4}} onClick={e=>e.stopPropagation()}>
-                        <div><div style={{fontSize:9,color:C.muted,fontFamily:FM,marginBottom:3}}>QTY</div><div style={{display:"flex",alignItems:"center",gap:4}}><button onClick={e=>{e.stopPropagation();setScanResults(p=>p.map((si,sii)=>sii===i?{...si,qty:Math.max(1,(parseFloat(si.qty)||1)-1)}:si))}} style={{width:32,height:32,borderRadius:6,border:"1px solid "+C.border,background:C.surface,color:C.text,fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>-</button><input type="number" value={item.qty} onChange={e=>setScanResults(p=>p.map((si,sii)=>sii===i?{...si,qty:parseFloat(e.target.value)||si.qty}:si))} style={{...bInp,padding:"5px 4px",fontSize:12,width:50,textAlign:"center"}}/><button onClick={e=>{e.stopPropagation();setScanResults(p=>p.map((si,sii)=>sii===i?{...si,qty:(parseFloat(si.qty)||1)+1}:si))}} style={{width:32,height:32,borderRadius:6,border:"1px solid "+C.border,background:C.surface,color:C.text,fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>+</button></div></div>
+                          <div><div style={{fontSize:9,color:C.muted,fontFamily:FM,marginBottom:3}}>QTY</div><input type="number" value={item.qty} onChange={e=>setScanResults(p=>p.map((si,sii)=>sii===i?{...si,qty:parseFloat(e.target.value)||si.qty}:si))} style={{...bInp,padding:"5px 8px",fontSize:12}}/></div>
                           <div><div style={{fontSize:9,color:C.muted,fontFamily:FM,marginBottom:3}}>UNIT</div><input value={item.unit} onChange={e=>setScanResults(p=>p.map((si,sii)=>sii===i?{...si,unit:e.target.value}:si))} style={{...bInp,padding:"5px 8px",fontSize:12}}/></div>
                           <div><div style={{fontSize:9,color:C.muted,fontFamily:FM,marginBottom:3}}>LOCATION</div><select value={item.location||"Pantry"} onChange={e=>setScanResults(p=>p.map((si,sii)=>sii===i?{...si,location:e.target.value}:si))} style={{...bInp,padding:"5px 8px",fontSize:12}}><option>Pantry</option><option>Fridge</option><option>Freezer</option></select></div>
                           <div><div style={{fontSize:9,color:C.muted,fontFamily:FM,marginBottom:3}}>CATEGORY</div><select value={item.category||"Pantry"} onChange={e=>setScanResults(p=>p.map((si,sii)=>sii===i?{...si,category:e.target.value}:si))} style={{...bInp,padding:"5px 8px",fontSize:12}}><option>Protein</option><option>Produce</option><option>Dairy</option><option>Pantry</option><option>Frozen</option><option>Grains</option><option>Condiments</option></select></div>
@@ -1888,9 +1888,6 @@ export default function SmartKitchen(){
     </div>
   );
 }<button onClick={()=>regenerateDay(i)} style={{marginTop:4,background:"transparent",border:"1px solid "+C.border,borderRadius:6,color:C.muted,cursor:"pointer",fontFamily:FM,fontSize:10,padding:"3px 7px",width:"100%"}}>🔄 New Meal</button>
-
-
-
 
 
 
