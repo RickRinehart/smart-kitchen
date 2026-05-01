@@ -1887,13 +1887,8 @@ export default function SmartKitchen(){
         </div>
       )}
     </div>
-  
-    {showAuthModal&&<AuthModal initialMode={authMode} onClose={()=>setShowAuthModal(false)} onSuccess={(u)=>{setUser(u);setShowAuthModal(false);getUserProfile(u.id).then(setUserProfile);}} />}
   );
 }<button onClick={()=>regenerateDay(i)} style={{marginTop:4,background:"transparent",border:"1px solid "+C.border,borderRadius:6,color:C.muted,cursor:"pointer",fontFamily:FM,fontSize:10,padding:"3px 7px",width:"100%"}}>🔄 New Meal</button>
 
 
 
-
-
-export default App
