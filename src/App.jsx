@@ -1019,7 +1019,7 @@ export default function SmartKitchen(){
           <button style={bBtn("orange")} onClick={()=>openRepack("protein")}>🥩 Repackage</button>
           <button style={bBtn("ghost")} onClick={()=>{setScanOpen(true);setScanStage("upload");setScanResults(null);setScanPreview(null);setScanB64(null);setScanMode("shelf");}}>📷 Scan</button>
           <button style={bBtn("primary")} onClick={fetchRecipes}>✨ Recipes</button>
-          <button style={{...bBtn("ghost"),fontSize:16,padding:"7px 10px"}} onClick={()=>setShowSettings(true)}>Settings</button>
+          <button style={{...bBtn("ghost"),fontSize:16,padding:"7px 10px"}} onClick={()=>setShowSettings(true)}>Settings</button><button onClick={handleSignInClick} style={signInBtnStyle}>Sign In</button>
         </div>
       </div>
 
