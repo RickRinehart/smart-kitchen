@@ -1181,7 +1181,7 @@ export default function SmartKitchen(){
                         <span style={{...bTag(C.green),fontSize:seniorMode?14:undefined}}>✅ {(r.usesFromInventory||[]).length} on hand</span>
                         {(r.missingIngredients||[]).length>0&&<span style={{...bTag(C.red),fontSize:seniorMode?14:undefined}}>🛒 {r.missingIngredients.length} needed</span>}
                       </div>
-                    <div style={{fontSize:seniorMode?17:11,color:C.accent,fontFamily:FM,fontWeight:seniorMode?700:400}}>TAP FOR FULL RECIPE ?</div><div style={{marginTop:10,display:"flex",gap:8}}><button onClick={e=>{e.stopPropagation();setSwapRecipeModal(r);setSwapRecipeRequest("");}} style={{flex:1,padding:"8px",borderRadius:8,border:"1px solid "+C.border,background:C.surface,color:C.text,fontFamily:FM,fontSize:12,cursor:"pointer"}}>? Swap Recipe</button></div>
+                    <div style={{fontSize:seniorMode?17:11,color:C.accent,fontFamily:FM,fontWeight:seniorMode?700:400}}>TAP FOR FULL RECIPE →</div><div style={{marginTop:10,display:"flex",gap:8}}><button onClick={e=>{e.stopPropagation();setSwapRecipeModal(r);setSwapRecipeRequest("");}} style={{flex:1,padding:"8px",borderRadius:8,border:"1px solid "+C.border,background:C.surface,color:C.text,fontFamily:FM,fontSize:12,cursor:"pointer"}}>✦ Swap Recipe</button></div>
                     </div>
                   ))}
                 </div>
