@@ -1,8 +1,5 @@
 // Smart Kitchen App v2.1 - April 26 2026
 import React, { useState, useRef, useEffect } from "react";
-import { supabase, getUserProfile, trialDaysRemaining, getTierName } from './supabaseClient';
-import AuthModal from './AuthModal';
-import SubscriptionModal from './SubscriptionModal';
 
 // -- Design tokens -------------------------------------------------------------
 const C={
@@ -327,13 +324,6 @@ export default function SmartKitchen(){
   const [profileModalOpen,setProfileModalOpen]=useState(false);
   const [recipeSite,setRecipeSite]=useState(()=>loadLocal("sk_recipeSite","google"));
   const [showSettings,setShowSettings]=useState(false);
-  const [user,setUser]=useState(null);
-  const [userProfile,setUserProfile]=useState(null);
-  const [showAuthModal,setShowAuthModal]=useState(false);
-  const [showSubModal,setShowSubModal]=useState(false);
-  const [authMode,setAuthMode]=useState('signup');
-  function handleSignInClick(){setAuthMode('signup');setShowAuthModal(true);}
-  const signInBtnStyle={marginLeft:'8px',padding:'4px 12px',borderRadius:'12px',border:'none',background:'#c8963e',color:'#fff',fontSize:'12px',fontWeight:'700',cursor:'pointer'};
   const [showWizard,setShowWizard]=useState(()=>{try{return localStorage.getItem("sk_setupDone")!=="1"&&loadLocal("sk_inventory",[]).length===0;}catch{return false;}});
   const [wizardStep,setWizardStep]=useState(-2);
   const [wizardProteins,setWizardProteins]=useState([]);
@@ -1029,7 +1019,7 @@ export default function SmartKitchen(){
           <button style={bBtn("orange")} onClick={()=>openRepack("protein")}>🥩 Repackage</button>
           <button style={bBtn("ghost")} onClick={()=>{setScanOpen(true);setScanStage("upload");setScanResults(null);setScanPreview(null);setScanB64(null);setScanMode("shelf");}}>📷 Scan</button>
           <button style={bBtn("primary")} onClick={fetchRecipes}>✨ Recipes</button>
-          <button style={{...bBtn("ghost"),fontSize:16,padding:"7px 10px"}} onClick={()=>setShowSettings(true)}>Settings</button><button onClick={handleSignInClick} style={signInBtnStyle}>Sign In</button>
+          <button style={{...bBtn("ghost"),fontSize:16,padding:"7px 10px"}} onClick={()=>setShowSettings(true)}>Settings</button>
         </div>
       </div>
 
@@ -1897,8 +1887,13 @@ export default function SmartKitchen(){
         </div>
       )}
     </div>
+  
+    {showAuthModal&&<AuthModal initialMode={authMode} onClose={()=>setShowAuthModal(false)} onSuccess={(u)=>{setUser(u);setShowAuthModal(false);getUserProfile(u.id).then(setUserProfile);}} />}
   );
 }<button onClick={()=>regenerateDay(i)} style={{marginTop:4,background:"transparent",border:"1px solid "+C.border,borderRadius:6,color:C.muted,cursor:"pointer",fontFamily:FM,fontSize:10,padding:"3px 7px",width:"100%"}}>🔄 New Meal</button>
 
 
 
+
+
+export default App
