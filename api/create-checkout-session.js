@@ -1,17 +1,15 @@
-﻿import Stripe from 'stripe'
+import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+  if (req.method !== 'POST') return res.status(405).end();
 
-  if (req.method === 'OPTIONS') return res.status(200).end()
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
+  const { priceId, userId, userEmail } = req.body;
 
-  const { priceId, userId, userEmail, tier } = req.body
-  if (!priceId || !userId || !userEmail) return res.status(400).json({ error: 'Missing required fields' })
+  if (!priceId || !userId) {
+    return res.status(400).json({ error: 'priceId and userId required' });
+  }
 
   try {
     const session = await stripe.checkout.sessions.create({
@@ -21,15 +19,18 @@ export default async function handler(req, res) {
       line_items: [{ price: priceId, quantity: 1 }],
       subscription_data: {
         trial_period_days: 30,
-        metadata: { userId, tier },
+        metadata: { supabase_user_id: userId },
       },
-      metadata: { userId, tier },
-      success_url: 'https://smart-kitchen-opal.vercel.app?subscription=success&tier=' + tier,
-      cancel_url: 'https://smart-kitchen-opal.vercel.app?subscription=cancelled',
-    })
-    return res.status(200).json({ url: session.url })
-  } catch (error) {
-    console.error('Stripe error:', error)
-    return res.status(500).json({ error: error.message })
+      metadata: {
+        supabase_user_id: userId,
+      },
+      success_url: `${process.env.VITE_APP_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.VITE_APP_URL}/`,
+    });
+
+    res.json({ url: session.url });
+  } catch (err) {
+    console.error('Checkout session error:', err);
+    res.status(500).json({ error: err.message });
   }
 }
