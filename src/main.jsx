@@ -70,7 +70,7 @@ function Root() {
     <>
       {/* Auth bar - shown above the app */}
       <div style={{
-        position: "fixed", top: 0, right: "max(12px, calc((100vw - 1180px) / 2))", zIndex: 999,
+        position: "fixed", top: 0, right: "max(12px, calc((100vw - 1140px) / 2))", zIndex: 999,
         display: "flex", alignItems: "center", gap: "8px",
         padding: "6px 12px",
       }}>
