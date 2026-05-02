@@ -1014,7 +1014,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{} }){
       {/* -- Header -- */}
       <div style={{background:C.surface,borderBottom:"1px solid "+C.border,padding:"14px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,flexWrap:"wrap"}}>
         <div>
-          <div style={{fontFamily:FD,fontSize:26,color:C.accent,lineHeight:1}}>Smart Kitchen</div>
+          <div style={{fontFamily:FD,fontSize:26,color:C.accent,lineHeight:1}}>Smart Kitchen™</div>
           <div style={{fontSize:11,color:C.muted,marginTop:3,fontFamily:FM}}>
             {totalPortions} protein portions · {blendItem?.qty||0} blend bags · {inventory.length} items
             {restrictedProfiles.length>0&&<span style={{...bTag("#f472b6"),marginLeft:8,fontSize:9}}>⚕️ dietary restrictions active</span>}
