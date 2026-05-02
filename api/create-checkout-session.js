@@ -24,7 +24,7 @@ export default async function handler(req, res) {
       metadata: {
         supabase_user_id: userId,
       },
-      success_url: `${process.env.VITE_APP_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${process.env.VITE_APP_URL}/?checkout=success`,
       cancel_url: `${process.env.VITE_APP_URL}/`,
     });
 
