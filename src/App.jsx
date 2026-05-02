@@ -292,7 +292,7 @@ function LoadingDots(){
 }
 
 // =============================================================================
-export default function SmartKitchen(){
+export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{} }){
   // -- State ------------------------------------------------------------------
   const [tab,setTab]=useState("inventory");
   const loadLocal=(k,fb)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):fb;}catch{return fb;}};const [inventory,setInventory]=useState(()=>loadLocal("sk_inventory",INITIAL_INVENTORY));
@@ -592,6 +592,10 @@ export default function SmartKitchen(){
     setLoading(false);
   };
   const buildMealPlan=async()=>{
+    if(!can.sevenDayPlan){
+      if(window.confirm("7-day meal planning requires Solo or higher. Start your 30-day free trial?")) onUpgrade();
+      return;
+    }
     setLoading(true); setLoadMsg("Building meal plan…"); setTab("mealplan");
     try{
       const proteins=proteinItems.map(i=>i.name+" "+i.qty+" portions").join(", ");
@@ -609,6 +613,10 @@ export default function SmartKitchen(){
   };
 
   const quickMealForDay=async(dayIdx)=>{
+    if(!can.busyNightFlag){
+      if(window.confirm("Busy Night / Quick Meal flag requires Solo or higher. Start your 30-day free trial?")) onUpgrade();
+      return;
+    }
     const day=mealPlan[dayIdx];
     if(!day) return;
     setLoading(true); setLoadMsg("Finding quick meal for "+day.day+"...");
@@ -1018,7 +1026,13 @@ export default function SmartKitchen(){
           <button style={bBtn("ghost")} onClick={()=>openRepack("veg")}>🫕 Prep Veg</button>
           <button style={bBtn("orange")} onClick={()=>openRepack("protein")}>🥩 Repackage</button>
           <button style={bBtn("ghost")} onClick={()=>{setScanOpen(true);setScanStage("upload");setScanResults(null);setScanPreview(null);setScanB64(null);setScanMode("shelf");}}>📷 Scan</button>
-          <button style={bBtn("primary")} onClick={fetchRecipes}>✨ Recipes</button>
+          <button style={bBtn("primary")} onClick={()=>{
+            if(!can.unlimitedRecipes){
+              if(window.confirm("Upgrade to Solo or higher for unlimited recipe suggestions. Start your 30-day free trial?")) onUpgrade();
+              return;
+            }
+            fetchRecipes();
+          }}>✨ Recipes</button>
           <button style={{...bBtn("ghost"),fontSize:16,padding:"7px 10px"}} onClick={()=>setShowSettings(true)}>Settings</button>
         </div>
       </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../supabaseClient'; // adjust path if your supabase init file is elsewhere
+import { supabase } from '../supabaseClient';
 
 export function useSubscription() {
   const [tier, setTier] = useState('free');
@@ -20,9 +20,7 @@ export function useSubscription() {
         .single();
 
       if (profile) {
-        // Check if still in trial period
         const inTrial = profile.trial_ends_at && new Date(profile.trial_ends_at) > new Date();
-        // Trial users get family-level access until trial expires
         setTier(inTrial ? (profile.tier || 'family') : (profile.tier || 'free'));
       }
 
@@ -32,7 +30,6 @@ export function useSubscription() {
     loadProfile();
   }, []);
 
-  // Feature gates — returns true if current tier has access
   const can = {
     unlimitedRecipes:    ['solo', 'family', 'medical'].includes(tier),
     sevenDayPlan:        ['solo', 'family', 'medical'].includes(tier),

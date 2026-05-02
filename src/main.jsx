@@ -1,4 +1,4 @@
-// Smart Kitchen App v2.1 - April 26 2026
+// Smart Kitchen App v2.2 - May 2026
 import React, { useState, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
@@ -16,7 +16,6 @@ function Root() {
   const [authReady, setAuthReady] = useState(false);
 
   useEffect(() => {
-    // Check existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setUser(session.user);
@@ -25,7 +24,6 @@ function Root() {
       setAuthReady(true);
     });
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         setUser(session.user);
@@ -47,11 +45,6 @@ function Root() {
     return () => subscription.unsubscribe();
   }, []);
 
-  function handleSignIn() {
-    setAuthMode("signin");
-    setShowAuthModal(true);
-  }
-
   function handleSignUp() {
     setAuthMode("signup");
     setShowAuthModal(true);
@@ -64,11 +57,29 @@ function Root() {
   }
 
   const tier = userProfile?.tier || "free";
-  const isActive = userProfile?.subscription_status === "active";
+  const trialEndsAt = userProfile?.trial_ends_at || null;
+  const inTrial = trialEndsAt && new Date(trialEndsAt) > new Date();
+  const effectiveTier = inTrial ? (tier || "family") : tier;
+  const isActive = userProfile?.subscription_status === "active" || inTrial;
+
+  // Feature gates passed into App
+  const can = {
+    unlimitedRecipes:    ["solo", "family", "medical"].includes(effectiveTier),
+    sevenDayPlan:        ["solo", "family", "medical"].includes(effectiveTier),
+    busyNightFlag:       ["solo", "family", "medical"].includes(effectiveTier),
+    calendarIntegration: ["solo", "family", "medical"].includes(effectiveTier),
+    multipleProfiles:    ["family", "medical"].includes(effectiveTier),
+    medicalCompliance:   effectiveTier === "medical",
+    temporaryDiets:      effectiveTier === "medical",
+  };
+
+  const tierLabel = inTrial
+    ? effectiveTier.charAt(0).toUpperCase() + effectiveTier.slice(1) + " (Trial)"
+    : effectiveTier.charAt(0).toUpperCase() + effectiveTier.slice(1);
 
   return (
     <>
-      {/* Auth bar - shown above the app */}
+      {/* Auth bar */}
       <div style={{
         position: "fixed", top: 0, right: "max(12px, calc((100vw - 1140px) / 2))", zIndex: 999,
         display: "flex", alignItems: "center", gap: "8px",
@@ -81,9 +92,9 @@ function Root() {
               background: "#1e1e2e", padding: "3px 8px",
               borderRadius: "10px", border: "1px solid #333"
             }}>
-              {tier.charAt(0).toUpperCase() + tier.slice(1)}
+              {tierLabel}
             </span>
-            {!isActive && tier === "free" && (
+            {!isActive && effectiveTier === "free" && (
               <button onClick={() => setShowSubModal(true)} style={{
                 fontSize: "11px", padding: "4px 10px", borderRadius: "12px",
                 border: "none", background: "#c8963e", color: "#fff",
@@ -105,8 +116,19 @@ function Root() {
         )}
       </div>
 
-      {/* Main app */}
-      <App />
+      {/* Main app — tier and gates passed as props */}
+      <App
+        tier={effectiveTier}
+        can={can}
+        onUpgrade={() => {
+          if (!user) {
+            setAuthMode("signup");
+            setShowAuthModal(true);
+          } else {
+            setShowSubModal(true);
+          }
+        }}
+      />
 
       {/* Modals */}
       {showAuthModal && (
@@ -123,7 +145,7 @@ function Root() {
       {showSubModal && user && (
         <SubscriptionModal
           user={user}
-          currentTier={tier}
+          currentTier={effectiveTier}
           onClose={() => setShowSubModal(false)}
           onSubscribed={(t) => {
             setUserProfile(p => ({ ...p, tier: t }));
