@@ -7,7 +7,6 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// Map Stripe price IDs to tier names
 const PRICE_TO_TIER = {
   [process.env.STRIPE_PRICE_SOLO_MONTHLY]: 'solo',
   [process.env.STRIPE_PRICE_SOLO_ANNUAL]: 'solo',
@@ -17,11 +16,8 @@ const PRICE_TO_TIER = {
   [process.env.STRIPE_PRICE_MEDICAL_ANNUAL]: 'medical',
 };
 
-export const config = {
-  api: { bodyParser: false }
-};
-
-async function getRawBody(req) {
+// Read raw body from request stream
+function getRawBody(req) {
   return new Promise((resolve, reject) => {
     const chunks = [];
     req.on('data', chunk => chunks.push(chunk));
@@ -31,71 +27,98 @@ async function getRawBody(req) {
 }
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).end();
+  if (req.method !== 'POST') {
+    return res.status(405).end('Method Not Allowed');
+  }
 
-  const rawBody = await getRawBody(req);
+  let rawBody;
+  try {
+    rawBody = await getRawBody(req);
+  } catch (err) {
+    console.error('Failed to read body:', err);
+    return res.status(400).send('Could not read request body');
+  }
+
   const sig = req.headers['stripe-signature'];
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+  if (!sig || !webhookSecret) {
+    console.error('Missing signature or webhook secret');
+    return res.status(400).send('Missing stripe-signature header or webhook secret');
+  }
 
   let event;
   try {
-    event = stripe.webhooks.constructEvent(rawBody, sig, process.env.STRIPE_WEBHOOK_SECRET);
+    event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
   } catch (err) {
-    console.error('Webhook signature failed:', err.message);
+    console.error('Webhook signature verification failed:', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  const session = event.data.object;
+  const obj = event.data.object;
 
-  switch (event.type) {
-    case 'checkout.session.completed': {
-      const customerId = session.customer;
-      const subscriptionId = session.subscription;
-      const userId = session.metadata?.supabase_user_id;
+  try {
+    switch (event.type) {
+      case 'checkout.session.completed': {
+        const customerId = obj.customer;
+        const subscriptionId = obj.subscription;
+        const userId = obj.metadata?.supabase_user_id;
 
-      if (!userId) {
-        console.error('No supabase_user_id in session metadata');
+        console.log('checkout.session.completed - userId:', userId, 'subscriptionId:', subscriptionId);
+
+        if (!userId) {
+          console.error('No supabase_user_id in session metadata');
+          break;
+        }
+
+        const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+        const priceId = subscription.items.data[0]?.price.id;
+        const tier = PRICE_TO_TIER[priceId] || 'solo';
+
+        console.log('Updating profile - userId:', userId, 'tier:', tier);
+
+        const { error } = await supabase.from('profiles').update({
+          tier,
+          stripe_customer_id: customerId,
+          stripe_subscription_id: subscriptionId,
+          subscription_status: 'active',
+          trial_ends_at: null,
+        }).eq('id', userId);
+
+        if (error) console.error('Supabase update error:', error);
+        else console.log('Profile updated successfully');
         break;
       }
 
-      const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-      const priceId = subscription.items.data[0]?.price.id;
-      const tier = PRICE_TO_TIER[priceId] || 'solo';
+      case 'customer.subscription.updated': {
+        const priceId = obj.items?.data[0]?.price.id;
+        const tier = PRICE_TO_TIER[priceId] || 'free';
+        await supabase.from('profiles')
+          .update({ tier, subscription_status: obj.status })
+          .eq('stripe_subscription_id', obj.id);
+        break;
+      }
 
-      await supabase.from('profiles').update({
-        tier,
-        stripe_customer_id: customerId,
-        stripe_subscription_id: subscriptionId,
-        subscription_status: 'active',
-        trial_ends_at: null,
-      }).eq('id', userId);
+      case 'customer.subscription.deleted': {
+        await supabase.from('profiles')
+          .update({ tier: 'free', subscription_status: 'canceled' })
+          .eq('stripe_subscription_id', obj.id);
+        break;
+      }
 
-      break;
+      case 'invoice.payment_failed': {
+        await supabase.from('profiles')
+          .update({ subscription_status: 'past_due' })
+          .eq('stripe_customer_id', obj.customer);
+        break;
+      }
+
+      default:
+        console.log('Unhandled event type:', event.type);
     }
-
-    case 'customer.subscription.updated': {
-      const priceId = session.items.data[0]?.price.id;
-      const tier = PRICE_TO_TIER[priceId] || 'free';
-      const status = session.status;
-
-      await supabase.from('profiles')
-        .update({ tier, subscription_status: status })
-        .eq('stripe_subscription_id', session.id);
-      break;
-    }
-
-    case 'customer.subscription.deleted': {
-      await supabase.from('profiles')
-        .update({ tier: 'free', subscription_status: 'canceled' })
-        .eq('stripe_subscription_id', session.id);
-      break;
-    }
-
-    case 'invoice.payment_failed': {
-      await supabase.from('profiles')
-        .update({ subscription_status: 'past_due' })
-        .eq('stripe_customer_id', session.customer);
-      break;
-    }
+  } catch (err) {
+    console.error('Handler error:', err);
+    return res.status(500).send('Internal error');
   }
 
   res.json({ received: true });
