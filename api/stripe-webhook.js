@@ -16,42 +16,37 @@ const PRICE_TO_TIER = {
   [process.env.STRIPE_PRICE_MEDICAL_ANNUAL]: 'medical',
 };
 
-// Read raw body from request stream
-function getRawBody(req) {
-  return new Promise((resolve, reject) => {
-    const chunks = [];
-    req.on('data', chunk => chunks.push(chunk));
-    req.on('end', () => resolve(Buffer.concat(chunks)));
-    req.on('error', reject);
-  });
-}
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).end('Method Not Allowed');
   }
 
-  let rawBody;
-  try {
-    rawBody = await getRawBody(req);
-  } catch (err) {
-    console.error('Failed to read body:', err);
-    return res.status(400).send('Could not read request body');
-  }
-
   const sig = req.headers['stripe-signature'];
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET?.trim();
 
-  if (!sig || !webhookSecret) {
-    console.error('Missing signature or webhook secret');
-    return res.status(400).send('Missing stripe-signature header or webhook secret');
-  }
+  // Read raw body
+  const rawBody = await new Promise((resolve, reject) => {
+    const chunks = [];
+    req.on('data', chunk => chunks.push(Buffer.from(chunk)));
+    req.on('end', () => resolve(Buffer.concat(chunks)));
+    req.on('error', reject);
+  });
+
+  console.log('Raw body length:', rawBody.length);
+  console.log('Signature header present:', !!sig);
+  console.log('Webhook secret length:', webhookSecret?.length);
 
   let event;
   try {
     event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
   } catch (err) {
-    console.error('Webhook signature verification failed:', err.message);
+    console.error('Signature verification failed:', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
@@ -64,18 +59,16 @@ export default async function handler(req, res) {
         const subscriptionId = obj.subscription;
         const userId = obj.metadata?.supabase_user_id;
 
-        console.log('checkout.session.completed - userId:', userId, 'subscriptionId:', subscriptionId);
+        console.log('checkout completed - userId:', userId);
 
         if (!userId) {
-          console.error('No supabase_user_id in session metadata');
+          console.error('No supabase_user_id in metadata');
           break;
         }
 
         const subscription = await stripe.subscriptions.retrieve(subscriptionId);
         const priceId = subscription.items.data[0]?.price.id;
         const tier = PRICE_TO_TIER[priceId] || 'solo';
-
-        console.log('Updating profile - userId:', userId, 'tier:', tier);
 
         const { error } = await supabase.from('profiles').update({
           tier,
@@ -85,8 +78,8 @@ export default async function handler(req, res) {
           trial_ends_at: null,
         }).eq('id', userId);
 
-        if (error) console.error('Supabase update error:', error);
-        else console.log('Profile updated successfully');
+        if (error) console.error('Supabase error:', error);
+        else console.log('Profile updated to tier:', tier);
         break;
       }
 
@@ -112,14 +105,11 @@ export default async function handler(req, res) {
           .eq('stripe_customer_id', obj.customer);
         break;
       }
-
-      default:
-        console.log('Unhandled event type:', event.type);
     }
   } catch (err) {
     console.error('Handler error:', err);
     return res.status(500).send('Internal error');
   }
 
-  res.json({ received: true });
+  return res.status(200).json({ received: true });
 }
