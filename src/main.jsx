@@ -8,7 +8,7 @@ import { supabase, getUserProfile, trialDaysRemaining, markTouchpoint } from "./
 import "./index.css";
 
 // Admin emails — always get full access regardless of tier
-const ADMIN_EMAILS = ["thesmartkitchenapp@gmail.com"];
+const ADMIN_EMAILS = ["thesmartkitchenapp@gmail.com", "MichiganRVVacations@Gmail.com"];
 
 function TrialCountdown({ daysLeft, onUpgrade }) {
   if (daysLeft <= 0) return null;
@@ -376,3 +376,4 @@ function Root() {
 }
 
 createRoot(document.getElementById("root")).render(<Root />);
+
