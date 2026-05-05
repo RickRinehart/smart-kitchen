@@ -1865,7 +1865,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{} }){
             <div style={{fontSize:seniorMode?15:12,color:C.muted}}>Photograph your leftover container — Smart Kitchen will identify the dish, estimate servings, and set a use-by date so nothing gets wasted.</div>
           </div>
 
-          {!leftoversOpen&&(
+          {!leftoversOpen&&!leftoversPreview&&(
             <button style={{...bBtn("primary"),marginBottom:24,fontSize:seniorMode?16:13}} onClick={()=>setLeftoversOpen(true)}>
               📷 Scan Leftover Container
             </button>
@@ -1914,7 +1914,7 @@ useDays is days from today the food is safe to eat (cooked food: 3-4 days typica
                       prompt:"What leftovers are in this container? Estimate servings and use-by days.",
                       imageBase64:leftoversB64,
                       imageType:"image/jpeg",
-                      maxTokens:300
+                      maxTokens:800
                     });
                     const raw=res?.content?.[0]?.text||res?.content?.map?.(r=>r.text||"").join("")||"";
                     const text=raw.replace(/```json|```/g,"").trim();
