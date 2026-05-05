@@ -2077,8 +2077,9 @@ My current inventory includes: ${invList}
 What can I substitute and do I have what I need?`,
                     maxTokens:600
                   });
-                  const text=res.content[0].text.replace(/```json|```/g,"").trim();
-                  setSubResult(JSON.parse(text));
+                  const text=(typeof res==="string"?res:res?.content?.[0]?.text||"").replace(/```json|```/g,"").trim();
+                  const jmk=text.match(/{[\s\S]*}/);
+                  setSubResult(JSON.parse(jmk?jmk[0]:text));
                 }catch(e){setSubError("Could not find substitution. Try being more specific.");}
                 setSubLoading(false);
               }}>
