@@ -22,8 +22,8 @@ const TIERS = [
       'Calendar integration',
       'Senior Mode',
     ],
-    priceIdMonthly: 'price_1TSMyXAcShLCx7pOOBupnKTA',
-    priceIdAnnual:  'price_1TSMyXAcShLCx7pOxCsRtGgO',
+    priceIdMonthly: 'price_1TTntcAcShLCx7pOXrgqvLIi',
+    priceIdAnnual:  'price_1TTnu1AcShLCx7pOSwTpCsg7',
   },
   {
     id: 'family',
@@ -43,8 +43,8 @@ const TIERS = [
       'Google Calendar push',
       'Wed/Sun review reminders',
     ],
-    priceIdMonthly: 'price_1TSMzRAcShLCx7pOWpCCVAV7',
-    priceIdAnnual:  'price_1TSN04AcShLCx7pOfyraf2eH',
+    priceIdMonthly: 'price_1TTnw6AcShLCx7pOgguhrXqS',
+    priceIdAnnual:  'price_1TTnwIAcShLCx7pOLkSK6aRS',
   },
   {
     id: 'medical',
@@ -62,8 +62,8 @@ const TIERS = [
       'Unlimited family profiles',
       'Diabetic · Heart-healthy · Renal · Anti-inflammatory',
     ],
-    priceIdMonthly: 'price_1TSN5LAcShLCx7pOtVHLn5cn',
-    priceIdAnnual:  'price_1TSN5qAcShLCx7pO3L4gQwTj',
+    priceIdMonthly: 'price_1TTnwpAcShLCx7pOzdOFKcyT',
+    priceIdAnnual:  'price_1TTnx4AcShLCx7pOM23k4lY0',
   },
 ]
 
@@ -228,3 +228,4 @@ const styles = {
     padding: '12px', background: '#f8f8f8', borderRadius: '8px'
   }
 }
+
