@@ -1916,10 +1916,12 @@ useDays is days from today the food is safe to eat (cooked food: 3-4 days typica
                       imageType:"image/jpeg",
                       maxTokens:300
                     });
-                    const text=res.content[0].text.replace(/```json|```/g,"").trim();
-                    const parsed=JSON.parse(text);
+                    const raw=res?.content?.[0]?.text||res?.content?.map?.(r=>r.text||"").join("")||"";
+                    const text=raw.replace(/```json|```/g,"").trim();
+                    const jsonMatch=text.match(/\{[\s\S]*\}/);
+                    const parsed=JSON.parse(jsonMatch?jsonMatch[0]:text);
                     setLeftoversResult(parsed);
-                  }catch(e){setLeftoversError("Could not identify the dish. Try a clearer photo.");}
+                  }catch(e){setLeftoversError("Could not identify the dish. Try a clearer photo. ("+e.message+")");}
                   setLeftoversLoading(false);
                 }}>
                   {leftoversLoading?"🔍 Identifying...":"🔍 Identify & Save"}
