@@ -1,43 +1,74 @@
-import React, { useState } from 'react'
+﻿import React, { useState } from 'react'
 
+// NEW PRICING — updated May 2026
+// Annual = 10 months price (save 2 months)
+// TODO: Replace priceId values with new Stripe Price IDs after creating in Stripe dashboard
 const TIERS = [
   {
     id: 'solo',
     name: 'Solo',
-    price: '$2.99',
-    annual: '$24.99/yr',
+    price: '$7.99',
+    monthlyAmount: 7.99,
+    annual: '$79.90/yr',
+    annualPerMonth: '$6.66',
     color: '#4a90d9',
     badge: 'Best for Seniors',
-    features: ['Unlimited recipes', '7-day meal plan', 'Calendar integration', 'Busy Night flag', 'Restock Queue', 'Email shopping list', 'Senior Mode'],
+    features: [
+      'Unlimited recipes',
+      '5-day meal plan',
+      'Busy Night flag',
+      'Restock Queue',
+      'Email & SMS shopping list',
+      'Calendar integration',
+      'Senior Mode',
+    ],
     priceIdMonthly: 'price_1TSMyXAcShLCx7pOOBupnKTA',
-    priceIdAnnual: 'price_1TSMyXAcShLCx7pOxCsRtGgO',
+    priceIdAnnual:  'price_1TSMyXAcShLCx7pOxCsRtGgO',
   },
   {
     id: 'family',
     name: 'Family',
-    price: '$7.99',
-    annual: '$69.99/yr',
+    price: '$12.99',
+    monthlyAmount: 12.99,
+    annual: '$129.90/yr',
+    annualPerMonth: '$10.83',
     color: '#c8963e',
     badge: 'Most Popular',
-    features: ['Everything in Solo', 'Up to 3 family profiles', 'Receipt & inventory scanner', 'Shopping list print/export', 'Google Calendar push', 'Wed/Sun reminders'],
+    features: [
+      'Everything in Solo',
+      '7-day meal plan',
+      'Up to 3 family profiles',
+      'Receipt & inventory scanner',
+      'Shopping list print/export',
+      'Google Calendar push',
+      'Wed/Sun review reminders',
+    ],
     priceIdMonthly: 'price_1TSMzRAcShLCx7pOWpCCVAV7',
-    priceIdAnnual: 'price_1TSN04AcShLCx7pOfyraf2eH',
+    priceIdAnnual:  'price_1TSN04AcShLCx7pOfyraf2eH',
   },
   {
     id: 'medical',
     name: 'Medical+',
-    price: '$14.99',
-    annual: '$129.99/yr',
+    price: '$19.99',
+    monthlyAmount: 19.99,
+    annual: '$199.90/yr',
+    annualPerMonth: '$16.66',
     color: '#2e7d52',
     badge: 'Clinical Grade',
-    features: ['Everything in Family', 'AI-enforced medical dietary compliance', 'Temporary medical diets', 'Unlimited family profiles', 'Diabetic · Heart-healthy · Renal · Anti-inflammatory'],
+    features: [
+      'Everything in Family',
+      'AI-enforced medical dietary compliance',
+      'Temporary medical diets',
+      'Unlimited family profiles',
+      'Diabetic · Heart-healthy · Renal · Anti-inflammatory',
+    ],
     priceIdMonthly: 'price_1TSN5LAcShLCx7pOtVHLn5cn',
-    priceIdAnnual: 'price_1TSN5qAcShLCx7pO3L4gQwTj',
+    priceIdAnnual:  'price_1TSN5qAcShLCx7pO3L4gQwTj',
   },
 ]
 
 export default function SubscriptionModal({ user, currentTier, onClose, onSubscribed }) {
-  const [billing, setBilling] = useState('monthly') // 'monthly' | 'annual'
+  const [billing, setBilling] = useState('monthly')
   const [loading, setLoading] = useState(null)
   const [error, setError] = useState('')
 
@@ -47,7 +78,6 @@ export default function SubscriptionModal({ user, currentTier, onClose, onSubscr
     const priceId = billing === 'annual' ? tier.priceIdAnnual : tier.priceIdMonthly
 
     try {
-      // Call your Vercel serverless function to create Stripe checkout session
       const res = await fetch('/api/create-checkout-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -76,7 +106,7 @@ export default function SubscriptionModal({ user, currentTier, onClose, onSubscr
         <div style={styles.header}>
           <div>
             <h2 style={styles.title}>Choose Your Plan</h2>
-            <p style={styles.subtitle}>30-day free trial on all plans · No credit card required</p>
+            <p style={styles.subtitle}>No credit card required during trial · Cancel anytime</p>
           </div>
           <button style={styles.closeBtn} onClick={onClose}>✕</button>
         </div>
@@ -90,7 +120,7 @@ export default function SubscriptionModal({ user, currentTier, onClose, onSubscr
           <button
             style={{ ...styles.toggleBtn, ...(billing === 'annual' ? styles.toggleActive : {}) }}
             onClick={() => setBilling('annual')}
-          >Annual <span style={styles.saveBadge}>Save ~30%</span></button>
+          >Annual <span style={styles.saveBadge}>2 months free</span></button>
         </div>
 
         {error && <div style={styles.error}>{error}</div>}
@@ -106,7 +136,7 @@ export default function SubscriptionModal({ user, currentTier, onClose, onSubscr
               </div>
               {billing === 'annual' && (
                 <div style={styles.perMonth}>
-                  ({tier.id === 'solo' ? '$2.08' : tier.id === 'family' ? '$5.83' : '$10.83'}/mo billed annually)
+                  ({tier.annualPerMonth}/mo billed annually)
                 </div>
               )}
               <ul style={styles.featureList}>
@@ -127,10 +157,15 @@ export default function SubscriptionModal({ user, currentTier, onClose, onSubscr
               >
                 {loading === tier.id ? 'Loading...' :
                   currentTier === tier.id ? 'Current Plan' :
-                  'Start Free Trial'}
+                  'Select Plan'}
               </button>
             </div>
           ))}
+        </div>
+
+        {/* 7-day plan callout */}
+        <div style={styles.featureCallout}>
+          📅 <strong>7-day meal planning</strong> is available on Family and Medical+ plans
         </div>
 
         {/* Free tier note */}
@@ -183,6 +218,10 @@ const styles = {
   selectBtn: {
     padding: '12px', borderRadius: '8px', border: 'none',
     color: '#fff', fontSize: '14px', fontWeight: '700', cursor: 'pointer', marginTop: '8px'
+  },
+  featureCallout: {
+    textAlign: 'center', fontSize: '13px', color: '#1a2344',
+    padding: '10px', background: '#eef4fa', borderRadius: '8px', marginBottom: '10px'
   },
   freeNote: {
     textAlign: 'center', fontSize: '12px', color: '#888',

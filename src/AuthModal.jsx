@@ -1,8 +1,9 @@
-import React, { useState } from 'react'
+﻿import React, { useState } from 'react'
 import { supabase } from './supabaseClient'
+import { setTrialStartDate } from './supabaseClient'
 
 export default function AuthModal({ onClose, onSuccess, initialMode = 'signup' }) {
-  const [mode, setMode] = useState(initialMode) // 'signup' | 'signin' | 'reset'
+  const [mode, setMode] = useState(initialMode)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
@@ -31,6 +32,8 @@ export default function AuthModal({ onClose, onSuccess, initialMode = 'signup' }
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     setLoading(false)
     if (error) { setError(error.message); return }
+    // Set trial start date on first login — no-op if already set
+    await setTrialStartDate(data.user.id)
     onSuccess(data.user)
   }
 
@@ -46,13 +49,11 @@ export default function AuthModal({ onClose, onSuccess, initialMode = 'signup' }
   return (
     <div style={styles.overlay} onClick={onClose}>
       <div style={styles.modal} onClick={e => e.stopPropagation()}>
-        {/* Header */}
         <div style={styles.header}>
           <div style={styles.logo}>🍽️ Smart Kitchen</div>
           <button style={styles.closeBtn} onClick={onClose}>✕</button>
         </div>
 
-        {/* Title */}
         <h2 style={styles.title}>
           {mode === 'signup' && 'Start Your Free 30-Day Trial'}
           {mode === 'signin' && 'Welcome Back'}
@@ -62,11 +63,9 @@ export default function AuthModal({ onClose, onSuccess, initialMode = 'signup' }
           <p style={styles.subtitle}>No credit card required. Full access for 30 days.</p>
         )}
 
-        {/* Error / Message */}
         {error && <div style={styles.error}>{error}</div>}
         {message && <div style={styles.success}>{message}</div>}
 
-        {/* Form */}
         <div style={styles.form}>
           {mode === 'signup' && (
             <input
@@ -102,12 +101,11 @@ export default function AuthModal({ onClose, onSuccess, initialMode = 'signup' }
             disabled={loading}
           >
             {loading ? 'Please wait...' :
-              mode === 'signup' ? 'Create Account & Start Trial' :
+              mode === 'signup' ? 'Create Account — Free 30-Day Trial' :
               mode === 'signin' ? 'Sign In' : 'Send Reset Email'}
           </button>
         </div>
 
-        {/* Mode switcher */}
         <div style={styles.footer}>
           {mode === 'signup' && (
             <span>Already have an account?{' '}
@@ -126,10 +124,9 @@ export default function AuthModal({ onClose, onSuccess, initialMode = 'signup' }
           )}
         </div>
 
-        {/* Trial badge */}
         {mode === 'signup' && (
           <div style={styles.trialBadge}>
-            ✓ 30-day free trial &nbsp;·&nbsp; ✓ No credit card &nbsp;·&nbsp; ✓ Cancel anytime
+            ✓ 30-day free trial · ✓ No credit card · ✓ Cancel anytime
           </div>
         )}
       </div>
