@@ -1916,8 +1916,7 @@ useDays is days from today the food is safe to eat (cooked food: 3-4 days typica
                       imageType:"image/jpeg",
                       maxTokens:800
                     });
-                    const raw=res?.content?.[0]?.text||res?.content?.map?.(r=>r.text||"").join("")||"";
-                    const text=raw.replace(/```json|```/g,"").trim();
+                    const text=(typeof res==="string"?res:res?.content?.[0]?.text||"").replace(/```json|```/g,"").trim();
                     const jsonMatch=text.match(/\{[\s\S]*\}/);
                     const parsed=JSON.parse(jsonMatch?jsonMatch[0]:text);
                     setLeftoversResult(parsed);
@@ -2049,8 +2048,9 @@ My current inventory includes: ${invList}
 What can I substitute and do I have what I need?`,
                       maxTokens:600
                     });
-                    const text=res.content[0].text.replace(/```json|```/g,"").trim();
-                    setSubResult(JSON.parse(text));
+                    const text=(typeof res==="string"?res:res?.content?.[0]?.text||"").replace(/```json|```/g,"").trim();
+                    const jm=text.match(/{[\s\S]*}/);
+                    setSubResult(JSON.parse(jm?jm[0]:text));
                   }catch(e){setSubError("Could not find substitution. Try being more specific.");}
                   setSubLoading(false);
                 })()}
