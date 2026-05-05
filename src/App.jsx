@@ -1937,7 +1937,7 @@ useDays is days from today the food is safe to eat (cooked food: 3-4 days typica
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
                 <div style={{background:C.bg,borderRadius:8,padding:10}}>
                   <div style={{fontSize:10,color:C.muted,marginBottom:2}}>DISH</div>
-                  <div style={{fontSize:15,fontWeight:700,color:C.text}}>{leftoversResult.dish}</div>
+                  <input style={{background:"transparent",border:"none",borderBottom:"1px solid "+C.border,color:C.text,fontFamily:FM,fontSize:15,fontWeight:700,width:"100%",outline:"none",padding:"2px 0"}} value={leftoversResult.dish} onChange={e=>setLeftoversResult(r=>({...r,dish:e.target.value}))}/>
                 </div>
                 <div style={{background:C.bg,borderRadius:8,padding:10}}>
                   <div style={{fontSize:10,color:C.muted,marginBottom:2}}>SERVINGS</div>
