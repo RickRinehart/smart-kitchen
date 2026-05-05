@@ -295,6 +295,16 @@ function LoadingDots(){
 export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{} }){
   // -- State ------------------------------------------------------------------
   const [tab,setTab]=useState("inventory");
+  const [leftoversOpen,setLeftoversOpen]=useState(false);
+  const [leftoversPreview,setLeftoversPreview]=useState(null);
+  const [leftoversB64,setLeftoversB64]=useState(null);
+  const [leftoversResult,setLeftoversResult]=useState(null);
+  const [leftoversLoading,setLeftoversLoading]=useState(false);
+  const [leftoversError,setLeftoversError]=useState("");
+  const [subQuery,setSubQuery]=useState("");
+  const [subResult,setSubResult]=useState(null);
+  const [subLoading,setSubLoading]=useState(false);
+  const [subError,setSubError]=useState("");
   const loadLocal=(k,fb)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):fb;}catch{return fb;}};const [inventory,setInventory]=useState(()=>loadLocal("sk_inventory",INITIAL_INVENTORY));
   const [recipes,setRecipes]=useState([]);const [swapRecipeModal,setSwapRecipeModal]=useState(null);const [swapRecipeRequest,setSwapRecipeRequest]=useState("");const [swapRecipeLoading,setSwapRecipeLoading]=useState(false);
   const [recipeError,setRecipeError]=useState("");
@@ -1039,7 +1049,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{} }){
 
       {/* -- Tabs -- */}
       <div style={{display:"flex",background:C.surface,borderBottom:"1px solid "+C.border,paddingLeft:12,overflowX:"auto"}}>
-        {[["inventory","📦","Inventory"],["recipes","🍽","Recipes"],["mealplan","📅","Meal Plan"],["shopping","🛒","Shopping"],["desserts","🍰","Desserts"]].map(([k,ic,lb])=>(
+        {[["inventory","📦","Inventory"],["recipes","🍽","Recipes"],["mealplan","📅","Meal Plan"],["shopping","🛒","Shopping"],["desserts","🍰","Desserts"],["leftovers","🥡","Leftovers"],["substitute","🔄","Substitute"]].map(([k,ic,lb])=>(
           <button key={k} onClick={()=>setTab(k)} style={{background:"transparent",border:"none",borderBottom:"2px solid "+(tab===k?C.accent:"transparent"),padding:"11px 16px",color:tab===k?C.accent:C.muted,cursor:"pointer",fontFamily:FM,fontSize:seniorMode?18:11,fontWeight:700,letterSpacing:0.5,whiteSpace:"nowrap",transition:"all 0.15s",padding:seniorMode?"16px 22px":"11px 16px"}}>
             {ic} {lb.toUpperCase()}
           </button>
@@ -1847,7 +1857,295 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{} }){
       )}
 
       {/* == PRINT MODAL == */}
-      {printModal&&(
+      
+      {tab==="leftovers"&&(
+        <div style={{maxWidth:700,margin:"0 auto",padding:"0 8px"}}>
+          <div style={{marginBottom:16}}>
+            <div style={{fontSize:seniorMode?22:16,fontWeight:700,color:C.accent,marginBottom:4}}>🥡 Leftovers Scanner</div>
+            <div style={{fontSize:seniorMode?15:12,color:C.muted}}>Photograph your leftover container — Smart Kitchen will identify the dish, estimate servings, and set a use-by date so nothing gets wasted.</div>
+          </div>
+
+          {!leftoversOpen&&(
+            <button style={{...bBtn("primary"),marginBottom:24,fontSize:seniorMode?16:13}} onClick={()=>setLeftoversOpen(true)}>
+              📷 Scan Leftover Container
+            </button>
+          )}
+
+          {leftoversOpen&&(
+            <div style={{background:C.card,border:"1px solid "+C.border,borderRadius:12,padding:16,marginBottom:16}}>
+              <div style={{fontSize:12,color:C.muted,marginBottom:8}}>Take a photo of your leftover container or select from gallery</div>
+              <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
+                <label style={{...bBtn("primary"),cursor:"pointer",fontSize:12,display:"inline-block"}}>
+                  📷 Camera
+                  <input type="file" accept="image/*" capture="environment" style={{display:"none"}} onChange={async e=>{
+                    const file=e.target.files[0]; if(!file) return;
+                    const b64=await fileToBase64(file);
+                    setLeftoversB64(b64); setLeftoversPreview(URL.createObjectURL(file));
+                    setLeftoversResult(null); setLeftoversError("");
+                  }}/>
+                </label>
+                <label style={{...bBtn("ghost"),cursor:"pointer",fontSize:12,display:"inline-block"}}>
+                  🖼 Gallery
+                  <input type="file" accept="image/*" style={{display:"none"}} onChange={async e=>{
+                    const file=e.target.files[0]; if(!file) return;
+                    const b64=await fileToBase64(file);
+                    setLeftoversB64(b64); setLeftoversPreview(URL.createObjectURL(file));
+                    setLeftoversResult(null); setLeftoversError("");
+                  }}/>
+                </label>
+                <button style={{...bBtn("ghost"),fontSize:12}} onClick={()=>{setLeftoversOpen(false);setLeftoversPreview(null);setLeftoversB64(null);setLeftoversResult(null);}}>Cancel</button>
+              </div>
+
+              {leftoversPreview&&(
+                <div style={{marginBottom:12}}>
+                  <img src={leftoversPreview} alt="Leftover" style={{width:"100%",maxHeight:220,objectFit:"cover",borderRadius:8,border:"1px solid "+C.border}}/>
+                </div>
+              )}
+
+              {leftoversB64&&!leftoversResult&&(
+                <button style={{...bBtn("primary"),fontSize:13,width:"100%"}} disabled={leftoversLoading} onClick={async()=>{
+                  setLeftoversLoading(true); setLeftoversError("");
+                  try{
+                    const res=await callClaude({
+                      system:`You are a food identification AI. The user has photographed a container of leftovers. 
+Identify the dish, estimate servings remaining, and set a realistic use-by date.
+Respond ONLY with valid JSON: {"dish":"name of the dish","servings":2,"useDays":3,"notes":"any relevant storage tip","confidence":"high|medium|low"}
+useDays is days from today the food is safe to eat (cooked food: 3-4 days typical).`,
+                      prompt:"What leftovers are in this container? Estimate servings and use-by days.",
+                      imageBase64:leftoversB64,
+                      imageType:"image/jpeg",
+                      maxTokens:300
+                    });
+                    const text=res.content[0].text.replace(/```json|```/g,"").trim();
+                    const parsed=JSON.parse(text);
+                    setLeftoversResult(parsed);
+                  }catch(e){setLeftoversError("Could not identify the dish. Try a clearer photo.");}
+                  setLeftoversLoading(false);
+                }}>
+                  {leftoversLoading?"🔍 Identifying...":"🔍 Identify & Save"}
+                </button>
+              )}
+
+              {leftoversError&&<div style={{color:"#f66",fontSize:12,marginTop:8}}>{leftoversError}</div>}
+            </div>
+          )}
+
+          {leftoversResult&&(
+            <div style={{background:C.card,border:"2px solid "+C.accent,borderRadius:12,padding:16,marginBottom:16}}>
+              <div style={{fontSize:14,fontWeight:700,color:C.accent,marginBottom:12}}>✅ Leftover Identified</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
+                <div style={{background:C.bg,borderRadius:8,padding:10}}>
+                  <div style={{fontSize:10,color:C.muted,marginBottom:2}}>DISH</div>
+                  <div style={{fontSize:15,fontWeight:700,color:C.text}}>{leftoversResult.dish}</div>
+                </div>
+                <div style={{background:C.bg,borderRadius:8,padding:10}}>
+                  <div style={{fontSize:10,color:C.muted,marginBottom:2}}>SERVINGS</div>
+                  <div style={{fontSize:15,fontWeight:700,color:C.text}}>{leftoversResult.servings} serving{leftoversResult.servings!==1?"s":""}</div>
+                </div>
+                <div style={{background:leftoversResult.useDays<=2?"#3d1a1a":"#1a2e1a",borderRadius:8,padding:10}}>
+                  <div style={{fontSize:10,color:C.muted,marginBottom:2}}>USE BY</div>
+                  <div style={{fontSize:13,fontWeight:700,color:leftoversResult.useDays<=2?"#f66":"#4c4"}}>
+                    {new Date(Date.now()+leftoversResult.useDays*86400000).toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})}
+                    {leftoversResult.useDays<=2?" ⚠️ Soon!":" ✓"}
+                  </div>
+                </div>
+                <div style={{background:C.bg,borderRadius:8,padding:10}}>
+                  <div style={{fontSize:10,color:C.muted,marginBottom:2}}>CONFIDENCE</div>
+                  <div style={{fontSize:13,fontWeight:700,color:leftoversResult.confidence==="high"?"#4c4":leftoversResult.confidence==="medium"?"#fa0":"#f66"}}>{leftoversResult.confidence?.toUpperCase()}</div>
+                </div>
+              </div>
+              {leftoversResult.notes&&<div style={{fontSize:12,color:C.muted,marginBottom:12,fontStyle:"italic"}}>💡 {leftoversResult.notes}</div>}
+              <button style={{...bBtn("primary"),width:"100%",fontSize:13}} onClick={()=>{
+                const useByDate=new Date(Date.now()+leftoversResult.useDays*86400000).toLocaleDateString("en-US",{month:"short",day:"numeric"});
+                const newItem={
+                  id:Date.now(),
+                  name:leftoversResult.dish,
+                  qty:leftoversResult.servings,
+                  unit:"serving",
+                  category:"Leftovers",
+                  location:"Fridge",
+                  useBy:useByDate,
+                  useDays:leftoversResult.useDays,
+                  isLeftover:true,
+                  addedAt:new Date().toISOString()
+                };
+                setInventory(prev=>[...prev,newItem]);
+                setLeftoversResult(null);
+                setLeftoversPreview(null);
+                setLeftoversB64(null);
+                setLeftoversOpen(false);
+                alert("✅ "+leftoversResult.dish+" saved to inventory! Use by "+useByDate+".");
+              }}>
+                💾 Save to Inventory
+              </button>
+              <button style={{...bBtn("ghost"),width:"100%",fontSize:12,marginTop:8}} onClick={()=>{setLeftoversResult(null);setLeftoversPreview(null);setLeftoversB64(null);}}>
+                Try Again
+              </button>
+            </div>
+          )}
+
+          {/* Existing leftovers in inventory */}
+          {inventory.filter(i=>i.category==="Leftovers"||i.isLeftover).length>0&&(
+            <div>
+              <div style={{fontSize:12,fontWeight:700,color:C.muted,letterSpacing:0.8,marginBottom:8,marginTop:8}}>CURRENT LEFTOVERS</div>
+              {inventory.filter(i=>i.category==="Leftovers"||i.isLeftover).map((item,idx)=>{
+                const daysLeft=item.useDays?Math.ceil((new Date(item.addedAt).getTime()+item.useDays*86400000-Date.now())/86400000):null;
+                const urgent=daysLeft!==null&&daysLeft<=1;
+                const warning=daysLeft!==null&&daysLeft<=2;
+                return(
+                  <div key={idx} style={{background:C.card,border:"1px solid "+(urgent?"#f66":warning?"#fa0":C.border),borderRadius:10,padding:"10px 14px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <div>
+                      <div style={{fontSize:14,fontWeight:600,color:C.text}}>{item.name}</div>
+                      <div style={{fontSize:11,color:C.muted}}>{item.qty} {item.unit}{item.useBy?" · Use by "+item.useBy:""}</div>
+                    </div>
+                    <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                      {urgent&&<span style={{fontSize:10,color:"#f66",fontWeight:700}}>⚠️ TODAY</span>}
+                      {warning&&!urgent&&<span style={{fontSize:10,color:"#fa0",fontWeight:700}}>USE SOON</span>}
+                      <button style={{background:"transparent",border:"1px solid "+C.border,borderRadius:6,color:C.muted,cursor:"pointer",fontSize:10,padding:"3px 8px"}} onClick={()=>setInventory(prev=>prev.filter((_,i)=>i!==inventory.indexOf(item)))}>Remove</button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab==="substitute"&&(
+        <div style={{maxWidth:700,margin:"0 auto",padding:"0 8px"}}>
+          <div style={{marginBottom:16}}>
+            <div style={{fontSize:seniorMode?22:16,fontWeight:700,color:C.accent,marginBottom:4}}>🔄 Can I Substitute This?</div>
+            <div style={{fontSize:seniorMode?15:12,color:C.muted}}>Out of an ingredient? Type it below and Smart Kitchen will check your pantry and suggest the best substitution with exact measurements.</div>
+          </div>
+
+          <div style={{background:C.card,border:"1px solid "+C.border,borderRadius:12,padding:16,marginBottom:16}}>
+            <div style={{display:"flex",gap:8,marginBottom:8}}>
+              <input
+                style={{flex:1,background:C.bg,border:"1px solid "+C.border,borderRadius:8,padding:"10px 14px",color:C.text,fontFamily:FM,fontSize:seniorMode?16:14,outline:"none"}}
+                placeholder="e.g. brown sugar, buttermilk, baking powder..."
+                value={subQuery}
+                onChange={e=>setSubQuery(e.target.value)}
+                onKeyDown={e=>e.key==="Enter"&&subQuery.trim()&&!subLoading&&(async()=>{
+                  setSubLoading(true); setSubError(""); setSubResult(null);
+                  const invList=inventory.map(i=>i.name).join(", ");
+                  try{
+                    const res=await callClaude({
+                      system:`You are a culinary substitution expert. The user needs a substitution for an ingredient.
+You have access to their current pantry inventory.
+Provide practical substitutions prioritizing what they already have.
+Respond ONLY with valid JSON:
+{
+  "ingredient": "the ingredient they need",
+  "makeIt": {"possible": true/false, "ingredients": ["item + amount"], "instructions": "how to make it", "ratio": "e.g. 1:1"},
+  "swapWith": [{"item": "alternative", "ratio": "measurement conversion", "note": "when this works best", "inInventory": true/false}],
+  "warning": "any important notes about when substitutions won't work well"
+}`,
+                      prompt:`I need to substitute: ${subQuery}
+
+My current inventory includes: ${invList}
+
+What can I substitute and do I have what I need?`,
+                      maxTokens:600
+                    });
+                    const text=res.content[0].text.replace(/```json|```/g,"").trim();
+                    setSubResult(JSON.parse(text));
+                  }catch(e){setSubError("Could not find substitution. Try being more specific.");}
+                  setSubLoading(false);
+                })()}
+              />
+              <button style={{...bBtn("primary"),fontSize:13,whiteSpace:"nowrap"}} disabled={subLoading||!subQuery.trim()} onClick={async()=>{
+                setSubLoading(true); setSubError(""); setSubResult(null);
+                const invList=inventory.map(i=>i.name).join(", ");
+                try{
+                  const res=await callClaude({
+                    system:`You are a culinary substitution expert. The user needs a substitution for an ingredient.
+You have access to their current pantry inventory.
+Provide practical substitutions prioritizing what they already have.
+Respond ONLY with valid JSON:
+{
+  "ingredient": "the ingredient they need",
+  "makeIt": {"possible": true/false, "ingredients": ["item + amount"], "instructions": "how to make it", "ratio": "e.g. 1:1"},
+  "swapWith": [{"item": "alternative", "ratio": "measurement conversion", "note": "when this works best", "inInventory": true/false}],
+  "warning": "any important notes about when substitutions won't work well"
+}`,
+                    prompt:`I need to substitute: ${subQuery}
+
+My current inventory includes: ${invList}
+
+What can I substitute and do I have what I need?`,
+                    maxTokens:600
+                  });
+                  const text=res.content[0].text.replace(/```json|```/g,"").trim();
+                  setSubResult(JSON.parse(text));
+                }catch(e){setSubError("Could not find substitution. Try being more specific.");}
+                setSubLoading(false);
+              }}>
+                {subLoading?"🔍 Checking...":"🔍 Find Sub"}
+              </button>
+            </div>
+            <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+              {["brown sugar","buttermilk","baking powder","eggs","heavy cream","bread crumbs"].map(s=>(
+                <button key={s} style={{background:C.bg,border:"1px solid "+C.border,borderRadius:16,padding:"4px 10px",fontSize:11,color:C.muted,cursor:"pointer"}} onClick={()=>setSubQuery(s)}>
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {subError&&<div style={{color:"#f66",fontSize:13,marginBottom:12}}>{subError}</div>}
+
+          {subResult&&(
+            <div style={{display:"flex",flexDirection:"column",gap:12}}>
+              <div style={{fontSize:15,fontWeight:700,color:C.text}}>Substitutions for: <span style={{color:C.accent}}>{subResult.ingredient}</span></div>
+
+              {subResult.makeIt?.possible&&(
+                <div style={{background:C.card,border:"2px solid #4c4",borderRadius:12,padding:16}}>
+                  <div style={{fontSize:12,fontWeight:700,color:"#4c4",marginBottom:8}}>✨ MAKE IT YOURSELF</div>
+                  <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:8}}>
+                    {(subResult.makeIt.ingredients||[]).map((ing,i)=>{
+                      const inStock=inventory.some(item=>item.name.toLowerCase().includes(ing.split(" ")[ing.split(" ").length-1].toLowerCase()));
+                      return<span key={i} style={{background:inStock?"#1a3a1a":"#3a1a1a",border:"1px solid "+(inStock?"#4c4":"#f66"),borderRadius:6,padding:"3px 8px",fontSize:12,color:inStock?"#4c4":"#f99"}}>{inStock?"✓":"✗"} {ing}</span>;
+                    })}
+                  </div>
+                  {subResult.makeIt.instructions&&<div style={{fontSize:13,color:C.text,marginBottom:6}}>{subResult.makeIt.instructions}</div>}
+                  {subResult.makeIt.ratio&&<div style={{fontSize:11,color:C.muted}}>Ratio: {subResult.makeIt.ratio}</div>}
+                </div>
+              )}
+
+              {(subResult.swapWith||[]).length>0&&(
+                <div style={{background:C.card,border:"1px solid "+C.border,borderRadius:12,padding:16}}>
+                  <div style={{fontSize:12,fontWeight:700,color:C.muted,marginBottom:8}}>SWAP WITH SOMETHING ELSE</div>
+                  {subResult.swapWith.map((swap,i)=>{
+                    const inStock=inventory.some(item=>item.name.toLowerCase().includes(swap.item?.toLowerCase()?.split(" ")[0]||""));
+                    return(
+                      <div key={i} style={{borderBottom:i<subResult.swapWith.length-1?"1px solid "+C.border:"none",paddingBottom:i<subResult.swapWith.length-1?10:0,marginBottom:i<subResult.swapWith.length-1?10:0}}>
+                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                          <span style={{fontSize:14,fontWeight:600,color:C.text}}>{swap.item}</span>
+                          <span style={{fontSize:11,background:inStock?"#1a3a1a":"#2a2a2a",color:inStock?"#4c4":C.muted,border:"1px solid "+(inStock?"#4c4":C.border),borderRadius:10,padding:"2px 8px"}}>{inStock?"✓ In Stock":"Not in pantry"}</span>
+                        </div>
+                        {swap.ratio&&<div style={{fontSize:12,color:C.accent,marginBottom:2}}>📏 {swap.ratio}</div>}
+                        {swap.note&&<div style={{fontSize:11,color:C.muted,fontStyle:"italic"}}>{swap.note}</div>}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {subResult.warning&&(
+                <div style={{background:"#2a2000",border:"1px solid #fa0",borderRadius:10,padding:12}}>
+                  <div style={{fontSize:12,color:"#fa0"}}>⚠️ {subResult.warning}</div>
+                </div>
+              )}
+
+              <button style={{...bBtn("ghost"),fontSize:12}} onClick={()=>{setSubResult(null);setSubQuery("");}}>
+                Search Another Ingredient
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+{printModal&&(
         <div style={{position:"fixed",inset:0,background:"#000d",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300,padding:16}}>
           <div style={{background:"white",color:"#111",borderRadius:14,padding:24,maxWidth:660,width:"100%",maxHeight:"90vh",overflowY:"auto",fontFamily:"Arial, sans-serif"}}>
             <div id="sk-no-print" style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18,borderBottom:"2px solid #eee",paddingBottom:12}}>
