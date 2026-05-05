@@ -8,7 +8,7 @@ import { supabase, getUserProfile, trialDaysRemaining, markTouchpoint } from "./
 import "./index.css";
 
 // Admin emails — always get full access regardless of tier
-const ADMIN_EMAILS = ["thesmartkitchenapp@gmail.com", "MichiganRVVacations@Gmail.com"];
+const ADMIN_EMAILS = ["thesmartkitchenapp@gmail.com", "michiganrvvacations@gmail.com"];
 
 function TrialCountdown({ daysLeft, onUpgrade }) {
   if (daysLeft <= 0) return null;
@@ -226,7 +226,7 @@ function Root() {
   // Check touchpoints whenever profile loads
   useEffect(() => {
     if (!userProfile || !user) return;
-    const isAdmin = ADMIN_EMAILS.includes(user.email);
+    const isAdmin = ADMIN_EMAILS.includes(user.email?.toLowerCase());
     if (isAdmin) return; // Never show touchpoints to admin
     if (userProfile.subscription_status === "active") return; // Already subscribed
 
@@ -259,7 +259,7 @@ function Root() {
   }
 
   // Admin bypass — always full access
-  const isAdmin = user && ADMIN_EMAILS.includes(user.email);
+  const isAdmin = user && ADMIN_EMAILS.includes(user.email?.toLowerCase());
 
   const tier = isAdmin ? "medical" : (userProfile?.tier || "free");
   const trialEndsAt = userProfile?.trial_ends_at || null;
