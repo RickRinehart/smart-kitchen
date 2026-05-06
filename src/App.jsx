@@ -2363,9 +2363,9 @@ What can I substitute and do I have what I need?`,
         <div style={{flex:1,overflowY:"auto",padding:"16px 16px 8px",display:"flex",flexDirection:"column",gap:12}}>
           {chatMessages.map(msg=>(
             <div key={msg.id} style={{display:"flex",justifyContent:msg.role==="user"?"flex-end":"flex-start"}}>
-              <div style={{maxWidth:"82%",background:msg.role==="user"?"#C8963E":C.surface,color:msg.role==="user"?"#0c0e14":C.text,borderRadius:msg.role==="user"?"16px 16px 4px 16px":"16px 16px 16px 4px",padding:"10px 14px",fontFamily:FM,fontSize:13,lineHeight:1.6,whiteSpace:"pre-wrap"}}>
-                {msg.text}
-              </div>
+              <div style={{maxWidth:"82%",background:msg.role==="user"?"#C8963E":C.surface,color:msg.role==="user"?"#0c0e14":C.text,borderRadius:msg.role==="user"?"16px 16px 4px 16px":"16px 16px 16px 4px",padding:"10px 14px",fontFamily:FM,fontSize:13,lineHeight:1.6,whiteSpace:"pre-wrap"}}
+                dangerouslySetInnerHTML={{__html:msg.text.replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>").replace(/\n/g,"<br/>")}}
+              />
             </div>
           ))}
           {chatLoading&&<div style={{display:"flex",justifyContent:"flex-start"}}>
