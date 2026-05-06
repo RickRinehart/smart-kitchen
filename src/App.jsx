@@ -587,7 +587,12 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
             setTimeout(()=>{
               addChatMsg("assistant",skipNext.msg);
               if(skipNext.autoOpen&&skipNext.tab){
-                setTimeout(()=>{ setTab(skipNext.tab); if(skipNext.action==="profileModalOpen") setProfileModalOpen(true); },800);
+                setTimeout(()=>{
+                  setShowWizard(false);
+                  try{localStorage.setItem("sk_setupDone","1");}catch{}
+                  setTab(skipNext.tab);
+                  if(skipNext.action==="profileModalOpen") setProfileModalOpen(true);
+                },800);
               }
               setChatLoading(false);
             },700);
@@ -599,7 +604,13 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
           if(next.autoOpen){
             setTimeout(()=>{
               if(next.action==="openAuth"&&!user) onUpgrade();
-              else if(next.tab){ setTab(next.tab); if(next.action==="profileModalOpen") setProfileModalOpen(true); }
+              else if(next.tab){
+                // Close wizard when navigating to app tabs
+                setShowWizard(false);
+                try{localStorage.setItem("sk_setupDone","1");}catch{}
+                setTab(next.tab);
+                if(next.action==="profileModalOpen") setProfileModalOpen(true);
+              }
             },800);
           }
           setChatLoading(false);
