@@ -20,8 +20,16 @@ export default function AuthModal({ onClose, onSuccess, initialMode = 'signup' }
       password,
       options: { data: { full_name: name } }
     })
+    if (error) { setLoading(false); setError(error.message); return }
+    // Subscribe to Mailchimp — fire and forget, don't block signup
+    try {
+      await fetch('/api/mailchimp-subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, name, tag: 'trial' }),
+      });
+    } catch(e) { console.warn('Mailchimp subscribe failed:', e); }
     setLoading(false)
-    if (error) { setError(error.message); return }
     setMessage('Account created! Check your email to confirm, then sign in.')
     setMode('signin')
   }

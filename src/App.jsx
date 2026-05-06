@@ -349,6 +349,10 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [tourChoice,setTourChoice]=useState(()=>{try{return localStorage.getItem("sk_tourChoice")||null;}catch{return null;}});
   const [tourStep,setTourStep]=useState(()=>{try{return parseInt(localStorage.getItem("sk_tourStep")||"0");}catch{return 0;}});
   const chatEndRef=useRef(null);
+  // -- Guest Email Capture State ------------------------------------------------
+  const [showGuestCapture,setShowGuestCapture]=useState(false);
+  const [guestEmail,setGuestEmail]=useState("");
+  const [guestCaptured,setGuestCaptured]=useState(()=>{try{return localStorage.getItem("sk_guestCaptured")==="1";}catch{return false;}});
   const [showInventoryReminder,setShowInventoryReminder]=useState(()=>{
     try{
       const day=new Date().getDay(); // 0=Sun, 3=Wed
@@ -417,6 +421,25 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
       return ()=>clearTimeout(t);
     }
   },[showWizard]);
+  // Guest email capture — show after 3 min if not signed in and not already captured
+  useEffect(()=>{
+    if(user||guestCaptured) return;
+    const t=setTimeout(()=>setShowGuestCapture(true), 3*60*1000);
+    return ()=>clearTimeout(t);
+  },[user,guestCaptured]);
+  const submitGuestEmail=async()=>{
+    if(!guestEmail||!guestEmail.includes("@")) return;
+    try{
+      await fetch("/api/mailchimp-subscribe",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({email:guestEmail,name:"",tag:"guest"}),
+      });
+    }catch(e){console.warn("Guest capture failed:",e);}
+    setShowGuestCapture(false);
+    setGuestCaptured(true);
+    try{localStorage.setItem("sk_guestCaptured","1");}catch{}
+  };
 
   // -- Computed values --------------------------------------------------------
   const blendItem=inventory.find(i=>i.vegType==="sauteBlend")||inventory.find(i=>i.name.toLowerCase().includes("saute")&&i.category==="Frozen");
@@ -956,7 +979,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
 
   
-      {showSettings&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setShowSettings(false)}><div style={{background:C.card,borderRadius:16,padding:28,width:340,maxWidth:"90vw"}} onClick={e=>e.stopPropagation()}><div style={{fontFamily:FD,fontSize:20,fontWeight:700,color:C.text,marginBottom:4}}>Settings</div><div style={{fontSize:11,color:C.muted,fontFamily:FM,marginBottom:20}}>Smart Kitchen v1.5</div><div style={{marginTop:12,background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:8}}>Shopping Partner</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:6}}>Who gets the emailed shopping list?</div><input placeholder="Name (e.g. Lisa)" value={shopPartnerName} onChange={e=>{setShopPartnerName(e.target.value);localStorage.setItem("sk_shopPartnerName",e.target.value);}} style={{width:"100%",background:C.card,border:"1px solid "+C.border,borderRadius:6,padding:"6px 10px",color:C.text,fontFamily:FM,fontSize:12,marginBottom:6,boxSizing:"border-box"}}/><input placeholder="Email address" value={shopPartnerEmail} onChange={e=>{setShopPartnerEmail(e.target.value);localStorage.setItem("sk_shopPartnerEmail",e.target.value);}} style={{width:"100%",background:C.card,border:"1px solid "+C.border,borderRadius:6,padding:"6px 10px",color:C.text,fontFamily:FM,fontSize:12,boxSizing:"border-box"}}/></div><div style={{display:"flex",flexDirection:"column",gap:12}}><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>Reset Inventory</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Clears all inventory items. Keeps profiles, meal plan, and preferences.</div><button style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.red,color:C.red}} onClick={()=>{if(window.confirm("Clear all inventory? Cannot be undone.")){localStorage.removeItem("sk_inventory");localStorage.removeItem("sk_portionFixV2");setInventory([]);setShowSettings(false);alert("Inventory cleared.");}}}>Clear Inventory</button></div><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>Reset All Data</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Wipes everything and restarts the Setup Wizard. Use for demo resets.</div><button style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.red,color:C.red}} onClick={()=>{if(window.confirm("Reset ALL data? Cannot be undone.")){["sk_inventory","sk_familyProfiles","sk_familySize","sk_mealPlan","sk_sportsNights","sk_recipeSite","sk_seniorMode","sk_setupDone","sk_portionFixV2","sk_installDismissed","sk_reminderDismissed","sk_saleItems","sk_tempProfiles","sk_activeTab","sk_chatWelcomeDone","sk_tourChoice","sk_tourStep"].forEach(k=>localStorage.removeItem(k));window.location.reload();}}}>Reset All Data</button></div></div><button style={{...bBtn("ghost"),width:"100%",marginTop:16}} onClick={()=>setShowSettings(false)}>Close</button></div></div>}
+      {showSettings&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setShowSettings(false)}><div style={{background:C.card,borderRadius:16,padding:28,width:340,maxWidth:"90vw"}} onClick={e=>e.stopPropagation()}><div style={{fontFamily:FD,fontSize:20,fontWeight:700,color:C.text,marginBottom:4}}>Settings</div><div style={{fontSize:11,color:C.muted,fontFamily:FM,marginBottom:20}}>Smart Kitchen v1.5</div><div style={{marginTop:12,background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:8}}>Shopping Partner</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:6}}>Who gets the emailed shopping list?</div><input placeholder="Name (e.g. Lisa)" value={shopPartnerName} onChange={e=>{setShopPartnerName(e.target.value);localStorage.setItem("sk_shopPartnerName",e.target.value);}} style={{width:"100%",background:C.card,border:"1px solid "+C.border,borderRadius:6,padding:"6px 10px",color:C.text,fontFamily:FM,fontSize:12,marginBottom:6,boxSizing:"border-box"}}/><input placeholder="Email address" value={shopPartnerEmail} onChange={e=>{setShopPartnerEmail(e.target.value);localStorage.setItem("sk_shopPartnerEmail",e.target.value);}} style={{width:"100%",background:C.card,border:"1px solid "+C.border,borderRadius:6,padding:"6px 10px",color:C.text,fontFamily:FM,fontSize:12,boxSizing:"border-box"}}/></div><div style={{display:"flex",flexDirection:"column",gap:12}}><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>Reset Inventory</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Clears all inventory items. Keeps profiles, meal plan, and preferences.</div><button style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.red,color:C.red}} onClick={()=>{if(window.confirm("Clear all inventory? Cannot be undone.")){localStorage.removeItem("sk_inventory");localStorage.removeItem("sk_portionFixV2");setInventory([]);setShowSettings(false);alert("Inventory cleared.");}}}>Clear Inventory</button></div><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>Reset All Data</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Wipes everything and restarts the Setup Wizard. Use for demo resets.</div><button style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.red,color:C.red}} onClick={()=>{if(window.confirm("Reset ALL data? Cannot be undone.")){["sk_inventory","sk_familyProfiles","sk_familySize","sk_mealPlan","sk_sportsNights","sk_recipeSite","sk_seniorMode","sk_setupDone","sk_portionFixV2","sk_installDismissed","sk_reminderDismissed","sk_saleItems","sk_tempProfiles","sk_activeTab","sk_chatWelcomeDone","sk_tourChoice","sk_tourStep","sk_guestCaptured"].forEach(k=>localStorage.removeItem(k));window.location.reload();}}}>Reset All Data</button></div></div><button style={{...bBtn("ghost"),width:"100%",marginTop:16}} onClick={()=>setShowSettings(false)}>Close</button></div></div>}
     {showWizard&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
           <div style={{background:C.surface,borderRadius:16,padding:28,maxWidth:440,width:"100%",border:"1px solid "+C.border,maxHeight:"90vh",overflowY:"auto"}}>
@@ -2347,6 +2370,27 @@ What can I substitute and do I have what I need?`,
           </div>
         </div>
       )}
+      {/* -- Guest Email Capture Banner -- */}
+      {showGuestCapture&&!user&&<div style={{position:"fixed",bottom:0,left:0,right:0,background:"#1A2344",borderTop:"2px solid #C8963E",padding:"16px 20px",zIndex:800,display:"flex",flexWrap:"wrap",alignItems:"center",gap:12,justifyContent:"center"}}>
+        <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:14,color:"#eceaf3",textAlign:"center",flexShrink:0}}>
+          💛 <strong>Save your progress</strong> — get your free Smart Kitchen account
+        </div>
+        <div style={{display:"flex",gap:8,alignItems:"center"}}>
+          <input
+            value={guestEmail}
+            onChange={e=>setGuestEmail(e.target.value)}
+            onKeyDown={e=>e.key==="Enter"&&submitGuestEmail()}
+            placeholder="Your email address"
+            type="email"
+            style={{padding:"8px 14px",borderRadius:8,border:"1px solid #C8963E",background:"#0c0e14",color:"#eceaf3",fontSize:13,outline:"none",width:220}}
+          />
+          <button onClick={submitGuestEmail} style={{padding:"8px 16px",background:"#C8963E",border:"none",borderRadius:8,color:"#0c0e14",fontWeight:700,fontSize:13,cursor:"pointer"}}>
+            Save My Spot
+          </button>
+          <button onClick={()=>setShowGuestCapture(false)} style={{background:"transparent",border:"none",color:"#6b728e",cursor:"pointer",fontSize:18,padding:"0 4px"}}>✕</button>
+        </div>
+      </div>}
+
       {/* -- Support Chat Floating Button -- */}
       <button onClick={openChat} style={{position:"fixed",bottom:24,right:24,width:56,height:56,borderRadius:"50%",background:"#C8963E",border:"none",cursor:"pointer",zIndex:900,boxShadow:"0 4px 20px rgba(200,150,62,0.5)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,transition:"transform 0.2s"}} title="Chat with Smart Kitchen">
         💬
