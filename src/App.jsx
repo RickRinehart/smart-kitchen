@@ -523,14 +523,15 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
     if(m.match(/frustrat|annoying|hate|useless|terrible|awful/)) return "Feedback-Negative";
     return null;
   };
+  const tourJustStartedRef=useRef(false);
   const sendChatMessage=async(overrideMsg)=>{
     const text=(overrideMsg||chatInput).trim();
     if(!text||chatLoading) return;
     setChatInput("");
     addChatMsg("user",text);
     setChatLoading(true);
-    // Handle tour tab switch requests
-    if(tourChoice==="yes"&&tourStep>0&&tourStep<=TOUR_STEPS.length){
+    // Handle tour tab switch requests — but not if tour just started this message cycle
+    if(tourChoice==="yes"&&tourStep>0&&tourStep<=TOUR_STEPS.length&&!tourJustStartedRef.current){
       const step=TOUR_STEPS[tourStep-1];
       const isDone=text.toLowerCase().match(/done|next|ready|finished|complete|moved on|got it|continue|signed in|logged in|created/);
       // If step requires completing an action, wait for done signal
@@ -640,6 +641,8 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       if(last.role==="user"){
         const m=last.text.toLowerCase();
         if(m.match(/^yes|^sure|^yeah|^yep|^absolutely|^please/)){
+          tourJustStartedRef.current=true;
+          setTimeout(()=>{tourJustStartedRef.current=false;},2000);
           setTourChoice("yes");
           try{localStorage.setItem("sk_tourChoice","yes");}catch{}
           // Skip sign-in step if already signed in
