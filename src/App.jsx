@@ -417,7 +417,15 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   useEffect(()=>{try{localStorage.setItem("sk_activeTab",tab);}catch{}},[tab]);
   useEffect(()=>{
     if(showWizard&&!chatWelcomeDone){
-      const t=setTimeout(()=>openChat(),2500);
+      const t=setTimeout(()=>{
+        setChatOpen(true);
+        if(!chatWelcomeDone){
+          setChatWelcomeDone(true);
+          try{localStorage.setItem("sk_chatWelcomeDone","1");}catch{}
+          const greeting=`Hi ${userName}! 👋 Welcome to Smart Kitchen — I'm so glad you're here.\n\nI'm your kitchen assistant. I can help you get set up, answer questions, and I genuinely want to hear what you think — good, bad, or anything in between.\n\nWould you like a quick guided tour to get started? I'll walk you through everything one step at a time, and you're in control the whole way. Just say **yes** or **no** — no pressure either way! 😊`;
+          setTimeout(()=>addChatMsg("assistant",greeting),400);
+        }
+      },2500);
       return ()=>clearTimeout(t);
     }
   },[showWizard]);
