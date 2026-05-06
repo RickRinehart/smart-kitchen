@@ -530,8 +530,35 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
     setChatInput("");
     addChatMsg("user",text);
     setChatLoading(true);
-    // Handle tour tab switch requests — but not if tour just started this message cycle
-    if(tourChoice==="yes"&&tourStep>0&&tourStep<=TOUR_STEPS.length&&!tourJustStartedRef.current){
+    const m=text.toLowerCase();
+    // Handle yes/no to tour offer
+    if(tourChoice===null){
+      if(m.match(/^yes|^sure|^yeah|^yep|^absolutely|^please/)){
+        const startStep=user?2:1;
+        const firstStep=TOUR_STEPS[startStep-1];
+        setTourChoice("yes");
+        setTourStep(startStep);
+        try{localStorage.setItem("sk_tourChoice","yes");localStorage.setItem("sk_tourStep",String(startStep));}catch{}
+        const ackMsg=user
+          ?`Perfect! Let\u2019s do this together. I\u2019ll keep it simple and you can ask questions anytime. \uD83D\uDE0A`
+          :`Perfect! Let\u2019s do this together \u2014 I\u2019ll walk you through every step. \uD83D\uDE0A`;
+        setTimeout(()=>{
+          addChatMsg("assistant",ackMsg);
+          setTimeout(()=>{
+            addChatMsg("assistant",firstStep.msg);
+            setChatLoading(false);
+          },1200);
+        },600);
+        return;
+      } else if(m.match(/^no|^not now|^skip|^later|^nope/)){
+        setTourChoice("no");
+        try{localStorage.setItem("sk_tourChoice","no");}catch{}
+        setTimeout(()=>{addChatMsg("assistant",`No problem at all! I\u2019ll be right here whenever you need me. Explore at your own pace \u2014 and tap the chat bubble any time you have questions or just want to talk. \uD83D\uDC9B`);setChatLoading(false);},600);
+        return;
+      }
+    }
+    // Handle tour step responses
+    if(tourChoice==="yes"&&tourStep>0&&tourStep<=TOUR_STEPS.length){
       const step=TOUR_STEPS[tourStep-1];
       const isDone=text.toLowerCase().match(/done|next|ready|finished|complete|moved on|got it|continue|signed in|logged in|created/);
       // If step requires completing an action, wait for done signal
@@ -636,43 +663,6 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     }
   };
   useEffect(()=>{
-    if(tourChoice===null&&chatMessages.length>0){
-      const last=chatMessages[chatMessages.length-1];
-      if(last.role==="user"){
-        const m=last.text.toLowerCase();
-        if(m.match(/^yes|^sure|^yeah|^yep|^absolutely|^please/)){
-          tourJustStartedRef.current=true;
-          setTimeout(()=>{tourJustStartedRef.current=false;},2000);
-          setTourChoice("yes");
-          try{localStorage.setItem("sk_tourChoice","yes");}catch{}
-          // Skip sign-in step if already signed in
-          const startStep=user?2:1;
-          const firstStep=TOUR_STEPS[startStep-1];
-          setTourStep(startStep);
-          try{localStorage.setItem("sk_tourStep",String(startStep));}catch{}
-          // Warm acknowledgment first, then the first step message
-          const ackMsg=user
-            ? `Perfect! Let's do this together. I'll keep it simple and you can ask questions anytime. 😊`
-            : `Perfect! Let's do this together — I'll walk you through every step. 😊`;
-          setTimeout(()=>{
-            addChatMsg("assistant",ackMsg);
-            setTimeout(()=>{
-              addChatMsg("assistant",firstStep.msg);
-              if(firstStep.autoOpen){
-                setTimeout(()=>{
-                  if(firstStep.action==="openAuth"&&!user) onUpgrade();
-                  else if(firstStep.tab){ setTab(firstStep.tab); if(firstStep.action==="profileModalOpen") setProfileModalOpen(true); }
-                },800);
-              }
-            },1200);
-          },600);
-        } else if(m.match(/^no|^not now|^skip|^later|^nope/)){
-          setTourChoice("no");
-          try{localStorage.setItem("sk_tourChoice","no");}catch{}
-          setTimeout(()=>addChatMsg("assistant",`No problem at all! I'll be right here whenever you need me. Explore at your own pace — and tap the chat bubble any time you have questions or just want to talk. 💛`),600);
-        }
-      }
-    }
     chatEndRef.current?.scrollIntoView({behavior:"smooth"});
   },[chatMessages]);
 
