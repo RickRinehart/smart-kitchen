@@ -647,14 +647,21 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
           const firstStep=TOUR_STEPS[startStep-1];
           setTourStep(startStep);
           try{localStorage.setItem("sk_tourStep",String(startStep));}catch{}
+          // Warm acknowledgment first, then the first step message
+          const ackMsg=user
+            ? `Perfect! Let's do this together. I'll keep it simple and you can ask questions anytime. 😊`
+            : `Perfect! Let's do this together — I'll walk you through every step. 😊`;
           setTimeout(()=>{
-            addChatMsg("assistant",firstStep.msg);
-            if(firstStep.autoOpen){
-              setTimeout(()=>{
-                if(firstStep.action==="openAuth"&&!user) onUpgrade();
-                else if(firstStep.tab){ setTab(firstStep.tab); if(firstStep.action==="profileModalOpen") setProfileModalOpen(true); }
-              },800);
-            }
+            addChatMsg("assistant",ackMsg);
+            setTimeout(()=>{
+              addChatMsg("assistant",firstStep.msg);
+              if(firstStep.autoOpen){
+                setTimeout(()=>{
+                  if(firstStep.action==="openAuth"&&!user) onUpgrade();
+                  else if(firstStep.tab){ setTab(firstStep.tab); if(firstStep.action==="profileModalOpen") setProfileModalOpen(true); }
+                },800);
+              }
+            },1200);
           },600);
         } else if(m.match(/^no|^not now|^skip|^later|^nope/)){
           setTourChoice("no");
