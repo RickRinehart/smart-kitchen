@@ -338,6 +338,7 @@ function Root() {
         tier={effectiveTier}
         can={can}
         onUpgrade={handleUpgrade}
+        user={user}
       />
 
       {/* Touchpoint pop-up */}

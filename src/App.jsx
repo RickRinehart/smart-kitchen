@@ -292,7 +292,7 @@ function LoadingDots(){
 }
 
 // =============================================================================
-export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{} }){
+export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, user=null }){
   // -- State ------------------------------------------------------------------
   const [tab,setTab]=useState(()=>{try{const saved=localStorage.getItem("sk_activeTab");return saved||"mealplan";}catch{return "mealplan";}});
   const [leftoversOpen,setLeftoversOpen]=useState(false);
@@ -340,6 +340,15 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{} }){
   const [wizardProteinInput,setWizardProteinInput]=useState({name:"",qty:"",oz:"6"});
   const [pantryChecklist,setPantryChecklist]=useState(()=>COMMON_PANTRY.map(i=>({...i,checked:false})));
   const [showInstallBanner,setShowInstallBanner]=useState(()=>{try{return localStorage.getItem("sk_installDismissed")!=="1";}catch{return true;}});
+  // -- Support Chat State -------------------------------------------------------
+  const [chatOpen,setChatOpen]=useState(false);
+  const [chatMessages,setChatMessages]=useState([]);
+  const [chatInput,setChatInput]=useState("");
+  const [chatLoading,setChatLoading]=useState(false);
+  const [chatWelcomeDone,setChatWelcomeDone]=useState(()=>{try{return localStorage.getItem("sk_chatWelcomeDone")==="1";}catch{return false;}});
+  const [tourChoice,setTourChoice]=useState(()=>{try{return localStorage.getItem("sk_tourChoice")||null;}catch{return null;}});
+  const [tourStep,setTourStep]=useState(()=>{try{return parseInt(localStorage.getItem("sk_tourStep")||"0");}catch{return 0;}});
+  const chatEndRef=useRef(null);
   const [showInventoryReminder,setShowInventoryReminder]=useState(()=>{
     try{
       const day=new Date().getDay(); // 0=Sun, 3=Wed
@@ -445,6 +454,136 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{} }){
     if(athletes.length>0) s+=athletes.length+" teen athlete(s) need larger portions. ";
     return s;
   };
+
+  // -- Support Chat -----------------------------------------------------------
+  const userName=user?.user_metadata?.full_name||user?.email?.split("@")[0]||"there";
+  const TOUR_STEPS=[
+    {msg:"Great! Let's start with your **family profile** — this tells Smart Kitchen who it's cooking for and any dietary needs. Would you like me to open that for you, or would you prefer to tap **Family** yourself?", tab:"family", action:"profileModalOpen"},
+    {msg:"Perfect. Next, let's build your **inventory** — you can scan a grocery receipt with your camera, or add items manually. Would you like me to take you to Inventory?", tab:"inventory"},
+    {msg:"Now for the fun part — let's generate your **7-Day Meal Plan**! It'll use everything in your inventory and respect your family's dietary needs. Want me to open Meal Plan?", tab:"mealplan"},
+    {msg:"Your meal plan is ready! You can push it straight to **Google Calendar** with one tap — just hit the Calendar button. Once you've done that (or if you'd like to skip), let me know!", tab:null},
+    {msg:"One more thing — see the **⚡ Busy?** button on each day? Tap it on a hectic evening and Smart Kitchen will swap in a quick meal under 20 minutes. Really handy for sports nights! Shall I show you anything else?", tab:"mealplan"},
+    {msg:"You're all set! 🎉 Smart Kitchen is ready to help your family eat well every week. I'll be right here if you ever have questions, run into anything, or just want to tell us what you think — good, bad, or anything in between. You're never alone in this kitchen! 💛", tab:null, done:true},
+  ];
+  const addChatMsg=(role,text)=>setChatMessages(prev=>[...prev,{role,text,id:Date.now()}]);
+  const escalateToSupport=(userMsg,tag)=>{
+    const profile=familySummary();
+    const subject=`Smart Kitchen ${tag} — ${userName} (${tier})`;
+    const body=`User: ${userName}%0ATier: ${tier}%0ATag: ${tag}%0A%0AMessage:%0A"${userMsg}"%0A%0AProfile:%0A${profile}`;
+    window.open(`mailto:thesmartkitchenapp@gmail.com?subject=${encodeURIComponent(subject)}&body=${body}`);
+  };
+  const detectEscalation=(msg)=>{
+    const m=msg.toLowerCase();
+    if(m.match(/bug|broken|crash|error|doesn.t work|not working|glitch|freeze/)) return "Bug";
+    if(m.match(/scanner|scan|receipt|camera|photo/)) return "Scanner-Issue";
+    if(m.match(/allerg|restrict|diabeti|renal|sodium|sugar|carb|kylie|diet/)) return "Dietary-Concern";
+    if(m.match(/too expensive|can.t afford|not worth|won.t upgrade|why pay|cancel/)) return "Upgrade-Objection";
+    if(m.match(/love|great|amazing|fantastic|helpful|awesome|thank/)) return "Feedback-Positive";
+    if(m.match(/confus|lost|don.t understand|how do i|where is|can.t find/)) return "Confusion";
+    if(m.match(/feature|wish|would be nice|suggestion|add|could you/)) return "Feature-Request";
+    if(m.match(/frustrat|annoying|hate|useless|terrible|awful/)) return "Feedback-Negative";
+    return null;
+  };
+  const sendChatMessage=async(overrideMsg)=>{
+    const text=(overrideMsg||chatInput).trim();
+    if(!text||chatLoading) return;
+    setChatInput("");
+    addChatMsg("user",text);
+    setChatLoading(true);
+    // Handle tour tab switch requests
+    if(tourChoice==="yes"&&tourStep>0&&tourStep<=TOUR_STEPS.length){
+      const step=TOUR_STEPS[tourStep-1];
+      const wantsOpen=text.toLowerCase().match(/yes|sure|please|go ahead|open|ok|yeah|yep|do it/);
+      if(wantsOpen&&step.tab){
+        setTab(step.tab);
+        if(step.action==="profileModalOpen") setProfileModalOpen(true);
+      }
+      // Advance tour
+      const nextStep=tourStep+1;
+      setTourStep(nextStep);
+      try{localStorage.setItem("sk_tourStep",String(nextStep));}catch{}
+      if(nextStep<=TOUR_STEPS.length){
+        const next=TOUR_STEPS[nextStep-1];
+        setTimeout(()=>{addChatMsg("assistant",next.msg);setChatLoading(false);},700);
+        if(next.done){try{localStorage.setItem("sk_tourChoice","done");}catch{} setTourChoice("done");}
+      } else {
+        setTimeout(()=>{addChatMsg("assistant","You're all set! I'm always here if you need anything. 💛");setChatLoading(false);},700);
+      }
+      return;
+    }
+    // Check for escalation tags
+    const tag=detectEscalation(text);
+    if(tag&&tag!=="Feedback-Positive") setTimeout(()=>escalateToSupport(text,tag),2000);
+    // Build system prompt with full user context
+    const profile=familySummary();
+    const invSummary=`${inventory.length} items, ${proteinItems?.length||0} proteins`;
+    const mealSummary=mealPlan.length>0?`Current meal plan: ${mealPlan.map(d=>d.day+": "+d.meal).join(", ")}`:"No meal plan yet";
+    const system=`You are the Smart Kitchen assistant — warm, friendly, and genuinely helpful. Your name is not important; you are the voice of Smart Kitchen, Rick Rinehart's app.
+
+VOICE: Warm, conversational, encouraging. The user is always in control but they should always feel they are never alone. Never robotic. Never overly formal. Speak like a knowledgeable friend who loves cooking and cares about this family.
+
+USER CONTEXT:
+- Name: ${userName}
+- Tier: ${tier}
+- ${profile||"No dietary restrictions set"}
+- Inventory: ${invSummary}
+- ${mealSummary}
+- Senior Mode: ${seniorMode?"ON":"OFF"}
+
+APP KNOWLEDGE: Smart Kitchen has these features: Inventory (scan receipts or add manually), Meal Plan (7-day AI dinner plan), Recipes (AI suggestions), Shopping List, Desserts, Leftovers scanner, Substitute ingredient tool, Busy Night flag (⚡, quick meals under 20 min), Family profiles with dietary restrictions, Google Calendar push, Senior Mode (larger text), Receipt scanner (camera).
+
+ESCALATION: If the user reports a bug, scanner problem, dietary concern, frustration, or upgrade objection — acknowledge it warmly and let them know the team has been notified and will follow up. If they give positive feedback — celebrate it genuinely.
+
+FEEDBACK: You actively want to hear feedback — good, bad, and ugly. If someone seems hesitant or disengaged, gently ask what's not working for them. If they mention not upgrading, ask what would make it worth it. Always listen first.
+
+Keep responses concise — 2-4 sentences max unless explaining a feature. Use plain language. No bullet points unless listing steps.`;
+    try{
+      const history=chatMessages.slice(-8).map(m=>({role:m.role,content:m.text}));
+      const res=await fetch("https://api.anthropic.com/v1/messages",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","x-api-key":import.meta.env?.VITE_ANTHROPIC_API_KEY||"","anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+        body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:400,system,messages:[...history,{role:"user",content:text}]}),
+      });
+      const data=await res.json();
+      const reply=data?.content?.[0]?.text||"I'm having a little trouble right now — please try again in a moment.";
+      addChatMsg("assistant",reply);
+    }catch(e){
+      addChatMsg("assistant","Something went wrong on my end. Please try again — and if this keeps happening, the team will want to know about it!");
+    }
+    setChatLoading(false);
+  };
+  const openChat=()=>{
+    setChatOpen(true);
+    if(!chatWelcomeDone){
+      setChatWelcomeDone(true);
+      try{localStorage.setItem("sk_chatWelcomeDone","1");}catch{}
+      const greeting=`Hi ${userName}! 👋 Welcome to Smart Kitchen — I'm so glad you're here.\n\nI'm your kitchen assistant. I can help you get set up, answer questions, and I genuinely want to hear what you think — good, bad, or anything in between.\n\nWould you like a quick guided tour to get started? I'll walk you through everything one step at a time, and you're in control the whole way. Just say **yes** or **no** — no pressure either way! 😊`;
+      setTimeout(()=>addChatMsg("assistant",greeting),400);
+    } else if(chatMessages.length===0){
+      setTimeout(()=>addChatMsg("assistant",`Welcome back, ${userName}! 😊 What can I help you with today? And if anything's on your mind — about the app or anything else — I'm all ears.`),400);
+    }
+  };
+  useEffect(()=>{
+    if(tourChoice===null&&chatMessages.length>0){
+      const last=chatMessages[chatMessages.length-1];
+      if(last.role==="user"){
+        const m=last.text.toLowerCase();
+        if(m.match(/^yes|^sure|^yeah|^yep|^absolutely|^please/)){
+          setTourChoice("yes");
+          try{localStorage.setItem("sk_tourChoice","yes");}catch{}
+          const firstStep=TOUR_STEPS[0];
+          setTourStep(1);
+          try{localStorage.setItem("sk_tourStep","1");}catch{}
+          setTimeout(()=>addChatMsg("assistant",firstStep.msg),600);
+        } else if(m.match(/^no|^not now|^skip|^later|^nope/)){
+          setTourChoice("no");
+          try{localStorage.setItem("sk_tourChoice","no");}catch{}
+          setTimeout(()=>addChatMsg("assistant",`No problem at all! I'll be right here whenever you need me. Explore at your own pace — and tap the chat bubble any time you have questions or just want to talk. 💛`),600);
+        }
+      }
+    }
+    chatEndRef.current?.scrollIntoView({behavior:"smooth"});
+  },[chatMessages]);
 
   // -- Repackage helpers ------------------------------------------------------
   const openRepack=(mode)=>{setRpMode(mode);setRpPName("");setRpPLbs("");setRpPOz(6);setRpPPreview(null);setRpOpen(true);};
@@ -811,7 +950,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{} }){
       <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
 
   
-      {showSettings&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setShowSettings(false)}><div style={{background:C.card,borderRadius:16,padding:28,width:340,maxWidth:"90vw"}} onClick={e=>e.stopPropagation()}><div style={{fontFamily:FD,fontSize:20,fontWeight:700,color:C.text,marginBottom:4}}>Settings</div><div style={{fontSize:11,color:C.muted,fontFamily:FM,marginBottom:20}}>Smart Kitchen v1.5</div><div style={{marginTop:12,background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:8}}>Shopping Partner</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:6}}>Who gets the emailed shopping list?</div><input placeholder="Name (e.g. Lisa)" value={shopPartnerName} onChange={e=>{setShopPartnerName(e.target.value);localStorage.setItem("sk_shopPartnerName",e.target.value);}} style={{width:"100%",background:C.card,border:"1px solid "+C.border,borderRadius:6,padding:"6px 10px",color:C.text,fontFamily:FM,fontSize:12,marginBottom:6,boxSizing:"border-box"}}/><input placeholder="Email address" value={shopPartnerEmail} onChange={e=>{setShopPartnerEmail(e.target.value);localStorage.setItem("sk_shopPartnerEmail",e.target.value);}} style={{width:"100%",background:C.card,border:"1px solid "+C.border,borderRadius:6,padding:"6px 10px",color:C.text,fontFamily:FM,fontSize:12,boxSizing:"border-box"}}/></div><div style={{display:"flex",flexDirection:"column",gap:12}}><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>Reset Inventory</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Clears all inventory items. Keeps profiles, meal plan, and preferences.</div><button style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.red,color:C.red}} onClick={()=>{if(window.confirm("Clear all inventory? Cannot be undone.")){localStorage.removeItem("sk_inventory");localStorage.removeItem("sk_portionFixV2");setInventory([]);setShowSettings(false);alert("Inventory cleared.");}}}>Clear Inventory</button></div><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>Reset All Data</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Wipes everything and restarts the Setup Wizard. Use for demo resets.</div><button style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.red,color:C.red}} onClick={()=>{if(window.confirm("Reset ALL data? Cannot be undone.")){["sk_inventory","sk_familyProfiles","sk_familySize","sk_mealPlan","sk_sportsNights","sk_recipeSite","sk_seniorMode","sk_setupDone","sk_portionFixV2","sk_installDismissed","sk_reminderDismissed","sk_saleItems","sk_tempProfiles","sk_activeTab"].forEach(k=>localStorage.removeItem(k));window.location.reload();}}}>Reset All Data</button></div></div><button style={{...bBtn("ghost"),width:"100%",marginTop:16}} onClick={()=>setShowSettings(false)}>Close</button></div></div>}
+      {showSettings&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setShowSettings(false)}><div style={{background:C.card,borderRadius:16,padding:28,width:340,maxWidth:"90vw"}} onClick={e=>e.stopPropagation()}><div style={{fontFamily:FD,fontSize:20,fontWeight:700,color:C.text,marginBottom:4}}>Settings</div><div style={{fontSize:11,color:C.muted,fontFamily:FM,marginBottom:20}}>Smart Kitchen v1.5</div><div style={{marginTop:12,background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:8}}>Shopping Partner</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:6}}>Who gets the emailed shopping list?</div><input placeholder="Name (e.g. Lisa)" value={shopPartnerName} onChange={e=>{setShopPartnerName(e.target.value);localStorage.setItem("sk_shopPartnerName",e.target.value);}} style={{width:"100%",background:C.card,border:"1px solid "+C.border,borderRadius:6,padding:"6px 10px",color:C.text,fontFamily:FM,fontSize:12,marginBottom:6,boxSizing:"border-box"}}/><input placeholder="Email address" value={shopPartnerEmail} onChange={e=>{setShopPartnerEmail(e.target.value);localStorage.setItem("sk_shopPartnerEmail",e.target.value);}} style={{width:"100%",background:C.card,border:"1px solid "+C.border,borderRadius:6,padding:"6px 10px",color:C.text,fontFamily:FM,fontSize:12,boxSizing:"border-box"}}/></div><div style={{display:"flex",flexDirection:"column",gap:12}}><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>Reset Inventory</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Clears all inventory items. Keeps profiles, meal plan, and preferences.</div><button style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.red,color:C.red}} onClick={()=>{if(window.confirm("Clear all inventory? Cannot be undone.")){localStorage.removeItem("sk_inventory");localStorage.removeItem("sk_portionFixV2");setInventory([]);setShowSettings(false);alert("Inventory cleared.");}}}>Clear Inventory</button></div><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>Reset All Data</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Wipes everything and restarts the Setup Wizard. Use for demo resets.</div><button style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.red,color:C.red}} onClick={()=>{if(window.confirm("Reset ALL data? Cannot be undone.")){["sk_inventory","sk_familyProfiles","sk_familySize","sk_mealPlan","sk_sportsNights","sk_recipeSite","sk_seniorMode","sk_setupDone","sk_portionFixV2","sk_installDismissed","sk_reminderDismissed","sk_saleItems","sk_tempProfiles","sk_activeTab","sk_chatWelcomeDone","sk_tourChoice","sk_tourStep"].forEach(k=>localStorage.removeItem(k));window.location.reload();}}}>Reset All Data</button></div></div><button style={{...bBtn("ghost"),width:"100%",marginTop:16}} onClick={()=>setShowSettings(false)}>Close</button></div></div>}
     {showWizard&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
           <div style={{background:C.surface,borderRadius:16,padding:28,maxWidth:440,width:"100%",border:"1px solid "+C.border,maxHeight:"90vh",overflowY:"auto"}}>
@@ -2202,6 +2341,53 @@ What can I substitute and do I have what I need?`,
           </div>
         </div>
       )}
+      {/* -- Support Chat Floating Button -- */}
+      <button onClick={openChat} style={{position:"fixed",bottom:24,right:24,width:56,height:56,borderRadius:"50%",background:"#C8963E",border:"none",cursor:"pointer",zIndex:900,boxShadow:"0 4px 20px rgba(200,150,62,0.5)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,transition:"transform 0.2s"}} title="Chat with Smart Kitchen">
+        💬
+      </button>
+
+      {/* -- Support Chat Drawer -- */}
+      {chatOpen&&<div style={{position:"fixed",bottom:0,right:0,width:"100%",maxWidth:420,height:"80vh",maxHeight:640,background:C.card,borderRadius:"20px 20px 0 0",boxShadow:"0 -8px 40px rgba(0,0,0,0.5)",zIndex:1000,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+        {/* Header */}
+        <div style={{background:"#1A2344",padding:"16px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            <span style={{fontSize:22}}>💬</span>
+            <div>
+              <div style={{fontFamily:FD,fontSize:18,color:"#C8963E",fontWeight:700}}>Smart Kitchen</div>
+              <div style={{fontFamily:FM,fontSize:10,color:"#888888"}}>Always here for you</div>
+            </div>
+          </div>
+          <button onClick={()=>setChatOpen(false)} style={{background:"transparent",border:"none",color:C.muted,fontSize:20,cursor:"pointer",padding:4}}>✕</button>
+        </div>
+        {/* Messages */}
+        <div style={{flex:1,overflowY:"auto",padding:"16px 16px 8px",display:"flex",flexDirection:"column",gap:12}}>
+          {chatMessages.map(msg=>(
+            <div key={msg.id} style={{display:"flex",justifyContent:msg.role==="user"?"flex-end":"flex-start"}}>
+              <div style={{maxWidth:"82%",background:msg.role==="user"?"#C8963E":C.surface,color:msg.role==="user"?"#0c0e14":C.text,borderRadius:msg.role==="user"?"16px 16px 4px 16px":"16px 16px 16px 4px",padding:"10px 14px",fontFamily:FM,fontSize:13,lineHeight:1.6,whiteSpace:"pre-wrap"}}>
+                {msg.text}
+              </div>
+            </div>
+          ))}
+          {chatLoading&&<div style={{display:"flex",justifyContent:"flex-start"}}>
+            <div style={{background:C.surface,borderRadius:"16px 16px 16px 4px",padding:"10px 16px",fontFamily:FM,fontSize:13,color:C.muted}}>typing…</div>
+          </div>}
+          <div ref={chatEndRef}/>
+        </div>
+        {/* Input */}
+        <div style={{padding:"12px 16px",borderTop:"1px solid "+C.border,display:"flex",gap:8,flexShrink:0,background:C.card}}>
+          <input
+            value={chatInput}
+            onChange={e=>setChatInput(e.target.value)}
+            onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendChatMessage();}}}
+            placeholder="Type a message…"
+            style={{flex:1,background:C.surface,border:"1px solid "+C.border,borderRadius:10,padding:"10px 14px",color:C.text,fontFamily:FM,fontSize:13,outline:"none"}}
+          />
+          <button onClick={()=>sendChatMessage()} disabled={chatLoading||!chatInput.trim()} style={{background:"#C8963E",border:"none",borderRadius:10,padding:"10px 16px",color:"#0c0e14",fontWeight:700,cursor:"pointer",fontFamily:FM,fontSize:13,opacity:chatLoading||!chatInput.trim()?0.5:1}}>
+            Send
+          </button>
+        </div>
+      </div>}
+
     </div>
   );
 }<button onClick={()=>regenerateDay(i)} style={{marginTop:4,background:"transparent",border:"1px solid "+C.border,borderRadius:6,color:C.muted,cursor:"pointer",fontFamily:FM,fontSize:10,padding:"3px 7px",width:"100%"}}>🔄 New Meal</button>
