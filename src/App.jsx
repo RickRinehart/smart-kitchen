@@ -487,9 +487,9 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   // -- Support Chat -----------------------------------------------------------
   const userName=user?.user_metadata?.full_name||user?.email?.split("@")[0]||"there";
   const TOUR_STEPS=[
-    {msg:"Great! Let's start with your **family profile** — this tells Smart Kitchen who it's cooking for and any dietary needs. Would you like me to open that for you, or would you prefer to tap **Family** yourself?", tab:"family", action:"profileModalOpen"},
-    {msg:"Perfect. Next, let's build your **inventory** — you can scan a grocery receipt with your camera, or add items manually. Would you like me to take you to Inventory?", tab:"inventory"},
-    {msg:"Now for the fun part — let's generate your **7-Day Meal Plan**! It'll use everything in your inventory and respect your family's dietary needs. Want me to open Meal Plan?", tab:"mealplan"},
+    {msg:"Great! Let's start with your **family profile** — this tells Smart Kitchen who it's cooking for and any dietary needs. I'm opening that for you now!", tab:"family", action:"profileModalOpen", autoOpen:true, waitForDone:true, donePrompt:"Take your time setting up your family. When you're ready, just say **done** or **next** and we'll move on! 😊"},
+    {msg:"Perfect. Now let's build your **inventory** — I'm taking you there now! You can scan a grocery receipt with your camera, or add items manually.", tab:"inventory", autoOpen:true, waitForDone:true, donePrompt:"Go ahead and add a few items — scan a receipt or type them in. Say **done** or **next** when you're ready to continue!"},
+    {msg:"Now for the fun part — I'm opening your **Meal Plan** now! Hit Regenerate to build your first 7-day dinner plan based on your inventory and family needs.", tab:"mealplan", autoOpen:true, waitForDone:true, donePrompt:"Hit **Regenerate** to build your first meal plan. Say **done** or **next** when you've had a look!"},
     {msg:"Your meal plan is ready! You can push it straight to **Google Calendar** with one tap — just hit the Calendar button. Once you've done that (or if you'd like to skip), let me know!", tab:null},
     {msg:"One more thing — see the **⚡ Busy?** button on each day? Tap it on a hectic evening and Smart Kitchen will swap in a quick meal under 20 minutes. Really handy for sports nights! Shall I show you anything else?", tab:"mealplan"},
     {msg:"You're all set! 🎉 Smart Kitchen is ready to help your family eat well every week. I'll be right here if you ever have questions, run into anything, or just want to tell us what you think — good, bad, or anything in between. You're never alone in this kitchen! 💛", tab:null, done:true},
@@ -522,10 +522,16 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
     // Handle tour tab switch requests
     if(tourChoice==="yes"&&tourStep>0&&tourStep<=TOUR_STEPS.length){
       const step=TOUR_STEPS[tourStep-1];
-      const wantsOpen=text.toLowerCase().match(/yes|sure|please|go ahead|open|ok|yeah|yep|do it/);
-      if(wantsOpen&&step.tab){
-        setTab(step.tab);
-        if(step.action==="profileModalOpen") setProfileModalOpen(true);
+      const isDone=text.toLowerCase().match(/done|next|ready|finished|complete|moved on|got it|continue/);
+      // If step requires completing an action, wait for done signal
+      if(step.waitForDone&&!isDone){
+        // Auto-open tab if not already done
+        if(step.autoOpen&&step.tab){
+          setTab(step.tab);
+          if(step.action==="profileModalOpen") setProfileModalOpen(true);
+        }
+        setTimeout(()=>{addChatMsg("assistant",step.donePrompt||"No rush! Just say **done** or **next** when you're ready to continue.");setChatLoading(false);},700);
+        return;
       }
       // Advance tour
       const nextStep=tourStep+1;
@@ -533,7 +539,16 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
       try{localStorage.setItem("sk_tourStep",String(nextStep));}catch{}
       if(nextStep<=TOUR_STEPS.length){
         const next=TOUR_STEPS[nextStep-1];
-        setTimeout(()=>{addChatMsg("assistant",next.msg);setChatLoading(false);},700);
+        setTimeout(()=>{
+          addChatMsg("assistant",next.msg);
+          if(next.autoOpen&&next.tab){
+            setTimeout(()=>{
+              setTab(next.tab);
+              if(next.action==="profileModalOpen") setProfileModalOpen(true);
+            },800);
+          }
+          setChatLoading(false);
+        },700);
         if(next.done){try{localStorage.setItem("sk_tourChoice","done");}catch{} setTourChoice("done");}
       } else {
         setTimeout(()=>{addChatMsg("assistant","You're all set! I'm always here if you need anything. 💛");setChatLoading(false);},700);
@@ -603,7 +618,15 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
           const firstStep=TOUR_STEPS[0];
           setTourStep(1);
           try{localStorage.setItem("sk_tourStep","1");}catch{}
-          setTimeout(()=>addChatMsg("assistant",firstStep.msg),600);
+          setTimeout(()=>{
+            addChatMsg("assistant",firstStep.msg);
+            if(firstStep.autoOpen&&firstStep.tab){
+              setTimeout(()=>{
+                setTab(firstStep.tab);
+                if(firstStep.action==="profileModalOpen") setProfileModalOpen(true);
+              },800);
+            }
+          },600);
         } else if(m.match(/^no|^not now|^skip|^later|^nope/)){
           setTourChoice("no");
           try{localStorage.setItem("sk_tourChoice","no");}catch{}
