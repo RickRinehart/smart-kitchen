@@ -496,6 +496,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   // -- Support Chat -----------------------------------------------------------
   const userName=user?.user_metadata?.full_name||user?.email?.split("@")[0]||"there";
   const TOUR_STEPS=[
+    {msg:"First things first — let's get you signed in so all your settings and meal plans are saved to your account. I'm opening the sign-in screen for you now!", tab:null, action:"openAuth", autoOpen:true, waitForDone:true, donePrompt:"Take your time signing in or creating your account. Say **done** or **next** when you're all set! 😊"},
     {msg:"Great! Let's start with your **family profile** — this tells Smart Kitchen who it's cooking for and any dietary needs. I'm opening that for you now!", tab:"family", action:"profileModalOpen", autoOpen:true, waitForDone:true, donePrompt:"Take your time setting up your family. When you're ready, just say **done** or **next** and we'll move on! 😊"},
     {msg:"Perfect. Now let's build your **inventory** — I'm taking you there now! You can scan a grocery receipt with your camera, or add items manually.", tab:"inventory", autoOpen:true, waitForDone:true, donePrompt:"Go ahead and add a few items — scan a receipt or type them in. Say **done** or **next** when you're ready to continue!"},
     {msg:"Now for the fun part — I'm opening your **Meal Plan** now! Hit Regenerate to build your first 7-day dinner plan based on your inventory and family needs.", tab:"mealplan", autoOpen:true, waitForDone:true, donePrompt:"Hit **Regenerate** to build your first meal plan. Say **done** or **next** when you've had a look!"},
@@ -531,13 +532,13 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
     // Handle tour tab switch requests
     if(tourChoice==="yes"&&tourStep>0&&tourStep<=TOUR_STEPS.length){
       const step=TOUR_STEPS[tourStep-1];
-      const isDone=text.toLowerCase().match(/done|next|ready|finished|complete|moved on|got it|continue/);
+      const isDone=text.toLowerCase().match(/done|next|ready|finished|complete|moved on|got it|continue|signed in|logged in|created/);
       // If step requires completing an action, wait for done signal
       if(step.waitForDone&&!isDone){
-        // Auto-open tab if not already done
-        if(step.autoOpen&&step.tab){
-          setTab(step.tab);
-          if(step.action==="profileModalOpen") setProfileModalOpen(true);
+        // Auto-open tab or auth if not already done
+        if(step.autoOpen){
+          if(step.action==="openAuth"&&!user) onUpgrade();
+          else if(step.tab){ setTab(step.tab); if(step.action==="profileModalOpen") setProfileModalOpen(true); }
         }
         setTimeout(()=>{addChatMsg("assistant",step.donePrompt||"No rush! Just say **done** or **next** when you're ready to continue.");setChatLoading(false);},700);
         return;
@@ -548,12 +549,29 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
       try{localStorage.setItem("sk_tourStep",String(nextStep));}catch{}
       if(nextStep<=TOUR_STEPS.length){
         const next=TOUR_STEPS[nextStep-1];
+        // Skip sign-in step if already signed in
+        if(next.action==="openAuth"&&user){
+          const skipStep=nextStep+1;
+          setTourStep(skipStep);
+          try{localStorage.setItem("sk_tourStep",String(skipStep));}catch{}
+          const skipNext=TOUR_STEPS[skipStep-1];
+          if(skipNext){
+            setTimeout(()=>{
+              addChatMsg("assistant",skipNext.msg);
+              if(skipNext.autoOpen&&skipNext.tab){
+                setTimeout(()=>{ setTab(skipNext.tab); if(skipNext.action==="profileModalOpen") setProfileModalOpen(true); },800);
+              }
+              setChatLoading(false);
+            },700);
+          }
+          return;
+        }
         setTimeout(()=>{
           addChatMsg("assistant",next.msg);
-          if(next.autoOpen&&next.tab){
+          if(next.autoOpen){
             setTimeout(()=>{
-              setTab(next.tab);
-              if(next.action==="profileModalOpen") setProfileModalOpen(true);
+              if(next.action==="openAuth"&&!user) onUpgrade();
+              else if(next.tab){ setTab(next.tab); if(next.action==="profileModalOpen") setProfileModalOpen(true); }
             },800);
           }
           setChatLoading(false);
@@ -624,15 +642,17 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
         if(m.match(/^yes|^sure|^yeah|^yep|^absolutely|^please/)){
           setTourChoice("yes");
           try{localStorage.setItem("sk_tourChoice","yes");}catch{}
-          const firstStep=TOUR_STEPS[0];
-          setTourStep(1);
-          try{localStorage.setItem("sk_tourStep","1");}catch{}
+          // Skip sign-in step if already signed in
+          const startStep=user?2:1;
+          const firstStep=TOUR_STEPS[startStep-1];
+          setTourStep(startStep);
+          try{localStorage.setItem("sk_tourStep",String(startStep));}catch{}
           setTimeout(()=>{
             addChatMsg("assistant",firstStep.msg);
-            if(firstStep.autoOpen&&firstStep.tab){
+            if(firstStep.autoOpen){
               setTimeout(()=>{
-                setTab(firstStep.tab);
-                if(firstStep.action==="profileModalOpen") setProfileModalOpen(true);
+                if(firstStep.action==="openAuth"&&!user) onUpgrade();
+                else if(firstStep.tab){ setTab(firstStep.tab); if(firstStep.action==="profileModalOpen") setProfileModalOpen(true); }
               },800);
             }
           },600);
