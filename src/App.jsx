@@ -411,6 +411,12 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   useEffect(()=>{try{localStorage.setItem("sk_seniorMode",seniorMode?"1":"0");}catch{}},[seniorMode]);
   useEffect(()=>{try{localStorage.setItem("sk_sportsNights",JSON.stringify(sportsNights));}catch{}},[sportsNights]);
   useEffect(()=>{try{localStorage.setItem("sk_activeTab",tab);}catch{}},[tab]);
+  useEffect(()=>{
+    if(showWizard&&!chatWelcomeDone){
+      const t=setTimeout(()=>openChat(),2500);
+      return ()=>clearTimeout(t);
+    }
+  },[showWizard]);
 
   // -- Computed values --------------------------------------------------------
   const blendItem=inventory.find(i=>i.vegType==="sauteBlend")||inventory.find(i=>i.name.toLowerCase().includes("saute")&&i.category==="Frozen");
