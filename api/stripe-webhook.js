@@ -57,6 +57,7 @@ export default async function handler(req, res) {
         const customerId = obj.customer;
         const subscriptionId = obj.subscription;
         const userId = obj.metadata && obj.metadata.supabase_user_id;
+        const promoCode = obj.metadata && obj.metadata.promo_code;
         console.log('checkout.session.completed userId:', userId);
         if (!userId) { console.error('No supabase_user_id in metadata'); break; }
         const subscription = await stripe.subscriptions.retrieve(subscriptionId);
@@ -72,6 +73,24 @@ export default async function handler(req, res) {
         }).eq('id', userId);
         if (error) console.error('Supabase error:', error);
         else console.log('Profile updated successfully');
+        // Send approval email if FAMILY100 was used
+        if (promoCode && promoCode.toUpperCase() === 'FAMILY100') {
+          const customerEmail = obj.customer_email || obj.customer_details?.email || 'unknown';
+          const customerName = obj.customer_details?.name || 'unknown';
+          const stripeUrl = `https://dashboard.stripe.com/customers/${customerId}`;
+          // Use Mailchimp transactional or just log — we'll use mailto redirect via a serverless-safe approach
+          console.log(`FAMILY100 USED: ${customerName} (${customerEmail}) - Customer ID: ${customerId}`);
+          // Fire notification via fetch to our own mailchimp endpoint
+          try {
+            await fetch(`${process.env.VITE_APP_URL}/api/family-approval-notify`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ name: customerName, email: customerEmail, customerId, stripeUrl, tier }),
+            });
+          } catch(e) {
+            console.warn('Approval notify failed:', e.message);
+          }
+        }
         break;
       }
       case 'customer.subscription.updated': {
