@@ -2152,7 +2152,12 @@ useDays is days from today the food is safe to eat (cooked food: 3-4 days typica
                     const jsonMatch=text.match(/\{[\s\S]*\}/);
                     const parsed=JSON.parse(jsonMatch?jsonMatch[0]:text);
                     setLeftoversResult(parsed);
-                  }catch(e){setLeftoversError("Could not identify the dish. Try a clearer photo. ("+e.message+")");}
+                  }catch(e){
+                    const msg=e.message&&e.message.toLowerCase().includes("timeout")
+                      ?"Connection timed out — try again with a stronger WiFi or cellular signal, or add this leftover manually."
+                      :"Couldn't identify the dish. Try a clearer photo or better lighting and try again.";
+                    setLeftoversError(msg);
+                  }
                   setLeftoversLoading(false);
                 }}>
                   {leftoversLoading?"🔍 Identifying...":"🔍 Identify & Save"}
