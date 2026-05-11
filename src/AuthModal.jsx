@@ -8,6 +8,7 @@ export default function AuthModal({ onClose, onSuccess, initialMode = 'signup' }
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
 
@@ -93,14 +94,27 @@ export default function AuthModal({ onClose, onSuccess, initialMode = 'signup' }
             onKeyDown={e => e.key === 'Enter' && (mode === 'signin' ? handleSignIn() : mode === 'signup' ? handleSignUp() : handleReset())}
           />
           {mode !== 'reset' && (
-            <input
-              style={styles.input}
-              type="password"
-              placeholder="Password (min 6 characters)"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && (mode === 'signin' ? handleSignIn() : handleSignUp())}
-            />
+            <div style={{ position: 'relative' }}>
+              <input
+                style={{ ...styles.input, paddingRight: '44px' }}
+                type={showPassword ? "text" : "password"}
+                placeholder="Password (min 6 characters)"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && (mode === 'signin' ? handleSignIn() : handleSignUp())}
+              />
+              <button
+                onClick={() => setShowPassword(p => !p)}
+                style={{
+                  position: 'absolute', right: '10px', top: '50%',
+                  transform: 'translateY(-50%)', background: 'none',
+                  border: 'none', cursor: 'pointer', fontSize: '18px',
+                  color: '#888', padding: '0'
+                }}
+              >
+                {showPassword ? '🙈' : '👁️'}
+              </button>
+            </div>
           )}
 
           <button
