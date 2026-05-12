@@ -309,6 +309,8 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [subError,setSubError]=useState("");
   const loadLocal=(k,fb)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):fb;}catch{return fb;}};const [inventory,setInventory]=useState(()=>loadLocal("sk_inventory",INITIAL_INVENTORY));
   const [recipes,setRecipes]=useState(()=>loadLocal("sk_recipes",[]));const [swapRecipeModal,setSwapRecipeModal]=useState(null);const [swapRecipeRequest,setSwapRecipeRequest]=useState("");const [swapRecipeLoading,setSwapRecipeLoading]=useState(false);
+  const [recipeRatings,setRecipeRatings]=useState(()=>loadLocal("sk_recipeRatings",{}));
+  const [savedRecipesFilter,setSavedRecipesFilter]=useState("all");
   const [recipeError,setRecipeError]=useState("");
   const [mealPlan,setMealPlan]=useState(()=>loadLocal("sk_mealPlan",[]));
   const [sportsNights,setSportsNights]=useState(()=>loadLocal('sk_sportsNights',[]));
@@ -423,6 +425,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   useEffect(()=>{try{localStorage.setItem("sk_tempProfiles",JSON.stringify(tempProfiles));}catch{}},[tempProfiles]);
   useEffect(()=>{try{localStorage.setItem("sk_seniorMode",seniorMode?"1":"0");}catch{}},[seniorMode]);
   useEffect(()=>{try{localStorage.setItem("sk_recipes",JSON.stringify(recipes));}catch{}},[recipes]);
+  useEffect(()=>{try{localStorage.setItem("sk_recipeRatings",JSON.stringify(recipeRatings));}catch{}},[recipeRatings]);
   useEffect(()=>{try{localStorage.setItem("sk_sportsNights",JSON.stringify(sportsNights));}catch{}},[sportsNights]);
   useEffect(()=>{try{localStorage.setItem("sk_activeTab",tab);}catch{}},[tab]);
   useEffect(()=>{
@@ -1052,7 +1055,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
 
   
-      {showSettings&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setShowSettings(false)}><div style={{background:C.card,borderRadius:16,padding:28,width:340,maxWidth:"90vw"}} onClick={e=>e.stopPropagation()}><div style={{fontFamily:FD,fontSize:20,fontWeight:700,color:C.text,marginBottom:4}}>Settings</div><div style={{fontSize:11,color:C.muted,fontFamily:FM,marginBottom:20}}>Smart Kitchen v1.5</div><div style={{marginTop:12,background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:8}}>Shopping Partner</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:6}}>Who gets the emailed shopping list?</div><input placeholder="Name (e.g. Lisa)" value={shopPartnerName} onChange={e=>{setShopPartnerName(e.target.value);localStorage.setItem("sk_shopPartnerName",e.target.value);}} style={{width:"100%",background:C.card,border:"1px solid "+C.border,borderRadius:6,padding:"6px 10px",color:C.text,fontFamily:FM,fontSize:12,marginBottom:6,boxSizing:"border-box"}}/><input placeholder="Email address" value={shopPartnerEmail} onChange={e=>{setShopPartnerEmail(e.target.value);localStorage.setItem("sk_shopPartnerEmail",e.target.value);}} style={{width:"100%",background:C.card,border:"1px solid "+C.border,borderRadius:6,padding:"6px 10px",color:C.text,fontFamily:FM,fontSize:12,boxSizing:"border-box"}}/></div><div style={{display:"flex",flexDirection:"column",gap:12}}><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>{darkMode?"🌙 Dark Mode":"☀️ Light Mode"}</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Switch between dark and light display themes.</div><button style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.border,color:C.text}} onClick={()=>setDarkMode(m=>!m)}>{darkMode?"Switch to Light Mode ☀️":"Switch to Dark Mode 🌙"}</button></div><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>Reset Inventory</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Clears all inventory items. Keeps profiles, meal plan, and preferences.</div><button style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.red,color:C.red}} onClick={()=>{if(window.confirm("Clear all inventory? Cannot be undone.")){localStorage.removeItem("sk_inventory");localStorage.removeItem("sk_portionFixV2");setInventory([]);setShowSettings(false);alert("Inventory cleared.");}}}>Clear Inventory</button></div><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>Reset All Data</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Wipes everything and restarts the Setup Wizard. Use for demo resets.</div><button style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.red,color:C.red}} onClick={()=>{if(window.confirm("Reset ALL data? Cannot be undone.")){["sk_inventory","sk_familyProfiles","sk_familySize","sk_mealPlan","sk_sportsNights","sk_recipeSite","sk_seniorMode","sk_setupDone","sk_portionFixV2","sk_installDismissed","sk_reminderDismissed","sk_saleItems","sk_tempProfiles","sk_activeTab","sk_chatWelcomeDone","sk_tourChoice","sk_tourStep","sk_guestCaptured","sk_darkMode","sk_recipes"].forEach(k=>localStorage.removeItem(k));window.location.reload();}}}>Reset All Data</button></div></div><button style={{...bBtn("ghost"),width:"100%",marginTop:16}} onClick={()=>setShowSettings(false)}>Close</button></div></div>}
+      {showSettings&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setShowSettings(false)}><div style={{background:C.card,borderRadius:16,padding:28,width:340,maxWidth:"90vw"}} onClick={e=>e.stopPropagation()}><div style={{fontFamily:FD,fontSize:20,fontWeight:700,color:C.text,marginBottom:4}}>Settings</div><div style={{fontSize:11,color:C.muted,fontFamily:FM,marginBottom:20}}>Smart Kitchen v1.5</div><div style={{marginTop:12,background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:8}}>Shopping Partner</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:6}}>Who gets the emailed shopping list?</div><input placeholder="Name (e.g. Lisa)" value={shopPartnerName} onChange={e=>{setShopPartnerName(e.target.value);localStorage.setItem("sk_shopPartnerName",e.target.value);}} style={{width:"100%",background:C.card,border:"1px solid "+C.border,borderRadius:6,padding:"6px 10px",color:C.text,fontFamily:FM,fontSize:12,marginBottom:6,boxSizing:"border-box"}}/><input placeholder="Email address" value={shopPartnerEmail} onChange={e=>{setShopPartnerEmail(e.target.value);localStorage.setItem("sk_shopPartnerEmail",e.target.value);}} style={{width:"100%",background:C.card,border:"1px solid "+C.border,borderRadius:6,padding:"6px 10px",color:C.text,fontFamily:FM,fontSize:12,boxSizing:"border-box"}}/></div><div style={{display:"flex",flexDirection:"column",gap:12}}><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>{darkMode?"🌙 Dark Mode":"☀️ Light Mode"}</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Switch between dark and light display themes.</div><button style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.border,color:C.text}} onClick={()=>setDarkMode(m=>!m)}>{darkMode?"Switch to Light Mode ☀️":"Switch to Dark Mode 🌙"}</button></div><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>Reset Inventory</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Clears all inventory items. Keeps profiles, meal plan, and preferences.</div><button style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.red,color:C.red}} onClick={()=>{if(window.confirm("Clear all inventory? Cannot be undone.")){localStorage.removeItem("sk_inventory");localStorage.removeItem("sk_portionFixV2");setInventory([]);setShowSettings(false);alert("Inventory cleared.");}}}>Clear Inventory</button></div><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>Reset All Data</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Wipes everything and restarts the Setup Wizard. Use for demo resets.</div><button style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.red,color:C.red}} onClick={()=>{if(window.confirm("Reset ALL data? Cannot be undone.")){["sk_inventory","sk_familyProfiles","sk_familySize","sk_mealPlan","sk_sportsNights","sk_recipeSite","sk_seniorMode","sk_setupDone","sk_portionFixV2","sk_installDismissed","sk_reminderDismissed","sk_saleItems","sk_tempProfiles","sk_activeTab","sk_chatWelcomeDone","sk_tourChoice","sk_tourStep","sk_guestCaptured","sk_darkMode","sk_recipes","sk_recipeRatings"].forEach(k=>localStorage.removeItem(k));window.location.reload();}}}>Reset All Data</button></div></div><button style={{...bBtn("ghost"),width:"100%",marginTop:16}} onClick={()=>setShowSettings(false)}>Close</button></div></div>}
     {showWizard&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
           <div style={{background:C.surface,borderRadius:16,padding:28,maxWidth:440,width:"100%",border:"1px solid "+C.border,maxHeight:"90vh",overflowY:"auto"}}>
@@ -1291,7 +1294,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
 
       {/* -- Tabs -- */}
       <div style={{display:"flex",background:C.surface,borderBottom:"1px solid "+C.border,paddingLeft:12,overflowX:"auto"}}>
-        {[["inventory","📦","Inventory"],["recipes","🍽","Recipes"],["mealplan","📅","Meal Plan"],["shopping","🛒","Shopping"],["desserts","🍰","Desserts"],["leftovers","🥡","Leftovers"],["substitute","🔄","Substitute"]].map(([k,ic,lb])=>(
+        {[["inventory","📦","Inventory"],["recipes","🍽","Recipes"],["saved","⭐","Saved"],["mealplan","📅","Meal Plan"],["shopping","🛒","Shopping"],["desserts","🍰","Desserts"],["leftovers","🥡","Leftovers"],["substitute","🔄","Substitute"]].map(([k,ic,lb])=>(
           <button key={k} onClick={()=>setTab(k)} style={{background:"transparent",border:"none",borderBottom:"2px solid "+(tab===k?C.accent:"transparent"),padding:"11px 16px",color:tab===k?C.accent:C.muted,cursor:"pointer",fontFamily:FM,fontSize:seniorMode?18:11,fontWeight:700,letterSpacing:0.5,whiteSpace:"nowrap",transition:"all 0.15s",padding:seniorMode?"16px 22px":"11px 16px"}}>
             {ic} {lb.toUpperCase()}
           </button>
@@ -1431,8 +1434,10 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                   <button style={bBtn("ghost")} onClick={fetchRecipes}>🔄 Refresh</button>
                 </div>
                 <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(340px,1fr))",gap:14}}>
-                  {recipes.map(r=>(
-                    <div key={r.id} style={{background:C.card,border:"1px solid "+C.border,borderRadius:14,padding:18,cursor:"pointer",transition:"all 0.15s"}}
+                  {recipes.filter(r=>(recipeRatings[r.name]||0)<2).map(r=>{
+                    const rating=recipeRatings[r.name]||0;
+                    return(
+                    <div key={r.id} style={{background:C.card,border:"1px solid "+C.border,borderRadius:14,padding:18,cursor:"pointer",transition:"all 0.15s",opacity:rating===1?0.5:1}}
                       onClick={()=>setActiveRecipe(r)}
                       onMouseEnter={e=>{e.currentTarget.style.borderColor=C.accent;e.currentTarget.style.background=C.cardHover;}}
                       onMouseLeave={e=>{e.currentTarget.style.borderColor=C.border;e.currentTarget.style.background=C.card;}}>
@@ -1440,16 +1445,27 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                         <div style={{fontFamily:FD,fontSize:seniorMode?26:19,lineHeight:1.3,flex:1}}><a href={getRecipeUrl(r.name)} target="_blank" rel="noopener noreferrer" style={{color:C.accent,textDecoration:"none"}}>🔍 {r.name}</a></div>
                         <span style={{...bTag(r.difficulty==="Easy"?C.green:r.difficulty==="Hard"?C.red:C.accent),marginLeft:8}}>{r.difficulty}</span>
                       </div>
-                      <div style={{color:C.muted,fontSize:seniorMode?17:13,marginBottom:12,lineHeight:1.6}}>{r.description}</div>
+                      <div style={{color:C.muted,fontSize:seniorMode?17:13,marginBottom:8,lineHeight:1.6}}>{r.description}</div>
+                      {/* Star Rating */}
+                      <div style={{display:"flex",gap:4,marginBottom:10}} onClick={e=>e.stopPropagation()}>
+                        {[1,2,3,4,5].map(star=>(
+                          <button key={star} onClick={e=>{e.stopPropagation();setRecipeRatings(prev=>{const next={...prev,[r.name]:prev[r.name]===star?0:star};return next;});}} style={{background:"none",border:"none",cursor:"pointer",fontSize:seniorMode?22:16,padding:"0 1px",color:star<=(recipeRatings[r.name]||0)?"#f59e0b":"#555",transition:"color 0.1s"}} title={star===1?"Never suggest again":star===5?"Keeper!":"Rate "+star+" stars"}>
+                            {star<=(recipeRatings[r.name]||0)?"★":"☆"}
+                          </button>
+                        ))}
+                        {rating>=3&&<span style={{fontSize:10,color:C.muted,fontFamily:FM,marginLeft:4,alignSelf:"center"}}>{rating===5?"🏆 Keeper":rating===4?"❤️ Favorite":"👍 Good"}</span>}
+                        {rating===1&&<span style={{fontSize:10,color:C.red,fontFamily:FM,marginLeft:4,alignSelf:"center"}}>🚫 Excluded</span>}
+                      </div>
                       <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
                         <span style={{...bTag(C.muted),fontSize:seniorMode?14:undefined}}>⏱ {r.time}</span>
                         <span style={bTag(C.blue)}>👨‍👩‍👧 {activeProfiles.length} people</span>
                         <span style={{...bTag(C.green),fontSize:seniorMode?14:undefined}}>✅ {(r.usesFromInventory||[]).length} on hand</span>
                         {(r.missingIngredients||[]).length>0&&<span style={{...bTag(C.red),fontSize:seniorMode?14:undefined}}>🛒 {r.missingIngredients.length} needed</span>}
                       </div>
-                    <div style={{fontSize:seniorMode?17:11,color:C.accent,fontFamily:FM,fontWeight:seniorMode?700:400}}>TAP FOR FULL RECIPE →</div><div style={{marginTop:10,display:"flex",gap:8}}><button onClick={e=>{e.stopPropagation();setSwapRecipeModal(r);setSwapRecipeRequest("");}} style={{flex:1,padding:"8px",borderRadius:8,border:"1px solid "+C.border,background:C.surface,color:C.text,fontFamily:FM,fontSize:12,cursor:"pointer"}}>✦ Swap Recipe</button></div>
+                      <div style={{fontSize:seniorMode?17:11,color:C.accent,fontFamily:FM,fontWeight:seniorMode?700:400}}>TAP FOR FULL RECIPE →</div>
+                      <div style={{marginTop:10,display:"flex",gap:8}}><button onClick={e=>{e.stopPropagation();setSwapRecipeModal(r);setSwapRecipeRequest("");}} style={{flex:1,padding:"8px",borderRadius:8,border:"1px solid "+C.border,background:C.surface,color:C.text,fontFamily:FM,fontSize:12,cursor:"pointer"}}>✦ Swap Recipe</button></div>
                     </div>
-                  ))}
+                  )})}
                 </div>
               </div>
             )}
@@ -1457,6 +1473,55 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
         )}
 
         {swapRecipeModal&&<div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.7)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setSwapRecipeModal(null)}><div style={{background:C.card,borderRadius:12,padding:24,width:360,maxWidth:"90vw"}} onClick={e=>e.stopPropagation()}><div style={{fontFamily:FD,fontSize:18,fontWeight:700,color:C.text,marginBottom:16}}>Swap Recipe</div><button onClick={async()=>{setSwapRecipeLoading(true);const prompt="Give me ONE different recipe suggestion"+( swapRecipeRequest.trim()?" for: "+swapRecipeRequest.trim():" (different from "+swapRecipeModal.name+")")+". Inventory: "+inventory.map(i=>i.name).filter(Boolean).join(", ")+". Return ONLY valid JSON: {name,description,time,difficulty,instructions:[4 short strings],usesFromInventory:[],missingIngredients:[]}";const res=await callClaude({system:"Recipe AI. Return ONLY valid JSON, no markdown.",prompt,maxTokens:600});try{const raw=typeof res==="string"?res:Array.isArray(res)?res.map(r=>r.text||"").join(""):res?.content?.[0]?.text||"";const clean=raw.replace(/```json|```/g,"").trim();const parsed=JSON.parse(clean);setRecipes(prev=>prev.map(r=>r.id===swapRecipeModal.id?{...parsed,id:swapRecipeModal.id,usesFromInventory:parsed.usesFromInventory||[],missingIngredients:parsed.missingIngredients||[]}:r));setSwapRecipeModal(null);}catch(e){alert("Could not parse recipe.");}setSwapRecipeLoading(false);}} style={{width:"100%",padding:"12px",borderRadius:8,background:C.accent,border:"none",color:"#000",fontFamily:FM,fontSize:14,fontWeight:700,cursor:"pointer",marginBottom:10}}>{swapRecipeLoading?"Thinking...":"✦ Surprise Me"}</button><div style={{color:C.muted,fontFamily:FM,fontSize:12,textAlign:"center",marginBottom:8}}>— or request a specific recipe —</div><input value={swapRecipeRequest} onChange={e=>setSwapRecipeRequest(e.target.value)} placeholder='e.g. "Something with chicken"' style={{width:"100%",padding:"8px 12px",borderRadius:6,border:"1px solid "+C.border,background:C.surface,color:C.text,fontFamily:FM,fontSize:13,boxSizing:"border-box",marginBottom:10}}/><button onClick={async()=>{if(!swapRecipeRequest.trim()){alert("Please type a recipe request first.");return;}setSwapRecipeLoading(true);const prompt="Give me ONE recipe for: "+swapRecipeRequest.trim()+". Inventory: "+inventory.map(i=>i.name).filter(Boolean).join(", ")+". Return ONLY valid JSON: {name,description,time,difficulty,instructions:[4 short strings],usesFromInventory:[],missingIngredients:[]}";const res=await callClaude({system:"Recipe AI. Return ONLY valid JSON, no markdown.",prompt,maxTokens:600});try{const raw=typeof res==="string"?res:Array.isArray(res)?res.map(r=>r.text||"").join(""):res?.content?.[0]?.text||"";const clean=raw.replace(/```json|```/g,"").trim();const parsed=JSON.parse(clean);setRecipes(prev=>prev.map(r=>r.id===swapRecipeModal.id?{...parsed,id:swapRecipeModal.id,usesFromInventory:parsed.usesFromInventory||[],missingIngredients:parsed.missingIngredients||[]}:r));setSwapRecipeModal(null);}catch(e){alert("Could not parse recipe.");}setSwapRecipeLoading(false);}} style={{width:"100%",padding:"12px",borderRadius:8,background:"transparent",border:"1px solid "+C.accent,color:C.accent,fontFamily:FM,fontSize:14,cursor:"pointer",marginBottom:8}}>Make This Recipe</button><button onClick={()=>setSwapRecipeModal(null)} style={{width:"100%",padding:"8px",borderRadius:8,background:"transparent",border:"none",color:C.muted,fontFamily:FM,fontSize:12,cursor:"pointer"}}>Cancel</button></div></div>}
+        {/* == SAVED RECIPES == */}
+        {tab==="saved"&&(
+          <div style={{padding:20,maxWidth:940,margin:"0 auto"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+              <div style={{fontFamily:FD,fontSize:22,color:C.text}}>⭐ Saved Recipes</div>
+              <div style={{display:"flex",gap:6}}>
+                {[["all","All"],["keepers","🏆 Keepers"],["good","👍 3+"]].map(([f,lb])=>(
+                  <button key={f} onClick={()=>setSavedRecipesFilter(f)} style={{...bBtn(savedRecipesFilter===f?"primary":"ghost"),fontSize:11,padding:"5px 10px"}}>{lb}</button>
+                ))}
+              </div>
+            </div>
+            {Object.keys(recipeRatings).filter(name=>recipeRatings[name]>=3).length===0?(
+              <div style={{textAlign:"center",padding:60}}>
+                <div style={{fontSize:48,marginBottom:16}}>⭐</div>
+                <div style={{color:C.muted,fontFamily:FM,fontSize:14,marginBottom:8}}>No saved recipes yet</div>
+                <div style={{color:C.muted,fontFamily:FM,fontSize:12}}>Rate a recipe 3 stars or more on the Recipes tab to save it here.</div>
+              </div>
+            ):(
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(320px,1fr))",gap:14}}>
+                {Object.entries(recipeRatings)
+                  .filter(([,r])=>r>=3)
+                  .filter(([,r])=>savedRecipesFilter==="keepers"?r===5:savedRecipesFilter==="good"?r>=3:true)
+                  .sort(([,a],[,b])=>b-a)
+                  .map(([name,rating])=>(
+                  <div key={name} style={{background:C.card,border:"2px solid "+(rating===5?"#f59e0b":C.border),borderRadius:14,padding:18}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+                      <div style={{fontFamily:FD,fontSize:seniorMode?22:17,lineHeight:1.3,flex:1,color:C.text}}>{rating===5?"🏆 ":""}{name}</div>
+                      <div style={{display:"flex",gap:2,flexShrink:0,marginLeft:8}}>
+                        {[1,2,3,4,5].map(star=>(
+                          <button key={star} onClick={()=>setRecipeRatings(prev=>({...prev,[name]:prev[name]===star?0:star}))} style={{background:"none",border:"none",cursor:"pointer",fontSize:14,padding:"0 1px",color:star<=rating?"#f59e0b":"#555"}}>
+                            {star<=rating?"★":"☆"}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div style={{fontSize:11,color:rating===5?"#f59e0b":rating===4?C.green:C.muted,fontFamily:FM,fontWeight:600,marginBottom:8}}>
+                      {rating===5?"🏆 Keeper — rotation favorite":rating===4?"❤️ Favorite":"👍 Good recipe"}
+                    </div>
+                    <button onClick={()=>{
+                      const inv=inventory.map(i=>i.name.toLowerCase());
+                      setTab("recipes");
+                    }} style={{...bBtn("ghost"),width:"100%",fontSize:11,marginTop:4}}>🔍 Find Recipe Online</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
 {/* == MEAL PLAN == */}
         {!loading&&tab==="mealplan"&&(
           <div>
