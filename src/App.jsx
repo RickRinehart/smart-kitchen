@@ -1,5 +1,6 @@
 // Smart Kitchen App v2.1 - April 26 2026
 import React, { useState, useRef, useEffect } from "react";
+import "./App.css";
 
 // -- Design tokens -------------------------------------------------------------
 // CSS variables handle theming — C provides the var() references for inline styles
