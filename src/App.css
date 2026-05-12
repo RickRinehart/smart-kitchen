@@ -1,3 +1,42 @@
+/* Smart Kitchen Theme Variables */
+:root, body.sk-dark {
+  --sk-bg: #0c0e14;
+  --sk-surface: #13161f;
+  --sk-card: #1a1e2b;
+  --sk-card-hover: #1f2436;
+  --sk-border: #252c3f;
+  --sk-border-light: #2e3650;
+  --sk-accent: #f0a500;
+  --sk-green: #3ecf8e;
+  --sk-red: #f06060;
+  --sk-blue: #5b9cf6;
+  --sk-purple: #a78bfa;
+  --sk-teal: #2dd4bf;
+  --sk-orange: #fb923c;
+  --sk-text: #eceaf3;
+  --sk-muted: #6b728e;
+  --sk-dim: #3a4060;
+}
+
+body.sk-light {
+  --sk-bg: #f8f9fc;
+  --sk-surface: #ffffff;
+  --sk-card: #ffffff;
+  --sk-card-hover: #f0f2f8;
+  --sk-border: #e2e6ef;
+  --sk-border-light: #cdd2e0;
+  --sk-accent: #c8963e;
+  --sk-green: #2aa86e;
+  --sk-red: #dc4f4f;
+  --sk-blue: #3a7bd5;
+  --sk-purple: #7c5ce0;
+  --sk-teal: #0fb8a4;
+  --sk-orange: #e07020;
+  --sk-text: #1a2344;
+  --sk-muted: #6b728e;
+  --sk-dim: #c8d0e0;
+}
+
 .counter {
   font-size: 16px;
   padding: 5px 10px;

@@ -7,10 +7,22 @@ export default function AuthModal({ onClose, onSuccess, initialMode = 'signup' }
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
+  const [largeText, setLargeText] = useState(()=>{try{return localStorage.getItem('sk_seniorMode')==='1';}catch{return false;}})
+  const [lightMode, setLightMode] = useState(()=>{try{return localStorage.getItem('sk_darkMode')==='0';}catch{return false;}})
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+
+  const toggleLargeText = () => { const next=!largeText; setLargeText(next); try{localStorage.setItem('sk_seniorMode',next?'1':'0');}catch{} }
+  const toggleLightMode = () => {
+    const next=!lightMode;
+    setLightMode(next);
+    try{localStorage.setItem('sk_darkMode',next?'0':'1');}catch{}
+    document.body.classList.toggle('sk-light',next);
+    document.body.classList.toggle('sk-dark',!next);
+  }
+  const sz = (base) => largeText ? Math.round(base * 1.35) : base
 
   async function handleSignUp() {
     if (!email || !password) { setError('Email and password are required.'); return }
@@ -57,19 +69,24 @@ export default function AuthModal({ onClose, onSuccess, initialMode = 'signup' }
 
   return (
     <div style={styles.overlay} onClick={onClose}>
-      <div style={styles.modal} onClick={e => e.stopPropagation()}>
+      <div style={{...styles.modal, position:'relative'}} onClick={e => e.stopPropagation()}>
+        {/* Accessibility toggles */}
+        <div style={{position:'absolute',top:12,right:44,display:'flex',gap:6}}>
+          <button onClick={toggleLightMode} title={lightMode?"Dark Mode":"Light Mode"} style={{background:'none',border:'1px solid #ddd',borderRadius:8,padding:'4px 8px',cursor:'pointer',fontSize:sz(14),color:'#6b728e'}}>{lightMode?'🌙':'☀️'}</button>
+          <button onClick={toggleLargeText} title={largeText?"Normal Text":"Large Text"} style={{background:largeText?'#1a2344':'none',border:'1px solid '+(largeText?'#1a2344':'#ddd'),borderRadius:8,padding:'4px 8px',cursor:'pointer',fontSize:sz(14),color:largeText?'#fff':'#6b728e'}}>{largeText?'Aa✓':'Aa'}</button>
+        </div>
         <div style={styles.header}>
-          <div style={styles.logo}>🍽️ Smart Kitchen</div>
+          <div style={{...styles.logo,fontSize:sz(18)}}>🍽️ Smart Kitchen</div>
           <button style={styles.closeBtn} onClick={onClose}>✕</button>
         </div>
 
-        <h2 style={styles.title}>
+        <h2 style={{...styles.title,fontSize:sz(22)}}>
           {mode === 'signup' && 'Start Your Free 30-Day Trial'}
           {mode === 'signin' && 'Welcome Back'}
           {mode === 'reset' && 'Reset Password'}
         </h2>
         {mode === 'signup' && (
-          <p style={styles.subtitle}>No credit card required. Full access for 30 days.</p>
+          <p style={{...styles.subtitle,fontSize:sz(14)}}>No credit card required. Full access for 30 days.</p>
         )}
 
         {error && <div style={styles.error}>{error}</div>}
