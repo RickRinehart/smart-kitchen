@@ -7,6 +7,35 @@ import SubscriptionModal from "./SubscriptionModal";
 import { supabase, getUserProfile, trialDaysRemaining, markTouchpoint } from "./supabaseClient";
 import "./index.css";
 
+// Pre-auth accessibility toggles shown next to Sign In button
+function AccessibilityToggles() {
+  const [isLight, setIsLight] = React.useState(() => {
+    try { return localStorage.getItem("sk_darkMode") === "0"; } catch { return false; }
+  });
+  const [isLarge, setIsLarge] = React.useState(() => {
+    try { return localStorage.getItem("sk_seniorMode") === "1"; } catch { return false; }
+  });
+  const toggleTheme = () => {
+    const next = !isLight;
+    setIsLight(next);
+    try { localStorage.setItem("sk_darkMode", next ? "0" : "1"); } catch {}
+    document.body.classList.toggle("sk-light", next);
+    document.body.classList.toggle("sk-dark", !next);
+  };
+  const toggleText = () => {
+    const next = !isLarge;
+    setIsLarge(next);
+    try { localStorage.setItem("sk_seniorMode", next ? "1" : "0"); } catch {}
+    window.location.reload();
+  };
+  return (
+    <>
+      <button onClick={toggleTheme} title={isLight ? "Dark Mode" : "Light Mode"} style={{background:"none",border:"1px solid #444",borderRadius:8,padding:"3px 8px",cursor:"pointer",fontSize:13,color:"#888"}}>{isLight ? "🌙" : "☀️"}</button>
+      <button onClick={toggleText} title={isLarge ? "Normal Text" : "Large Text"} style={{background:isLarge?"#1a2344":"none",border:"1px solid #444",borderRadius:8,padding:"3px 8px",cursor:"pointer",fontSize:13,color:isLarge?"#fff":"#888"}}>{isLarge ? "Aa✓" : "Aa"}</button>
+    </>
+  );
+}
+
 // Admin emails — always get full access regardless of tier
 const ADMIN_EMAILS = ["thesmartkitchenapp@gmail.com", "michiganrvvacations@gmail.com"];
 
@@ -326,11 +355,14 @@ function Root() {
             }}>Sign Out</button>
           </>
         ) : (
-          <button onClick={() => { setAuthMode("signup"); setShowAuthModal(true); }} style={{
-            fontSize: "12px", padding: "5px 14px", borderRadius: "12px",
-            border: "none", background: "#c8963e", color: "#fff",
-            cursor: "pointer", fontWeight: "700"
-          }}>Sign In</button>
+          <div style={{display:"flex",alignItems:"center",gap:6}}>
+            <AccessibilityToggles />
+            <button onClick={() => { setAuthMode("signup"); setShowAuthModal(true); }} style={{
+              fontSize: "12px", padding: "5px 14px", borderRadius: "12px",
+              border: "none", background: "#c8963e", color: "#fff",
+              cursor: "pointer", fontWeight: "700"
+            }}>Sign In</button>
+          </div>
         )}
       </div>
 
