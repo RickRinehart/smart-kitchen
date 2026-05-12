@@ -1434,8 +1434,8 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                   <button style={bBtn("ghost")} onClick={fetchRecipes}>🔄 Refresh</button>
                 </div>
                 <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(340px,1fr))",gap:14}}>
-                  {recipes.filter(r=>(recipeRatings[r.name]||0)<2).map(r=>{
-                    const rating=recipeRatings[r.name]||0;
+                  {recipes.filter(r=>(recipeRatings[r.name]||0)!==1||(recipeRatings[r.name]||0)===1).map(r=>{
+                    const rating=recipeRatings[r.name]?.rating||0;
                     return(
                     <div key={r.id} style={{background:C.card,border:"1px solid "+C.border,borderRadius:14,padding:18,cursor:"pointer",transition:"all 0.15s",opacity:rating===1?0.5:1}}
                       onClick={()=>setActiveRecipe(r)}
@@ -1449,8 +1449,8 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                       {/* Star Rating */}
                       <div style={{display:"flex",gap:4,marginBottom:10}} onClick={e=>e.stopPropagation()}>
                         {[1,2,3,4,5].map(star=>(
-                          <button key={star} onClick={e=>{e.stopPropagation();setRecipeRatings(prev=>{const next={...prev,[r.name]:prev[r.name]===star?0:star};return next;});}} style={{background:"none",border:"none",cursor:"pointer",fontSize:seniorMode?22:16,padding:"0 1px",color:star<=(recipeRatings[r.name]||0)?"#f59e0b":"#555",transition:"color 0.1s"}} title={star===1?"Never suggest again":star===5?"Keeper!":"Rate "+star+" stars"}>
-                            {star<=(recipeRatings[r.name]||0)?"★":"☆"}
+                          <button key={star} onClick={e=>{e.stopPropagation();setRecipeRatings(prev=>{const cur=prev[r.name]?.rating||0;const next={...prev};if(cur===star){delete next[r.name];}else{next[r.name]={rating:star,recipe:r};}return next;});}} style={{background:"none",border:"none",cursor:"pointer",fontSize:seniorMode?22:16,padding:"0 1px",color:star<=(recipeRatings[r.name]?.rating||0)?"#f59e0b":"#555",transition:"color 0.1s"}} title={star===1?"Never suggest again":star===5?"Keeper!":"Rate "+star+" stars"}>
+                            {star<=(recipeRatings[r.name]?.rating||0)?"★":"☆"}
                           </button>
                         ))}
                         {rating>=3&&<span style={{fontSize:10,color:C.muted,fontFamily:FM,marginLeft:4,alignSelf:"center"}}>{rating===5?"🏆 Keeper":rating===4?"❤️ Favorite":"👍 Good"}</span>}
@@ -1484,7 +1484,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                 ))}
               </div>
             </div>
-            {Object.keys(recipeRatings).filter(name=>recipeRatings[name]>=3).length===0?(
+            {Object.keys(recipeRatings).filter(name=>recipeRatings[name]?.rating>=3).length===0?(
               <div style={{textAlign:"center",padding:60}}>
                 <div style={{fontSize:48,marginBottom:16}}>⭐</div>
                 <div style={{color:C.muted,fontFamily:FM,fontSize:14,marginBottom:8}}>No saved recipes yet</div>
@@ -1493,30 +1493,44 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
             ):(
               <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(320px,1fr))",gap:14}}>
                 {Object.entries(recipeRatings)
-                  .filter(([,r])=>r>=3)
-                  .filter(([,r])=>savedRecipesFilter==="keepers"?r===5:savedRecipesFilter==="good"?r>=3:true)
-                  .sort(([,a],[,b])=>b-a)
-                  .map(([name,rating])=>(
-                  <div key={name} style={{background:C.card,border:"2px solid "+(rating===5?"#f59e0b":C.border),borderRadius:14,padding:18}}>
+                  .filter(([,v])=>v?.rating>=3)
+                  .filter(([,v])=>savedRecipesFilter==="keepers"?v?.rating===5:savedRecipesFilter==="good"?v?.rating>=3:true)
+                  .sort(([,a],[,b])=>b.rating-a.rating)
+                  .map(([name,v])=>{
+                    const rating=v?.rating||0;
+                    const r=v?.recipe||{name,description:"",time:"",difficulty:"Easy",usesFromInventory:[],missingIngredients:[]};
+                    return(
+                  <div key={name} style={{background:C.card,border:"2px solid "+(rating===5?"#f59e0b":C.border),borderRadius:14,padding:18,cursor:"pointer",transition:"all 0.15s"}}
+                    onClick={()=>setActiveRecipe(r)}
+                    onMouseEnter={e=>{e.currentTarget.style.background=C.cardHover;}}
+                    onMouseLeave={e=>{e.currentTarget.style.background=C.card;}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
-                      <div style={{fontFamily:FD,fontSize:seniorMode?22:17,lineHeight:1.3,flex:1,color:C.text}}>{rating===5?"🏆 ":""}{name}</div>
-                      <div style={{display:"flex",gap:2,flexShrink:0,marginLeft:8}}>
-                        {[1,2,3,4,5].map(star=>(
-                          <button key={star} onClick={()=>setRecipeRatings(prev=>({...prev,[name]:prev[name]===star?0:star}))} style={{background:"none",border:"none",cursor:"pointer",fontSize:14,padding:"0 1px",color:star<=rating?"#f59e0b":"#555"}}>
-                            {star<=rating?"★":"☆"}
-                          </button>
-                        ))}
-                      </div>
+                      <div style={{fontFamily:FD,fontSize:seniorMode?26:19,lineHeight:1.3,flex:1}}><a href={getRecipeUrl(name)} target="_blank" rel="noopener noreferrer" style={{color:C.accent,textDecoration:"none"}}>🔍 {name}</a></div>
+                      <span style={{...bTag(r.difficulty==="Easy"?C.green:r.difficulty==="Hard"?C.red:C.accent),marginLeft:8}}>{r.difficulty}</span>
                     </div>
-                    <div style={{fontSize:11,color:rating===5?"#f59e0b":rating===4?C.green:C.muted,fontFamily:FM,fontWeight:600,marginBottom:8}}>
-                      {rating===5?"🏆 Keeper — rotation favorite":rating===4?"❤️ Favorite":"👍 Good recipe"}
+                    {r.description&&<div style={{color:C.muted,fontSize:seniorMode?17:13,marginBottom:8,lineHeight:1.6}}>{r.description}</div>}
+                    {/* Star rating */}
+                    <div style={{display:"flex",gap:4,marginBottom:10}} onClick={e=>e.stopPropagation()}>
+                      {[1,2,3,4,5].map(star=>(
+                        <button key={star} onClick={e=>{e.stopPropagation();setRecipeRatings(prev=>{const cur=prev[name]?.rating||0;const next={...prev};if(cur===star){delete next[name];}else{next[name]={rating:star,recipe:r};}return next;});}} style={{background:"none",border:"none",cursor:"pointer",fontSize:seniorMode?22:16,padding:"0 1px",color:star<=rating?"#f59e0b":"#555"}}>
+                          {star<=rating?"★":"☆"}
+                        </button>
+                      ))}
+                      <span style={{fontSize:10,color:rating===5?"#f59e0b":rating===4?C.green:C.muted,fontFamily:FM,marginLeft:4,alignSelf:"center",fontWeight:600}}>
+                        {rating===5?"🏆 Keeper":rating===4?"❤️ Favorite":"👍 Good"}
+                      </span>
                     </div>
-                    <button onClick={()=>{
-                      const inv=inventory.map(i=>i.name.toLowerCase());
-                      setTab("recipes");
-                    }} style={{...bBtn("ghost"),width:"100%",fontSize:11,marginTop:4}}>🔍 Find Recipe Online</button>
+                    <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
+                      {r.time&&<span style={{...bTag(C.muted),fontSize:seniorMode?14:undefined}}>⏱ {r.time}</span>}
+                      {(r.usesFromInventory||[]).length>0&&<span style={{...bTag(C.green),fontSize:seniorMode?14:undefined}}>✅ {r.usesFromInventory.length} on hand</span>}
+                      {(r.missingIngredients||[]).length>0&&<span style={{...bTag(C.red),fontSize:seniorMode?14:undefined}}>🛒 {r.missingIngredients.length} needed</span>}
+                    </div>
+                    <div style={{fontSize:seniorMode?17:11,color:C.accent,fontFamily:FM,fontWeight:seniorMode?700:400,marginBottom:10}}>TAP FOR FULL RECIPE →</div>
+                    <div style={{display:"flex",gap:8}}>
+                      <button onClick={e=>{e.stopPropagation();setRecipeRatings(prev=>{const next={...prev};delete next[name];return next;});}} style={{flex:1,padding:"8px",borderRadius:8,border:"1px solid "+C.red,background:"transparent",color:C.red,fontFamily:FM,fontSize:11,cursor:"pointer"}}>🗑 Remove</button>
+                    </div>
                   </div>
-                ))}
+                )})}
               </div>
             )}
           </div>
