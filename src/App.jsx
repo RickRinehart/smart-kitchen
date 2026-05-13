@@ -384,6 +384,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [editingProfile,setEditingProfile]=useState(null);
   const [printModal,setPrintModal]=useState(null);
   const [emailSentModal,setEmailSentModal]=useState(null);
+  const [upgradeModal,setUpgradeModal]=useState(null);
   const [scanOpen,setScanOpen]=useState(false);
   const [scanLoc,setScanLoc]=useState("");
   const [scanShelf,setScanShelf]=useState("");
@@ -853,7 +854,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
   };
   const buildMealPlan=async()=>{
     if(!can.sevenDayPlan){
-      if(window.confirm("7-day meal planning requires Solo or higher. Start your 30-day free trial?")) onUpgrade();
+      setUpgradeModal({feature:"7-Day Meal Planning",desc:"Get a personalized 7-day dinner plan built around your proteins and pantry.",icon:"📅"});
       return;
     }
     setLoading(true); setLoadMsg("Building meal plan…"); setTab("mealplan");
@@ -874,7 +875,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
 
   const quickMealForDay=async(dayIdx)=>{
     if(!can.busyNightFlag){
-      if(window.confirm("Busy Night / Quick Meal flag requires Solo or higher. Start your 30-day free trial?")) onUpgrade();
+      setUpgradeModal({feature:"Busy Night Flag",desc:"Tap ⚡ Busy? on any night and get a quick dinner under 20 minutes — perfect for sports nights and hectic evenings.",icon:"⚡"});
       return;
     }
     const day=mealPlan[dayIdx];
@@ -1312,7 +1313,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
           <button style={bBtn("ghost")} onClick={()=>{setScanOpen(true);setScanStage("upload");setScanResults(null);setScanPreview(null);setScanB64(null);setScanMode("shelf");}}>📷 Scan</button>
           <button style={bBtn("primary")} onClick={()=>{
             if(!can.unlimitedRecipes){
-              if(window.confirm("Upgrade to Solo or higher for unlimited recipe suggestions. Start your 30-day free trial?")) onUpgrade();
+              setUpgradeModal({feature:"Unlimited Recipe Suggestions",desc:"Get unlimited AI-powered recipe suggestions based on exactly what you have in your kitchen.",icon:"🍽"});
               return;
             }
             fetchRecipes();
@@ -2582,6 +2583,24 @@ What can I substitute and do I have what I need?`,
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+      {/* == UPGRADE MODAL == */}
+      {upgradeModal&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:400,padding:16}} onClick={()=>setUpgradeModal(null)}>
+          <div style={{background:C.card,border:"1px solid "+C.accent+"44",borderRadius:18,padding:28,maxWidth:420,width:"100%",textAlign:"center"}} onClick={e=>e.stopPropagation()}>
+            <div style={{fontSize:48,marginBottom:12}}>{upgradeModal.icon}</div>
+            <div style={{fontFamily:FD,fontSize:22,color:C.accent,marginBottom:8}}>{upgradeModal.feature}</div>
+            <div style={{fontFamily:FM,fontSize:14,color:C.text,marginBottom:6,lineHeight:1.6}}>{upgradeModal.desc}</div>
+            <div style={{background:C.surface,border:"1px solid "+C.accent+"33",borderRadius:10,padding:"12px 16px",margin:"16px 0",textAlign:"left"}}>
+              <div style={{fontFamily:FM,fontSize:13,color:C.accent,fontWeight:700,marginBottom:4}}>30-Day Free Trial</div>
+              <div style={{fontFamily:FM,fontSize:13,color:C.text,lineHeight:1.6}}>Try everything free for 30 days. No credit card required. Solo starts at just <strong>$7.99/month</strong> after your trial.</div>
+            </div>
+            <div style={{display:"flex",gap:10,justifyContent:"center"}}>
+              <button onClick={()=>{setUpgradeModal(null);onUpgrade();}} style={{...bBtn("primary"),padding:"12px 28px",fontSize:15,fontWeight:700}}>Start Free Trial</button>
+              <button onClick={()=>setUpgradeModal(null)} style={{...bBtn("ghost"),padding:"12px 20px",fontSize:14}}>Maybe Later</button>
             </div>
           </div>
         </div>
