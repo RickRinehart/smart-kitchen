@@ -56,7 +56,8 @@ export default async function handler(req, res) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        from: 'Smart Kitchen <onboarding@resend.dev>',
+        from: 'Smart Kitchen <noreply@send.rinehartra.com>',
+        reply_to: 'thesmartkitchenapp@gmail.com',
         to: [toEmail],
         subject: '🛒 Your Smart Kitchen Shopping List',
         html: htmlBody,
