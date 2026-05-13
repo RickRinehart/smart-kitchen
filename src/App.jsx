@@ -1577,10 +1577,10 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                 </div>
                 <div style={{display:"flex",flexDirection:"column",gap:9}}>
                   {mealPlan.map((day,i)=>(
-                    <div key={i} style={{background:day.quickMeal?"#1a1a2e":C.card,border:"1px solid "+(day.quickMeal?"#f59e0b":C.border),borderRadius:12,padding:12}}>
+                    <div key={i} style={{background:C.card,border:"1px solid "+(day.quickMeal?"#f59e0b":C.border),borderRadius:12,padding:12}}>
                       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
                         <div style={{display:"flex",alignItems:"center",gap:10}}>
-                          <div style={{fontWeight:700,color:C.accent,fontSize:seniorMode?20:17,fontFamily:FD}}>{day.day}</div>
+                          <div style={{fontWeight:700,color:C.accent,fontSize:seniorMode?24:20,fontFamily:FD}}>{day.day}</div>
                           <div style={{fontFamily:FM,fontSize:9,color:C.muted}}>DAY {i+1}</div>
                         </div>
                         <button onClick={()=>day.quickMeal?clearQuickMeal(i):quickMealForDay(i)} style={{background:day.quickMeal?"#f59e0b22":"transparent",border:"1px solid "+(day.quickMeal?"#f59e0b":C.border),borderRadius:6,color:day.quickMeal?"#f59e0b":C.muted,cursor:"pointer",fontFamily:FM,fontSize:10,padding:"3px 8px"}}>{day.quickMeal?"⚡ Busy Night":"⚡ Busy?"}</button>
@@ -1588,16 +1588,16 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                       <div style={{display:"flex",flexDirection:"column",gap:8}}>
                       <div style={{flex:1,minWidth:0}}>
                         {day.quickMeal&&<span style={{fontSize:10,background:"#f59e0b22",color:"#f59e0b",padding:"2px 6px",borderRadius:4,fontFamily:FM,display:"inline-block",marginBottom:4}}>⚡ BUSY NIGHT — under 20 min</span>}
-                        <div><div onClick={()=>openMealPlanRecipe(day)} style={{fontFamily:FD,fontSize:seniorMode?15:14,marginBottom:4,color:C.accent,cursor:"pointer",lineHeight:1.4}}>🔍 {day.meal}</div>
+                        <div><div onClick={()=>openMealPlanRecipe(day)} style={{fontFamily:FD,fontSize:seniorMode?22:19,marginBottom:4,color:C.accent,cursor:"pointer",lineHeight:1.4}}>🔍 {day.meal}</div>
                         {/* Star rating on meal plan card */}
                         <div style={{display:"flex",gap:3,marginBottom:6}} onClick={e=>e.stopPropagation()}>
                           {[1,2,3,4,5].map(star=>{
                             const mealRating=recipeRatings[day.meal]?.rating||0;
-                            return <button key={star} onClick={e=>{e.stopPropagation();setRecipeRatings(prev=>{const cur=prev[day.meal]?.rating||0;const next={...prev};if(cur===star){delete next[day.meal];}else{next[day.meal]={rating:star,recipe:{name:day.meal,description:"",time:"",difficulty:"Easy",usesFromInventory:day.ingredients||[],missingIngredients:day.shoppingNeeded?.map(s=>s.name)||[]}};}return next;});}} style={{background:"none",border:"none",cursor:"pointer",fontSize:14,padding:"0 1px",color:star<=mealRating?"#f59e0b":"#555"}} title={star===1?"Never suggest again":star===5?"Keeper!":"Rate "+star+" stars"}>{star<=mealRating?"★":"☆"}</button>;
+                            return <button key={star} onClick={e=>{e.stopPropagation();setRecipeRatings(prev=>{const cur=prev[day.meal]?.rating||0;const next={...prev};if(cur===star){delete next[day.meal];}else{next[day.meal]={rating:star,recipe:{name:day.meal,description:"",time:"",difficulty:"Easy",usesFromInventory:day.ingredients||[],missingIngredients:day.shoppingNeeded?.map(s=>s.name)||[]}};}return next;});}} style={{background:"none",border:"none",cursor:"pointer",fontSize:seniorMode?20:16,padding:"0 1px",color:star<=mealRating?"#f59e0b":"#555"}} title={star===1?"Never suggest again":star===5?"Keeper!":"Rate "+star+" stars"}>{star<=mealRating?"★":"☆"}</button>;
                           })}
                           {(recipeRatings[day.meal]?.rating||0)>=3&&<span style={{fontSize:9,color:C.muted,fontFamily:FM,marginLeft:3,alignSelf:"center"}}>{recipeRatings[day.meal]?.rating===5?"🏆":recipeRatings[day.meal]?.rating===4?"❤️":"👍"}</span>}
                         </div>
-                        <div style={{display:"flex",gap:10,alignItems:"center",marginBottom:day.ingredients&&day.ingredients.length>0?6:0}}><span onClick={()=>openMealPlanRecipe(day)} style={{fontSize:seniorMode?13:11,color:"#f59e0b",fontFamily:FM,cursor:"pointer",letterSpacing:0.3,fontWeight:700,whiteSpace:"nowrap"}}>TAP FOR FULL RECIPE →</span><a href={getRecipeUrl(day.meal)} target="_blank" rel="noopener noreferrer" style={{fontSize:10,color:"#60a5fa",fontFamily:FM,textDecoration:"none",fontWeight:600}}>🌐 web</a></div>{day.ingredients&&day.ingredients.length>0&&<div style={{marginTop:6,padding:"8px 10px",background:"rgba(255,255,255,0.05)",borderRadius:6,fontSize:11,fontFamily:FM}}><div style={{fontWeight:600,marginBottom:4,color:C.muted}}>INGREDIENTS</div>{day.ingredients.map((ing,ii)=><div key={ii} style={{color:C.text,marginBottom:2}}>· {ing}</div>)}</div>}</div>
+                        <div style={{display:"flex",gap:10,alignItems:"center",marginBottom:day.ingredients&&day.ingredients.length>0?6:0}}><span onClick={()=>openMealPlanRecipe(day)} style={{fontSize:seniorMode?15:13,color:"#f59e0b",fontFamily:FM,cursor:"pointer",letterSpacing:0.3,fontWeight:700,whiteSpace:"nowrap"}}>TAP FOR FULL RECIPE →</span><a href={getRecipeUrl(day.meal)} target="_blank" rel="noopener noreferrer" style={{fontSize:10,color:"#60a5fa",fontFamily:FM,textDecoration:"none",fontWeight:600}}>🌐 web</a></div>{day.ingredients&&day.ingredients.length>0&&<div style={{marginTop:6,padding:"8px 10px",background:"rgba(255,255,255,0.05)",borderRadius:6,fontSize:11,fontFamily:FM}}><div style={{fontWeight:600,marginBottom:4,color:C.muted}}>INGREDIENTS</div>{day.ingredients.map((ing,ii)=><div key={ii} style={{color:C.text,marginBottom:2}}>· {ing}</div>)}</div>}</div>
                         <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
                           {day.proteinUsed&&<span style={bTag(PROTEIN_TAG_COLOR(day.proteinUsed))}>🥩 {day.proteinUsed}</span>}
                           {(day.sauteBagsUsed||0)>0&&<span style={bTag(C.orange)}>🫕 {day.sauteBagsUsed} bag</span>}
@@ -1607,7 +1607,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                       <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
                         {(day.shoppingNeeded||[]).length===0
                           ?<span style={bTag(C.green)}>✅ Ready</span>
-                          :<div style={{width:"100%",marginBottom:4}}><div style={{fontSize:9,color:C.muted,marginBottom:3,fontFamily:FM}}>NEED</div>{(day.shoppingNeeded||[]).map((s,j)=><div key={j} style={{fontSize:seniorMode?13:11,color:C.red,marginBottom:2}}>· {s.qty} {s.unit} {s.name}</div>)}</div>}
+                          :<div style={{width:"100%",marginBottom:4}}><div style={{fontSize:9,color:C.muted,marginBottom:3,fontFamily:FM}}>NEED</div>{(day.shoppingNeeded||[]).map((s,j)=><div key={j} style={{fontSize:seniorMode?15:13,color:C.red,marginBottom:2}}>· {s.qty} {s.unit} {s.name}</div>)}</div>}
                         <button onClick={()=>madeMeal(day)} style={{background:"#3ecf8e22",border:"1px solid #3ecf8e44",borderRadius:6,color:"#3ecf8e",cursor:"pointer",fontFamily:FM,fontSize:seniorMode?14:11,padding:"8px 14px",flexShrink:0}}>✅ Made It!</button>
                         <button onClick={()=>{setChangeMealModal(i);setChangeMealRequest("");}} style={{background:"transparent",border:"1px solid "+C.border,borderRadius:4,color:C.muted,fontFamily:FM,fontSize:seniorMode?14:11,padding:"8px 14px",cursor:"pointer",flexShrink:0}}>🔄 Change Meal</button>
                       </div>
