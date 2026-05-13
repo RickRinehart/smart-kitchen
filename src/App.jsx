@@ -1940,7 +1940,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
             )}
             {rpMode==="veg"&&(
               <div>
-                <div style={{background:"#141c14",border:"1px solid "+C.orange+"33",borderRadius:10,padding:12,marginBottom:14,fontSize:12,color:C.muted,lineHeight:1.6}}>
+                <div style={{background:C.surface,border:"1px solid "+C.orange+"33",borderRadius:10,padding:12,marginBottom:14,fontSize:12,color:C.muted,lineHeight:1.6}}>
                   <strong style={{color:C.orange}}>Mixed Sauté Blend</strong> — diced onion + celery + bell pepper, bagged in 2-cup portions.
                 </div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:14}}>
