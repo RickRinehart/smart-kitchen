@@ -59,9 +59,10 @@ export default async function handler(req, res) {
         from: 'Smart Kitchen <noreply@rinehartra.com>',
         reply_to: 'thesmartkitchenapp@gmail.com',
         to: [toEmail],
-        subject: '🛒 Your Smart Kitchen Shopping List',
+        subject: 'Your Smart Kitchen Shopping List',
         html: htmlBody,
-        text: textBody
+        text: textBody,
+        tags: [{ name: 'category', value: 'shopping-list' }]
       })
     });
 
