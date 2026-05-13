@@ -2506,7 +2506,7 @@ What can I substitute and do I have what I need?`,
                 <div style={{fontSize:12,color:"#888",marginTop:2}}>Press <strong>Ctrl+P</strong> (Win) or <strong>Cmd+P</strong> (Mac) to print</div>
               </div>
               <div style={{display:"flex",gap:8}}>
-                <button onClick={()=>window.print()} style={{background:"#f0a500",border:"none",borderRadius:8,padding:"8px 18px",fontWeight:"bold",cursor:"pointer",fontSize:13}}>🖨 Print Now</button>
+                <button onClick={()=>{const c=document.getElementById("sk-print-content");if(!c)return;const w=window.open("","_blank","width=750,height=900");w.document.write("<html><head><title>Smart Kitchen</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#111;max-width:680px;margin:0 auto;}@page{margin:1.5cm;}</style></head><body>"+c.innerHTML+"</body></html>");w.document.close();w.focus();setTimeout(()=>{w.print();w.close();},400);}} style={{background:"#f0a500",border:"none",borderRadius:8,padding:"8px 18px",fontWeight:"bold",cursor:"pointer",fontSize:13}}>🖨 Print Now</button>
                 <button onClick={()=>setPrintModal(null)} style={{background:"#eee",border:"none",borderRadius:8,padding:"8px 14px",cursor:"pointer",fontSize:13}}>✕</button>
               </div>
             </div>
