@@ -1488,35 +1488,36 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                 ))}
               </div>
             </div>
-            {Object.keys(recipeRatings).filter(name=>recipeRatings[name]?.rating>=3).length===0?(
+            {(Object.keys(recipeRatings).filter(name=>recipeRatings[name]?.rating>=3).length+Object.keys(dessertRatings).filter(name=>dessertRatings[name]?.rating>=3).length)===0?(
               <div style={{textAlign:"center",padding:60}}>
                 <div style={{fontSize:48,marginBottom:16}}>⭐</div>
                 <div style={{color:C.muted,fontFamily:FM,fontSize:14,marginBottom:8}}>No saved recipes yet</div>
-                <div style={{color:C.muted,fontFamily:FM,fontSize:12}}>Rate a recipe 3 stars or more on the Recipes tab to save it here.</div>
+                <div style={{color:C.muted,fontFamily:FM,fontSize:12}}>Rate a recipe or dessert 3 stars or more to save it here.</div>
               </div>
             ):(
               <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(320px,1fr))",gap:14}}>
-                {Object.entries(recipeRatings)
-                  .filter(([,v])=>v?.rating>=3)
-                  .filter(([,v])=>savedRecipesFilter==="keepers"?v?.rating===5:savedRecipesFilter==="good"?v?.rating>=3:true)
-                  .sort(([,a],[,b])=>b.rating-a.rating)
-                  .map(([name,v])=>{
+                {[...Object.entries(recipeRatings).map(([name,v])=>({name,v,type:"recipe"})),...Object.entries(dessertRatings).map(([name,v])=>({name,v,type:"dessert"}))]
+                  .filter(({v})=>v?.rating>=3)
+                  .filter(({v})=>savedRecipesFilter==="keepers"?v?.rating===5:savedRecipesFilter==="good"?v?.rating>=3:true)
+                  .sort((a,b)=>b.v.rating-a.v.rating)
+                  .map(({name,v,type})=>{
                     const rating=v?.rating||0;
                     const r=v?.recipe||{name,description:"",time:"",difficulty:"Easy",usesFromInventory:[],missingIngredients:[]};
+                    const isDesert=type==="dessert";
                     return(
-                  <div key={name} style={{background:C.card,border:"2px solid "+(rating===5?"#f59e0b":C.border),borderRadius:14,padding:18,cursor:"pointer",transition:"all 0.15s"}}
+                  <div key={type+"-"+name} style={{background:C.card,border:"2px solid "+(rating===5?"#f59e0b":C.border),borderRadius:14,padding:18,cursor:"pointer",transition:"all 0.15s"}}
                     onClick={()=>setActiveRecipe(r)}
                     onMouseEnter={e=>{e.currentTarget.style.background=C.cardHover;}}
                     onMouseLeave={e=>{e.currentTarget.style.background=C.card;}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
-                      <div style={{fontFamily:FD,fontSize:seniorMode?26:19,lineHeight:1.3,flex:1}}><a href={getRecipeUrl(name)} target="_blank" rel="noopener noreferrer" style={{color:C.accent,textDecoration:"none"}}>🔍 {name}</a></div>
+                      <div style={{fontFamily:FD,fontSize:seniorMode?26:19,lineHeight:1.3,flex:1}}><a href={getRecipeUrl(name)} target="_blank" rel="noopener noreferrer" style={{color:C.accent,textDecoration:"none"}}>{isDesert?"🍰":"🔍"} {name}</a></div>
                       <span style={{...bTag(r.difficulty==="Easy"?C.green:r.difficulty==="Hard"?C.red:C.accent),marginLeft:8}}>{r.difficulty}</span>
                     </div>
                     {r.description&&<div style={{color:C.muted,fontSize:seniorMode?17:13,marginBottom:8,lineHeight:1.6}}>{r.description}</div>}
                     {/* Star rating */}
                     <div style={{display:"flex",gap:4,marginBottom:10}} onClick={e=>e.stopPropagation()}>
                       {[1,2,3,4,5].map(star=>(
-                        <button key={star} onClick={e=>{e.stopPropagation();setRecipeRatings(prev=>{const cur=prev[name]?.rating||0;const next={...prev};if(cur===star){delete next[name];}else{next[name]={rating:star,recipe:r};}return next;});}} style={{background:"none",border:"none",cursor:"pointer",fontSize:seniorMode?22:16,padding:"0 1px",color:star<=rating?"#f59e0b":"#555"}}>
+                        <button key={star} onClick={e=>{e.stopPropagation();const setter=isDesert?setDessertRatings:setRecipeRatings;setter(prev=>{const cur=prev[name]?.rating||0;const next={...prev};if(cur===star){delete next[name];}else{next[name]={rating:star,recipe:r};}return next;});}} style={{background:"none",border:"none",cursor:"pointer",fontSize:seniorMode?22:16,padding:"0 1px",color:star<=rating?"#f59e0b":"#555"}}>
                           {star<=rating?"★":"☆"}
                         </button>
                       ))}
@@ -1531,7 +1532,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                     </div>
                     <div style={{fontSize:seniorMode?17:11,color:C.accent,fontFamily:FM,fontWeight:seniorMode?700:400,marginBottom:10}}>TAP FOR FULL RECIPE →</div>
                     <div style={{display:"flex",gap:8}}>
-                      <button onClick={e=>{e.stopPropagation();setRecipeRatings(prev=>{const next={...prev};delete next[name];return next;});}} style={{flex:1,padding:"8px",borderRadius:8,border:"1px solid "+C.red,background:"transparent",color:C.red,fontFamily:FM,fontSize:11,cursor:"pointer"}}>🗑 Remove</button>
+                      <button onClick={e=>{e.stopPropagation();if(isDesert){setDessertRatings(prev=>{const next={...prev};delete next[name];return next;});}else{setRecipeRatings(prev=>{const next={...prev};delete next[name];return next;});}}} style={{flex:1,padding:"8px",borderRadius:8,border:"1px solid "+C.red,background:"transparent",color:C.red,fontFamily:FM,fontSize:11,cursor:"pointer"}}>🗑 Remove</button>
                     </div>
                   </div>
                 )})}
