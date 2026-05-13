@@ -1037,38 +1037,43 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       const monday=new Date(today);
       monday.setDate(today.getDate()+daysToMon);
       const offsets={Monday:0,Tuesday:1,Wednesday:2,Thursday:3,Friday:4,Saturday:5,Sunday:6};
-      const stamp=new Date().toISOString().replace(/[-:.]/g,"").slice(0,15)+"Z";
-      let ics="BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Smart Kitchen//Meal Plan//EN\r\nCALSCALE:GREGORIAN\r\nMETHOD:PUBLISH\r\n";
-      for(const day of mealPlan){
+      const urls=mealPlan.map(day=>{
         const d=new Date(monday);
         d.setDate(monday.getDate()+(offsets[day.day]??0));
         const dateStr=d.toISOString().split("T")[0].replace(/-/g,"");
-        const nextDay=new Date(d);
-        nextDay.setDate(d.getDate()+1);
-        const nextStr=nextDay.toISOString().split("T")[0].replace(/-/g,"");
         const desc=[
           day.proteinUsed?"Protein: "+day.proteinUsed:"",
           (day.sauteBagsUsed||0)>0?"Saute blend: "+day.sauteBagsUsed+" bag":"",
           day.sideUsed?"Side: "+day.sideUsed:"",
           (day.shoppingNeeded||[]).length>0?"Need: "+day.shoppingNeeded.map(s=>s.name).join(", "):"All on hand",
-        ].filter(Boolean).join("\\n");
-        ics+="BEGIN:VEVENT\r\n";
-        ics+="UID:"+stamp+"-"+day.day+"@smartkitchen\r\n";
-        ics+="DTSTAMP:"+stamp+"\r\n";
-        ics+="DTSTART;VALUE=DATE:"+dateStr+"\r\n";
-        ics+="DTEND;VALUE=DATE:"+nextStr+"\r\n";
-        ics+="SUMMARY:Dinner: "+day.meal+"\r\n";
-        ics+="DESCRIPTION:"+desc+"\r\n";
-        ics+="END:VEVENT\r\n";
+        ].filter(Boolean).join(" | ");
+        return "https://calendar.google.com/calendar/render?action=TEMPLATE"+
+          "&text="+encodeURIComponent("Dinner: "+day.meal)+
+          "&dates="+dateStr+"/"+dateStr+
+          "&details="+encodeURIComponent(desc);
+      });
+      const w=window.open(urls[0],"_blank");
+      if(!w){alert("Please allow popups for this site, then tap Calendar again.");return;}
+      if(urls.length>1){
+        setTimeout(()=>{
+          if(window.confirm("Dinner 1 of "+urls.length+" opened in Google Calendar.\n\nClick OK to open the next dinner, or Cancel to stop.")){
+            let i=1;
+            const openNext=()=>{
+              if(i>=urls.length){alert("✅ All "+urls.length+" dinners sent to Google Calendar!");return;}
+              window.open(urls[i],"_blank");
+              i++;
+              if(i<urls.length) setTimeout(()=>{
+                if(window.confirm("Dinner "+i+" of "+urls.length+" opened.\n\nClick OK to continue.")){openNext();}
+              },800);
+              else setTimeout(()=>alert("✅ All "+urls.length+" dinners sent to Google Calendar!"),800);
+            };
+            openNext();
+          }
+        },1500);
+      } else {
+        setTimeout(()=>alert("✅ Dinner added to Google Calendar!"),800);
       }
-      ics+="END:VCALENDAR";
-      const blob=new Blob([ics],{type:"text/calendar;charset=utf-8"});
-      const url=URL.createObjectURL(blob);
-      const a=document.createElement("a");
-      a.href=url; a.download="smart-kitchen-meal-plan.ics"; a.click();
-      URL.revokeObjectURL(url);
-      alert("✅ Meal plan downloaded! Open the .ics file to add all 7 dinners to Google Calendar at once.");
-    } catch(e){ alert("Calendar export failed: "+e.message); }
+    } catch(e){ alert("Calendar push failed: "+e.message); }
   };
 
   const filtered=[...inventory.filter(i=>(filterCat==="All"||i.category===filterCat)&&(filterLoc==="All"||i.location===filterLoc)&&(invSearch===""||i.name.toLowerCase().includes(invSearch.toLowerCase())))].sort((a,b)=>invSort==="category"?(a.category||"").localeCompare(b.category||"")||a.name.localeCompare(b.name):a.name.localeCompare(b.name));
