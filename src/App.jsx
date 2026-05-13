@@ -294,6 +294,7 @@ function LoadingDots(){
 }
 
 // =============================================================================
+const loadLocal=(k,fb)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):fb;}catch{return fb;}};
 export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, user=null }){
   // -- State ------------------------------------------------------------------
   const [tab,setTab]=useState(()=>{try{const saved=localStorage.getItem("sk_activeTab");return saved||"mealplan";}catch{return "mealplan";}});
@@ -307,7 +308,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [subResult,setSubResult]=useState(null);
   const [subLoading,setSubLoading]=useState(false);
   const [subError,setSubError]=useState("");
-  const loadLocal=(k,fb)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):fb;}catch{return fb;}};const [inventory,setInventory]=useState(()=>loadLocal("sk_inventory",INITIAL_INVENTORY));
+  const [inventory,setInventory]=useState(()=>loadLocal("sk_inventory",INITIAL_INVENTORY));
   const [recipes,setRecipes]=useState(()=>loadLocal("sk_recipes",[]));const [swapRecipeModal,setSwapRecipeModal]=useState(null);const [swapRecipeRequest,setSwapRecipeRequest]=useState("");const [swapRecipeLoading,setSwapRecipeLoading]=useState(false);
   const [recipeRatings,setRecipeRatings]=useState(()=>loadLocal("sk_recipeRatings",{}));
   const [savedRecipesFilter,setSavedRecipesFilter]=useState("all");
