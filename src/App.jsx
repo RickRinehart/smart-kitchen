@@ -2568,7 +2568,7 @@ What can I substitute and do I have what I need?`,
           </div>
         </div>
       )}
-      {/* -- Guest Email Capture Banner -- */}}
+      {/* -- Guest Email Capture Banner -- */}
       {showGuestCapture&&!user&&<div style={{position:"fixed",bottom:0,left:0,right:0,background:"#1A2344",borderTop:"2px solid #C8963E",padding:"16px 20px",zIndex:800,display:"flex",flexWrap:"wrap",alignItems:"center",gap:12,justifyContent:"center"}}>
         <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:14,color:"#eceaf3",textAlign:"center",flexShrink:0}}>
           💛 <strong>Save your progress</strong> — get your free Smart Kitchen account
