@@ -1453,7 +1453,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                       {/* Star Rating */}
                       <div style={{display:"flex",gap:4,marginBottom:10}} onClick={e=>e.stopPropagation()}>
                         {[1,2,3,4,5].map(star=>(
-                          <button key={star} onClick={e=>{e.stopPropagation();setRecipeRatings(prev=>{const cur=prev[r.name]?.rating||0;const next={...prev};if(cur===star){delete next[r.name];}else{next[r.name]={rating:star,recipe:r};}return next;});}} style={{background:"none",border:"none",cursor:"pointer",fontSize:seniorMode?22:16,padding:"0 1px",color:star<=(recipeRatings[r.name]?.rating||0)?"#f59e0b":"#555",transition:"color 0.1s"}} title={star===1?"Never suggest again":star===5?"Keeper!":"Rate "+star+" stars"}>
+                          <button key={star} onClick={e=>{e.stopPropagation();setRecipeRatings(prev=>{const cur=prev[r.name]?.rating||0;const next={...prev};if(cur===star){delete next[r.name];}else{next[r.name]={rating:star,recipe:r};}try{localStorage.setItem("sk_recipeRatings",JSON.stringify(next));}catch{}return next;});}} style={{background:"none",border:"none",cursor:"pointer",fontSize:seniorMode?22:16,padding:"0 1px",color:star<=(recipeRatings[r.name]?.rating||0)?"#f59e0b":"#555",transition:"color 0.1s"}} title={star===1?"Never suggest again":star===5?"Keeper!":"Rate "+star+" stars"}>
                             {star<=(recipeRatings[r.name]?.rating||0)?"★":"☆"}
                           </button>
                         ))}
@@ -1722,7 +1722,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                         <div style={{display:"flex",gap:2}} onClick={e=>e.stopPropagation()}>
                           {[1,2,3,4,5].map(star=>(
-                            <button key={star} onClick={e=>{e.stopPropagation();setDessertRatings(prev=>{const cur=prev[d.name]?.rating||0;const next={...prev};if(cur===star){delete next[d.name];}else{next[d.name]={rating:star,recipe:d};}return next;});}} style={{background:"none",border:"none",cursor:"pointer",fontSize:seniorMode?22:16,padding:"0 1px",color:star<=rating?"#f59e0b":"#555",transition:"color 0.1s"}} title={star===1?"Never suggest again":star===5?"Keeper!":"Rate "+star+" stars"}>
+                            <button key={star} onClick={e=>{e.stopPropagation();setDessertRatings(prev=>{const cur=prev[d.name]?.rating||0;const next={...prev};if(cur===star){delete next[d.name];}else{next[d.name]={rating:star,recipe:d};}try{localStorage.setItem("sk_dessertRatings",JSON.stringify(next));}catch{}return next;});}} style={{background:"none",border:"none",cursor:"pointer",fontSize:seniorMode?22:16,padding:"0 1px",color:star<=rating?"#f59e0b":"#555",transition:"color 0.1s"}} title={star===1?"Never suggest again":star===5?"Keeper!":"Rate "+star+" stars"}>
                               {star<=rating?"★":"☆"}
                             </button>
                           ))}
