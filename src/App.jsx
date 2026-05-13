@@ -1556,6 +1556,9 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                       {(r.missingIngredients||[]).length>0&&<span style={{...bTag(C.red),fontSize:seniorMode?14:undefined}}>🛒 {r.missingIngredients.length} needed</span>}
                     </div>
                     <div style={{fontSize:seniorMode?17:11,color:C.accent,fontFamily:FM,fontWeight:seniorMode?700:400,marginBottom:10}}>TAP FOR FULL RECIPE →</div>
+                    <div style={{display:"flex",gap:8,marginBottom:8}}>
+                      <button onClick={e=>{e.stopPropagation();const today=new Date();const dateStr=today.toISOString().split("T")[0].replace(/-/g,"");window.open("https://calendar.google.com/calendar/render?action=TEMPLATE&text="+encodeURIComponent("Dinner: "+name)+"&dates="+dateStr+"/"+dateStr,"_blank");}} style={{flex:1,padding:"8px",borderRadius:8,border:"1px solid #5b9cf6",background:"transparent",color:"#5b9cf6",fontFamily:FM,fontSize:11,cursor:"pointer"}}>📅 Add to Calendar</button>
+                    </div>
                     <div style={{display:"flex",gap:8}}>
                       <button onClick={e=>{e.stopPropagation();if(isDesert){setDessertRatings(prev=>{const next={...prev};delete next[name];return next;});}else{setRecipeRatings(prev=>{const next={...prev};delete next[name];return next;});}}} style={{flex:1,padding:"8px",borderRadius:8,border:"1px solid "+C.red,background:"transparent",color:C.red,fontFamily:FM,fontSize:11,cursor:"pointer"}}>🗑 Remove</button>
                     </div>
@@ -1753,9 +1756,10 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                             </button>
                           ))}
                         </div>
-                        <div style={{display:"flex",gap:10,alignItems:"center"}}>
+                        <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
                           <span style={{fontSize:11,color:C.accent,fontFamily:FM,letterSpacing:0.5}}>TAP FOR RECIPE →</span>
                           <a href={getRecipeUrl(d.name)} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{fontSize:10,color:"#60a5fa",fontFamily:FM,textDecoration:"none",fontWeight:600}}>🌐 web</a>
+                          <button onClick={e=>{e.stopPropagation();const today=new Date();const dateStr=today.toISOString().split("T")[0].replace(/-/g,"");window.open("https://calendar.google.com/calendar/render?action=TEMPLATE&text="+encodeURIComponent("Dessert: "+d.name)+"&dates="+dateStr+"/"+dateStr+"&details="+encodeURIComponent(d.description||""),"_blank");}} style={{background:"transparent",border:"1px solid #5b9cf6",borderRadius:4,color:"#5b9cf6",fontFamily:FM,fontSize:10,padding:"3px 8px",cursor:"pointer"}}>📅 Calendar</button>
                         </div>
                       </div>
                     </div>
