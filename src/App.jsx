@@ -1489,7 +1489,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                 ))}
               </div>
             </div>
-            {(Object.keys(recipeRatings).filter(name=>recipeRatings[name]?.rating>=3).length+Object.keys(dessertRatings).filter(name=>dessertRatings[name]?.rating>=3).length)===0?(
+            {(Object.keys(recipeRatings).filter(name=>recipeRatings[name]?.rating>=3).length+Object.keys({...loadLocal("sk_dessertRatings",{}),...dessertRatings}).filter(name=>({...loadLocal("sk_dessertRatings",{}),...dessertRatings})[name]?.rating>=3).length)===0?(
               <div style={{textAlign:"center",padding:60}}>
                 <div style={{fontSize:48,marginBottom:16}}>⭐</div>
                 <div style={{color:C.muted,fontFamily:FM,fontSize:14,marginBottom:8}}>No saved recipes yet</div>
@@ -1497,7 +1497,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
               </div>
             ):(
               <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(320px,1fr))",gap:14}}>
-                {[...Object.entries(recipeRatings).map(([name,v])=>({name,v,type:"recipe"})),...Object.entries(dessertRatings).map(([name,v])=>({name,v,type:"dessert"}))]
+                {[...Object.entries(recipeRatings).map(([name,v])=>({name,v,type:"recipe"})),...Object.entries({...loadLocal("sk_dessertRatings",{}),...dessertRatings}).map(([name,v])=>({name,v,type:"dessert"}))]
                   .filter(({v})=>v?.rating>=3)
                   .filter(({v})=>savedRecipesFilter==="keepers"?v?.rating===5:savedRecipesFilter==="good"?v?.rating>=3:true)
                   .sort((a,b)=>b.v.rating-a.v.rating)
