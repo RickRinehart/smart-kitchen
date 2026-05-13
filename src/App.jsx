@@ -1673,7 +1673,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
           <div>
             <div style={{background:C.card,border:"1px solid "+C.accent+"44",borderRadius:12,padding:"12px 16px",marginBottom:18,display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
               <div style={{fontSize:10,fontFamily:FM,color:C.accent,letterSpacing:0.8}}>🧁 BAKING PANTRY:</div>
-              {[...new Set([...inventory.filter(i=>i.category==="Baking"||i.category==="Spices").map(i=>i.name),...["Brownie Mixes","Muffin Mixes","Pie Crusts","Puff Pastry","Crescent Dough","Cream Cheese","Condensed Milk","Pie Fillings","Flour","Sugar","Vanilla","Butter","Eggs"].filter(name=>inventory.some(i=>i.name.toLowerCase().includes(name.toLowerCase())))])].map(i=>(
+              {[...new Set([...inventory.filter(i=>i.category==="Baking").map(i=>i.name),...["Brownie Mixes","Muffin Mixes","Pie Crusts","Puff Pastry","Crescent Dough","Cream Cheese","Condensed Milk","Pie Fillings","Flour","Sugar","Vanilla","Cinnamon","Baking Powder","Baking Soda","Cocoa Powder","Powdered Sugar","Brown Sugar","Chocolate Chips","Butter","Eggs"].filter(name=>inventory.some(i=>i.name.toLowerCase().includes(name.toLowerCase())))])].map(i=>(
                 <span key={i} style={bTag(C.accent)}>{i}</span>
               ))}
             </div>
