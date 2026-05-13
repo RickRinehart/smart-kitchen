@@ -1040,16 +1040,22 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       for(const day of mealPlan){
         const d=new Date(monday);
         d.setDate(monday.getDate()+(offsets[day.day]??0));
-        const dateStr=d.toISOString().split("T")[0];
+        const dateStr=d.toISOString().split("T")[0].replace(/-/g,"");
         const desc=[
-          day.proteinUsed?"🥩 "+day.proteinUsed:"",
-          (day.sauteBagsUsed||0)>0?"🫕 Saute blend: "+day.sauteBagsUsed+" bag":"",
-          day.sideUsed?"🥦 Side: "+day.sideUsed:"",
-          (day.shoppingNeeded||[]).length>0?"🛒 Need: "+day.shoppingNeeded.map(s=>s.name).join(", "):"✅ All on hand",
+          day.proteinUsed?"Protein: "+day.proteinUsed:"",
+          (day.sauteBagsUsed||0)>0?"Saute blend: "+day.sauteBagsUsed+" bag":"",
+          day.sideUsed?"Side: "+day.sideUsed:"",
+          (day.shoppingNeeded||[]).length>0?"Need: "+day.shoppingNeeded.map(s=>s.name).join(", "):"All on hand",
         ].filter(Boolean).join("\n");
-        await window.claude_mcp_google_calendar_create_event?.({summary:"🍽 Dinner: "+day.meal,description:desc,start:{date:dateStr},end:{date:dateStr}});
+        const url="https://calendar.google.com/calendar/render?action=TEMPLATE"+
+          "&text="+encodeURIComponent("Dinner: "+day.meal)+
+          "&dates="+dateStr+"/"+dateStr+
+          "&details="+encodeURIComponent(desc)+
+          "&sf=true&output=xml";
+        window.open(url,"_blank");
+        await new Promise(r=>setTimeout(r,400));
       }
-      alert("✅ Meal plan added to Google Calendar!");
+      alert("✅ "+mealPlan.length+" dinners opened in Google Calendar — review and save each one!");
     } catch(e){ alert("Calendar push failed: "+e.message); }
   };
 
