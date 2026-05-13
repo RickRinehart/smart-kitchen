@@ -263,7 +263,7 @@ const bTag=(color=C.accent)=>({
   borderRadius:20,fontSize:10,fontWeight:700,letterSpacing:0.9,
   background:color+"22",color,border:"1px solid "+color+"44",
 });
-const bInp={background:C.surface,border:"1px solid "+C.border,borderRadius:8,padding:"9px 13px",color:C.text,fontFamily:FM,fontSize:12,outline:"none",width:"100%",boxSizing:"border-box",colorScheme:darkMode?"dark":"light"};
+const bInp={background:C.surface,border:"1px solid "+C.border,borderRadius:8,padding:"9px 13px",color:C.text,fontFamily:FM,fontSize:12,outline:"none",width:"100%",boxSizing:"border-box"};
 const Label=({children})=><div style={{fontSize:10,color:C.muted,fontFamily:FM,letterSpacing:0.8,marginBottom:5}}>{children}</div>;
 
 // -- Claude API ----------------------------------------------------------------
