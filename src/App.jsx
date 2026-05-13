@@ -2538,26 +2538,30 @@ What can I substitute and do I have what I need?`,
                 <div style={{fontSize:12,color:"#888",marginTop:2}}>Press <strong>Ctrl+P</strong> (Win) or <strong>Cmd+P</strong> (Mac) to print</div>
               </div>
               <div style={{display:"flex",gap:8}}>
-                <button onClick={()=>{const c=document.getElementById("sk-print-content");if(!c)return;const w=window.open("","_blank","width=750,height=900");w.document.write("<html><head><title>Smart Kitchen</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#111;max-width:680px;margin:0 auto;}@page{margin:1.5cm;}</style></head><body>"+c.innerHTML+"</body></html>");w.document.close();w.focus();setTimeout(()=>{w.print();w.close();},400);}} style={{background:"#f0a500",border:"none",borderRadius:8,padding:"8px 18px",fontWeight:"bold",cursor:"pointer",fontSize:13}}>🖨 Print Now</button>
+                <button onClick={()=>{const c=document.getElementById("sk-print-content");if(!c)return;const w=window.open("","_blank","width=750,height=900");w.document.write("<html><head><title>Smart Kitchen</title><style>body{font-family:Arial,sans-serif;padding:32px 40px;color:#111;margin:0;}@page{margin:1cm;size:portrait;}h1{font-size:28px;font-weight:bold;margin:0 0 4px 0;color:#1A2344;}h2{font-size:22px;font-weight:bold;margin:6px 0;}h3{font-size:13px;color:#888;text-transform:uppercase;letter-spacing:1px;margin:0 0 2px 0;font-weight:normal;}.date{font-size:14px;color:#888;margin-bottom:20px;}.summary{background:#f5f5f5;border-radius:6px;padding:10px 16px;margin-bottom:20px;font-size:15px;}.day-card{border:2px solid #e2e6ef;border-radius:8px;padding:14px 18px;margin-bottom:12px;page-break-inside:avoid;}.day-name{font-size:22px;font-weight:bold;color:#1A2344;margin-bottom:2px;}.meal-name{font-size:18px;font-weight:bold;color:#C8963E;margin-bottom:6px;}.details{font-size:14px;color:#555;margin-bottom:4px;}.need{font-size:14px;color:#c00;}.good{font-size:14px;color:#080;}.brand{font-size:12px;color:#aaa;margin-top:24px;text-align:center;border-top:1px solid #eee;padding-top:12px;}</style></head><body>"+c.innerHTML+"</body></html>");w.document.close();w.focus();setTimeout(()=>{w.print();w.close();},400);}} style={{background:"#f0a500",border:"none",borderRadius:8,padding:"8px 18px",fontWeight:"bold",cursor:"pointer",fontSize:13}}>🖨 Print Now</button>
                 <button onClick={()=>setPrintModal(null)} style={{background:"#eee",border:"none",borderRadius:8,padding:"8px 14px",cursor:"pointer",fontSize:13}}>✕</button>
               </div>
             </div>
             <div id="sk-print-content">
               {printModal==="mealplan"&&(
                 <div>
-                  <div style={{fontSize:22,fontWeight:"bold",marginBottom:4}}>Weekly Meal Plan</div>
-                  <div style={{fontSize:12,color:"#666",marginBottom:16}}>Smart Kitchen · {new Date().toLocaleDateString()}</div>
-                  <div style={{background:"#f5f5f5",borderRadius:6,padding:"8px 12px",marginBottom:14,fontSize:12}}>
-                    <strong>This week: </strong>{mealPlan.filter(d=>d.proteinUsed).map((d,i)=><span key={i}>{d.day?.slice(0,3)}: {d.proteinUsed}{i<mealPlan.filter(x=>x.proteinUsed).length-1?" · ":""}</span>)}
-                  </div>
+                  <h1>Smart Kitchen™ — Weekly Meal Plan</h1>
+                  <div className="date">Week of {new Date().toLocaleDateString("en-US",{weekday:"long",year:"numeric",month:"long",day:"numeric"})}</div>
+                  {mealPlan.filter(d=>d.proteinUsed).length>0&&(
+                    <div className="summary">
+                      <strong>This week:</strong> {mealPlan.filter(d=>d.proteinUsed).map((d,i)=><span key={i}>{d.day?.slice(0,3)}: {d.proteinUsed}{i<mealPlan.filter(x=>x.proteinUsed).length-1?" · ":""}</span>)}
+                    </div>
+                  )}
                   {mealPlan.map((day,i)=>(
-                    <div key={i} style={{border:"1px solid #ddd",borderRadius:6,padding:"10px 14px",marginBottom:8}}>
-                      <div style={{fontSize:10,color:"#999",textTransform:"uppercase",letterSpacing:1}}>Day {i+1}</div>
-                      <div style={{fontSize:17,fontWeight:"bold",margin:"3px 0 5px"}}>{day.day} — {day.meal}</div>
-                      <div style={{fontSize:12,color:"#555",marginBottom:4}}>{[day.proteinUsed&&"Protein: "+day.proteinUsed,(day.sauteBagsUsed||0)>0&&"Saute blend: "+day.sauteBagsUsed+" bag",day.sideUsed&&"Side: "+day.sideUsed].filter(Boolean).join(" · ")}</div>
-                      {(day.shoppingNeeded||[]).length===0?<div style={{fontSize:12,color:"#080"}}>✅ All on hand</div>:<div style={{fontSize:12,color:"#c00"}}>Need: {(day.shoppingNeeded||[]).map(s=>s.qty+" "+s.unit+" "+s.name).join(", ")}</div>}
+                    <div key={i} className="day-card">
+                      <h3>Day {i+1}</h3>
+                      <div className="day-name">{day.day}</div>
+                      <div className="meal-name">{day.meal}</div>
+                      <div className="details">{[day.proteinUsed&&"🥩 "+day.proteinUsed,(day.sauteBagsUsed||0)>0&&"🫕 Saute blend: "+day.sauteBagsUsed+" bag",day.sideUsed&&"🥦 "+day.sideUsed].filter(Boolean).join("  ·  ")}</div>
+                      {(day.shoppingNeeded||[]).length===0?<div className="good">✅ All ingredients on hand</div>:<div className="need">🛒 Need: {(day.shoppingNeeded||[]).map(s=>s.qty+" "+s.unit+" "+s.name).join(", ")}</div>}
                     </div>
                   ))}
+                  <div className="brand">smart-kitchen-opal.vercel.app · Printed {new Date().toLocaleDateString()}</div>
                 </div>
               )}
               {printModal==="shopping"&&(
