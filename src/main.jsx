@@ -220,6 +220,9 @@ function Root() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showSubModal, setShowSubModal] = useState(false);
   const [showTouchpoint, setShowTouchpoint] = useState(false);
+  const [seniorBannerActive] = useState(() => {
+    try { return localStorage.getItem("sk_seniorMode") === "1"; } catch { return false; }
+  });
   const [authMode, setAuthMode] = useState("signup");
   const [authReady, setAuthReady] = useState(false);
 
@@ -323,7 +326,7 @@ function Root() {
     <>
       {/* Auth / trial bar */}
       <div style={{
-        position: "fixed", top: 0, right: "max(12px, calc((100vw - 1140px) / 2))", zIndex: 999,
+        position: "fixed", top: seniorBannerActive ? 54 : 0, right: "max(12px, calc((100vw - 1140px) / 2))", zIndex: 999,
         display: "flex", alignItems: "center", gap: "8px", padding: "6px 12px",
       }}>
         {user ? (
