@@ -972,6 +972,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
   const fetchDesserts=async()=>{
     setDessertLoading(true); setDessertError(""); setTab("desserts");
     try{
+      const fs=familySummary();
       const invList=inventory.map(i=>String(i.name||"")).filter(Boolean).join(", ");
       const raw=await callClaude({
         system:"Return ONLY a JSON array of 3 dessert recipes. No other text. Start with [ end with ]. Each object: {id(number),name(string),time(string),difficulty(Easy|Medium|Hard),category(Baked|No-Bake|Quick-Treat),description(one sentence),steps(array of 3 short strings),servings(number),usesFromInventory(array of ingredient names from inventory),missingIngredients(array of items NOT in inventory)}."+(fs?" CRITICAL DIETARY RULES — HARD STOPS: "+fs:""),
