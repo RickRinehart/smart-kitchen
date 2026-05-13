@@ -382,6 +382,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const dismissInstall=()=>{setShowInstallBanner(false);try{localStorage.setItem("sk_installDismissed","1");}catch{}};
   const [editingProfile,setEditingProfile]=useState(null);
   const [printModal,setPrintModal]=useState(null);
+  const [emailSentModal,setEmailSentModal]=useState(null);
   const [scanOpen,setScanOpen]=useState(false);
   const [scanLoc,setScanLoc]=useState("");
   const [scanShelf,setScanShelf]=useState("");
@@ -1627,7 +1628,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
               <div style={{fontFamily:FD,fontSize:24}}>Shopping List</div>
               <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                {shopping.length>0&&<><div style={{fontFamily:FM,fontSize:11,color:C.muted}}>{shopping.filter(i=>i.checked).length}/{shopping.length}</div><button style={{...bBtn("ghost"),padding:"6px 12px",fontSize:11}} onClick={printShopping}>🖨 Print</button>{shopPartnerEmail&&<button style={{...bBtn("ghost"),padding:"6px 12px",fontSize:11}} onClick={async()=>{const btn=document.activeElement;btn.textContent="Sending...";btn.disabled=true;try{const r=await fetch("/api/send-shopping-list",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({toEmail:shopPartnerEmail,toName:shopPartnerName,items:shopping,fromName:"Smart Kitchen"})});const d=await r.json();if(d.success){alert("Shopping list sent to "+shopPartnerEmail+"!");}else if(d.fallback){window.location.href=d.mailtoUrl;}else{alert("Could not send email. Please try again.");}}catch(e){alert("Could not send email: "+e.message);}btn.textContent="Email to "+(shopPartnerName||shopPartnerEmail);btn.disabled=false;}}>Email to {shopPartnerName||shopPartnerEmail}</button>}{restockQueue.length>0&&<button style={{...bBtn("ghost"),padding:"6px 12px",fontSize:11,border:"1px solid "+C.accent,color:C.accent}} onClick={()=>{const toAdd=restockQueue.filter(name=>!shopping.some(s=>s.name.toLowerCase()===name.toLowerCase())).map(name=>({name,qty:1,unit:"",category:"Pantry",checked:false,suggestBulk:false}));if(toAdd.length>0){setShopping(p=>[...p,...toAdd]);alert(toAdd.length+" item"+(toAdd.length>1?"s":"")+" added to shopping list.");}else{alert("All restock items are already on the list.");}  }}>+ {restockQueue.length} Restock</button>}</>}
+                {shopping.length>0&&<><div style={{fontFamily:FM,fontSize:11,color:C.muted}}>{shopping.filter(i=>i.checked).length}/{shopping.length}</div><button style={{...bBtn("ghost"),padding:"6px 12px",fontSize:11}} onClick={printShopping}>🖨 Print</button>{shopPartnerEmail&&<button style={{...bBtn("ghost"),padding:"6px 12px",fontSize:11}} onClick={async()=>{const btn=document.activeElement;btn.textContent="Sending...";btn.disabled=true;try{const r=await fetch("/api/send-shopping-list",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({toEmail:shopPartnerEmail,toName:shopPartnerName,items:shopping,fromName:"Smart Kitchen"})});const d=await r.json();if(d.success){setEmailSentModal(shopPartnerEmail);}else if(d.fallback){window.location.href=d.mailtoUrl;}else{alert("Could not send email. Please try again.");}}catch(e){alert("Could not send email: "+e.message);}btn.textContent="Email to "+(shopPartnerName||shopPartnerEmail);btn.disabled=false;}}>Email to {shopPartnerName||shopPartnerEmail}</button>}{restockQueue.length>0&&<button style={{...bBtn("ghost"),padding:"6px 12px",fontSize:11,border:"1px solid "+C.accent,color:C.accent}} onClick={()=>{const toAdd=restockQueue.filter(name=>!shopping.some(s=>s.name.toLowerCase()===name.toLowerCase())).map(name=>({name,qty:1,unit:"",category:"Pantry",checked:false,suggestBulk:false}));if(toAdd.length>0){setShopping(p=>[...p,...toAdd]);alert(toAdd.length+" item"+(toAdd.length>1?"s":"")+" added to shopping list.");}else{alert("All restock items are already on the list.");}  }}>+ {restockQueue.length} Restock</button>}</>}
               </div>
             </div>
             {shopping.length===0?(
@@ -2550,7 +2551,22 @@ What can I substitute and do I have what I need?`,
           </div>
         </div>
       )}
-      {/* -- Guest Email Capture Banner -- */}
+      {/* == EMAIL SENT MODAL == */}
+      {emailSentModal&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:400,padding:16}} onClick={()=>setEmailSentModal(null)}>
+          <div style={{background:C.card,border:"1px solid "+C.border,borderRadius:16,padding:28,maxWidth:400,width:"100%",textAlign:"center"}} onClick={e=>e.stopPropagation()}>
+            <div style={{fontSize:40,marginBottom:12}}>📬</div>
+            <div style={{fontFamily:FD,fontSize:20,color:C.accent,marginBottom:8}}>Shopping List Sent!</div>
+            <div style={{fontFamily:FM,fontSize:14,color:C.text,marginBottom:6}}>Sent to <strong>{emailSentModal}</strong></div>
+            <div style={{background:C.surface,border:"1px solid "+C.accent+"44",borderRadius:10,padding:"12px 16px",marginTop:16,marginBottom:20,textAlign:"left"}}>
+              <div style={{fontFamily:FM,fontSize:12,fontWeight:700,color:C.accent,marginBottom:6}}>📁 Don't see it?</div>
+              <div style={{fontFamily:FM,fontSize:13,color:C.text,lineHeight:1.6}}>Check your <strong>Spam</strong> or <strong>Junk</strong> folder. If it's there, mark it as <strong>"Not Spam"</strong> so future lists go straight to your inbox.</div>
+            </div>
+            <button onClick={()=>setEmailSentModal(null)} style={{...bBtn("primary"),padding:"10px 32px",fontSize:14}}>Got it!</button>
+          </div>
+        </div>
+      )}
+      {/* -- Guest Email Capture Banner -- */}}
       {showGuestCapture&&!user&&<div style={{position:"fixed",bottom:0,left:0,right:0,background:"#1A2344",borderTop:"2px solid #C8963E",padding:"16px 20px",zIndex:800,display:"flex",flexWrap:"wrap",alignItems:"center",gap:12,justifyContent:"center"}}>
         <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:14,color:"#eceaf3",textAlign:"center",flexShrink:0}}>
           💛 <strong>Save your progress</strong> — get your free Smart Kitchen account
