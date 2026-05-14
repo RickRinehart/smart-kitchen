@@ -15,7 +15,7 @@ const TIERS = [
     badge: 'Best for Seniors',
     features: [
       'Unlimited recipes',
-      '5-day meal plan',
+      '7-day meal plan',
       'Busy Night flag',
       'Restock Queue',
       'Email & SMS shopping list',
