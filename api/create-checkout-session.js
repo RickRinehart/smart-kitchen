@@ -17,6 +17,10 @@ export default async function handler(req, res) {
     'medical_annual':  process.env.STRIPE_PRICE_MEDICAL_ANNUAL,
   };
   const resolvedPriceId = priceMap[priceId] || priceId;
+  console.log('Checkout debug:', { priceId, resolvedPriceId, hasKey: !!process.env.STRIPE_SECRET_KEY, keyPrefix: process.env.STRIPE_SECRET_KEY?.slice(0,7) });
+  if (!resolvedPriceId) {
+    return res.status(400).json({ error: 'Could not resolve price ID for: ' + priceId });
+  }
   try {
     const sessionParams = {
       mode: 'subscription',
