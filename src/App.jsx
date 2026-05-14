@@ -2605,29 +2605,33 @@ What can I substitute and do I have what I need?`,
               </div>
             ):(
               <div>
-                <div style={{fontFamily:FD,fontSize:20,color:C.accent,marginBottom:4}}>{makeThisResult.name}</div>
-                <div style={{fontFamily:FM,fontSize:13,color:C.muted,marginBottom:12}}>{makeThisResult.description}</div>
-                <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:14}}>
-                  {makeThisResult.time&&<span style={bTag(C.muted)}>⏱ {makeThisResult.time}</span>}
-                  {makeThisResult.difficulty&&<span style={bTag(makeThisResult.difficulty==="Easy"?C.green:makeThisResult.difficulty==="Hard"?C.red:C.accent)}>{makeThisResult.difficulty}</span>}
-                  {makeThisResult.servings&&<span style={bTag(C.blue)}>🍽 {makeThisResult.servings} servings</span>}
-                  {(makeThisResult.usesFromInventory||[]).length>0&&<span style={bTag(C.green)}>✅ {makeThisResult.usesFromInventory.length} on hand</span>}
-                  {(makeThisResult.missingIngredients||[]).length>0&&<span style={bTag(C.red)}>🛒 {makeThisResult.missingIngredients.length} needed</span>}
-                </div>
-                {(makeThisResult.missingIngredients||[]).length>0&&(
-                  <div style={{background:C.surface,borderRadius:8,padding:"10px 14px",marginBottom:12}}>
-                    <div style={{fontFamily:FM,fontSize:11,fontWeight:700,color:C.red,marginBottom:6,textTransform:"uppercase",letterSpacing:0.5}}>🛒 Need to buy</div>
-                    {makeThisResult.missingIngredients.map((m,i)=><div key={i} style={{fontFamily:FM,fontSize:13,color:C.text,marginBottom:2}}>· {m}</div>)}
+                {/* Recipe card — matches suggestion card style */}
+                <div style={{background:C.card,border:"1px solid "+C.border,borderRadius:14,padding:18,marginBottom:14,cursor:"pointer"}} onClick={()=>setActiveRecipe({...makeThisResult,id:"makethis"})}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
+                    <div style={{fontFamily:FD,fontSize:19,color:C.accent,flex:1}}>🔍 {makeThisResult.name}</div>
+                    <span style={bTag(makeThisResult.difficulty==="Easy"?C.green:makeThisResult.difficulty==="Hard"?C.red:C.accent)}>{makeThisResult.difficulty}</span>
                   </div>
-                )}
-                <div style={{marginBottom:16}}>
-                  <div style={{fontFamily:FM,fontSize:11,fontWeight:700,color:C.muted,marginBottom:8,textTransform:"uppercase",letterSpacing:0.5}}>Instructions</div>
-                  {(makeThisResult.instructions||[]).map((step,i)=>(
-                    <div key={i} style={{display:"flex",gap:10,marginBottom:8,alignItems:"flex-start"}}>
-                      <div style={{background:C.accent,color:"#000",borderRadius:"50%",width:22,height:22,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,flexShrink:0}}>{i+1}</div>
-                      <div style={{fontFamily:FM,fontSize:13,color:C.text,lineHeight:1.5}}>{step}</div>
+                  <div style={{color:C.muted,fontSize:13,marginBottom:12,lineHeight:1.5}}>{makeThisResult.description}</div>
+                  <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
+                    {makeThisResult.time&&<span style={bTag(C.muted)}>⏱ {makeThisResult.time}</span>}
+                    {makeThisResult.servings&&<span style={bTag(C.blue)}>🍽 {makeThisResult.servings} servings</span>}
+                    {(makeThisResult.usesFromInventory||[]).length>0&&<span style={bTag(C.green)}>✅ {makeThisResult.usesFromInventory.length} on hand</span>}
+                    {(makeThisResult.missingIngredients||[]).length>0&&<span style={bTag(C.red)}>🛒 {makeThisResult.missingIngredients.length} needed</span>}
+                  </div>
+                  {/* Star ratings */}
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <div style={{display:"flex",gap:2}}>
+                      {[1,2,3,4,5].map(star=>(
+                        <button key={star} onClick={e=>{e.stopPropagation();setRecipeRatings(prev=>{const cur=prev[makeThisResult.name]?.rating||0;const next={...prev};if(cur===star){delete next[makeThisResult.name];}else{next[makeThisResult.name]={rating:star,recipe:makeThisResult};}try{localStorage.setItem("sk_recipeRatings",JSON.stringify(next));}catch{}return next;});}} style={{background:"none",border:"none",cursor:"pointer",fontSize:16,padding:"0 1px",color:star<=(recipeRatings[makeThisResult.name]?.rating||0)?"#f59e0b":"#555"}}>
+                          {star<=(recipeRatings[makeThisResult.name]?.rating||0)?"★":"☆"}
+                        </button>
+                      ))}
                     </div>
-                  ))}
+                    <div style={{display:"flex",gap:10,alignItems:"center"}}>
+                      <span style={{fontSize:11,color:C.accent,fontFamily:FM,letterSpacing:0.5}}>TAP FOR FULL RECIPE →</span>
+                      <a href={getRecipeUrl(makeThisResult.name)} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{fontSize:10,color:"#60a5fa",fontFamily:FM,textDecoration:"none",fontWeight:600}}>🌐 web</a>
+                    </div>
+                  </div>
                 </div>
                 <div style={{display:"flex",gap:10}}>
                   <button onClick={()=>{setMakeThisResult(null);setMakeThisInput("");}} style={{...bBtn("ghost"),flex:1,padding:"10px"}}>← Try Another</button>
