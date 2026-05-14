@@ -385,6 +385,10 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [printModal,setPrintModal]=useState(null);
   const [emailSentModal,setEmailSentModal]=useState(null);
   const [upgradeModal,setUpgradeModal]=useState(null);
+  const [makeThisModal,setMakeThisModal]=useState(false);
+  const [makeThisInput,setMakeThisInput]=useState("");
+  const [makeThisResult,setMakeThisResult]=useState(null);
+  const [makeThisLoading,setMakeThisLoading]=useState(false);
   const [scanOpen,setScanOpen]=useState(false);
   const [scanLoc,setScanLoc]=useState("");
   const [scanShelf,setScanShelf]=useState("");
@@ -1318,6 +1322,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
             }
             fetchRecipes();
           }}>✨ Recipes</button>
+          <button style={{...bBtn("ghost"),fontSize:16,padding:"7px 10px",border:"1px solid "+C.accent,color:C.accent}} onClick={()=>{setMakeThisModal(true);setMakeThisInput("");setMakeThisResult(null);}}>🍽 Make This</button>
           <button style={{...bBtn("ghost"),fontSize:16,padding:"7px 10px"}} onClick={()=>setShowSettings(true)}>Settings</button>
         </div>
       </div>
@@ -2584,6 +2589,52 @@ What can I substitute and do I have what I need?`,
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+      {/* == MAKE THIS MODAL == */}
+      {makeThisModal&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:400,padding:16}} onClick={()=>{if(!makeThisLoading){setMakeThisModal(false);}}}>
+          <div style={{background:C.card,border:"1px solid "+C.border,borderRadius:18,padding:28,maxWidth:480,width:"100%"}} onClick={e=>e.stopPropagation()}>
+            <div style={{fontFamily:FD,fontSize:22,color:C.accent,marginBottom:6}}>🍽 Make This</div>
+            <div style={{fontFamily:FM,fontSize:13,color:C.muted,marginBottom:16}}>Type any dish — Claude will find the recipe and check your pantry.</div>
+            {!makeThisResult?(
+              <div>
+                <input value={makeThisInput} onChange={e=>setMakeThisInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&makeThisInput.trim()&&!makeThisLoading&&(async()=>{setMakeThisLoading(true);const res=await callClaude({system:"Recipe AI. Return ONLY valid JSON, no markdown, no backticks.",prompt:"Give me a recipe for: "+makeThisInput.trim()+". Inventory available: "+inventory.map(i=>i.name).filter(Boolean).join(", ")+". Return JSON: {name,description,time,difficulty,servings,instructions:[5 strings],usesFromInventory:[ingredient names from inventory],missingIngredients:[items NOT in inventory]}."});try{const raw=(typeof res==="string"?res:Array.isArray(res)?res.map(r=>r.text||"").join(""):res?.[0]?.text||"").replace(/```json|```/g,"").trim();const s=raw.indexOf("{"),e2=raw.lastIndexOf("}");const p=JSON.parse(raw.slice(s,e2+1));setMakeThisResult(p);}catch(e){alert("Could not parse recipe. Try again.");}setMakeThisLoading(false);})()}  placeholder='e.g. "Peanut butter cookies"' style={{...bInp,marginBottom:14,fontSize:15}} autoFocus/>
+                <button onClick={async()=>{if(!makeThisInput.trim())return;setMakeThisLoading(true);const res=await callClaude({system:"Recipe AI. Return ONLY valid JSON, no markdown, no backticks.",prompt:"Give me a recipe for: "+makeThisInput.trim()+". Inventory available: "+inventory.map(i=>i.name).filter(Boolean).join(", ")+". Return JSON: {name,description,time,difficulty,servings,instructions:[5 strings],usesFromInventory:[ingredient names from inventory],missingIngredients:[items NOT in inventory]}."});try{const raw=(typeof res==="string"?res:Array.isArray(res)?res.map(r=>r.text||"").join(""):res?.[0]?.text||"").replace(/```json|```/g,"").trim();const s=raw.indexOf("{"),e2=raw.lastIndexOf("}");const p=JSON.parse(raw.slice(s,e2+1));setMakeThisResult(p);}catch(e){alert("Could not parse recipe. Try again.");}setMakeThisLoading(false);}} disabled={!makeThisInput.trim()||makeThisLoading} style={{...bBtn("primary"),width:"100%",padding:"12px",fontSize:15,opacity:makeThisInput.trim()&&!makeThisLoading?1:0.5}}>{makeThisLoading?"Finding recipe...":"Find Recipe →"}</button>
+              </div>
+            ):(
+              <div>
+                <div style={{fontFamily:FD,fontSize:20,color:C.accent,marginBottom:4}}>{makeThisResult.name}</div>
+                <div style={{fontFamily:FM,fontSize:13,color:C.muted,marginBottom:12}}>{makeThisResult.description}</div>
+                <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:14}}>
+                  {makeThisResult.time&&<span style={bTag(C.muted)}>⏱ {makeThisResult.time}</span>}
+                  {makeThisResult.difficulty&&<span style={bTag(makeThisResult.difficulty==="Easy"?C.green:makeThisResult.difficulty==="Hard"?C.red:C.accent)}>{makeThisResult.difficulty}</span>}
+                  {makeThisResult.servings&&<span style={bTag(C.blue)}>🍽 {makeThisResult.servings} servings</span>}
+                  {(makeThisResult.usesFromInventory||[]).length>0&&<span style={bTag(C.green)}>✅ {makeThisResult.usesFromInventory.length} on hand</span>}
+                  {(makeThisResult.missingIngredients||[]).length>0&&<span style={bTag(C.red)}>🛒 {makeThisResult.missingIngredients.length} needed</span>}
+                </div>
+                {(makeThisResult.missingIngredients||[]).length>0&&(
+                  <div style={{background:C.surface,borderRadius:8,padding:"10px 14px",marginBottom:12}}>
+                    <div style={{fontFamily:FM,fontSize:11,fontWeight:700,color:C.red,marginBottom:6,textTransform:"uppercase",letterSpacing:0.5}}>🛒 Need to buy</div>
+                    {makeThisResult.missingIngredients.map((m,i)=><div key={i} style={{fontFamily:FM,fontSize:13,color:C.text,marginBottom:2}}>· {m}</div>)}
+                  </div>
+                )}
+                <div style={{marginBottom:16}}>
+                  <div style={{fontFamily:FM,fontSize:11,fontWeight:700,color:C.muted,marginBottom:8,textTransform:"uppercase",letterSpacing:0.5}}>Instructions</div>
+                  {(makeThisResult.instructions||[]).map((step,i)=>(
+                    <div key={i} style={{display:"flex",gap:10,marginBottom:8,alignItems:"flex-start"}}>
+                      <div style={{background:C.accent,color:"#000",borderRadius:"50%",width:22,height:22,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,flexShrink:0}}>{i+1}</div>
+                      <div style={{fontFamily:FM,fontSize:13,color:C.text,lineHeight:1.5}}>{step}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{display:"flex",gap:10}}>
+                  <button onClick={()=>{setMakeThisResult(null);setMakeThisInput("");}} style={{...bBtn("ghost"),flex:1,padding:"10px"}}>← Try Another</button>
+                  <button onClick={()=>setMakeThisModal(false)} style={{...bBtn("primary"),flex:1,padding:"10px"}}>Done</button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
