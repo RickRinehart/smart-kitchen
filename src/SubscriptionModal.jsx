@@ -22,8 +22,8 @@ const TIERS = [
       'Calendar integration',
       'Senior Mode',
     ],
-    priceIdMonthly: 'price_1TTntcAcShLCx7pOXrgqvLIi',
-    priceIdAnnual:  'price_1TTnu1AcShLCx7pOSwTpCsg7',
+    priceIdMonthly: 'solo_monthly',
+    priceIdAnnual:  'solo_annual',
   },
   {
     id: 'family',
@@ -43,8 +43,8 @@ const TIERS = [
       'Google Calendar push',
       'Wed/Sun review reminders',
     ],
-    priceIdMonthly: 'price_1TTnw6AcShLCx7pOgguhrXqS',
-    priceIdAnnual:  'price_1TTnwIAcShLCx7pOLkSK6aRS',
+    priceIdMonthly: 'family_monthly',
+    priceIdAnnual:  'family_annual',
   },
   {
     id: 'medical',
@@ -62,8 +62,8 @@ const TIERS = [
       'Unlimited family profiles',
       'Diabetic · Heart-healthy · Renal · Anti-inflammatory',
     ],
-    priceIdMonthly: 'price_1TTnwpAcShLCx7pOzdOFKcyT',
-    priceIdAnnual:  'price_1TTnx4AcShLCx7pOM23k4lY0',
+    priceIdMonthly: 'medical_monthly',
+    priceIdAnnual:  'medical_annual',
   },
 ]
 

@@ -7,12 +7,22 @@ export default async function handler(req, res) {
   if (!priceId || !userId) {
     return res.status(400).json({ error: 'priceId and userId required' });
   }
+  // Resolve tier key to actual Stripe price ID from environment variables
+  const priceMap = {
+    'solo_monthly':    process.env.STRIPE_PRICE_SOLO_MONTHLY,
+    'solo_annual':     process.env.STRIPE_PRICE_SOLO_ANNUAL,
+    'family_monthly':  process.env.STRIPE_PRICE_FAMILY_MONTHLY,
+    'family_annual':   process.env.STRIPE_PRICE_FAMILY_ANNUAL,
+    'medical_monthly': process.env.STRIPE_PRICE_MEDICAL_MONTHLY,
+    'medical_annual':  process.env.STRIPE_PRICE_MEDICAL_ANNUAL,
+  };
+  const resolvedPriceId = priceMap[priceId] || priceId;
   try {
     const sessionParams = {
       mode: 'subscription',
       payment_method_types: ['card'],
       customer_email: userEmail,
-      line_items: [{ price: priceId, quantity: 1 }],
+      line_items: [{ price: resolvedPriceId, quantity: 1 }],
       allow_promotion_codes: true,
       subscription_data: {
         metadata: { supabase_user_id: userId },
