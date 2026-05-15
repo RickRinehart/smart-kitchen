@@ -763,7 +763,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       allItems=allItems.filter(i=>{const k=i.name.toLowerCase();if(seen.has(k))return false;seen.add(k);return true;});
       setSaleItems(allItems);
       setScanStage("review");
-      setScanResults(allItems.map(i=>({...i,selected:true,qty:1,location:"Store",action:"sale"})));
+      setScanResults(allItems.map(i=>({...i,selected:false,qty:1,location:"Store",action:"sale"})));
       setScanPreview(null); setScanB64(null);
     } catch(e){ alert("Ad scan failed: "+e.message); setScanStage("upload"); }
     setLoading(false);
@@ -823,7 +823,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       const parsed=JSON.parse(raw.slice(s,e+1));
       setSaleItems(parsed);
       setScanStage("review");
-      setScanResults(parsed.map(i=>({...i,selected:true,qty:1,location:"Store",action:"sale"})));
+      setScanResults(parsed.map(i=>({...i,selected:false,qty:1,location:"Store",action:"sale"})));
     } catch(e){ alert("Ad scan failed: "+e.message); }
     setLoading(false);
   };
