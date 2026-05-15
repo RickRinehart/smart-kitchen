@@ -2185,14 +2185,21 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                     </div>
                   ))}
                 </div>
-                {scanMode!=="weeklyad"&&<div style={{display:"flex",gap:8,marginTop:12}}>
+                {scanMode==="weeklyad"?(
+                  <div style={{display:"flex",gap:8,marginTop:12}}>
+                    <button style={{...bBtn("ghost"),flex:1}} onClick={()=>{setScanStage("upload");setScanResults(null);}}>← Rescan</button>
+                    <button style={{...bBtn("green"),flex:2}} onClick={()=>{setSaleItems(scanResults.filter(i=>i.selected).map(({selected:_,...rest})=>rest));setScanOpen(false);setScanPreview(null);setScanB64(null);setScanResults(null);setScanStage("upload");alert(scanResults.filter(i=>i.selected).length+" sale items saved! Use 'Budget Meal Plan' to build a plan around this week\'s deals.");}}>🏷️ Save {scanResults.filter(i=>i.selected).length} Sale Items</button>
+                  </div>
+                ):(
+                  <div style={{display:"flex",gap:8,marginTop:12}}>
                   <div style={{width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 4px",marginBottom:4,borderTop:"1px solid "+C.border}}>
                     <span style={{fontFamily:FM,fontSize:11,color:C.muted}}>{scanResults.filter(i=>i.selected).length} of {scanResults.length} items selected</span>
                     <span style={{fontFamily:FM,fontSize:11,color:C.accent,fontWeight:600}}>Est. total: ${scanResults.filter(i=>i.selected&&i.price).reduce((sum,i)=>{const p=parseFloat((i.price||"").replace(/[^0-9.]/g,""));return sum+(isNaN(p)?0:p);},0).toFixed(2)}</span>
                   </div>
                   <button style={{...bBtn("ghost"),flex:1}} onClick={()=>{setScanStage("upload");setScanResults(null);}}>← Rescan</button>
                   <button style={{...bBtn("green"),flex:2}} onClick={commitScan}>✅ Save {scanResults.filter(i=>i.selected).length} Items</button>
-                </div>}
+                </div>
+                )}
               </div>
             )}
             {scanStage==="done"&&<div style={{textAlign:"center",padding:40}}><div style={{fontSize:40,marginBottom:12}}>✅</div><div style={{fontFamily:FD,fontSize:22,color:C.green}}>Inventory Updated!</div></div>}
