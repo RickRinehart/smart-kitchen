@@ -2628,7 +2628,7 @@ What can I substitute and do I have what I need?`,
                       ))}
                     </div>
                     <div style={{display:"flex",gap:10,alignItems:"center"}}>
-                      <span style={{fontSize:11,color:C.accent,fontFamily:FM,letterSpacing:0.5}}>TAP FOR FULL RECIPE →</span>
+                      <span onClick={e=>{e.stopPropagation();setActiveRecipe(makeThisResult);}} style={{fontSize:11,color:C.accent,fontFamily:FM,letterSpacing:0.5,cursor:"pointer"}}>TAP FOR FULL RECIPE →</span>
                       <a href={getRecipeUrl(makeThisResult.name)} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{fontSize:10,color:"#60a5fa",fontFamily:FM,textDecoration:"none",fontWeight:600}}>🌐 web</a>
                     </div>
                   </div>
