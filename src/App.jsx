@@ -53,6 +53,8 @@ const DEFAULT_PROFILES=[
   {id:4,name:"",role:"teen-athlete",restriction:"athlete",  customParams:{},active:false},
   {id:5,name:"",role:"teen-athlete",restriction:"athlete",  customParams:{},active:false},
   {id:6,name:"",role:"teen-athlete",restriction:"athlete",  customParams:{},active:false},
+  {id:7,name:"",role:"adult",       restriction:"standard", customParams:{},active:false},
+  {id:8,name:"",role:"adult",       restriction:"standard", customParams:{},active:false},
 ];
 
 // -- Inventory -----------------------------------------------------------------
@@ -735,6 +737,39 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     setScanMime(file.type||"image/jpeg");
     setScanResults(null); setScanStage("upload");
   };
+  const onFiles=async(files)=>{
+    if(!files||files.length===0) return;
+    if(files.length===1){onFile(files[0]);return;}
+    // Multi-file batch for weekly ad
+    setScanStage("analyzing");
+    setLoading(true); setLoadMsg("Reading weekly ad ("+files.length+" pages)…");
+    let allItems=[];
+    try{
+      for(let i=0;i<files.length;i++){
+        setLoadMsg("Reading page "+(i+1)+" of "+files.length+"…");
+        const b64=await fileToBase64(files[i]);
+        const mime=files[i].type||"image/jpeg";
+        const raw=await callClaude({
+          system:"You are a grocery store weekly ad parser. Analyze this store ad image and extract food/grocery sale items. Return ONLY a valid JSON array. Each object: {name(string, clean product name), salePrice(string, e.g. '$2.99'), regularPrice(string or null), unit(string, e.g. 'lb' 'each' 'pkg'), category(Protein|Produce|Dairy|Pantry|Grains|Frozen|Condiments|Other), savings(string, e.g. 'Save $1.00' or 'BOGO' or '2 for $5')}. Focus on food items only. Skip non-food deals.",
+          prompt:"Extract all food sale items from this weekly grocery ad. Include sale price, unit, and any savings details visible.",
+          imageBase64:b64,imageType:mime,
+        });
+        const s=raw.indexOf("["),e=raw.lastIndexOf("]");
+        if(s!==-1){
+          const parsed=JSON.parse(raw.slice(s,e+1));
+          allItems=allItems.concat(parsed);
+        }
+      }
+      // Deduplicate by name
+      const seen=new Set();
+      allItems=allItems.filter(i=>{const k=i.name.toLowerCase();if(seen.has(k))return false;seen.add(k);return true;});
+      setSaleItems(allItems);
+      setScanStage("review");
+      setScanResults(allItems.map(i=>({...i,selected:true,qty:1,location:"Store",action:"sale"})));
+      setScanPreview(null); setScanB64(null);
+    } catch(e){ alert("Ad scan failed: "+e.message); setScanStage("upload"); }
+    setLoading(false);
+  };
   const analyzeReceipt=async()=>{
     if(!scanB64) return;
     setScanStage("analyzing");
@@ -1089,7 +1124,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
 
   
-      {showSettings&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setShowSettings(false)}><div style={{background:C.card,borderRadius:16,padding:28,width:340,maxWidth:"90vw"}} onClick={e=>e.stopPropagation()}><div style={{fontFamily:FD,fontSize:20,fontWeight:700,color:C.text,marginBottom:4}}>Settings</div><div style={{fontSize:11,color:C.muted,fontFamily:FM,marginBottom:20}}>Smart Kitchen v1.5</div><div style={{marginTop:12,background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:8}}>Shopping Partner</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:6}}>Who gets the emailed shopping list?</div><input placeholder="Name (e.g. Lisa)" value={shopPartnerName} onChange={e=>{setShopPartnerName(e.target.value);localStorage.setItem("sk_shopPartnerName",e.target.value);}} style={{width:"100%",background:C.card,border:"1px solid "+C.border,borderRadius:6,padding:"6px 10px",color:C.text,fontFamily:FM,fontSize:12,marginBottom:6,boxSizing:"border-box"}}/><input placeholder="Email address" value={shopPartnerEmail} onChange={e=>{setShopPartnerEmail(e.target.value);localStorage.setItem("sk_shopPartnerEmail",e.target.value);}} style={{width:"100%",background:C.card,border:"1px solid "+C.border,borderRadius:6,padding:"6px 10px",color:C.text,fontFamily:FM,fontSize:12,boxSizing:"border-box"}}/></div><div style={{display:"flex",flexDirection:"column",gap:12}}><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>{darkMode?"🌙 Dark Mode":"☀️ Light Mode"}</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Switch between dark and light display themes.</div><button style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.border,color:C.text}} onClick={()=>setDarkMode(m=>!m)}>{darkMode?"Switch to Light Mode ☀️":"Switch to Dark Mode 🌙"}</button></div><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>Reset Inventory</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Clears all inventory items. Keeps profiles, meal plan, and preferences.</div><button style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.red,color:C.red}} onClick={()=>{if(window.confirm("Clear all inventory? Cannot be undone.")){localStorage.removeItem("sk_inventory");localStorage.removeItem("sk_portionFixV2");setInventory([]);setShowSettings(false);alert("Inventory cleared.");}}}>Clear Inventory</button></div><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>Reset All Data</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Wipes everything and restarts the Setup Wizard. Use for demo resets.</div><button style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.red,color:C.red}} onClick={()=>{if(window.confirm("Reset ALL data? Cannot be undone.")){["sk_inventory","sk_familyProfiles","sk_familySize","sk_mealPlan","sk_sportsNights","sk_recipeSite","sk_seniorMode","sk_setupDone","sk_portionFixV2","sk_installDismissed","sk_reminderDismissed","sk_saleItems","sk_tempProfiles","sk_activeTab","sk_chatWelcomeDone","sk_tourChoice","sk_tourStep","sk_guestCaptured","sk_darkMode","sk_recipes","sk_recipeRatings","sk_desserts","sk_dessertRatings"].forEach(k=>localStorage.removeItem(k));window.location.reload();}}}>Reset All Data</button></div></div><button style={{...bBtn("ghost"),width:"100%",marginTop:16}} onClick={()=>setShowSettings(false)}>Close</button></div></div>}
+      {showSettings&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setShowSettings(false)}><div style={{background:C.card,borderRadius:16,padding:28,width:340,maxWidth:"90vw"}} onClick={e=>e.stopPropagation()}><div style={{fontFamily:FD,fontSize:20,fontWeight:700,color:C.text,marginBottom:4}}>Settings</div><div style={{fontSize:11,color:C.muted,fontFamily:FM,marginBottom:20}}>Smart Kitchen v1.5</div><div style={{marginTop:12,background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:8}}>Shopping Partner</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:6}}>Who gets the emailed shopping list?</div><input placeholder="Name (e.g. Lisa)" value={shopPartnerName} onChange={e=>{setShopPartnerName(e.target.value);localStorage.setItem("sk_shopPartnerName",e.target.value);}} style={{width:"100%",background:C.card,border:"1px solid "+C.border,borderRadius:6,padding:"6px 10px",color:C.text,fontFamily:FM,fontSize:12,marginBottom:6,boxSizing:"border-box"}}/><input placeholder="Email address" value={shopPartnerEmail} onChange={e=>{setShopPartnerEmail(e.target.value);localStorage.setItem("sk_shopPartnerEmail",e.target.value);}} style={{width:"100%",background:C.card,border:"1px solid "+C.border,borderRadius:6,padding:"6px 10px",color:C.text,fontFamily:FM,fontSize:12,boxSizing:"border-box"}}/></div><div style={{display:"flex",flexDirection:"column",gap:12}}><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>{darkMode?"🌙 Dark Mode":"☀️ Light Mode"}</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Switch between dark and light display themes.</div><button style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.border,color:C.text}} onClick={()=>setDarkMode(m=>!m)}>{darkMode?"Switch to Light Mode ☀️":"Switch to Dark Mode 🌙"}</button></div><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>Recipe Search Site</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Where to search for recipes when you tap a meal name.</div><div style={{display:"flex",flexDirection:"column",gap:6}}>{[["google","🔍 Google Recipes"],["allrecipes","🍳 AllRecipes"],["pinterest","📌 Pinterest"],["foodnetwork","📺 Food Network"]].map(([key,label])=>(<button key={key} onClick={()=>{setRecipeSite(key);localStorage.setItem("sk_recipeSite",key);}} style={{padding:"8px 12px",borderRadius:8,border:"1px solid "+(recipeSite===key?C.accent:C.border),background:recipeSite===key?C.accent+"22":"transparent",color:recipeSite===key?C.accent:C.text,fontFamily:FM,fontSize:12,cursor:"pointer",textAlign:"left"}}>{label}{recipeSite===key?" ✓":""}</button>))}</div></div><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>Reset Inventory</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Clears all inventory items. Keeps profiles, meal plan, and preferences.</div><button style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.red,color:C.red}} onClick={()=>{if(window.confirm("Clear all inventory? Cannot be undone.")){localStorage.removeItem("sk_inventory");localStorage.removeItem("sk_portionFixV2");setInventory([]);setShowSettings(false);alert("Inventory cleared.");}}}>Clear Inventory</button></div><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>Reset All Data</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Wipes everything and restarts the Setup Wizard. Use for demo resets.</div><button style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.red,color:C.red}} onClick={()=>{if(window.confirm("Reset ALL data? Cannot be undone.")){["sk_inventory","sk_familyProfiles","sk_familySize","sk_mealPlan","sk_sportsNights","sk_recipeSite","sk_seniorMode","sk_setupDone","sk_portionFixV2","sk_installDismissed","sk_reminderDismissed","sk_saleItems","sk_tempProfiles","sk_activeTab","sk_chatWelcomeDone","sk_tourChoice","sk_tourStep","sk_guestCaptured","sk_darkMode","sk_recipes","sk_recipeRatings","sk_desserts","sk_dessertRatings"].forEach(k=>localStorage.removeItem(k));window.location.reload();}}}>Reset All Data</button></div></div><button style={{...bBtn("ghost"),width:"100%",marginTop:16}} onClick={()=>setShowSettings(false)}>Close</button></div></div>}
     {showWizard&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
           <div style={{background:C.surface,borderRadius:16,padding:28,maxWidth:440,width:"100%",border:"1px solid "+C.border,maxHeight:"90vh",overflowY:"auto"}}>
@@ -1157,14 +1192,22 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
               <div style={{fontFamily:"system-ui,-apple-system,sans-serif",fontSize:13,color:C.muted,marginBottom:16,lineHeight:1.6}}>Tell us about your household so meal plans respect everyone's needs.</div>
               <div style={{background:C.card,borderRadius:10,padding:14,marginBottom:14}}>
                 <div style={{fontSize:10,fontFamily:FM,color:C.muted,marginBottom:8,letterSpacing:0.8}}>FAMILY SIZE</div>
-                <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
-                  {[1,2,3,4,5,6,7,8].map(n=>(
-                    <button key={n} onClick={()=>{setFamilySize(n);setFamilyProfiles(p=>p.map((pr,i)=>({...pr,active:i<n})));}}
-                      style={{width:38,height:38,borderRadius:8,border:"1px solid "+(familySize===n?C.accent:C.border),background:familySize===n?C.accent+"22":"transparent",color:familySize===n?C.accent:C.muted,cursor:"pointer",fontFamily:FM,fontSize:14,fontWeight:600}}>
-                      {n}
-                    </button>
-                  ))}
-                </div>
+                {tier==="medical"?(
+                  <div style={{display:"flex",alignItems:"center",gap:10}}>
+                    <input type="number" min="1" value={familySize} onChange={e=>{const n=Math.max(1,parseInt(e.target.value)||1);setFamilySize(n);setFamilyProfiles(p=>{const base=p.length>=n?p:p.concat(Array.from({length:n-p.length},(_,i)=>({id:p.length+i+1,name:"",role:"adult",restriction:"standard",customParams:{},active:true})));return base.map((pr,i)=>({...pr,active:i<n}));});}} style={{width:70,padding:"6px 10px",borderRadius:8,border:"1px solid "+C.accent,background:C.card,color:C.text,fontFamily:FM,fontSize:16,fontWeight:700}}/>
+                    <span style={{fontSize:12,color:C.muted,fontFamily:FM}}>family members (Medical+ — no limit)</span>
+                  </div>
+                ):(
+                  <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
+                    {(tier==="solo"?[1]:tier==="family"?[2,3,4,5,6]:[1,2,3,4,5,6,7,8]).map(n=>(
+                      <button key={n} onClick={()=>{setFamilySize(n);setFamilyProfiles(p=>p.map((pr,i)=>({...pr,active:i<n})));}}
+                        style={{width:38,height:38,borderRadius:8,border:"1px solid "+(familySize===n?C.accent:C.border),background:familySize===n?C.accent+"22":"transparent",color:familySize===n?C.accent:C.muted,cursor:tier==="solo"?"not-allowed":"pointer",fontFamily:FM,fontSize:14,fontWeight:600}}>
+                        {n}
+                      </button>
+                    ))}
+                    {tier==="solo"&&<span style={{fontSize:11,color:C.muted,fontFamily:FM,alignSelf:"center",marginLeft:4}}>Solo plan — 1 member</span>}
+                  </div>
+                )}
               </div>
               <div style={{display:"flex",flexDirection:"column",gap:9,maxHeight:280,overflowY:"auto",marginBottom:14}}>
                 {familyProfiles.filter(p=>p.active).map((profile,idx)=>{
@@ -1173,7 +1216,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                     <div key={profile.id} style={{background:C.card,borderRadius:12,padding:14}}>
                       <div style={{display:"flex",gap:10,alignItems:"center",marginBottom:10}}>
                         <div style={{fontSize:18}}>{preset.icon}</div>
-                        <input style={{...bInp,flex:1}} placeholder={"Person "+(idx+1)+" name"} value={profile.name}
+                        <input style={{...bInp,flex:1}} placeholder={"Family member "+(idx+1)+" name"} value={profile.name}
                           onChange={e=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,name:e.target.value}:pr))}/>
                       </div>
                       <div style={{fontSize:10,fontFamily:FM,color:C.muted,marginBottom:6,letterSpacing:0.8}}>DIETARY NEEDS</div>
@@ -1792,14 +1835,22 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
             {/* Family size */}
             <div style={{background:C.card,borderRadius:10,padding:14,marginBottom:14}}>
               <div style={{fontSize:10,fontFamily:FM,color:C.muted,marginBottom:8,letterSpacing:0.8}}>FAMILY SIZE</div>
-              <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
-                {[1,2,3,4,5,6,7,8].map(n=>(
-                  <button key={n} onClick={()=>{setFamilySize(n);setFamilyProfiles(p=>p.map((pr,i)=>({...pr,active:i<n})));}}
-                    style={{width:38,height:38,borderRadius:8,border:"1px solid "+(familySize===n?C.accent:C.border),background:familySize===n?C.accent+"22":"transparent",color:familySize===n?C.accent:C.muted,cursor:"pointer",fontFamily:FM,fontSize:14,fontWeight:600}}>
-                    {n}
-                  </button>
-                ))}
-              </div>
+              {tier==="medical"?(
+                <div style={{display:"flex",alignItems:"center",gap:10}}>
+                  <input type="number" min="1" value={familySize} onChange={e=>{const n=Math.max(1,parseInt(e.target.value)||1);setFamilySize(n);setFamilyProfiles(p=>{const base=p.length>=n?p:p.concat(Array.from({length:n-p.length},(_,i)=>({id:p.length+i+1,name:"",role:"adult",restriction:"standard",customParams:{},active:true})));return base.map((pr,i)=>({...pr,active:i<n}));});}} style={{width:70,padding:"6px 10px",borderRadius:8,border:"1px solid "+C.accent,background:C.card,color:C.text,fontFamily:FM,fontSize:16,fontWeight:700}}/>
+                  <span style={{fontSize:12,color:C.muted,fontFamily:FM}}>family members (Medical+ — no limit)</span>
+                </div>
+              ):(
+                <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
+                  {(tier==="solo"?[1]:tier==="family"?[2,3,4,5,6]:[1,2,3,4,5,6,7,8]).map(n=>(
+                    <button key={n} onClick={()=>{setFamilySize(n);setFamilyProfiles(p=>p.map((pr,i)=>({...pr,active:i<n})));}}
+                      style={{width:38,height:38,borderRadius:8,border:"1px solid "+(familySize===n?C.accent:C.border),background:familySize===n?C.accent+"22":"transparent",color:familySize===n?C.accent:C.muted,cursor:tier==="solo"?"not-allowed":"pointer",fontFamily:FM,fontSize:14,fontWeight:600}}>
+                      {n}
+                    </button>
+                  ))}
+                  {tier==="solo"&&<span style={{fontSize:11,color:C.muted,fontFamily:FM,alignSelf:"center",marginLeft:4}}>Solo plan — 1 member</span>}
+                </div>
+              )}
             </div>
 
             {/* Profile cards */}
@@ -1823,7 +1874,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                     </div>
                     {isEditing&&(
                       <div style={{display:"flex",flexDirection:"column",gap:10}}>
-                        <div><Label>NAME</Label><input style={bInp} placeholder={"Person "+(idx+1)} value={profile.name} onChange={e=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,name:e.target.value}:pr))}/></div>
+                        <div><Label>NAME</Label><input style={bInp} placeholder={"Family member "+(idx+1)} value={profile.name} onChange={e=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,name:e.target.value}:pr))}/></div>
                         <div>
                           <Label>ROLE</Label>
                           <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
@@ -2067,7 +2118,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                 )}
                 {scanMode==="weeklyad"&&(
                   <div style={{background:"#1a1a00",borderRadius:10,padding:12,marginBottom:12,fontSize:12,color:"#fbbf24",lineHeight:1.6}}>
-                    🏷️ Screenshot the weekly ad from your Meijer app, or photograph a printed flyer page by page. Sale items will be extracted and used to build a budget meal plan.
+                    🏷️ Screenshot the weekly ad from your Meijer app, or photograph a printed flyer. <strong>Select all pages at once</strong> — Smart Kitchen will scan each page and combine results automatically.
                   </div>
                 )}
                 <div onClick={()=>fileRef.current.click()}
@@ -2082,12 +2133,12 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                       <div style={{fontSize:32,marginBottom:8}}>{scanMode==="receipt"?"🧾":scanMode==="weeklyad"?"🏷️":"📷"}</div>
                       <div style={{fontFamily:FD,fontSize:16,color:C.text}}>{scanMode==="receipt"?"Tap to photograph receipt":scanMode==="weeklyad"?"Tap to screenshot weekly ad":"Tap to photograph shelf"}</div>
                       <div style={{fontSize:12,color:C.muted,marginBottom:12}}>opens camera directly</div>
-                      <button onClick={e=>{e.stopPropagation();galleryRef.current.click();}} style={{background:"transparent",border:"1px solid "+C.border,borderRadius:8,color:C.muted,cursor:"pointer",fontFamily:FM,fontSize:11,padding:"6px 14px"}}>📂 Choose from Gallery</button>
+                      <button onClick={e=>{e.stopPropagation();galleryRef.current.click();}} style={{background:"transparent",border:"1px solid "+C.border,borderRadius:8,color:C.muted,cursor:"pointer",fontFamily:FM,fontSize:11,padding:"6px 14px"}}>{scanMode==="weeklyad"?"📂 Select All Pages (multi-select OK)":"📂 Choose from Gallery"}</button>
                     </div>
                   )}
                 </div>
                 <input ref={fileRef} type="file" accept="image/*" capture="environment" style={{display:"none"}} onChange={e=>onFile(e.target.files[0])}/>
-                <input ref={galleryRef} type="file" accept="image/*" style={{display:"none"}} onChange={e=>onFile(e.target.files[0])}/>
+                <input ref={galleryRef} type="file" accept="image/*" multiple={scanMode==="weeklyad"} style={{display:"none"}} onChange={e=>scanMode==="weeklyad"?onFiles(Array.from(e.target.files)):onFile(e.target.files[0])}/>
                 <div style={{display:"flex",gap:8}}>
                   <button style={{flex:1,padding:"9px",borderRadius:9,border:"1px solid "+C.border,background:"transparent",color:C.muted,cursor:"pointer",fontFamily:FM,fontSize:12,fontWeight:600}} onClick={()=>setScanOpen(false)}>Cancel</button>
                   <button style={{flex:2,padding:"9px",borderRadius:9,border:"none",background:scanB64?C.accent:C.border,color:scanB64?"#0c0e14":C.muted,cursor:scanB64?"pointer":"not-allowed",fontFamily:FM,fontSize:12,fontWeight:700,opacity:scanB64?1:0.5}}
