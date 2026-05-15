@@ -44,8 +44,9 @@ function TrialCountdown({ daysLeft, onUpgrade }) {
   const urgent = daysLeft <= 3;
   const warning = daysLeft <= 10;
   const color = urgent ? "#cc0000" : warning ? "#e07b39" : "#888";
-  const bg = urgent ? "#fff0f0" : warning ? "#fff8ee" : "#1e1e2e";
-  const border = urgent ? "1px solid #ffcccc" : warning ? "1px solid #f5d9b0" : "1px solid #333";
+  const isDark = document.body.classList.contains("sk-dark");
+  const bg = urgent ? "#fff0f0" : warning ? "#fff8ee" : isDark ? "#1e1e2e" : "#f0f0f0";
+  const border = urgent ? "1px solid #ffcccc" : warning ? "1px solid #f5d9b0" : isDark ? "1px solid #333" : "1px solid #ccc";
   return (
     <span style={{
       fontSize: "11px", color, background: bg,
@@ -333,8 +334,8 @@ function Root() {
           <>
             <span style={{
               fontSize: "11px", color: "#888",
-              background: "#1e1e2e", padding: "3px 8px",
-              borderRadius: "10px", border: "1px solid #333"
+              background: document.body.classList.contains("sk-dark") ? "#1e1e2e" : "#f0f0f0", padding: "3px 8px",
+              borderRadius: "10px", border: document.body.classList.contains("sk-dark") ? "1px solid #333" : "1px solid #ccc"
             }}>
               {tierLabel}
             </span>
