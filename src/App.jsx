@@ -2253,16 +2253,52 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                     const p=parseFloat(rpVSessions.find(s=>s.id==="peppers")?.count||0)||0;
                     const bags=Math.floor(((o*1.5)+(c*0.5)+(p*1.0))/2);
                     if(bags===0){alert("Not enough veg for a 2-cup bag.");return;}
-                    setInventory(prev=>{
-                      const idx=prev.findIndex(i=>i.vegType==="sauteBlend");
-                      if(idx>=0) return prev.map((i,ii)=>ii===idx?{...i,qty:i.qty+bags}:i);
-                      return [...prev,{id:Date.now(),name:"Mixed Sauté Blend",qty:bags,unit:"2-cup bags",category:"Produce",location:"Freezer",isDicedVeg:true,vegType:"sauteBlend",cupsPerBag:2,blendNote:"Diced onion + celery + bell pepper"}];
-                    });
-                    setRpOpen(false);
-                  }}>🫕 Add {Math.floor(((parseFloat(rpVSessions.find(s=>s.id==="onions")?.count||0)||0)*1.5+((parseFloat(rpVSessions.find(s=>s.id==="celery")?.count||0)||0)*0.5)+((parseFloat(rpVSessions.find(s=>s.id==="peppers")?.count||0)||0)*1.0))/2)} Bags</button>
+                    setRpYieldConfirm({estimated:bags,o,c,p});setRpActualBags(String(bags));
+                  }}>🫕 Confirm — Estimated {Math.floor(((parseFloat(rpVSessions.find(s=>s.id==="onions")?.count||0)||0)*1.5+((parseFloat(rpVSessions.find(s=>s.id==="celery")?.count||0)||0)*0.5)+((parseFloat(rpVSessions.find(s=>s.id==="peppers")?.count||0)||0)*1.0))/2)} Bags</button>
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* == YIELD CONFIRM MODAL == */}
+      {rpYieldConfirm&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300,padding:16}}>
+          <div style={{background:C.card,border:"1px solid "+C.border,borderRadius:16,padding:24,maxWidth:400,width:"100%"}}>
+            <div style={{fontFamily:FD,fontSize:20,color:C.accent,marginBottom:8}}>🫕 Actual Yield?</div>
+            <div style={{fontSize:14,color:C.muted,marginBottom:20}}>Estimated <span style={{color:C.orange,fontWeight:700}}>{rpYieldConfirm.estimated} bags</span>. How many 2-cup bags did you actually get?</div>
+            <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20}}>
+              <button onClick={()=>setRpActualBags(b=>String(Math.max(1,parseInt(b||"0")-1)))} style={{...bBtn("ghost"),padding:"8px 16px",fontSize:20}}>−</button>
+              <input type="number" min="1" max="50" value={rpActualBags} onChange={e=>setRpActualBags(e.target.value)} style={{flex:1,textAlign:"center",fontSize:28,fontWeight:700,fontFamily:FD,color:C.orange,background:C.surface,border:"1px solid "+C.border,borderRadius:10,padding:"10px 0"}}/>
+              <button onClick={()=>setRpActualBags(b=>String(parseInt(b||"0")+1))} style={{...bBtn("ghost"),padding:"8px 16px",fontSize:20}}>+</button>
+            </div>
+            {parseInt(rpActualBags)!==rpYieldConfirm.estimated&&(
+              <div style={{fontSize:12,color:C.muted,marginBottom:16,textAlign:"center"}}>
+                {parseInt(rpActualBags)>rpYieldConfirm.estimated?"📈":"📉"} {Math.abs(parseInt(rpActualBags)-rpYieldConfirm.estimated)} bags {parseInt(rpActualBags)>rpYieldConfirm.estimated?"more":"fewer"} than estimated — Smart Kitchen will learn from this.
+              </div>
+            )}
+            <div style={{display:"flex",gap:8}}>
+              <button style={{...bBtn("ghost"),flex:1}} onClick={()=>{setRpYieldConfirm(null);setRpActualBags("");}}>Cancel</button>
+              <button style={{...bBtn("teal"),flex:2}} onClick={()=>{
+                const actual=Math.max(1,parseInt(rpActualBags)||rpYieldConfirm.estimated);
+                try{
+                  const h=JSON.parse(localStorage.getItem("sk_yieldHistory")||"[]");
+                  const ingredients=[];
+                  if(rpYieldConfirm.o>0) ingredients.push(rpYieldConfirm.o+" onions");
+                  if(rpYieldConfirm.c>0) ingredients.push(rpYieldConfirm.c+" stalks celery");
+                  if(rpYieldConfirm.p>0) ingredients.push(rpYieldConfirm.p+" peppers");
+                  h.push({type:"sauteBlend",ingredients,estimated:rpYieldConfirm.estimated,actual,unit:"2-cup bags",correctionFactor:parseFloat((actual/Math.max(1,rpYieldConfirm.estimated)).toFixed(2)),ts:Date.now()});
+                  localStorage.setItem("sk_yieldHistory",JSON.stringify(h.slice(-50)));
+                }catch{}
+                setInventory(prev=>{
+                  const idx=prev.findIndex(i=>i.vegType==="sauteBlend");
+                  if(idx>=0) return prev.map((i,ii)=>ii===idx?{...i,qty:i.qty+actual}:i);
+                  return [...prev,{id:Date.now(),name:"Mixed Sauté Blend",qty:actual,unit:"2-cup bags",category:"Produce",location:"Freezer",isDicedVeg:true,vegType:"sauteBlend",cupsPerBag:2,blendNote:"Diced onion + celery + bell pepper"}];
+                });
+                setRpYieldConfirm(null);setRpActualBags("");setRpOpen(false);
+              }}>✓ Save {rpActualBags} Bags</button>
+            </div>
           </div>
         </div>
       )}
