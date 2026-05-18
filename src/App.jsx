@@ -478,6 +478,8 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [scanMode,setScanMode]=useState("shelf");
   const [saleItems,setSaleItems]=useState(()=>{try{return JSON.parse(localStorage.getItem("sk_saleItems")||"[]");}catch{return [];}});
   const [rpOpen,setRpOpen]=useState(false);
+  const [rpYieldConfirm,setRpYieldConfirm]=useState(null);
+  const [rpActualBags,setRpActualBags]=useState("");
   const [rpMode,setRpMode]=useState("protein");
   const [rpPName,setRpPName]=useState("");
   const [rpPLbs,setRpPLbs]=useState("");
