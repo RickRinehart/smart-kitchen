@@ -979,12 +979,12 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
         const hLine=item.harvestDate?"Harvested: "+item.harvestDate:(item.addedAt?new Date(item.addedAt).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}):"");
         const bestBy=item.useBy||"";
         const srv=item.qty&&item.unit?item.qty+" "+item.unit:"";
-        const top="<div style=\"font-size:"+fmt.nameFontSize+"pt;font-weight:700;line-height:1.1;margin-bottom:2px;\">"+icon+" "+item.name.toUpperCase()+"</div><div style=\"font-size:"+fmt.fontSize+"pt;color:#555;\">"+item.category+"</div>";
-        const mid=labelFormat!=="5160"?"<div style=\"font-size:"+fmt.fontSize+"pt;color:#333;line-height:1.4;\">"+(hLine?hLine+"<br/>":"")+(srv?srv+"<br/>":"")+(bestBy?"Best by: "+bestBy:"")+"</div>":"<div style=\"font-size:"+fmt.fontSize+"pt;color:#333;\">"+(bestBy?"Best by: "+bestBy:"")+"</div>";
-        const bot="<div style=\"font-size:"+(labelFormat==="5160"?5:fmt.fontSize-1)+"pt;color:#999;text-align:right;\">Smart Kitchen(tm)</div>";
-        cells.push("<div style=\"width:"+toW(fmt.labelW)+";height:"+toW(fmt.labelH)+";box-sizing:border-box;padding:"+(labelFormat==="5160"?"4px 6px":"8px 10px")+";display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;border:0.5px dashed #ccc;font-family:Arial,sans-serif;\"><div>"+top+"</div>"+mid+bot+"</div>");
+        const top='<div style="font-size:'+fmt.nameFontSize+'pt;font-weight:700;line-height:1.1;margin-bottom:2px;">'+icon+' '+item.name.toUpperCase()+'</div><div style="font-size:'+fmt.fontSize+'pt;color:#555;">'+item.category+'</div>';
+        const mid=labelFormat!=="5160"?'<div style="font-size:'+fmt.fontSize+'pt;color:#333;line-height:1.4;">'+(hLine?hLine+'<br/>':'')+(srv?srv+'<br/>':'')+(bestBy?'Best by: '+bestBy:'')+'</div>':'<div style="font-size:'+fmt.fontSize+'pt;color:#333;">'+(bestBy?'Best by: '+bestBy:'')+'</div>';
+        const bot='<div style="font-size:'+(labelFormat==="5160"?5:fmt.fontSize-1)+'pt;color:#999;text-align:right;">Smart Kitchen(tm)</div>';
+        cells.push('<div style="width:'+toW(fmt.labelW)+';height:'+toW(fmt.labelH)+';box-sizing:border-box;padding:'+(labelFormat==="5160"?'4px 6px':'8px 10px')+';display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;border:0.5px dashed #ccc;font-family:Arial,sans-serif;"><div>'+top+'</div>'+mid+bot+'</div>');
       } else {
-        cells.push("<div style=\"width:"+toW(fmt.labelW)+";height:"+toW(fmt.labelH)+";box-sizing:border-box;border:0.5px dashed #eee;\"></div>");
+        cells.push('<div style="width:'+toW(fmt.labelW)+';height:'+toW(fmt.labelH)+';box-sizing:border-box;border:0.5px dashed #eee;"></div>');
       }
     }
     const grid="display:grid;grid-template-columns:repeat("+fmt.cols+","+toW(fmt.labelW)+");gap:"+toW(fmt.gapV)+" "+toW(fmt.gapH)+";margin-left:"+toW(fmt.marginL)+";margin-top:"+toW(fmt.marginT)+";";
