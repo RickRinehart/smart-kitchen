@@ -988,7 +988,8 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       }
     }
     const grid="display:grid;grid-template-columns:repeat("+fmt.cols+","+toW(fmt.labelW)+");gap:"+toW(fmt.gapV)+" "+toW(fmt.gapH)+";margin-left:"+toW(fmt.marginL)+";margin-top:"+toW(fmt.marginT)+";";
-    const doc="<!DOCTYPE html>"+"<html>"+"<head>"+"<title>Smart Kitchen Labels</title>"+"<style>@media print{body{margin:0;}}.grid{"+grid+"}</style>"+"</head>"+"<body>"+"<div class="grid">"+cells.join("")+"</div>"+"</body>"+"</html>";
+    const gDiv='<div class="grid">';
+    const doc="<!DOCTYPE html>"+"<html>"+"<head>"+"<title>Smart Kitchen Labels</title>"+"<style>@media print{body{margin:0;}}.grid{"+grid+"}</style>"+"</head>"+"<body>"+gDiv+cells.join("")+"</div>"+"</body>"+"</html>";
     const win=window.open("","_blank","width=816,height=1056");
     win.document.write(doc);
     win.document.close();
