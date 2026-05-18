@@ -2508,7 +2508,7 @@ useDays is days from today the food is safe to eat (cooked food: 3-4 days typica
           {/* Existing leftovers in inventory */}
           {inventory.filter(i=>i.category==="Leftovers"||i.isLeftover).length>0&&(
             <div>
-              <div style={{fontSize:12,fontWeight:700,color:C.muted,letterSpacing:0.8,marginBottom:8,marginTop:8}}>CURRENT LEFTOVERS</div>
+              <div style={{fontSize:seniorMode?16:12,fontWeight:700,color:C.muted,letterSpacing:0.8,marginBottom:8,marginTop:8}}>CURRENT LEFTOVERS</div>
               {inventory.filter(i=>i.category==="Leftovers"||i.isLeftover).map((item,idx)=>{
                 const daysLeft=item.useDays?Math.ceil((new Date(item.addedAt).getTime()+item.useDays*86400000-Date.now())/86400000):null;
                 const urgent=daysLeft!==null&&daysLeft<=1;
@@ -2516,15 +2516,15 @@ useDays is days from today the food is safe to eat (cooked food: 3-4 days typica
                 return(
                   <div key={idx} style={{background:C.card,border:"1px solid "+(urgent?"#f66":warning?"#fa0":C.border),borderRadius:10,padding:"10px 14px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                     <div>
-                      <div style={{fontSize:14,fontWeight:600,color:C.text}}>{item.name}</div>
-                      <div style={{fontSize:11,color:C.muted}}>{item.qty} {item.unit}{item.useBy?" · Use by "+item.useBy:""}</div>
+                      <div style={{fontSize:seniorMode?20:14,fontWeight:600,color:C.text}}>{item.name}</div>
+                      <div style={{fontSize:seniorMode?16:11,color:C.muted}}>{item.qty} {item.unit}{item.useBy?" · Use by "+item.useBy:""}</div>
                     </div>
                     <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap",justifyContent:"flex-end"}}>
-                      {urgent&&<span style={{fontSize:10,color:"#f66",fontWeight:700}}>TODAY</span>}
-                      {warning&&!urgent&&<span style={{fontSize:10,color:"#fa0",fontWeight:700}}>SOON</span>}
+                      {urgent&&<span style={{fontSize:seniorMode?15:10,color:"#f66",fontWeight:700}}>TODAY</span>}
+                      {warning&&!urgent&&<span style={{fontSize:seniorMode?15:10,color:"#fa0",fontWeight:700}}>SOON</span>}
                       {item._askMealType?(
                         <>
-                          <span style={{fontSize:10,color:C.muted}}>Used as:</span>
+                          <span style={{fontSize:seniorMode?15:10,color:C.muted}}>Used as:</span>
                           <button style={{background:"#1a3a1a",border:"1px solid #4c4",borderRadius:6,color:"#4c4",cursor:"pointer",fontSize:10,padding:"3px 8px"}} onClick={()=>{
                             const log=JSON.parse(localStorage.getItem("sk_leftoverHistory")||"[]");
                             log.push({dish:item.name,servings:item.qty,consumedAs:"dinner",daysSinceAdded:item.useDays?Math.ceil((Date.now()-new Date(item.addedAt).getTime())/86400000):null,wasted:false,ts:Date.now()});
@@ -2540,7 +2540,7 @@ useDays is days from today the food is safe to eat (cooked food: 3-4 days typica
                         </>
                       ):(
                         <>
-                          <button style={{background:"#1a3a1a",border:"1px solid #4c4",borderRadius:6,color:"#4c4",cursor:"pointer",fontSize:10,padding:"3px 8px"}} onClick={()=>setInventory(prev=>prev.map((it,ii)=>ii===inventory.indexOf(item)?{...it,_askMealType:true}:it))}>Used</button>
+                          <button style={{background:"#1a3a1a",border:"1px solid #4c4",borderRadius:6,color:"#4c4",cursor:"pointer",fontSize:seniorMode?15:10,padding:"3px 8px"}} onClick={()=>setInventory(prev=>prev.map((it,ii)=>ii===inventory.indexOf(item)?{...it,_askMealType:true}:it))}>Used</button>
                           <button style={{background:"transparent",border:"1px solid "+C.border,borderRadius:6,color:C.muted,cursor:"pointer",fontSize:10,padding:"3px 8px"}} onClick={()=>{
                             const log=JSON.parse(localStorage.getItem("sk_leftoverHistory")||"[]");
                             log.push({dish:item.name,servings:item.qty,consumedAs:null,wasted:true,reason:null,ts:Date.now()});
