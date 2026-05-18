@@ -2846,9 +2846,9 @@ What can I substitute and do I have what I need?`,
               <div style={{fontSize:11,fontFamily:FM,color:C.muted,letterSpacing:0.8,marginBottom:8}}>LABEL FORMAT</div>
               <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                 {[
-                  {id:"5160",name:"Avery 5160",desc:"30 per sheet · 2.625" × 1"",note:"Pantry jars, small bags"},
-                  {id:"5163",name:"Avery 5163",desc:"10 per sheet · 4" × 2"",note:"Freezer bags, vacuum packs"},
-                  {id:"5164",name:"Avery 5164",desc:"6 per sheet · 4" × 3.33"",note:"Large containers, canning jars"},
+                  {id:"5160",name:"Avery 5160",desc:"30 per sheet, 2.625in x 1in",note:"Pantry jars, small bags"},
+                  {id:"5163",name:"Avery 5163",desc:"10 per sheet, 4in x 2in",note:"Freezer bags, vacuum packs"},
+                  {id:"5164",name:"Avery 5164",desc:"6 per sheet, 4in x 3.33in",note:"Large containers, canning jars"},
                 ].map(f=>(
                   <button key={f.id} onClick={()=>setLabelFormat(f.id)} style={{background:labelFormat===f.id?"#1a2e1a":C.surface,border:"1px solid "+(labelFormat===f.id?"#4c4":C.border),borderRadius:10,padding:"10px 14px",cursor:"pointer",textAlign:"left",flex:1,minWidth:160}}>
                     <div style={{fontSize:13,fontWeight:700,color:labelFormat===f.id?"#4c4":C.text}}>{f.name}</div>
