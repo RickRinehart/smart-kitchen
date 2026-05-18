@@ -1000,20 +1000,32 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     try{
       const made=JSON.parse(localStorage.getItem("sk_madeItHistory")||"[]");
       const changed=JSON.parse(localStorage.getItem("sk_changeMealHistory")||"[]");
-      if(!made.length&&!changed.length) return "";
+      const ratings=JSON.parse(localStorage.getItem("sk_recipeRatings")||"{}");
       const recentMade=made.slice(-20);
       const recentChanged=changed.slice(-20);
+      // Meal frequency from Made It history
       const mealCounts={};
       recentMade.forEach(m=>{if(m.meal){const k=m.meal.toLowerCase();mealCounts[k]=(mealCounts[k]||0)+1;}});
-      const favs=Object.entries(mealCounts).filter(([,c])=>c>=2).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([m,c])=>m+" (cooked "+c+"x)");
-      const rejected=recentChanged.map(c=>c.meal).filter(Boolean).slice(0,10);
+      const freqFavs=Object.entries(mealCounts).filter(([,c])=>c>=2).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([m,c])=>m+" (cooked "+c+"x)");
+      // Star rating signals
+      const starKeepers=Object.entries(ratings).filter(([,v])=>v?.rating>=4).map(([name])=>name);
+      const starBanned=Object.entries(ratings).filter(([,v])=>v?.rating===1).map(([name])=>name);
+      const starGood=Object.entries(ratings).filter(([,v])=>v?.rating===5).map(([name])=>name);
+      // Merge favorites: freq favs + 4-5 star rated meals
+      const allFavs=[...new Set([...freqFavs,...starGood.map(n=>n+" (5-star keeper)")])].slice(0,8);
+      // Merge rejected: change meal history + 1-star rated meals
+      const allRejected=[...new Set([...recentChanged.map(c=>c.meal).filter(Boolean),...starBanned])].slice(0,12);
+      // Protein preference from Made It history
       const proteins=recentMade.map(m=>m.protein).filter(Boolean);
       const proteinCounts={};
       proteins.forEach(p=>{proteinCounts[p]=(proteinCounts[p]||0)+1;});
       const favProteins=Object.entries(proteinCounts).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([p])=>p);
+      // Assemble summary
+      if(!allFavs.length&&!allRejected.length&&!favProteins.length&&!starKeepers.length) return "";
       let summary="";
-      if(favs.length) summary+=" HOUSEHOLD FAVORITES (cook these often): "+favs.join(", ")+".";
-      if(rejected.length) summary+=" RECENTLY REJECTED (do not suggest): "+rejected.join(", ")+".";
+      if(allFavs.length) summary+=" HOUSEHOLD FAVORITES (suggest often): "+allFavs.join(", ")+".";
+      if(starKeepers.length) summary+=" HIGHLY RATED MEALS (4-5 stars, prioritize): "+starKeepers.join(", ")+".";
+      if(allRejected.length) summary+=" NEVER SUGGEST THESE (1-star or rejected): "+allRejected.join(", ")+".";
       if(favProteins.length) summary+=" PREFERRED PROTEINS: "+favProteins.join(", ")+".";
       return summary;
     }catch{return "";}
