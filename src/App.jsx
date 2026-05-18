@@ -16,11 +16,11 @@ const FB="'DM Sans', sans-serif";
 const FM="'JetBrains Mono', monospace";
 
 // -- Constants -----------------------------------------------------------------
-const LOCATIONS=["Pantry","Fridge","Freezer","Wild Harvest","Home Harvest"];
-const LOC_ICONS={Pantry:"🗄",Fridge:"❄️",Freezer:"🧊","Wild Harvest":"🦌","Home Harvest":"🌱"};
-const LOC_COLORS={Pantry:C.accent,Fridge:C.blue,Freezer:C.purple,"Wild Harvest":"#5a8a2e","Home Harvest":"#2e8a5a"};
-const CATEGORIES=["Protein","Produce","Dairy","Pantry","Grains","Spices","Frozen","Condiments","Snacks","Beverages","Household","Cleaning","Personal Care","Pet","Other"];
-const CAT_COLORS={Protein:C.red,Produce:C.green,Dairy:C.blue,Pantry:C.accent,Grains:"#c9a96e",Spices:C.purple,Frozen:"#6be3f0",Condiments:"#94a3b8",Snacks:"#f59e0b",Beverages:"#06b6d4",Household:"#84cc16",Cleaning:"#22d3ee",["Personal Care"]:"#e879f9",Pet:"#fb923c",Other:C.muted};
+const LOCATIONS=["Pantry","Fridge","Freezer"];
+const LOC_ICONS={Pantry:"🗄",Fridge:"❄️",Freezer:"🧊"};
+const LOC_COLORS={Pantry:C.accent,Fridge:C.blue,Freezer:C.purple};
+const CATEGORIES=["Protein","Produce","Dairy","Pantry","Grains","Spices","Frozen","Condiments","Snacks","Beverages","Wild Harvest","Home Harvest","Household","Cleaning","Personal Care","Pet","Other"];
+const CAT_COLORS={Protein:C.red,Produce:C.green,Dairy:C.blue,Pantry:C.accent,Grains:"#c9a96e",Spices:C.purple,Frozen:"#6be3f0",Condiments:"#94a3b8",Snacks:"#f59e0b",Beverages:"#06b6d4",Household:"#84cc16",Cleaning:"#22d3ee",["Personal Care"]:"#e879f9",Pet:"#fb923c",Other:C.muted,"Wild Harvest":"#5a8a2e","Home Harvest":"#2e8a5a"};
 // -- Wild Harvest & Home Harvest -----------------------------------------------
 const WILD_SPECIES=[
   {name:"Venison (Steaks)",freezerMonths:9},
@@ -976,7 +976,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       const fs=familySummary();
       const raw=await callClaude({
         system:"Return ONLY a JSON array of 7 dinner plan objects. No other text. Start with [ end with ]. Each: {day,meal,proteinUsed,sauteBagsUsed,sideUsed,shoppingNeeded}. day is Monday through Sunday. proteinUsed is string or null. sauteBagsUsed is number. sideUsed is string or null. shoppingNeeded is array of {name,qty,unit} — ONLY items NOT in the inventory list.",
-        prompt:(()=>{const wh=inventory.filter(i=>i.location==="Wild Harvest").map(i=>i.name+" ("+i.qty+" "+i.unit+")").join(", ");const hh=inventory.filter(i=>i.location==="Home Harvest").map(i=>i.name+" ("+i.qty+" "+i.unit+")").join(", ");const lv=inventory.filter(i=>i.isLeftover&&i.qty>0).map(i=>i.name+" "+i.qty+" servings (use by "+i.useBy+")").join(", ");return"Proteins available: "+proteins+". Saute blend: "+(blendItem?.qty||0)+" bags."+(wh?" Wild Harvest inventory (treat as premium proteins, species-aware cooking): "+wh+".":"")+(hh?" Home Harvest produce/eggs/livestock: "+hh+" — prioritize fresh produce nearing end of shelf life.":"")+(lv?" LEFTOVER MEALS AVAILABLE (prioritize for Busy Nights, use before expiry): "+lv+".":"")+" Full inventory on hand (DO NOT put these in shoppingNeeded): "+inventory.map(i=>String(i.name||"")).filter(Boolean).join(", ")+". "+fs+"Plan 7 dinners Mon-Sun using proteins and inventory above. Max 3 chicken meals. At least 1 beef. At least 1 pork or kielbasa. No same protein two days in a row. If Wild Harvest proteins are present, include at least 1 wild game or fish meal. If Home Harvest produce is present, feature it prominently. If leftovers are available, schedule at least 1 leftover meal as a Busy Night option. shoppingNeeded must ONLY list items not found in the inventory list above.";})(),
+        prompt:(()=>{const wh=inventory.filter(i=>i.category==="Wild Harvest").map(i=>i.name+" ("+i.qty+" "+i.unit+")").join(", ");const hh=inventory.filter(i=>i.category==="Home Harvest").map(i=>i.name+" ("+i.qty+" "+i.unit+")").join(", ");const lv=inventory.filter(i=>i.isLeftover&&i.qty>0).map(i=>i.name+" "+i.qty+" servings (use by "+i.useBy+")").join(", ");return"Proteins available: "+proteins+". Saute blend: "+(blendItem?.qty||0)+" bags."+(wh?" Wild Harvest inventory (treat as premium proteins, species-aware cooking): "+wh+".":"")+(hh?" Home Harvest produce/eggs/livestock: "+hh+" — prioritize fresh produce nearing end of shelf life.":"")+(lv?" LEFTOVER MEALS AVAILABLE (prioritize for Busy Nights, use before expiry): "+lv+".":"")+" Full inventory on hand (DO NOT put these in shoppingNeeded): "+inventory.map(i=>String(i.name||"")).filter(Boolean).join(", ")+". "+fs+"Plan 7 dinners Mon-Sun using proteins and inventory above. Max 3 chicken meals. At least 1 beef. At least 1 pork or kielbasa. No same protein two days in a row. If Wild Harvest proteins are present, include at least 1 wild game or fish meal. If Home Harvest produce is present, feature it prominently. If leftovers are available, schedule at least 1 leftover meal as a Busy Night option. shoppingNeeded must ONLY list items not found in the inventory list above.";})(),
         maxTokens:3000,
       });
       const s=raw.indexOf("["),e=raw.lastIndexOf("]");
@@ -1495,7 +1495,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                 <option>All</option>{CATEGORIES.map(c=><option key={c}>{c}</option>)}
               </select>
               <button style={bBtn("ghost")} onClick={()=>setShowAdd(v=>!v)}>{showAdd?"✕ Cancel":"+ Add"}</button>
-              {inventory.filter(i=>i.location==="Wild Harvest"||i.location==="Home Harvest").length>0&&(<button style={{...bBtn("ghost"),background:"#1a3a1a",border:"1px solid #4c4",color:"#4c4"}} onClick={()=>{setLabelSelected({});setLabelModal(true);}}>🏷 Print Labels</button>)}
+              {inventory.filter(i=>i.category==="Wild Harvest"||i.category==="Home Harvest").length>0&&(<button style={{...bBtn("ghost"),background:"#1a3a1a",border:"1px solid #4c4",color:"#4c4"}} onClick={()=>{setLabelSelected({});setLabelModal(true);}}>🏷 Print Labels</button>)}
             </div>
 
             {showAdd&&(
@@ -1508,8 +1508,8 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                 </div>
                 <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
                   <span style={{fontFamily:FM,fontSize:11,color:C.muted,marginRight:2}}>Category:</span>
-                  {[["Protein","#ef4444"],["Produce","#22c55e"],["Dairy","#60a5fa"],["Frozen","#a78bfa"],["Pantry","#f59e0b"],["Baking","#f472b6"],["Grains","#d97706"],["Condiments","#94a3b8"],["Other","#6b7280"]].map(([cat,col])=>(
-                    <button key={cat} onClick={()=>{const autoLoc=cat==="Protein"?"Freezer":cat==="Dairy"||cat==="Produce"?"Fridge":cat==="Frozen"?"Freezer":newItem.location;setNewItem(p=>({...p,category:cat,location:autoLoc}));}} style={{padding:"4px 10px",borderRadius:20,border:"2px solid "+(newItem.category===cat?col:"transparent"),background:newItem.category===cat?col+"22":"transparent",color:newItem.category===cat?col:C.muted,fontFamily:FM,fontSize:11,fontWeight:600,cursor:"pointer",transition:"all 0.15s"}}>{cat}</button>
+                  {[["Protein","#ef4444"],["Produce","#22c55e"],["Dairy","#60a5fa"],["Frozen","#a78bfa"],["Pantry","#f59e0b"],["Baking","#f472b6"],["Grains","#d97706"],["Condiments","#94a3b8"],["Other","#6b7280"],["Wild Harvest","#5a8a2e"],["Home Harvest","#2e8a5a"]].map(([cat,col])=>(
+                    <button key={cat} onClick={()=>{const autoLoc=cat==="Protein"?"Freezer":cat==="Dairy"||cat==="Produce"?"Fridge":cat==="Frozen"?"Freezer":cat==="Wild Harvest"||cat==="Home Harvest"?newItem.location:newItem.location;setNewItem(p=>({...p,category:cat,location:autoLoc}));}} style={{padding:"4px 10px",borderRadius:20,border:"2px solid "+(newItem.category===cat?col:"transparent"),background:newItem.category===cat?col+"22":"transparent",color:newItem.category===cat?col:C.muted,fontFamily:FM,fontSize:11,fontWeight:600,cursor:"pointer",transition:"all 0.15s"}}>{cat}</button>
                   ))}
                   <span style={{marginLeft:"auto",fontFamily:FM,fontSize:11,color:C.muted,whiteSpace:"nowrap",paddingLeft:8}}>📍 Location:</span>
                   <div style={{display:"flex",gap:6,flexShrink:0}}>
@@ -2832,11 +2832,11 @@ What can I substitute and do I have what I need?`,
             <div style={{marginBottom:16}}>
               <div style={{fontSize:11,fontFamily:FM,color:C.muted,letterSpacing:0.8,marginBottom:8}}>SELECT ITEMS TO LABEL</div>
               <div style={{display:"flex",gap:6,marginBottom:8,flexWrap:"wrap"}}>
-                <button onClick={()=>{const sel={};inventory.filter(i=>i.location==="Wild Harvest"||i.location==="Home Harvest").forEach(i=>sel[i.id||i.name]=true);setLabelSelected(sel);}} style={{...bBtn("ghost"),fontSize:11,padding:"4px 10px"}}>Select All</button>
+                <button onClick={()=>{const sel={};inventory.filter(i=>i.category==="Wild Harvest"||i.category==="Home Harvest").forEach(i=>sel[i.id||i.name]=true);setLabelSelected(sel);}} style={{...bBtn("ghost"),fontSize:11,padding:"4px 10px"}}>Select All</button>
                 <button onClick={()=>setLabelSelected({})} style={{...bBtn("ghost"),fontSize:11,padding:"4px 10px"}}>Clear</button>
               </div>
               {["Wild Harvest","Home Harvest"].map(loc=>{
-                const items=inventory.filter(i=>i.location===loc);
+                const items=inventory.filter(i=>i.category===loc);
                 if(!items.length) return null;
                 return(
                   <div key={loc} style={{marginBottom:12}}>
@@ -2878,7 +2878,7 @@ What can I substitute and do I have what I need?`,
                 for(let s=0;s<totalSlots;s++){
                   const item=selectedItems[s];
                   if(item){
-                    const icon=item.location==="Wild Harvest"?"🦌":"🌱";
+                    const icon=item.category==="Wild Harvest"?"🦌":"🌱";
                     const harvestLine=item.harvestDate?"Harvested: "+item.harvestDate:(item.addedAt?new Date(item.addedAt).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}):"");
                     const bestBy=item.useBy||"";
                     const servings=item.qty&&item.unit?item.qty+" "+item.unit:"";
