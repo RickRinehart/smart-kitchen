@@ -2893,10 +2893,7 @@ What can I substitute and do I have what I need?`,
             {/* Action buttons */}
             <div style={{display:"flex",gap:10,justifyContent:"flex-end",borderTop:"1px solid "+C.border,paddingTop:16}}>
               <button onClick={()=>setLabelModal(false)} style={{...bBtn("ghost"),padding:"10px 20px"}}>Cancel</button>
-              <button disabled={Object.values(labelSelected).filter(Boolean).length===0} onClick={printLabels} style={{...bBtn("primary"),padding:"10px 24px",fontSize:14,opacity:Object.values(labelSelected).filter(Boolean).length===0?0.4:1}}>
-              }} style={{...bBtn("primary"),padding:"10px 24px",fontSize:14,opacity:Object.values(labelSelected).filter(Boolean).length===0?0.4:1}}>
-                🖨 Print {Object.values(labelSelected).filter(Boolean).length>0?Object.values(labelSelected).filter(Boolean).length+" Label"+(Object.values(labelSelected).filter(Boolean).length>1?"s":""):"Labels"}
-              </button>
+              <button disabled={Object.values(labelSelected).filter(Boolean).length===0} onClick={printLabels} style={{...bBtn("primary"),padding:"10px 24px",fontSize:14,opacity:Object.values(labelSelected).filter(Boolean).length===0?0.4:1}}>🖨 Print {Object.values(labelSelected).filter(Boolean).length>0?Object.values(labelSelected).filter(Boolean).length+" Label"+(Object.values(labelSelected).filter(Boolean).length>1?"s":""):"Labels"}</button>
             </div>
           </div>
         </div>
