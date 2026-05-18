@@ -16,11 +16,85 @@ const FB="'DM Sans', sans-serif";
 const FM="'JetBrains Mono', monospace";
 
 // -- Constants -----------------------------------------------------------------
-const LOCATIONS=["Pantry","Fridge","Freezer"];
-const LOC_ICONS={Pantry:"🗄",Fridge:"❄️",Freezer:"🧊"};
-const LOC_COLORS={Pantry:C.accent,Fridge:C.blue,Freezer:C.purple};
+const LOCATIONS=["Pantry","Fridge","Freezer","Wild Harvest","Home Harvest"];
+const LOC_ICONS={Pantry:"🗄",Fridge:"❄️",Freezer:"🧊","Wild Harvest":"🦌","Home Harvest":"🌱"};
+const LOC_COLORS={Pantry:C.accent,Fridge:C.blue,Freezer:C.purple,"Wild Harvest":"#5a8a2e","Home Harvest":"#2e8a5a"};
 const CATEGORIES=["Protein","Produce","Dairy","Pantry","Grains","Spices","Frozen","Condiments","Snacks","Beverages","Household","Cleaning","Personal Care","Pet","Other"];
 const CAT_COLORS={Protein:C.red,Produce:C.green,Dairy:C.blue,Pantry:C.accent,Grains:"#c9a96e",Spices:C.purple,Frozen:"#6be3f0",Condiments:"#94a3b8",Snacks:"#f59e0b",Beverages:"#06b6d4",Household:"#84cc16",Cleaning:"#22d3ee",["Personal Care"]:"#e879f9",Pet:"#fb923c",Other:C.muted};
+// -- Wild Harvest & Home Harvest -----------------------------------------------
+const WILD_SPECIES=[
+  {name:"Venison (Steaks)",freezerMonths:9},
+  {name:"Venison (Ground)",freezerMonths:4},
+  {name:"Venison (Roast)",freezerMonths:9},
+  {name:"Venison (Chops)",freezerMonths:9},
+  {name:"Duck Breast",freezerMonths:6},
+  {name:"Duck (Whole)",freezerMonths:6},
+  {name:"Goose (Breast)",freezerMonths:6},
+  {name:"Wild Turkey (Breast)",freezerMonths:9},
+  {name:"Wild Turkey (Whole)",freezerMonths:12},
+  {name:"Pheasant",freezerMonths:9},
+  {name:"Grouse",freezerMonths:6},
+  {name:"Rabbit",freezerMonths:9},
+  {name:"Squirrel",freezerMonths:6},
+  {name:"Salmon (Fillets)",freezerMonths:4},
+  {name:"Salmon (Whole)",freezerMonths:3},
+  {name:"Trout (Fillets)",freezerMonths:6},
+  {name:"Walleye (Fillets)",freezerMonths:8},
+  {name:"Bass (Fillets)",freezerMonths:6},
+  {name:"Bluegill (Cleaned)",freezerMonths:6},
+  {name:"Sunfish (Cleaned)",freezerMonths:6},
+  {name:"Perch (Fillets)",freezerMonths:6},
+  {name:"Crappie (Fillets)",freezerMonths:6},
+  {name:"Northern Pike (Fillets)",freezerMonths:6},
+  {name:"Catfish (Fillets)",freezerMonths:6},
+  {name:"Other Game Bird",freezerMonths:6},
+  {name:"Other Fish",freezerMonths:4},
+  {name:"Other Wild Game",freezerMonths:6},
+];
+const HOME_PRODUCE=[
+  {name:"Tomatoes (Fresh)",shelfDays:7,storage:"Counter"},
+  {name:"Zucchini",shelfDays:5,storage:"Fridge"},
+  {name:"Green Beans",shelfDays:5,storage:"Fridge"},
+  {name:"Sweet Corn",shelfDays:3,storage:"Fridge"},
+  {name:"Bell Peppers",shelfDays:7,storage:"Fridge"},
+  {name:"Cucumbers",shelfDays:7,storage:"Fridge"},
+  {name:"Butternut Squash",shelfDays:60,storage:"Cool dry"},
+  {name:"Acorn Squash",shelfDays:60,storage:"Cool dry"},
+  {name:"Kale",shelfDays:5,storage:"Fridge"},
+  {name:"Lettuce / Greens",shelfDays:5,storage:"Fridge"},
+  {name:"Herbs (Fresh)",shelfDays:7,storage:"Fridge"},
+  {name:"Eggs (Backyard)",shelfDays:35,storage:"Fridge"},
+  {name:"Garlic (Cured)",shelfDays:180,storage:"Cool dry"},
+  {name:"Onions (Cured)",shelfDays:90,storage:"Cool dry"},
+  {name:"Potatoes",shelfDays:60,storage:"Cool dark"},
+  {name:"Sweet Potatoes",shelfDays:30,storage:"Cool dry"},
+  {name:"Pumpkin",shelfDays:60,storage:"Cool dry"},
+  {name:"Canned Tomatoes",shelfDays:540,storage:"Pantry"},
+  {name:"Canned Green Beans",shelfDays:540,storage:"Pantry"},
+  {name:"Canned Salsa",shelfDays:365,storage:"Pantry"},
+  {name:"Frozen Green Beans",shelfDays:270,storage:"Freezer"},
+  {name:"Frozen Corn",shelfDays:270,storage:"Freezer"},
+  {name:"Frozen Peppers",shelfDays:270,storage:"Freezer"},
+  {name:"Broiler Chicken (Whole)",freezerMonths:12,storage:"Freezer"},
+  {name:"Broiler Chicken (Cuts)",freezerMonths:9,storage:"Freezer"},
+  {name:"Pork (Chops)",freezerMonths:6,storage:"Freezer"},
+  {name:"Pork (Roast)",freezerMonths:6,storage:"Freezer"},
+  {name:"Ground Pork",freezerMonths:3,storage:"Freezer"},
+  {name:"Pork (Belly/Bacon)",freezerMonths:4,storage:"Freezer"},
+  {name:"Beef (Steaks)",freezerMonths:9,storage:"Freezer"},
+  {name:"Beef (Roast)",freezerMonths:9,storage:"Freezer"},
+  {name:"Ground Beef",freezerMonths:4,storage:"Freezer"},
+  {name:"Goat",freezerMonths:9,storage:"Freezer"},
+  {name:"Lamb",freezerMonths:9,storage:"Freezer"},
+  {name:"Raw Milk",shelfDays:7,storage:"Fridge"},
+  {name:"Cream",shelfDays:14,storage:"Fridge"},
+  {name:"Homemade Butter",shelfDays:30,storage:"Fridge"},
+  {name:"Fresh Cheesemaking Cheese",shelfDays:7,storage:"Fridge"},
+  {name:"Aged Cheese (Homemade)",shelfDays:90,storage:"Fridge"},
+  {name:"Other Garden Produce",shelfDays:5,storage:"Fridge"},
+  {name:"Other Preserved",shelfDays:365,storage:"Pantry"},
+  {name:"Other Livestock",freezerMonths:6,storage:"Freezer"},
+];
 const PROTEIN_TAG_COLOR=(name)=>{
   if(!name) return C.muted;
   const n=name.toLowerCase();
@@ -900,7 +974,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       const fs=familySummary();
       const raw=await callClaude({
         system:"Return ONLY a JSON array of 7 dinner plan objects. No other text. Start with [ end with ]. Each: {day,meal,proteinUsed,sauteBagsUsed,sideUsed,shoppingNeeded}. day is Monday through Sunday. proteinUsed is string or null. sauteBagsUsed is number. sideUsed is string or null. shoppingNeeded is array of {name,qty,unit} — ONLY items NOT in the inventory list.",
-        prompt:"Proteins available: "+proteins+". Saute blend: "+(blendItem?.qty||0)+" bags. Full inventory on hand (DO NOT put these in shoppingNeeded): "+inventory.map(i=>String(i.name||"")).filter(Boolean).join(", ")+". "+fs+"Plan 7 dinners Mon-Sun using proteins and inventory above. Max 3 chicken meals. At least 1 beef. At least 1 pork or kielbasa. No same protein two days in a row. shoppingNeeded must ONLY list items not found in the inventory list above.",
+        prompt:(()=>{const wh=inventory.filter(i=>i.location==="Wild Harvest").map(i=>i.name+" ("+i.qty+" "+i.unit+")").join(", ");const hh=inventory.filter(i=>i.location==="Home Harvest").map(i=>i.name+" ("+i.qty+" "+i.unit+")").join(", ");const lv=inventory.filter(i=>i.isLeftover&&i.qty>0).map(i=>i.name+" "+i.qty+" servings (use by "+i.useBy+")").join(", ");return"Proteins available: "+proteins+". Saute blend: "+(blendItem?.qty||0)+" bags."+(wh?" Wild Harvest inventory (treat as premium proteins, species-aware cooking): "+wh+".":"")+(hh?" Home Harvest produce/eggs/livestock: "+hh+" — prioritize fresh produce nearing end of shelf life.":"")+(lv?" LEFTOVER MEALS AVAILABLE (prioritize for Busy Nights, use before expiry): "+lv+".":"")+" Full inventory on hand (DO NOT put these in shoppingNeeded): "+inventory.map(i=>String(i.name||"")).filter(Boolean).join(", ")+". "+fs+"Plan 7 dinners Mon-Sun using proteins and inventory above. Max 3 chicken meals. At least 1 beef. At least 1 pork or kielbasa. No same protein two days in a row. If Wild Harvest proteins are present, include at least 1 wild game or fish meal. If Home Harvest produce is present, feature it prominently. If leftovers are available, schedule at least 1 leftover meal as a Busy Night option. shoppingNeeded must ONLY list items not found in the inventory list above.";})(),
         maxTokens:3000,
       });
       const s=raw.indexOf("["),e=raw.lastIndexOf("]");
@@ -2442,10 +2516,36 @@ useDays is days from today the food is safe to eat (cooked food: 3-4 days typica
                       <div style={{fontSize:14,fontWeight:600,color:C.text}}>{item.name}</div>
                       <div style={{fontSize:11,color:C.muted}}>{item.qty} {item.unit}{item.useBy?" · Use by "+item.useBy:""}</div>
                     </div>
-                    <div style={{display:"flex",gap:6,alignItems:"center"}}>
-                      {urgent&&<span style={{fontSize:10,color:"#f66",fontWeight:700}}>⚠️ TODAY</span>}
-                      {warning&&!urgent&&<span style={{fontSize:10,color:"#fa0",fontWeight:700}}>USE SOON</span>}
-                      <button style={{background:"transparent",border:"1px solid "+C.border,borderRadius:6,color:C.muted,cursor:"pointer",fontSize:10,padding:"3px 8px"}} onClick={()=>setInventory(prev=>prev.filter((_,i)=>i!==inventory.indexOf(item)))}>Remove</button>
+                    <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap",justifyContent:"flex-end"}}>
+                      {urgent&&<span style={{fontSize:10,color:"#f66",fontWeight:700}}>TODAY</span>}
+                      {warning&&!urgent&&<span style={{fontSize:10,color:"#fa0",fontWeight:700}}>SOON</span>}
+                      {item._askMealType?(
+                        <>
+                          <span style={{fontSize:10,color:C.muted}}>Used as:</span>
+                          <button style={{background:"#1a3a1a",border:"1px solid #4c4",borderRadius:6,color:"#4c4",cursor:"pointer",fontSize:10,padding:"3px 8px"}} onClick={()=>{
+                            const log=JSON.parse(localStorage.getItem("sk_leftoverHistory")||"[]");
+                            log.push({dish:item.name,servings:item.qty,consumedAs:"dinner",daysSinceAdded:item.useDays?Math.ceil((Date.now()-new Date(item.addedAt).getTime())/86400000):null,wasted:false,ts:Date.now()});
+                            localStorage.setItem("sk_leftoverHistory",JSON.stringify(log));
+                            setInventory(prev=>prev.filter((_,ii)=>ii!==inventory.indexOf(item)));
+                          }}>Dinner</button>
+                          <button style={{background:"#1a2e3a",border:"1px solid "+C.blue,borderRadius:6,color:C.blue,cursor:"pointer",fontSize:10,padding:"3px 8px"}} onClick={()=>{
+                            const log=JSON.parse(localStorage.getItem("sk_leftoverHistory")||"[]");
+                            log.push({dish:item.name,servings:item.qty,consumedAs:"lunch",daysSinceAdded:item.useDays?Math.ceil((Date.now()-new Date(item.addedAt).getTime())/86400000):null,wasted:false,ts:Date.now()});
+                            localStorage.setItem("sk_leftoverHistory",JSON.stringify(log));
+                            setInventory(prev=>prev.filter((_,ii)=>ii!==inventory.indexOf(item)));
+                          }}>Lunch</button>
+                        </>
+                      ):(
+                        <>
+                          <button style={{background:"#1a3a1a",border:"1px solid #4c4",borderRadius:6,color:"#4c4",cursor:"pointer",fontSize:10,padding:"3px 8px"}} onClick={()=>setInventory(prev=>prev.map((it,ii)=>ii===inventory.indexOf(item)?{...it,_askMealType:true}:it))}>Used</button>
+                          <button style={{background:"transparent",border:"1px solid "+C.border,borderRadius:6,color:C.muted,cursor:"pointer",fontSize:10,padding:"3px 8px"}} onClick={()=>{
+                            const log=JSON.parse(localStorage.getItem("sk_leftoverHistory")||"[]");
+                            log.push({dish:item.name,servings:item.qty,consumedAs:null,wasted:true,reason:null,ts:Date.now()});
+                            localStorage.setItem("sk_leftoverHistory",JSON.stringify(log));
+                            setInventory(prev=>prev.filter((_,ii)=>ii!==inventory.indexOf(item)));
+                          }}>Remove</button>
+                        </>
+                      )}
                     </div>
                   </div>
                 );
