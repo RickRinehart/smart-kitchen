@@ -462,6 +462,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [printModal,setPrintModal]=useState(null);
   const [emailSentModal,setEmailSentModal]=useState(null);
   const [upgradeModal,setUpgradeModal]=useState(null);
+  const [labelModal,setLabelModal]=useState(false);const [labelSelected,setLabelSelected]=useState({});const [labelFormat,setLabelFormat]=useState("5163");
   const [makeThisModal,setMakeThisModal]=useState(false);
   const [makeThisInput,setMakeThisInput]=useState("");
   const [makeThisResult,setMakeThisResult]=useState(null);
@@ -1494,6 +1495,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                 <option>All</option>{CATEGORIES.map(c=><option key={c}>{c}</option>)}
               </select>
               <button style={bBtn("ghost")} onClick={()=>setShowAdd(v=>!v)}>{showAdd?"✕ Cancel":"+ Add"}</button>
+              {inventory.filter(i=>i.location==="Wild Harvest"||i.location==="Home Harvest").length>0&&(<button style={{...bBtn("ghost"),background:"#1a3a1a",border:"1px solid #4c4",color:"#4c4"}} onClick={()=>{setLabelSelected({});setLabelModal(true);}}>🏷 Print Labels</button>)}
             </div>
 
             {showAdd&&(
@@ -2801,6 +2803,111 @@ What can I substitute and do I have what I need?`,
           </div>
         </div>
       )}
+      {/* == LABEL PRINT MODAL == */}
+      {labelModal&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:500,padding:16}}>
+          <div style={{background:C.card,border:"1px solid "+C.border,borderRadius:18,padding:24,maxWidth:620,width:"100%",maxHeight:"90vh",overflowY:"auto"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+              <div style={{fontFamily:FD,fontSize:20,color:C.accent}}>🏷 Print Harvest Labels</div>
+              <button onClick={()=>setLabelModal(false)} style={{background:"transparent",border:"none",color:C.muted,fontSize:20,cursor:"pointer"}}>✕</button>
+            </div>
+            {/* Format picker */}
+            <div style={{marginBottom:16}}>
+              <div style={{fontSize:11,fontFamily:FM,color:C.muted,letterSpacing:0.8,marginBottom:8}}>LABEL FORMAT</div>
+              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                {[
+                  {id:"5160",name:"Avery 5160",desc:"30 per sheet · 2.625" × 1"",note:"Pantry jars, small bags"},
+                  {id:"5163",name:"Avery 5163",desc:"10 per sheet · 4" × 2"",note:"Freezer bags, vacuum packs"},
+                  {id:"5164",name:"Avery 5164",desc:"6 per sheet · 4" × 3.33"",note:"Large containers, canning jars"},
+                ].map(f=>(
+                  <button key={f.id} onClick={()=>setLabelFormat(f.id)} style={{background:labelFormat===f.id?"#1a2e1a":C.surface,border:"1px solid "+(labelFormat===f.id?"#4c4":C.border),borderRadius:10,padding:"10px 14px",cursor:"pointer",textAlign:"left",flex:1,minWidth:160}}>
+                    <div style={{fontSize:13,fontWeight:700,color:labelFormat===f.id?"#4c4":C.text}}>{f.name}</div>
+                    <div style={{fontSize:11,color:C.muted,marginTop:2}}>{f.desc}</div>
+                    <div style={{fontSize:10,color:C.dim,marginTop:2}}>{f.note}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+            {/* Item selector */}
+            <div style={{marginBottom:16}}>
+              <div style={{fontSize:11,fontFamily:FM,color:C.muted,letterSpacing:0.8,marginBottom:8}}>SELECT ITEMS TO LABEL</div>
+              <div style={{display:"flex",gap:6,marginBottom:8,flexWrap:"wrap"}}>
+                <button onClick={()=>{const sel={};inventory.filter(i=>i.location==="Wild Harvest"||i.location==="Home Harvest").forEach(i=>sel[i.id||i.name]=true);setLabelSelected(sel);}} style={{...bBtn("ghost"),fontSize:11,padding:"4px 10px"}}>Select All</button>
+                <button onClick={()=>setLabelSelected({})} style={{...bBtn("ghost"),fontSize:11,padding:"4px 10px"}}>Clear</button>
+              </div>
+              {["Wild Harvest","Home Harvest"].map(loc=>{
+                const items=inventory.filter(i=>i.location===loc);
+                if(!items.length) return null;
+                return(
+                  <div key={loc} style={{marginBottom:12}}>
+                    <div style={{fontSize:11,color:C.muted,fontWeight:700,marginBottom:6}}>{LOC_ICONS[loc]} {loc.toUpperCase()}</div>
+                    {items.map(item=>{
+                      const key=item.id||item.name;
+                      const checked=!!labelSelected[key];
+                      return(
+                        <div key={key} onClick={()=>setLabelSelected(prev=>({...prev,[key]:!prev[key]}))} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 10px",borderRadius:8,cursor:"pointer",background:checked?"#1a2e1a":C.surface,border:"1px solid "+(checked?"#4c4":C.border),marginBottom:4}}>
+                          <div style={{width:16,height:16,borderRadius:4,border:"2px solid "+(checked?"#4c4":C.muted),background:checked?"#4c4":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                            {checked&&<span style={{color:"#000",fontSize:10,fontWeight:900}}>✓</span>}
+                          </div>
+                          <div style={{flex:1}}>
+                            <div style={{fontSize:13,fontWeight:600,color:C.text}}>{item.name}</div>
+                            <div style={{fontSize:11,color:C.muted}}>{item.qty} {item.unit}{item.harvestDate?" · Harvested "+item.harvestDate:""}{item.useBy?" · Best by "+item.useBy:""}</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
+            {/* Action buttons */}
+            <div style={{display:"flex",gap:10,justifyContent:"flex-end",borderTop:"1px solid "+C.border,paddingTop:16}}>
+              <button onClick={()=>setLabelModal(false)} style={{...bBtn("ghost"),padding:"10px 20px"}}>Cancel</button>
+              <button disabled={Object.values(labelSelected).filter(Boolean).length===0} onClick={()=>{
+                const selectedItems=inventory.filter(i=>labelSelected[i.id||i.name]);
+                const formats={
+                  "5160":{cols:3,rows:10,labelW:2.625,labelH:1,marginL:0.19,marginT:0.5,gapH:0.125,gapV:0,fontSize:6.5,nameFontSize:7.5},
+                  "5163":{cols:2,rows:5,labelW:4,labelH:2,marginL:0.15,marginT:0.5,gapH:0.19,gapV:0,fontSize:8,nameFontSize:10},
+                  "5164":{cols:2,rows:3,labelW:4,labelH:3.33,marginL:0.15,marginT:0.5,gapH:0.19,gapV:0.25,fontSize:9,nameFontSize:12},
+                };
+                const fmt=formats[labelFormat];
+                const DPI=96;
+                const toW=(inches)=>inches*DPI+"px";
+                const labelCells=[];
+                const totalSlots=fmt.cols*fmt.rows;
+                for(let s=0;s<totalSlots;s++){
+                  const item=selectedItems[s];
+                  if(item){
+                    const icon=item.location==="Wild Harvest"?"🦌":"🌱";
+                    const harvestLine=item.harvestDate?"Harvested: "+item.harvestDate:(item.addedAt?new Date(item.addedAt).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}):"");
+                    const bestBy=item.useBy||"";
+                    const servings=item.qty&&item.unit?item.qty+" "+item.unit:"";
+                    labelCells.push(
+                      `<div style="width:${toW(fmt.labelW)};height:${toW(fmt.labelH)};box-sizing:border-box;padding:${labelFormat==="5160"?"4px 6px":"8px 10px"};display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;border:0.5px dashed #ccc;font-family:Arial,sans-serif;">` +
+                      `<div><div style="font-size:${fmt.nameFontSize}pt;font-weight:700;line-height:1.1;margin-bottom:2px;">${icon} ${item.name.toUpperCase()}</div>` +
+                      `<div style="font-size:${fmt.fontSize}pt;color:#555;">${item.location}</div></div>` +
+                      (labelFormat!=="5160"?`<div style="font-size:${fmt.fontSize}pt;color:#333;line-height:1.4;">${harvestLine?harvestLine+"<br/>":""}${servings?servings+"<br/>":""}${bestBy?"Best by: "+bestBy:""}</div>`:`<div style="font-size:${fmt.fontSize}pt;color:#333;">${bestBy?"Best by: "+bestBy:""}</div>`) +
+                      `<div style="font-size:${labelFormat==="5160"?5:fmt.fontSize-1}pt;color:#999;text-align:right;">Smart Kitchen™</div>` +
+                      `</div>`
+                    );
+                  } else {
+                    labelCells.push(`<div style="width:${toW(fmt.labelW)};height:${toW(fmt.labelH)};box-sizing:border-box;border:0.5px dashed #eee;"></div>`);
+                  }
+                }
+                const gridStyle=`display:grid;grid-template-columns:repeat(${fmt.cols},${toW(fmt.labelW)});gap:${toW(fmt.gapV)} ${toW(fmt.gapH)};margin-left:${toW(fmt.marginL)};margin-top:${toW(fmt.marginT)};`;
+                const html=`<!DOCTYPE html><html><head><title>Smart Kitchen Labels</title><style>@media print{body{margin:0;}}.grid{${gridStyle}}</style></head><body><div class="grid">${labelCells.join("")}</div></body></html>`;
+                const win=window.open("","_blank","width=816,height=1056");
+                win.document.write(html);
+                win.document.close();
+                setTimeout(()=>win.print(),400);
+              }} style={{...bBtn("primary"),padding:"10px 24px",fontSize:14,opacity:Object.values(labelSelected).filter(Boolean).length===0?0.4:1}}>
+                🖨 Print {Object.values(labelSelected).filter(Boolean).length>0?Object.values(labelSelected).filter(Boolean).length+" Label"+(Object.values(labelSelected).filter(Boolean).length>1?"s":""):"Labels"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* == UPGRADE MODAL == */}
       {upgradeModal&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:400,padding:16}} onClick={()=>setUpgradeModal(null)}>
