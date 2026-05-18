@@ -2525,13 +2525,13 @@ useDays is days from today the food is safe to eat (cooked food: 3-4 days typica
                       {item._askMealType?(
                         <>
                           <span style={{fontSize:seniorMode?15:10,color:C.muted}}>Used as:</span>
-                          <button style={{background:"#1a3a1a",border:"1px solid #4c4",borderRadius:6,color:"#4c4",cursor:"pointer",fontSize:10,padding:"3px 8px"}} onClick={()=>{
+                          <button style={{background:"#1a3a1a",border:"1px solid #4c4",borderRadius:6,color:"#4c4",cursor:"pointer",fontSize:seniorMode?15:10,padding:seniorMode?"5px 14px":"3px 8px"}} onClick={()=>{
                             const log=JSON.parse(localStorage.getItem("sk_leftoverHistory")||"[]");
                             log.push({dish:item.name,servings:item.qty,consumedAs:"dinner",daysSinceAdded:item.useDays?Math.ceil((Date.now()-new Date(item.addedAt).getTime())/86400000):null,wasted:false,ts:Date.now()});
                             localStorage.setItem("sk_leftoverHistory",JSON.stringify(log));
                             setInventory(prev=>prev.filter((_,ii)=>ii!==inventory.indexOf(item)));
                           }}>Dinner</button>
-                          <button style={{background:"#1a2e3a",border:"1px solid "+C.blue,borderRadius:6,color:C.blue,cursor:"pointer",fontSize:10,padding:"3px 8px"}} onClick={()=>{
+                          <button style={{background:"#1a2e3a",border:"1px solid "+C.blue,borderRadius:6,color:C.blue,cursor:"pointer",fontSize:seniorMode?15:10,padding:seniorMode?"5px 14px":"3px 8px"}} onClick={()=>{
                             const log=JSON.parse(localStorage.getItem("sk_leftoverHistory")||"[]");
                             log.push({dish:item.name,servings:item.qty,consumedAs:"lunch",daysSinceAdded:item.useDays?Math.ceil((Date.now()-new Date(item.addedAt).getTime())/86400000):null,wasted:false,ts:Date.now()});
                             localStorage.setItem("sk_leftoverHistory",JSON.stringify(log));
@@ -2541,7 +2541,7 @@ useDays is days from today the food is safe to eat (cooked food: 3-4 days typica
                       ):(
                         <>
                           <button style={{background:"#1a3a1a",border:"1px solid #4c4",borderRadius:6,color:"#4c4",cursor:"pointer",fontSize:seniorMode?15:10,padding:"3px 8px"}} onClick={()=>setInventory(prev=>prev.map((it,ii)=>ii===inventory.indexOf(item)?{...it,_askMealType:true}:it))}>Used</button>
-                          <button style={{background:"transparent",border:"1px solid "+C.border,borderRadius:6,color:C.muted,cursor:"pointer",fontSize:10,padding:"3px 8px"}} onClick={()=>{
+                          <button style={{background:"transparent",border:"1px solid "+C.border,borderRadius:6,color:C.muted,cursor:"pointer",fontSize:seniorMode?15:10,padding:seniorMode?"5px 14px":"3px 8px"}} onClick={()=>{
                             const log=JSON.parse(localStorage.getItem("sk_leftoverHistory")||"[]");
                             log.push({dish:item.name,servings:item.qty,consumedAs:null,wasted:true,reason:null,ts:Date.now()});
                             localStorage.setItem("sk_leftoverHistory",JSON.stringify(log));
