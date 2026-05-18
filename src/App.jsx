@@ -1759,6 +1759,45 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
           </div>
         )}
 
+            {/* == REJECTED MEALS == */}
+            {(()=>{
+              const ratings=JSON.parse(localStorage.getItem("sk_recipeRatings")||"{}");
+              const changed=JSON.parse(localStorage.getItem("sk_changeMealHistory")||"[]");
+              const banned1star=Object.entries(ratings).filter(([,v])=>v?.rating===1).map(([name])=>({name,reason:"1-star rating"}));
+              const rejCounts={};
+              changed.forEach(c=>{if(c.meal){rejCounts[c.meal]=(rejCounts[c.meal]||0)+1;}});
+              const bannedSkipped=Object.entries(rejCounts).filter(([,c])=>c>=2).map(([name,c])=>({name,reason:"Skipped "+c+"x"}));
+              const allBanned=[...banned1star,...bannedSkipped.filter(b=>!banned1star.find(s=>s.name===b.name))];
+              if(!allBanned.length) return null;
+              return(
+                <div style={{marginTop:24}}>
+                  <div style={{fontFamily:FM,fontSize:11,color:C.red,letterSpacing:0.8,marginBottom:10,display:"flex",alignItems:"center",gap:6}}>
+                    <span>🚫</span><span>REJECTED MEALS</span>
+                    <span style={{fontSize:10,color:C.muted,fontWeight:400,marginLeft:4}}>Tap Restore to add back to suggestions</span>
+                  </div>
+                  {allBanned.map(({name,reason})=>(
+                    <div key={name} style={{background:C.card,border:"1px solid "+C.border,borderRadius:10,padding:"10px 14px",marginBottom:6,display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
+                      <div>
+                        <div style={{fontSize:seniorMode?17:13,fontWeight:600,color:C.text}}>{name}</div>
+                        <div style={{fontSize:seniorMode?14:11,color:C.muted,marginTop:2}}>{reason}</div>
+                      </div>
+                      <button onClick={()=>{
+                        try{
+                          const r=JSON.parse(localStorage.getItem("sk_recipeRatings")||"{}");
+                          if(r[name]?.rating===1){delete r[name];localStorage.setItem("sk_recipeRatings",JSON.stringify(r));setRecipeRatings(r);}
+                          const ch=JSON.parse(localStorage.getItem("sk_changeMealHistory")||"[]");
+                          const filtered=ch.filter(c=>c.meal!==name);
+                          localStorage.setItem("sk_changeMealHistory",JSON.stringify(filtered));
+                        }catch{}
+                      }} style={{background:"#1a2e1a",border:"1px solid #4c4",borderRadius:8,color:"#4c4",cursor:"pointer",fontSize:seniorMode?15:12,padding:seniorMode?"6px 16px":"4px 12px",whiteSpace:"nowrap",flexShrink:0}}>
+                        ↩ Restore
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+
 {/* == MEAL PLAN == */}
         {!loading&&tab==="mealplan"&&(
           <div>
