@@ -377,6 +377,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [leftoversOpen,setLeftoversOpen]=useState(false);
   const [leftoversPreview,setLeftoversPreview]=useState(null);
   const [leftoversB64,setLeftoversB64]=useState(null);
+  const [leftoversMime,setLeftoversMime]=useState("image/jpeg");
   const [leftoversResult,setLeftoversResult]=useState(null);
   const [leftoversLoading,setLeftoversLoading]=useState(false);
   const [leftoversError,setLeftoversError]=useState("");
@@ -2392,7 +2393,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                   <input type="file" accept="image/*" capture="environment" style={{display:"none"}} onChange={async e=>{
                     const file=e.target.files[0]; if(!file) return;
                     const b64=await fileToBase64(file);
-                    setLeftoversB64(b64); setLeftoversPreview(URL.createObjectURL(file));
+                    setLeftoversMime(file.type||"image/jpeg"); setLeftoversB64(b64); setLeftoversPreview(URL.createObjectURL(file));
                     setLeftoversResult(null); setLeftoversError("");
                   }}/>
                 </label>
@@ -2401,7 +2402,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                   <input type="file" accept="image/*" style={{display:"none"}} onChange={async e=>{
                     const file=e.target.files[0]; if(!file) return;
                     const b64=await fileToBase64(file);
-                    setLeftoversB64(b64); setLeftoversPreview(URL.createObjectURL(file));
+                    setLeftoversMime(file.type||"image/jpeg"); setLeftoversB64(b64); setLeftoversPreview(URL.createObjectURL(file));
                     setLeftoversResult(null); setLeftoversError("");
                   }}/>
                 </label>
@@ -2425,12 +2426,14 @@ Respond ONLY with valid JSON: {"dish":"name of the dish","servings":2,"useDays":
 useDays is days from today the food is safe to eat (cooked food: 3-4 days typical).`,
                       prompt:"What leftovers are in this container? Estimate servings and use-by days.",
                       imageBase64:leftoversB64,
-                      imageType:"image/jpeg",
+                      imageType:leftoversMime,
                       maxTokens:800
                     });
                     const text=(typeof res==="string"?res:res?.content?.[0]?.text||"").replace(/```json|```/g,"").trim();
                     const jsonMatch=text.match(/\{[\s\S]*\}/);
-                    const parsed=JSON.parse(jsonMatch?jsonMatch[0]:text);
+                    if(!jsonMatch){setLeftoversError("Smart Kitchen couldn’t read the response — try again.");setLeftoversLoading(false);return;}
+                    const parsed=JSON.parse(jsonMatch[0]);
+                    if(!parsed.dish){setLeftoversError("Dish name missing from response — try a clearer photo.");setLeftoversLoading(false);return;}
                     setLeftoversResult(parsed);
                   }catch(e){
                     const msg=e.message&&e.message.toLowerCase().includes("timeout")
