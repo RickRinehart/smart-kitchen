@@ -965,6 +965,36 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     } catch(err){ alert("Could not build sale meal plan: "+err.message); }
     setLoading(false);
   };
+  const printLabels=()=>{
+    const selectedItems=inventory.filter(i=>labelSelected[i.id||i.name]);
+    const fmts={"5160":{cols:3,rows:10,labelW:2.625,labelH:1,marginL:0.19,marginT:0.5,gapH:0.125,gapV:0,fontSize:6.5,nameFontSize:7.5},"5163":{cols:2,rows:5,labelW:4,labelH:2,marginL:0.15,marginT:0.5,gapH:0.19,gapV:0,fontSize:8,nameFontSize:10},"5164":{cols:2,rows:3,labelW:4,labelH:3.33,marginL:0.15,marginT:0.5,gapH:0.19,gapV:0.25,fontSize:9,nameFontSize:12}};
+    const fmt=fmts[labelFormat];
+    const toW=(in_)=>in_*96+"px";
+    const cells=[];
+    const total=fmt.cols*fmt.rows;
+    for(let s=0;s<total;s++){
+      const item=selectedItems[s];
+      if(item){
+        const icon=item.category==="Wild Harvest"?"\uD83E\uDD8C":"\uD83C\uDF31";
+        const hLine=item.harvestDate?"Harvested: "+item.harvestDate:(item.addedAt?new Date(item.addedAt).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}):"");
+        const bestBy=item.useBy||"";
+        const srv=item.qty&&item.unit?item.qty+" "+item.unit:"";
+        const top="<div style=\"font-size:"+fmt.nameFontSize+"pt;font-weight:700;line-height:1.1;margin-bottom:2px;\">"+icon+" "+item.name.toUpperCase()+"</div><div style=\"font-size:"+fmt.fontSize+"pt;color:#555;\">"+item.category+"</div>";
+        const mid=labelFormat!=="5160"?"<div style=\"font-size:"+fmt.fontSize+"pt;color:#333;line-height:1.4;\">"+(hLine?hLine+"<br/>":"")+(srv?srv+"<br/>":"")+(bestBy?"Best by: "+bestBy:"")+"</div>":"<div style=\"font-size:"+fmt.fontSize+"pt;color:#333;\">"+(bestBy?"Best by: "+bestBy:"")+"</div>";
+        const bot="<div style=\"font-size:"+(labelFormat==="5160"?5:fmt.fontSize-1)+"pt;color:#999;text-align:right;\">Smart Kitchen(tm)</div>";
+        cells.push("<div style=\"width:"+toW(fmt.labelW)+";height:"+toW(fmt.labelH)+";box-sizing:border-box;padding:"+(labelFormat==="5160"?"4px 6px":"8px 10px")+";display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;border:0.5px dashed #ccc;font-family:Arial,sans-serif;\"><div>"+top+"</div>"+mid+bot+"</div>");
+      } else {
+        cells.push("<div style=\"width:"+toW(fmt.labelW)+";height:"+toW(fmt.labelH)+";box-sizing:border-box;border:0.5px dashed #eee;\"></div>");
+      }
+    }
+    const grid="display:grid;grid-template-columns:repeat("+fmt.cols+","+toW(fmt.labelW)+");gap:"+toW(fmt.gapV)+" "+toW(fmt.gapH)+";margin-left:"+toW(fmt.marginL)+";margin-top:"+toW(fmt.marginT)+";";
+    const doc="<!DOCTYPE html>"+"<html>"+"<head>"+"<title>Smart Kitchen Labels</title>"+"<style>@media print{body{margin:0;}}.grid{"+grid+"}</style>"+"</head>"+"<body>"+"<div class="grid">"+cells.join("")+"</div>"+"</body>"+"</html>";
+    const win=window.open("","_blank","width=816,height=1056");
+    win.document.write(doc);
+    win.document.close();
+    setTimeout(()=>win.print(),400);
+  };
+
   const buildMealPlan=async()=>{
     if(!can.sevenDayPlan){
       setUpgradeModal({feature:"7-Day Meal Planning",desc:"Get a personalized 7-day dinner plan built around your proteins and pantry.",icon:"📅"});
@@ -2863,43 +2893,7 @@ What can I substitute and do I have what I need?`,
             {/* Action buttons */}
             <div style={{display:"flex",gap:10,justifyContent:"flex-end",borderTop:"1px solid "+C.border,paddingTop:16}}>
               <button onClick={()=>setLabelModal(false)} style={{...bBtn("ghost"),padding:"10px 20px"}}>Cancel</button>
-              <button disabled={Object.values(labelSelected).filter(Boolean).length===0} onClick={()=>{
-                const selectedItems=inventory.filter(i=>labelSelected[i.id||i.name]);
-                const formats={
-                  "5160":{cols:3,rows:10,labelW:2.625,labelH:1,marginL:0.19,marginT:0.5,gapH:0.125,gapV:0,fontSize:6.5,nameFontSize:7.5},
-                  "5163":{cols:2,rows:5,labelW:4,labelH:2,marginL:0.15,marginT:0.5,gapH:0.19,gapV:0,fontSize:8,nameFontSize:10},
-                  "5164":{cols:2,rows:3,labelW:4,labelH:3.33,marginL:0.15,marginT:0.5,gapH:0.19,gapV:0.25,fontSize:9,nameFontSize:12},
-                };
-                const fmt=formats[labelFormat];
-                const DPI=96;
-                const toW=(inches)=>inches*DPI+"px";
-                const labelCells=[];
-                const totalSlots=fmt.cols*fmt.rows;
-                for(let s=0;s<totalSlots;s++){
-                  const item=selectedItems[s];
-                  if(item){
-                    const icon=item.category==="Wild Harvest"?"🦌":"🌱";
-                    const harvestLine=item.harvestDate?"Harvested: "+item.harvestDate:(item.addedAt?new Date(item.addedAt).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}):"");
-                    const bestBy=item.useBy||"";
-                    const servings=item.qty&&item.unit?item.qty+" "+item.unit:"";
-                    labelCells.push(
-                      `<div style="width:${toW(fmt.labelW)};height:${toW(fmt.labelH)};box-sizing:border-box;padding:${labelFormat==="5160"?"4px 6px":"8px 10px"};display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;border:0.5px dashed #ccc;font-family:Arial,sans-serif;">` +
-                      `<div><div style="font-size:${fmt.nameFontSize}pt;font-weight:700;line-height:1.1;margin-bottom:2px;">${icon} ${item.name.toUpperCase()}</div>` +
-                      `<div style="font-size:${fmt.fontSize}pt;color:#555;">${item.location}</div></div>` +
-                      (labelFormat!=="5160"?`<div style="font-size:${fmt.fontSize}pt;color:#333;line-height:1.4;">${harvestLine?harvestLine+"<br/>":""}${servings?servings+"<br/>":""}${bestBy?"Best by: "+bestBy:""}</div>`:`<div style="font-size:${fmt.fontSize}pt;color:#333;">${bestBy?"Best by: "+bestBy:""}</div>`) +
-                      `<div style="font-size:${labelFormat==="5160"?5:fmt.fontSize-1}pt;color:#999;text-align:right;">Smart Kitchen™</div>` +
-                      `</div>`
-                    );
-                  } else {
-                    labelCells.push(`<div style="width:${toW(fmt.labelW)};height:${toW(fmt.labelH)};box-sizing:border-box;border:0.5px dashed #eee;"></div>`);
-                  }
-                }
-                const gridStyle=`display:grid;grid-template-columns:repeat(${fmt.cols},${toW(fmt.labelW)});gap:${toW(fmt.gapV)} ${toW(fmt.gapH)};margin-left:${toW(fmt.marginL)};margin-top:${toW(fmt.marginT)};`;
-                const html=`<!DOCTYPE html><html><head><title>Smart Kitchen Labels</title><style>@media print{body{margin:0;}}.grid{${gridStyle}}</style></head><body><div class="grid">${labelCells.join("")}</div></body></html>`;
-                const win=window.open("","_blank","width=816,height=1056");
-                win.document.write(html);
-                win.document.close();
-                setTimeout(()=>win.print(),400);
+              <button disabled={Object.values(labelSelected).filter(Boolean).length===0} onClick={printLabels} style={{...bBtn("primary"),padding:"10px 24px",fontSize:14,opacity:Object.values(labelSelected).filter(Boolean).length===0?0.4:1}}>
               }} style={{...bBtn("primary"),padding:"10px 24px",fontSize:14,opacity:Object.values(labelSelected).filter(Boolean).length===0?0.4:1}}>
                 🖨 Print {Object.values(labelSelected).filter(Boolean).length>0?Object.values(labelSelected).filter(Boolean).length+" Label"+(Object.values(labelSelected).filter(Boolean).length>1?"s":""):"Labels"}
               </button>
