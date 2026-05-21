@@ -390,6 +390,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [recipeRatings,setRecipeRatings]=useState(()=>loadLocal("sk_recipeRatings",{}));
   const [mealPhotos,setMealPhotos]=useState(()=>loadLocal("sk_mealPhotos",{}));
   const [photoPromptMeal,setPhotoPromptMeal]=useState(null);
+  const [photoSkipCount,setPhotoSkipCount]=useState(()=>{try{return parseInt(localStorage.getItem("sk_photoSkipCount")||"0");}catch{return 0;}});
   const [savedRecipesFilter,setSavedRecipesFilter]=useState("all");
   const [recipeError,setRecipeError]=useState("");
   const [mealPlan,setMealPlan]=useState(()=>loadLocal("sk_mealPlan",[]));
@@ -1884,7 +1885,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                         <div style={{display:"flex",gap:3,marginBottom:6}} onClick={e=>e.stopPropagation()}>
                           {[1,2,3,4,5].map(star=>{
                             const mealRating=recipeRatings[day.meal]?.rating||0;
-                            return <button key={star} onClick={e=>{e.stopPropagation();setRecipeRatings(prev=>{const cur=prev[day.meal]?.rating||0;const next={...prev};if(cur===star){delete next[day.meal];}else{next[day.meal]={rating:star,recipe:{name:day.meal,description:"",time:"",difficulty:"Easy",usesFromInventory:day.ingredients||[],missingIngredients:day.shoppingNeeded?.map(s=>s.name)||[]}};}if(star===5&&cur!==5) setTimeout(()=>setPhotoPromptMeal(day.meal),300);return next;});}} style={{background:"none",border:"none",cursor:"pointer",fontSize:seniorMode?20:16,padding:"0 1px",color:star<=mealRating?"#f59e0b":"#555"}} title={star===1?"Never suggest again":star===5?"Keeper!":"Rate "+star+" stars"}>{star<=mealRating?"★":"☆"}</button>;
+                            return <button key={star} onClick={e=>{e.stopPropagation();setRecipeRatings(prev=>{const cur=prev[day.meal]?.rating||0;const next={...prev};if(cur===star){delete next[day.meal];}else{next[day.meal]={rating:star,recipe:{name:day.meal,description:"",time:"",difficulty:"Easy",usesFromInventory:day.ingredients||[],missingIngredients:day.shoppingNeeded?.map(s=>s.name)||[]}};}if(star===5&&cur!==5){const skips=parseInt(localStorage.getItem("sk_photoSkipCount")||"0");if(skips<15) setTimeout(()=>setPhotoPromptMeal(day.meal),300);}return next;});}} style={{background:"none",border:"none",cursor:"pointer",fontSize:seniorMode?20:16,padding:"0 1px",color:star<=mealRating?"#f59e0b":"#555"}} title={star===1?"Never suggest again":star===5?"Keeper!":"Rate "+star+" stars"}>{star<=mealRating?"★":"☆"}</button>;
                           })}
                           {(recipeRatings[day.meal]?.rating||0)>=3&&<span style={{fontSize:9,color:C.muted,fontFamily:FM,marginLeft:3,alignSelf:"center"}}>{recipeRatings[day.meal]?.rating===5?"🏆":recipeRatings[day.meal]?.rating===4?"❤️":"👍"}</span>}
                         </div>
@@ -2492,9 +2493,14 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
               style={{...bBtn("ghost"),width:"100%",padding:"10px",marginBottom:10,fontSize:13,border:"1px solid "+C.border,color:C.text}}>
               🖼️ Choose from Gallery
             </button>
-            <button onClick={()=>setPhotoPromptMeal(null)}
+            <button onClick={()=>{
+                const next=photoSkipCount+1;
+                setPhotoSkipCount(next);
+                try{localStorage.setItem("sk_photoSkipCount",String(next));}catch{}
+                setPhotoPromptMeal(null);
+              }}
               style={{background:"transparent",border:"none",color:C.muted,fontFamily:FM,fontSize:12,cursor:"pointer",width:"100%",padding:"8px"}}>
-              Skip for now
+              {photoSkipCount>=12?"Don't ask again":"Skip for now"}
             </button>
           </div>
         </div>
