@@ -1523,21 +1523,20 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
             ⚙️
           </button>
         </div>
-        <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-          <button style={bBtn("ghost")} onClick={()=>setProfileModalOpen(true)}>👨‍👩‍👧 Family</button>
-          <button style={{...bBtn(seniorMode?"primary":"ghost"),fontSize:11,padding:"7px 10px"}} onClick={()=>setSeniorMode(m=>!m)}>{seniorMode?"🔤 ON":"🔤 Senior"}</button>
-          <button style={bBtn("ghost")} onClick={()=>openRepack("veg")}>🫕 Prep Veg</button>
-          <button style={bBtn("orange")} onClick={()=>openRepack("protein")}>🥩 Repackage</button>
-          <button style={bBtn("ghost")} onClick={()=>{setScanOpen(true);setScanStage("upload");setScanResults(null);setScanPreview(null);setScanB64(null);setScanMode("shelf");}}>📷 Scan</button>
-          <button style={bBtn("primary")} onClick={()=>{
+        <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
+          <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px"}} onClick={()=>setProfileModalOpen(true)}>👨‍👩‍👧 Family</button>
+          <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px",border:"1px solid "+(seniorMode?C.blue:C.border),color:seniorMode?C.blue:C.muted}} onClick={()=>setSeniorMode(m=>!m)}>{seniorMode?"🔤 On":"🔤 Senior"}</button>
+          <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px"}} onClick={()=>openRepack("veg")}>🫕 Prep Veg</button>
+          <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px"}} onClick={()=>openRepack("protein")}>🥩 Repackage</button>
+          <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px"}} onClick={()=>{setScanOpen(true);setScanStage("upload");setScanResults(null);setScanPreview(null);setScanB64(null);setScanMode("shelf");}}>📷 Scan</button>
+          <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px"}} onClick={()=>{
             if(!can.unlimitedRecipes){
               setUpgradeModal({feature:"Unlimited Recipe Suggestions",desc:"Get unlimited AI-powered recipe suggestions based on exactly what you have in your kitchen.",icon:"🍽"});
               return;
             }
             fetchRecipes();
           }}>✨ Recipes</button>
-          <button style={{...bBtn("ghost"),fontSize:16,padding:"7px 10px",border:"1px solid "+C.accent,color:C.accent}} onClick={()=>{setMakeThisModal(true);setMakeThisInput("");setMakeThisResult(null);}}>🍽 Make This</button>
-
+          <button style={{...bBtn("primary"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px"}} onClick={()=>{setMakeThisModal(true);setMakeThisInput("");setMakeThisResult(null);}}>🍽 Make This</button>
         </div>
       </div>
 
