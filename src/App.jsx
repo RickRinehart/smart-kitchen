@@ -388,6 +388,8 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [inventory,setInventory]=useState(()=>loadLocal("sk_inventory",INITIAL_INVENTORY));
   const [recipes,setRecipes]=useState(()=>loadLocal("sk_recipes",[]));const [swapRecipeModal,setSwapRecipeModal]=useState(null);const [swapRecipeRequest,setSwapRecipeRequest]=useState("");const [swapRecipeLoading,setSwapRecipeLoading]=useState(false);
   const [recipeRatings,setRecipeRatings]=useState(()=>loadLocal("sk_recipeRatings",{}));
+  const [mealPhotos,setMealPhotos]=useState(()=>loadLocal("sk_mealPhotos",{}));
+  const [photoPromptMeal,setPhotoPromptMeal]=useState(null);
   const [savedRecipesFilter,setSavedRecipesFilter]=useState("all");
   const [recipeError,setRecipeError]=useState("");
   const [mealPlan,setMealPlan]=useState(()=>loadLocal("sk_mealPlan",[]));
@@ -516,6 +518,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   useEffect(()=>{try{localStorage.setItem("sk_desserts",JSON.stringify(desserts));}catch{}},[desserts]);
   useEffect(()=>{try{localStorage.setItem("sk_dessertRatings",JSON.stringify(dessertRatings));}catch{}},[dessertRatings]);
   useEffect(()=>{try{localStorage.setItem("sk_recipeRatings",JSON.stringify(recipeRatings));}catch{}},[recipeRatings]);
+  useEffect(()=>{try{localStorage.setItem("sk_mealPhotos",JSON.stringify(mealPhotos));}catch{}},[mealPhotos]);
   useEffect(()=>{try{localStorage.setItem("sk_sportsNights",JSON.stringify(sportsNights));}catch{}},[sportsNights]);
   useEffect(()=>{try{localStorage.setItem("sk_activeTab",tab);}catch{}},[tab]);
   useEffect(()=>{
@@ -559,7 +562,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const totalPortions=proteinItems.reduce((a,i)=>a+(parseFloat(i.qty)||0),0);
   const condimentItems=inventory.filter(i=>i.isCondiment);
   const activeProfiles=familyProfiles.filter(p=>p.active);
-  const restrictedProfiles=activeProfiles.filter(p=>p.restriction!=="none"&&p.restriction!=="standard"&&p.restriction!=="athlete");
+  const restrictedProfiles=activeProfiles.filter(p=>p.restriction!=="none"&&p.restriction!=="standard");
   const activeFlags=activeProfiles.flatMap(p=>RESTRICTION_PRESETS[p.restriction]?.flags||[]);
   const today=new Date().toISOString().split("T")[0];
   const activeTempProfiles=tempProfiles.filter(t=>t.startDate<=today&&(!t.endDate||t.endDate>=today));
@@ -1855,6 +1858,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                       <div style={{display:"flex",flexDirection:"column",gap:8}}>
                       <div style={{flex:1,minWidth:0}}>
                         {day.quickMeal&&<span style={{fontSize:10,background:"#f59e0b22",color:"#f59e0b",padding:"2px 6px",borderRadius:4,fontFamily:FM,display:"inline-block",marginBottom:4}}>⚡ BUSY NIGHT — under 20 min</span>}
+                        {mealPhotos[day.meal]&&<div style={{marginBottom:6}}><img src={mealPhotos[day.meal]} alt={day.meal} style={{width:"100%",maxHeight:160,objectFit:"cover",borderRadius:8,border:"1px solid "+C.borderLight}} /></div>}
                         {restrictedProfiles.length>0&&(()=>{
                           const badges=restrictedProfiles.map(p=>{
                             const r=RESTRICTION_PRESETS[p.restriction];
@@ -1880,7 +1884,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                         <div style={{display:"flex",gap:3,marginBottom:6}} onClick={e=>e.stopPropagation()}>
                           {[1,2,3,4,5].map(star=>{
                             const mealRating=recipeRatings[day.meal]?.rating||0;
-                            return <button key={star} onClick={e=>{e.stopPropagation();setRecipeRatings(prev=>{const cur=prev[day.meal]?.rating||0;const next={...prev};if(cur===star){delete next[day.meal];}else{next[day.meal]={rating:star,recipe:{name:day.meal,description:"",time:"",difficulty:"Easy",usesFromInventory:day.ingredients||[],missingIngredients:day.shoppingNeeded?.map(s=>s.name)||[]}};}return next;});}} style={{background:"none",border:"none",cursor:"pointer",fontSize:seniorMode?20:16,padding:"0 1px",color:star<=mealRating?"#f59e0b":"#555"}} title={star===1?"Never suggest again":star===5?"Keeper!":"Rate "+star+" stars"}>{star<=mealRating?"★":"☆"}</button>;
+                            return <button key={star} onClick={e=>{e.stopPropagation();setRecipeRatings(prev=>{const cur=prev[day.meal]?.rating||0;const next={...prev};if(cur===star){delete next[day.meal];}else{next[day.meal]={rating:star,recipe:{name:day.meal,description:"",time:"",difficulty:"Easy",usesFromInventory:day.ingredients||[],missingIngredients:day.shoppingNeeded?.map(s=>s.name)||[]}};}if(star===5&&cur!==5) setTimeout(()=>setPhotoPromptMeal(day.meal),300);return next;});}} style={{background:"none",border:"none",cursor:"pointer",fontSize:seniorMode?20:16,padding:"0 1px",color:star<=mealRating?"#f59e0b":"#555"}} title={star===1?"Never suggest again":star===5?"Keeper!":"Rate "+star+" stars"}>{star<=mealRating?"★":"☆"}</button>;
                           })}
                           {(recipeRatings[day.meal]?.rating||0)>=3&&<span style={{fontSize:9,color:C.muted,fontFamily:FM,marginLeft:3,alignSelf:"center"}}>{recipeRatings[day.meal]?.rating===5?"🏆":recipeRatings[day.meal]?.rating===4?"❤️":"👍"}</span>}
                         </div>
@@ -2452,6 +2456,50 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       )}
 
       {/* == RECIPE MODAL == */}
+      {photoPromptMeal&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:600,padding:20}} onClick={()=>setPhotoPromptMeal(null)}>
+          <div style={{background:C.surface,border:"1px solid "+C.borderLight,borderRadius:16,padding:24,maxWidth:340,width:"100%",textAlign:"center"}} onClick={e=>e.stopPropagation()}>
+            <div style={{fontSize:40,marginBottom:8}}>🏆</div>
+            <div style={{fontFamily:FD,fontSize:20,fontWeight:700,color:C.accent,marginBottom:6}}>5-Star Keeper!</div>
+            <div style={{fontFamily:FM,fontSize:13,color:C.muted,marginBottom:20,lineHeight:1.6}}>
+              <strong style={{color:C.text}}>{photoPromptMeal}</strong> just earned a spot in your recipe hall of fame. Want to snap a photo to remember it?
+            </div>
+            <input type="file" accept="image/*" capture="environment" id="mealPhotoInput" style={{display:"none"}}
+              onChange={e=>{
+                const file=e.target.files?.[0];
+                if(!file) return;
+                const reader=new FileReader();
+                reader.onload=ev=>{
+                  const dataUrl=ev.target?.result;
+                  if(dataUrl){
+                    setMealPhotos(prev=>({...prev,[photoPromptMeal]:dataUrl}));
+                    setPhotoPromptMeal(null);
+                  }
+                };
+                reader.readAsDataURL(file);
+              }}
+            />
+            <button onClick={()=>document.getElementById("mealPhotoInput").click()}
+              style={{...bBtn("primary"),width:"100%",padding:"12px",marginBottom:10,fontSize:14}}>
+              📸 Take a Photo
+            </button>
+            <button onClick={()=>{
+                const input=document.getElementById("mealPhotoInput");
+                input.removeAttribute("capture");
+                input.click();
+                setTimeout(()=>input.setAttribute("capture","environment"),1000);
+              }}
+              style={{...bBtn("ghost"),width:"100%",padding:"10px",marginBottom:10,fontSize:13,border:"1px solid "+C.border,color:C.text}}>
+              🖼️ Choose from Gallery
+            </button>
+            <button onClick={()=>setPhotoPromptMeal(null)}
+              style={{background:"transparent",border:"none",color:C.muted,fontFamily:FM,fontSize:12,cursor:"pointer",width:"100%",padding:"8px"}}>
+              Skip for now
+            </button>
+          </div>
+        </div>
+      )}
+
       {activeRecipe&&(
         <div style={{position:"fixed",inset:0,background:"#000b",display:"flex",alignItems:"center",justifyContent:"center",zIndex:500,padding:16}} onClick={()=>setActiveRecipe(null)}>
           <div style={{background:C.surface,border:"1px solid "+C.borderLight,borderRadius:16,padding:22,maxWidth:500,width:"100%",maxHeight:"88vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
@@ -2459,6 +2507,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
               <div style={{fontFamily:FD,fontSize:24,lineHeight:1.3,flex:1}}>{activeRecipe.name}</div>
               <button onClick={()=>setActiveRecipe(null)} style={{background:"transparent",border:"none",color:C.muted,cursor:"pointer",fontSize:20}}>✕</button>
             </div>
+            {mealPhotos[activeRecipe.name]&&<div style={{marginBottom:12}}><img src={mealPhotos[activeRecipe.name]} alt={activeRecipe.name} style={{width:"100%",maxHeight:200,objectFit:"cover",borderRadius:10,border:"1px solid "+C.borderLight}} /></div>}
             <div style={{color:C.muted,fontSize:13,marginBottom:14,lineHeight:1.6}}>{activeRecipe.description}</div>
             <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap"}}>
               <span style={bTag(C.muted)}>⏱ {activeRecipe.time}</span>
