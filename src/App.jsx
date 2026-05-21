@@ -17,7 +17,7 @@ const FM="'JetBrains Mono', monospace";
 
 // -- Constants -----------------------------------------------------------------
 const LOCATIONS=["Pantry","Fridge","Freezer"];
-const LOC_ICONS={Pantry:"🗄",Fridge:"❄️",Freezer:"🧊"};
+const LOC_ICONS={Pantry:"🗄",Fridge:"❄",Freezer:"🧊"};
 const LOC_COLORS={Pantry:C.accent,Fridge:C.blue,Freezer:C.purple};
 const CATEGORIES=["Protein","Produce","Dairy","Pantry","Grains","Spices","Frozen","Condiments","Snacks","Beverages","Wild Harvest","Home Harvest","Household","Cleaning","Personal Care","Pet","Other"];
 const CAT_COLORS={Protein:C.red,Produce:C.green,Dairy:C.blue,Pantry:C.accent,Grains:"#c9a96e",Spices:C.purple,Frozen:"#6be3f0",Condiments:"#94a3b8",Snacks:"#f59e0b",Beverages:"#06b6d4",Household:"#84cc16",Cleaning:"#22d3ee",["Personal Care"]:"#e879f9",Pet:"#fb923c",Other:C.muted,"Wild Harvest":"#5a8a2e","Home Harvest":"#2e8a5a"};
@@ -113,8 +113,8 @@ const RESTRICTION_PRESETS={
   senior:       {label:"Senior Adult",      color:C.teal,    icon:"👴", flags:["low-sodium","soft-textures","simple-prep","familiar-foods","small-portions"]},
   diabetic:     {label:"Diabetic (Strict)", color:C.blue,    icon:"💉", flags:["zero-sugar","no-white-rice","no-regular-pasta","whole-wheat-only","brown-rice-only","low-carb"]},
   renal:        {label:"Renal/Kidney",      color:C.purple,  icon:"🫘", flags:["low-potassium","low-phosphorus","low-sodium","limit-protein"]},
-  diabeticRenal:{label:"Diabetic+Renal",    color:"#f472b6", icon:"⚕️", flags:["zero-sugar","no-white-rice","no-regular-pasta","whole-wheat-only","brown-rice-only","low-carb","low-potassium","low-phosphorus","low-sodium","limit-protein"]},
-  heartHealthy: {label:"Heart-Healthy",     color:C.red,     icon:"❤️", flags:["low-sodium","low-saturated-fat"]},
+  diabeticRenal:{label:"Diabetic+Renal",    color:"#f472b6", icon:"⚕", flags:["zero-sugar","no-white-rice","no-regular-pasta","whole-wheat-only","brown-rice-only","low-carb","low-potassium","low-phosphorus","low-sodium","limit-protein"]},
+  heartHealthy: {label:"Heart-Healthy",     color:C.red,     icon:"❤", flags:["low-sodium","low-saturated-fat"]},
   lowSodium:    {label:"Low Sodium",        color:C.orange,  icon:"🧂", flags:["low-sodium"]},
 };
 
@@ -1293,7 +1293,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
 
   
-      {showSettings&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setShowSettings(false)}><div style={{background:C.card,borderRadius:16,padding:28,width:340,maxWidth:"90vw",maxHeight:"90vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}><div style={{fontFamily:FD,fontSize:20,fontWeight:700,color:C.text,marginBottom:4}}>Settings</div><div style={{fontSize:11,color:C.muted,fontFamily:FM,marginBottom:20}}>Smart Kitchen v1.5</div><div style={{marginTop:12,background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:8}}>Shopping Partner</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:6}}>Who gets the emailed shopping list?</div><input placeholder="Name (e.g. Lisa)" value={shopPartnerName} onChange={e=>{setShopPartnerName(e.target.value);localStorage.setItem("sk_shopPartnerName",e.target.value);}} style={{width:"100%",background:C.card,border:"1px solid "+C.border,borderRadius:6,padding:"6px 10px",color:C.text,fontFamily:FM,fontSize:12,marginBottom:6,boxSizing:"border-box"}}/><input placeholder="Email address" value={shopPartnerEmail} onChange={e=>{setShopPartnerEmail(e.target.value);localStorage.setItem("sk_shopPartnerEmail",e.target.value);}} style={{width:"100%",background:C.card,border:"1px solid "+C.border,borderRadius:6,padding:"6px 10px",color:C.text,fontFamily:FM,fontSize:12,boxSizing:"border-box"}}/></div><div style={{display:"flex",flexDirection:"column",gap:12}}><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>{darkMode?"🌙 Dark Mode":"☀️ Light Mode"}</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Switch between dark and light display themes.</div><button style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.border,color:C.text}} onClick={()=>setDarkMode(m=>!m)}>{darkMode?"Switch to Light Mode ☀️":"Switch to Dark Mode 🌙"}</button></div><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>Recipe Search Site</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Where to search for recipes when you tap a meal name.</div><div style={{display:"flex",flexDirection:"column",gap:6}}>{[["google","🔍 Google Recipes"],["allrecipes","🍳 AllRecipes"],["pinterest","📌 Pinterest"],["foodnetwork","📺 Food Network"]].map(([key,label])=>(<button key={key} onClick={()=>{setRecipeSite(key);localStorage.setItem("sk_recipeSite",key);}} style={{padding:"8px 12px",borderRadius:8,border:"1px solid "+(recipeSite===key?C.accent:C.border),background:recipeSite===key?C.accent+"22":"transparent",color:recipeSite===key?C.accent:C.text,fontFamily:FM,fontSize:12,cursor:"pointer",textAlign:"left"}}>{label}{recipeSite===key?" ✓":""}</button>))}</div></div><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>Reset Inventory</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Clears all inventory items. Keeps profiles, meal plan, and preferences.</div><button style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.red,color:C.red}} onClick={()=>{if(window.confirm("Clear all inventory? Cannot be undone.")){localStorage.removeItem("sk_inventory");localStorage.removeItem("sk_portionFixV2");setInventory([]);setShowSettings(false);alert("Inventory cleared.");}}}>Clear Inventory</button></div><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>Reset All Data</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Wipes everything and restarts the Setup Wizard. Use for demo resets.</div><button style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.red,color:C.red}} onClick={()=>{if(window.confirm("Reset ALL data? Cannot be undone.")){["sk_inventory","sk_familyProfiles","sk_familySize","sk_mealPlan","sk_sportsNights","sk_recipeSite","sk_seniorMode","sk_setupDone","sk_portionFixV2","sk_installDismissed","sk_reminderDismissed","sk_saleItems","sk_tempProfiles","sk_activeTab","sk_chatWelcomeDone","sk_tourChoice","sk_tourStep","sk_guestCaptured","sk_darkMode","sk_recipes","sk_recipeRatings","sk_desserts","sk_dessertRatings"].forEach(k=>localStorage.removeItem(k));window.location.reload();}}}>Reset All Data</button></div></div><button style={{...bBtn("ghost"),width:"100%",marginTop:16}} onClick={()=>setShowSettings(false)}>Close</button></div></div>}
+      {showSettings&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setShowSettings(false)}><div style={{background:C.card,borderRadius:16,padding:28,width:340,maxWidth:"90vw",maxHeight:"90vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}><div style={{fontFamily:FD,fontSize:20,fontWeight:700,color:C.text,marginBottom:4}}>Settings</div><div style={{fontSize:11,color:C.muted,fontFamily:FM,marginBottom:20}}>Smart Kitchen v1.5</div><div style={{marginTop:12,background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:8}}>Shopping Partner</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:6}}>Who gets the emailed shopping list?</div><input placeholder="Name (e.g. Lisa)" value={shopPartnerName} onChange={e=>{setShopPartnerName(e.target.value);localStorage.setItem("sk_shopPartnerName",e.target.value);}} style={{width:"100%",background:C.card,border:"1px solid "+C.border,borderRadius:6,padding:"6px 10px",color:C.text,fontFamily:FM,fontSize:12,marginBottom:6,boxSizing:"border-box"}}/><input placeholder="Email address" value={shopPartnerEmail} onChange={e=>{setShopPartnerEmail(e.target.value);localStorage.setItem("sk_shopPartnerEmail",e.target.value);}} style={{width:"100%",background:C.card,border:"1px solid "+C.border,borderRadius:6,padding:"6px 10px",color:C.text,fontFamily:FM,fontSize:12,boxSizing:"border-box"}}/></div><div style={{display:"flex",flexDirection:"column",gap:12}}><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>{darkMode?"🌙 Dark Mode":"☀ Light Mode"}</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Switch between dark and light display themes.</div><button style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.border,color:C.text}} onClick={()=>setDarkMode(m=>!m)}>{darkMode?"Switch to Light Mode ☀":"Switch to Dark Mode 🌙"}</button></div><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>Recipe Search Site</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Where to search for recipes when you tap a meal name.</div><div style={{display:"flex",flexDirection:"column",gap:6}}>{[["google","🔍 Google Recipes"],["allrecipes","🍳 AllRecipes"],["pinterest","📌 Pinterest"],["foodnetwork","📺 Food Network"]].map(([key,label])=>(<button key={key} onClick={()=>{setRecipeSite(key);localStorage.setItem("sk_recipeSite",key);}} style={{padding:"8px 12px",borderRadius:8,border:"1px solid "+(recipeSite===key?C.accent:C.border),background:recipeSite===key?C.accent+"22":"transparent",color:recipeSite===key?C.accent:C.text,fontFamily:FM,fontSize:12,cursor:"pointer",textAlign:"left"}}>{label}{recipeSite===key?" ✓":""}</button>))}</div></div><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>Reset Inventory</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Clears all inventory items. Keeps profiles, meal plan, and preferences.</div><button style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.red,color:C.red}} onClick={()=>{if(window.confirm("Clear all inventory? Cannot be undone.")){localStorage.removeItem("sk_inventory");localStorage.removeItem("sk_portionFixV2");setInventory([]);setShowSettings(false);alert("Inventory cleared.");}}}>Clear Inventory</button></div><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>Reset All Data</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Wipes everything and restarts the Setup Wizard. Use for demo resets.</div><button style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.red,color:C.red}} onClick={()=>{if(window.confirm("Reset ALL data? Cannot be undone.")){["sk_inventory","sk_familyProfiles","sk_familySize","sk_mealPlan","sk_sportsNights","sk_recipeSite","sk_seniorMode","sk_setupDone","sk_portionFixV2","sk_installDismissed","sk_reminderDismissed","sk_saleItems","sk_tempProfiles","sk_activeTab","sk_chatWelcomeDone","sk_tourChoice","sk_tourStep","sk_guestCaptured","sk_darkMode","sk_recipes","sk_recipeRatings","sk_desserts","sk_dessertRatings"].forEach(k=>localStorage.removeItem(k));window.location.reload();}}}>Reset All Data</button></div></div><button style={{...bBtn("ghost"),width:"100%",marginTop:16}} onClick={()=>setShowSettings(false)}>Close</button></div></div>}
     {showWizard&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
           <div style={{background:C.surface,borderRadius:16,padding:28,maxWidth:440,width:"100%",border:"1px solid "+C.border,maxHeight:"90vh",overflowY:"auto"}}>
@@ -1304,9 +1304,9 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
               <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:24,textAlign:"left"}}>
                 {[
                   ["📦","Inventory","Scan receipts and shelves to track what you have on hand"],
-                  ["🍽️","Meal Planning","Get a personalized 7-day dinner plan based on your proteins and pantry"],
+                  ["🍽","Meal Planning","Get a personalized 7-day dinner plan based on your proteins and pantry"],
                   ["🔍","Recipes","AI-suggested recipes with step-by-step instructions"],
-                  ["🏷️","Sale Shopping","Scan weekly ads to build budget meal plans around what's on sale"],
+                  ["🏷","Sale Shopping","Scan weekly ads to build budget meal plans around what's on sale"],
                 ].map(([icon,title,desc])=>(
                   <div key={title} style={{display:"flex",gap:12,alignItems:"flex-start",background:C.card,borderRadius:10,padding:"10px 12px"}}>
                     <span style={{fontSize:22,flexShrink:0}}>{icon}</span>
@@ -1341,7 +1341,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                   </div>
                 </div>
                 <div style={{display:"flex",gap:14,alignItems:"flex-start",background:C.card,borderRadius:12,padding:"14px"}}>
-                  <div style={{width:36,height:36,borderRadius:10,background:C.accent+"22",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>🍽️</div>
+                  <div style={{width:36,height:36,borderRadius:10,background:C.accent+"22",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>🍽</div>
                   <div style={{flex:1}}>
                     <div style={{fontFamily:"system-ui,-apple-system,sans-serif",fontSize:14,fontWeight:700,color:C.text,marginBottom:4}}>3. Meal Preferences</div>
                     <div style={{fontFamily:"system-ui,-apple-system,sans-serif",fontSize:12,color:C.muted,lineHeight:1.6}}>How your family likes to eat — quick weeknight meals, busy sports nights, favorite cuisines, and more.</div>
@@ -1416,7 +1416,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
               <div style={{fontFamily:FM,fontSize:12,color:C.muted,marginTop:4}}>Take photos of receipts, packages, or pantry items</div>
             </button>
             <button style={{...bBtn("ghost"),padding:"14px",textAlign:"left"}} onClick={()=>setWizardStep(2)}>
-              <div style={{fontFamily:FD,fontSize:14}}>✏️ Enter items manually</div>
+              <div style={{fontFamily:FD,fontSize:14}}>✏ Enter items manually</div>
               <div style={{fontFamily:FM,fontSize:12,color:C.muted,marginTop:4}}>Type in your proteins, produce, and pantry staples</div>
             </button>
           </div>
@@ -1519,14 +1519,14 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
             <div style={{fontFamily:FD,fontSize:seniorMode?36:26,color:C.accent,lineHeight:1}}>Smart Kitchen™</div>
             <div style={{fontSize:seniorMode?15:11,color:C.muted,marginTop:3,fontFamily:FM}}>
               {totalPortions} protein portions · {blendItem?.qty||0} blend bags · {inventory.length} items
-              {restrictedProfiles.length>0&&<span style={{...bTag("#f472b6"),marginLeft:8,fontSize:9}}>⚕️ dietary restrictions active</span>}
+              {restrictedProfiles.length>0&&<span style={{...bTag("#f472b6"),marginLeft:8,fontSize:9}}>⚕ dietary restrictions active</span>}
             </div>
           </div>
           <button onClick={()=>setShowSettings(true)} title="Settings"
             style={{background:"transparent",border:"1px solid "+C.border,borderRadius:8,color:C.muted,cursor:"pointer",fontSize:seniorMode?22:16,padding:seniorMode?"8px 12px":"5px 9px",marginTop:2,lineHeight:1,transition:"all 0.15s"}}
             onMouseOver={e=>e.currentTarget.style.color=C.accent}
             onMouseOut={e=>e.currentTarget.style.color=C.muted}>
-            ⚙️
+            ⚙
           </button>
         </div>
         <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
@@ -1636,7 +1636,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                       <div>
                         <div style={{fontWeight:600,fontSize:seniorMode?22:13,lineHeight:1.4}}>{item.name}</div>
                         {item.blendNote&&<div style={{fontSize:10,color:C.muted,marginTop:1}}>{item.blendNote}</div>}
-                        {item.isLow&&<div style={bTag(C.red)}>⚠️ Low</div>}
+                        {item.isLow&&<div style={bTag(C.red)}>⚠ Low</div>}
                       </div>
                       <button onClick={()=>setInventory(p=>p.filter(i=>i.id!==item.id))} style={{background:"transparent",border:"none",color:C.dim,cursor:"pointer",fontSize:14,padding:2}}>✕</button>
                     </div>
@@ -1670,7 +1670,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
           <div>
             {(hasNoWhiteRice||hasNoRegularPasta||hasZeroSugar)&&(
               <div style={{background:"#f472b6"+"15",border:"1px solid #f472b644",borderRadius:10,padding:"12px 16px",marginBottom:16}}>
-                <div style={{fontSize:11,fontFamily:FM,color:"#f472b6",marginBottom:4}}>⚕️ DIETARY RESTRICTIONS ACTIVE</div>
+                <div style={{fontSize:11,fontFamily:FM,color:"#f472b6",marginBottom:4}}>⚕ DIETARY RESTRICTIONS ACTIVE</div>
                 <div style={{fontSize:12,color:C.muted}}>
                   {hasNoWhiteRice&&<span style={{marginRight:12}}>🚫 Brown rice only</span>}
                   {hasNoRegularPasta&&<span style={{marginRight:12}}>🚫 Whole wheat pasta only</span>}
@@ -1711,7 +1711,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                             {star<=(recipeRatings[r.name]?.rating||0)?"★":"☆"}
                           </button>
                         ))}
-                        {rating>=3&&<span style={{fontSize:10,color:C.muted,fontFamily:FM,marginLeft:4,alignSelf:"center"}}>{rating===5?"🏆 Keeper":rating===4?"❤️ Favorite":"👍 Good"}</span>}
+                        {rating>=3&&<span style={{fontSize:10,color:C.muted,fontFamily:FM,marginLeft:4,alignSelf:"center"}}>{rating===5?"🏆 Keeper":rating===4?"❤ Favorite":"👍 Good"}</span>}
                         {rating===1&&<span style={{fontSize:10,color:C.red,fontFamily:FM,marginLeft:4,alignSelf:"center"}}>🚫 Excluded</span>}
                       </div>
                       <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
@@ -1730,7 +1730,8 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
           </div>
         )}
 
-        {swapRecipeModal&&<div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.7)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setSwapRecipeModal(null)}><div style={{background:C.card,borderRadius:12,padding:24,width:360,maxWidth:"90vw"}} onClick={e=>e.stopPropagation()}><div style={{fontFamily:FD,fontSize:18,fontWeight:700,color:C.text,marginBottom:16}}>Swap Recipe</div><button onClick={async()=>{setSwapRecipeLoading(true);const prompt="Give me ONE different recipe suggestion"+( swapRecipeRequest.trim()?" for: "+swapRecipeRequest.trim():" (different from "+swapRecipeModal.name+")")+". Inventory: "+inventory.map(i=>i.name).filter(Boolean).join(", ")+". Return ONLY valid JSON: {name,description,time,difficulty,instructions:[4 short strings],usesFromInventory:[],missingIngredients:[]}";const res=await callClaude({system:"Recipe AI. Return ONLY valid JSON, no markdown.",prompt,maxTokens:600});try{const raw=typeof res==="string"?res:Array.isArray(res)?res.map(r=>r.text||"").join(""):res?.content?.[0]?.text||"";const clean=raw.replace(/```json|```/g,"").trim();const parsed=JSON.parse(clean);setRecipes(prev=>prev.map(r=>r.id===swapRecipeModal.id?{...parsed,id:swapRecipeModal.id,usesFromInventory:parsed.usesFromInventory||[],missingIngredients:parsed.missingIngredients||[]}:r));setSwapRecipeModal(null);}catch(e){alert("Could not parse recipe.");}setSwapRecipeLoading(false);}} style={{width:"100%",padding:"12px",borderRadius:8,background:C.accent,border:"none",color:"#000",fontFamily:FM,fontSize:14,fontWeight:700,cursor:"pointer",marginBottom:10}}>{swapRecipeLoading?"Thinking...":"✦ Surprise Me"}</button><div style={{color:C.muted,fontFamily:FM,fontSize:12,textAlign:"center",marginBottom:8}}>— or request a specific recipe —</div><input value={swapRecipeRequest} onChange={e=>setSwapRecipeRequest(e.target.value)} placeholder='e.g. "Something with chicken"' style={{width:"100%",padding:"8px 12px",borderRadius:6,border:"1px solid "+C.border,background:C.surface,color:C.text,fontFamily:FM,fontSize:13,boxSizing:"border-box",marginBottom:10}}/><button onClick={async()=>{if(!swapRecipeRequest.trim()){alert("Please type a recipe request first.");return;}setSwapRecipeLoading(true);const prompt="Give me ONE recipe for: "+swapRecipeRequest.trim()+". Inventory: "+inventory.map(i=>i.name).filter(Boolean).join(", ")+". Return ONLY valid JSON: {name,description,time,difficulty,instructions:[4 short strings],usesFromInventory:[],missingIngredients:[]}";const res=await callClaude({system:"Recipe AI. Return ONLY valid JSON, no markdown.",prompt,maxTokens:600});try{const raw=typeof res==="string"?res:Array.isArray(res)?res.map(r=>r.text||"").join(""):res?.content?.[0]?.text||"";const clean=raw.replace(/```json|```/g,"").trim();const parsed=JSON.parse(clean);setRecipes(prev=>prev.map(r=>r.id===swapRecipeModal.id?{...parsed,id:swapRecipeModal.id,usesFromInventory:parsed.usesFromInventory||[],missingIngredients:parsed.missingIngredients||[]}:r));setSwapRecipeModal(null);}catch(e){alert("Could not parse recipe.");}setSwapRecipeLoading(false);}} style={{width:"100%",padding:"12px",borderRadius:8,background:"transparent",border:"1px solid "+C.accent,color:C.accent,fontFamily:FM,fontSize:14,cursor:"pointer",marginBottom:8}}>Make This Recipe</button><button onClick={()=>setSwapRecipeModal(null)} style={{width:"100%",padding:"8px",borderRadius:8,background:"transparent",border:"none",color:C.muted,fontFamily:FM,fontSize:12,cursor:"pointer"}}>Cancel</button></div></div>}
+        {swapRecipeModal&&<div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.7)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setSwapRecipeModal(null)}><div style={{background:C.card,borderRadius:12,padding:24,width:360,maxWidth:"90vw"}} onClick={e=>e.stopPropagation()}><div style={{fontFamily:FD,fontSize:18,fontWeight:700,color:C.text,marginBottom:16}}>Swap Recipe</div><button onClick={async()=>{setSwapRecipeLoading(true);const prompt="Give me ONE different recipe suggestion"+( swapRecipeRequest.trim()?" for: "+swapRecipeRequest.trim():" (different from "+swapRecipeModal.name+")")+". Inventory: "+inventory.map(i=>i.name).filter(Boolean).join(", ")+". Return ONLY valid JSON: {name,description,time,difficulty,instructions:[4 short strings],usesFromInventory:[],missingIngredients:[]}";const res=await callClaude({system:"Recipe AI. Return ONLY valid JSON, no markdown.",prompt,maxTokens:600});try{const raw=typeof res==="string"?res:Array.isArray(res)?res.map(r=>r.text||"").join(""):res?.content?.[0]?.text||"";const clean=raw.replace(/```json|```/g,"").trim();const parsed=JSON.parse(clean);setRecipes(prev=>prev.map(r=>r.id===swapRecipeModal.id?{...parsed,id:swapRecipeModal.id,usesFromInventory:parsed.usesFromInventory||[],missingIngredients:parsed.missingIngredients||[]}:r));setSwapRecipeModal(null);}catch(e){alert("Could not parse recipe.");}setSwapRecipeLoading(false);}} style={{width:"100%",padding:"12px",borderRadius:8,background:C.accent,border:"none",color:"#000",fontFamily:FM,fontSize:14,fontWeight:700,cursor:"pointer",marginBottom:10}}>{swapRecipeLoading?"Thinking...":"✦ Surprise Me"}</button><div style={{color:C.muted,fontFamily:FM,fontSize:12,textAlign:"center",marginBottom:8}}>— or request a specific recipe —</div><input value={swapRecipeRequest} onChange={e=>setSwapRecipeRequest(e.target.value)} placeholder='e.g. "Something with chicken"' style={{width:"100%",padding:"8px 12px",borderRadius:6,border:"1px solid "+C.border,background:C.surface,color:C.text,fontFamily:FM,fontSize:13,boxSizing:"border-box",marginBottom:10}}/><button onClick={async()=>{if(!swapRecipeRequest.trim()){alert("Please type a recipe request first.");return;}setSwapRecipeLoading(true);const prompt="Give me ONE recipe for: "+swapRecipeRequest.trim()+". Inventory: "+inventory.map(i=>i.name).filter(Boolean).join(", ")+". Return ONLY valid JSON: {name,description,time,difficulty,instructions:[4 short strings],usesFromInventory:[],missingIngredients:[]}";const res=await callClaude({system:"Recipe AI. Return ONLY valid JSON, no markdown.",prompt,maxTokens:600});try{const raw=typeof res==="string"?res:Array.isArray(res)?res.map(r=>r.text||"").join(""):res?.content?.[0]?.text||"";const clean=raw.replace(/```json|```/g,"").trim();const parsed=JSON.parse(clean);setRecipes(prev=>prev.map(r=>r.id===swapRecipeModal.id?{...parsed,id:swapRecipeModal.id,usesFromInventory:parsed.usesFromInventory||[],missingIngredients:parsed.missingIngredients||[]}:r));setSwapRecipeModal(null);}catch(e){alert("Could not parse recipe.");}setSwapRecipeLoading(false);}} style={{width:"100%",padding:"12px",borderRadius:8,background:"transparent",border:"1px solid "+C.accent,color:C.accent,fontFamily:FM,fontSize:14,cursor:"pointer",marginBottom:8}}>Make This Recipe</button><button onClick={()=>setSwapRecipeModal(null)} style={{width:"100%",padding:"8px",borderRadius:8,background:"transparent",border:"none",color:C.muted,fontFamily:FM,fontSize:12,cursor:"pointer"}}>Cancel</button>
+</div></div>}
         {/* == SAVED RECIPES == */}
         {tab==="saved"&&(
           <div style={{padding:20,maxWidth:940,margin:"0 auto"}}>
@@ -1776,7 +1777,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                         </button>
                       ))}
                       <span style={{fontSize:10,color:rating===5?"#f59e0b":rating===4?C.green:C.muted,fontFamily:FM,marginLeft:4,alignSelf:"center",fontWeight:600}}>
-                        {rating===5?"🏆 Keeper":rating===4?"❤️ Favorite":"👍 Good"}
+                        {rating===5?"🏆 Keeper":rating===4?"❤ Favorite":"👍 Good"}
                       </span>
                     </div>
                     <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
@@ -1843,12 +1844,12 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
             {saleItems.length>0&&(
               <div style={{background:"#1a1500",border:"1px solid #f59e0b",borderRadius:12,padding:"12px 16px",marginBottom:16,display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
                 <div>
-                  <div style={{fontFamily:FD,fontSize:14,color:"#f59e0b"}}>🏷️ {saleItems.length} Meijer Sale Items Loaded</div>
+                  <div style={{fontFamily:FD,fontSize:14,color:"#f59e0b"}}>🏷 {saleItems.length} Meijer Sale Items Loaded</div>
                   <div style={{fontFamily:FM,fontSize:11,color:"#fbbf24",marginTop:2}}>{saleItems.slice(0,4).map(i=>i.name).join(", ")}{saleItems.length>4?" + "+(saleItems.length-4)+" more":""}</div>
                 </div>
                 <div style={{display:"flex",gap:8}}>
                   <button style={{...bBtn("ghost"),fontSize:11,padding:"6px 12px",border:"1px solid #f59e0b44",color:"#f59e0b"}} onClick={()=>setSaleItems([])}>✕ Clear</button>
-                  <button style={{padding:"8px 16px",borderRadius:9,border:"none",background:"#f59e0b",color:"#0c0e14",fontFamily:FM,fontSize:12,fontWeight:700,cursor:"pointer"}} onClick={buildSaleMealPlan}>🏷️ Build Sale Meal Plan</button>
+                  <button style={{padding:"8px 16px",borderRadius:9,border:"none",background:"#f59e0b",color:"#0c0e14",fontFamily:FM,fontSize:12,fontWeight:700,cursor:"pointer"}} onClick={buildSaleMealPlan}>🏷 Build Sale Meal Plan</button>
                 </div>
               </div>
             )}
@@ -1914,7 +1915,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                             const mealRating=recipeRatings[day.meal]?.rating||0;
                             return <button key={star} onClick={e=>{e.stopPropagation();setRecipeRatings(prev=>{const cur=prev[day.meal]?.rating||0;const next={...prev};if(cur===star){delete next[day.meal];}else{next[day.meal]={rating:star,recipe:{name:day.meal,description:"",time:"",difficulty:"Easy",usesFromInventory:day.ingredients||[],missingIngredients:day.shoppingNeeded?.map(s=>s.name)||[]}};}if(star===5&&cur!==5){const skips=parseInt(localStorage.getItem("sk_photoSkipCount")||"0");if(skips<3) setTimeout(()=>setPhotoPromptMeal(day.meal),300);}return next;});}} style={{background:"none",border:"none",cursor:"pointer",fontSize:seniorMode?20:16,padding:"0 1px",color:star<=mealRating?"#f59e0b":"#555"}} title={star===1?"Never suggest again":star===5?"Keeper!":"Rate "+star+" stars"}>{star<=mealRating?"★":"☆"}</button>;
                           })}
-                          {(recipeRatings[day.meal]?.rating||0)>=3&&<span style={{fontSize:9,color:C.muted,fontFamily:FM,marginLeft:3,alignSelf:"center"}}>{recipeRatings[day.meal]?.rating===5?"🏆":recipeRatings[day.meal]?.rating===4?"❤️":"👍"}</span>}
+                          {(recipeRatings[day.meal]?.rating||0)>=3&&<span style={{fontSize:9,color:C.muted,fontFamily:FM,marginLeft:3,alignSelf:"center"}}>{recipeRatings[day.meal]?.rating===5?"🏆":recipeRatings[day.meal]?.rating===4?"❤":"👍"}</span>}
                         </div>
                         <div style={{display:"flex",gap:10,alignItems:"center",marginBottom:day.ingredients&&day.ingredients.length>0?6:0}}><span onClick={()=>openMealPlanRecipe(day)} style={{fontSize:seniorMode?15:13,color:"#f59e0b",fontFamily:FM,cursor:"pointer",letterSpacing:0.3,fontWeight:700,whiteSpace:"nowrap"}}>TAP FOR FULL RECIPE →</span><a href={getRecipeUrl(day.meal)} target="_blank" rel="noopener noreferrer" style={{fontSize:10,color:"#60a5fa",fontFamily:FM,textDecoration:"none",fontWeight:600}}>🌐 web</a></div>{day.ingredients&&day.ingredients.length>0&&<div style={{marginTop:6,padding:"8px 10px",background:"rgba(255,255,255,0.05)",borderRadius:6,fontSize:11,fontFamily:FM}}><div style={{fontWeight:600,marginBottom:4,color:C.muted}}>INGREDIENTS</div>{day.ingredients.map((ing,ii)=><div key={ii} style={{color:C.text,marginBottom:2}}>· {ing}</div>)}</div>}</div>
                         <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
@@ -1940,7 +1941,10 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
           </div>
         )}
 
-        {changeMealModal!==null&&<div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.7)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setChangeMealModal(null)}><div style={{background:C.card,borderRadius:12,padding:24,width:360,maxWidth:"90vw"}} onClick={e=>e.stopPropagation()}><div style={{fontFamily:FD,fontSize:18,fontWeight:700,color:C.text,marginBottom:16}}>🔄 Change {mealPlan[changeMealModal]?.day} Meal</div><div style={{marginBottom:16}}><button onClick={async()=>{setChangeMealLoading(true);try{const h=JSON.parse(localStorage.getItem("sk_changeMealHistory")||"[]");const d=mealPlan[changeMealModal];if(d){h.push({meal:d.meal,protein:d.proteinUsed||null,day:d.day,ts:Date.now()});localStorage.setItem("sk_changeMealHistory",JSON.stringify(h.slice(-100)));}}catch{} const day=mealPlan[changeMealModal];const prompt=`Suggest a different dinner meal for ${day.day}. Current meal was: ${day.meal}. INVENTORY (items already owned — do NOT put these in needToBuy): ${inventory.map(i=>String(i.name||"")).filter(Boolean).join(", ")}. STRICT RULE: needToBuy must contain ONLY ingredients required for this meal that are NOT in the inventory list above. If an ingredient appears in inventory, it must NOT appear in needToBuy. Cross-check every needToBuy item against inventory before returning. Return JSON: {meal,ingredients:[],needToBuy:[],proteinUsed:"",sauteBagsUsed:0,quickMeal:false}.`;const res=await callClaude({system:"Meal planning AI. Return ONLY valid JSON, no markdown.",prompt,maxTokens:600});try{console.log("changeMeal res:",JSON.stringify(res));const resText=typeof res==="string"?res:Array.isArray(res)?res.map(r=>r.text||"").join(""):res?.content?.[0]?.text||res?.[0]?.text||"";const raw=resText.replace(/```json|```/g,"").trim();console.log("raw:",raw);const s=raw.indexOf("{"),e=raw.lastIndexOf("}");const parsed=JSON.parse(raw.slice(s,e+1));setMealPlan(p=>p.map((d,i)=>i===changeMealModal?{...d,...parsed,needToBuy:parsed.needToBuy||[],shoppingNeeded:(parsed.needToBuy||[]).map(n=>typeof n==="string"?{qty:1,unit:"",name:n}:n),ingredients:parsed.ingredients||[]}:d));setChangeMealModal(null);}catch(err){console.error("Parse error:",err);alert("Could not parse meal suggestion");}setChangeMealLoading(false);}} style={{width:"100%",padding:"10px",background:C.accent,border:"none",borderRadius:8,color:"#000",fontFamily:FM,fontSize:13,fontWeight:600,cursor:"pointer",marginBottom:10}}>✨ {changeMealLoading?"Thinking...":"Surprise Me"}</button><div style={{fontFamily:FM,fontSize:12,color:C.muted,marginBottom:8}}>— or request a specific meal —</div><input style={{width:"100%",padding:"8px",background:C.surface,border:"1px solid "+C.border,borderRadius:6,color:C.text,fontFamily:FM,fontSize:13,boxSizing:"border-box",marginBottom:10}} placeholder='e.g. "Goulash"' value={changeMealRequest} onChange={e=>setChangeMealRequest(e.target.value)} onClick={e=>e.stopPropagation()} onFocus={e=>e.stopPropagation()} /><button onClick={async()=>{if(!changeMealRequest.trim())return;setChangeMealLoading(true);try{const h=JSON.parse(localStorage.getItem("sk_changeMealHistory")||"[]");const d=mealPlan[changeMealModal];if(d){h.push({meal:d.meal,protein:d.proteinUsed||null,day:d.day,ts:Date.now()});localStorage.setItem("sk_changeMealHistory",JSON.stringify(h.slice(-100)));}}catch{} const day=mealPlan[changeMealModal];const prompt=`Create a dinner meal for ${day.day} using "${changeMealRequest}". INVENTORY (items already owned — do NOT put these in needToBuy): ${inventory.map(i=>String(i.name||"")).filter(Boolean).join(", ")}. STRICT RULE: needToBuy must contain ONLY ingredients required for this meal that are NOT in the inventory list above. If an ingredient appears in inventory, it must NOT appear in needToBuy. Cross-check every needToBuy item against inventory before returning. Return JSON: {meal,ingredients:[],needToBuy:[],proteinUsed:"",sauteBagsUsed:0,quickMeal:false}.`;const res=await callClaude({system:"Meal planning AI. Return ONLY valid JSON, no markdown.",prompt,maxTokens:600});try{const resText3=typeof res==="string"?res:Array.isArray(res)?res.map(r=>r.text||"").join(""):res?.content?.[0]?.text||res?.[0]?.text||"";const raw=resText3;const s=raw.indexOf("{"),e=raw.lastIndexOf("}");const parsed=JSON.parse(raw.slice(s,e+1));setMealPlan(p=>p.map((d,i)=>i===changeMealModal?{...d,...parsed,needToBuy:parsed.needToBuy||[],shoppingNeeded:(parsed.needToBuy||[]).map(n=>typeof n==="string"?{qty:1,unit:"",name:n}:n),ingredients:parsed.ingredients||[]}:d));setChangeMealModal(null);}catch(e){alert("Could not parse meal suggestion");}setChangeMealLoading(false);}} style={{width:"100%",padding:"10px",background:"transparent",border:"1px solid "+C.accent,borderRadius:8,color:C.accent,fontFamily:FM,fontSize:13,cursor:"pointer"}}>🍽️ {changeMealLoading?"Thinking...":"Make This Meal"}</button></div><button onClick={()=>setChangeMealModal(null)} style={{width:"100%",padding:"8px",background:"transparent",border:"none",color:C.muted,fontFamily:FM,fontSize:12,cursor:"pointer"}}>Cancel</button></div></div>}
+        {changeMealModal!==null&&<div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.7)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setChangeMealModal(null)}><div style={{background:C.card,borderRadius:12,padding:24,width:360,maxWidth:"90vw"}} onClick={e=>e.stopPropagation()}><div style={{fontFamily:FD,fontSize:18,fontWeight:700,color:C.text,marginBottom:16}}>🔄 Change {mealPlan[changeMealModal]?.day} Meal</div><div style={{marginBottom:16}}><button onClick={async()=>{setChangeMealLoading(true);try{const h=JSON.parse(localStorage.getItem("sk_changeMealHistory")||"[]");const d=mealPlan[changeMealModal];if(d){h.push({meal:d.meal,protein:d.proteinUsed||null,day:d.day,ts:Date.now()});localStorage.setItem("sk_changeMealHistory",JSON.stringify(h.slice(-100)));}}catch{} const day=mealPlan[changeMealModal];const prompt=`Suggest a different dinner meal for ${day.day}. Current meal was: ${day.meal}. INVENTORY (items already owned — do NOT put these in needToBuy): ${inventory.map(i=>String(i.name||"")).filter(Boolean).join(", ")}. STRICT RULE: needToBuy must contain ONLY ingredients required for this meal that are NOT in the inventory list above. If an ingredient appears in inventory, it must NOT appear in needToBuy. Cross-check every needToBuy item against inventory before returning. Return JSON: {meal,ingredients:[],needToBuy:[],proteinUsed:"",sauteBagsUsed:0,quickMeal:false}.`;const res=await callClaude({system:"Meal planning AI. Return ONLY valid JSON, no markdown.",prompt,maxTokens:600});try{console.log("changeMeal res:",JSON.stringify(res));const resText=typeof res==="string"?res:Array.isArray(res)?res.map(r=>r.text||"").join(""):res?.content?.[0]?.text||res?.[0]?.text||"";const raw=resText.replace(/```json|```/g,"").trim();console.log("raw:",raw);const s=raw.indexOf("{"),e=raw.lastIndexOf("}");const parsed=JSON.parse(raw.slice(s,e+1));setMealPlan(p=>p.map((d,i)=>i===changeMealModal?{...d,...parsed,needToBuy:parsed.needToBuy||[],shoppingNeeded:(parsed.needToBuy||[]).map(n=>typeof n==="string"?{qty:1,unit:"",name:n}:n),ingredients:parsed.ingredients||[]}:d));setChangeMealModal(null);}catch(err){console.error("Parse error:",err);alert("Could not parse meal suggestion");}setChangeMealLoading(false);}} style={{width:"100%",padding:"10px",background:C.accent,border:"none",borderRadius:8,color:"#000",fontFamily:FM,fontSize:13,fontWeight:600,cursor:"pointer",marginBottom:10}}>✨ {changeMealLoading?"Thinking...":"Surprise Me"}</button><div style={{fontFamily:FM,fontSize:12,color:C.muted,marginBottom:8}}>— or request a specific meal —</div><input style={{width:"100%",padding:"8px",background:C.surface,border:"1px solid "+C.border,borderRadius:6,color:C.text,fontFamily:FM,fontSize:13,boxSizing:"border-box",marginBottom:10}} placeholder='e.g. "Goulash"' value={changeMealRequest} onChange={e=>setChangeMealRequest(e.target.value)} onClick={e=>e.stopPropagation()} onFocus={e=>e.stopPropagation()} /><button onClick={async()=>{if(!changeMealRequest.trim())return;setChangeMealLoading(true);try{const h=JSON.parse(localStorage.getItem("sk_changeMealHistory")||"[]");const d=mealPlan[changeMealModal];if(d){h.push({meal:d.meal,protein:d.proteinUsed||null,day:d.day,ts:Date.now()});localStorage.setItem("sk_changeMealHistory",JSON.stringify(h.slice(-100)));}}catch{} const day=mealPlan[changeMealModal];const prompt=`Create a dinner meal for ${day.day} using "${changeMealRequest}". INVENTORY (items already owned — do NOT put these in needToBuy): ${inventory.map(i=>String(i.name||"")).filter(Boolean).join(", ")}. STRICT RULE: needToBuy must contain ONLY ingredients required for this meal that are NOT in the inventory list above. If an ingredient appears in inventory, it must NOT appear in needToBuy. Cross-check every needToBuy item against inventory before returning. Return JSON: {meal,ingredients:[],needToBuy:[],proteinUsed:"",sauteBagsUsed:0,quickMeal:false}.`;const res=await callClaude({system:"Meal planning AI. Return ONLY valid JSON, no markdown.",prompt,maxTokens:600});try{const resText3=typeof res==="string"?res:Array.isArray(res)?res.map(r=>r.text||"").join(""):res?.content?.[0]?.text||res?.[0]?.text||"";const raw=resText3;const s=raw.indexOf("{"),e=raw.lastIndexOf("}");const parsed=JSON.parse(raw.slice(s,e+1));setMealPlan(p=>p.map((d,i)=>i===changeMealModal?{...d,...parsed,needToBuy:parsed.needToBuy||[],shoppingNeeded:(parsed.needToBuy||[]).map(n=>typeof n==="string"?{qty:1,unit:"",name:n}:n),ingredients:parsed.ingredients||[]}:d));setChangeMealModal(null);}catch(e){alert("Could not parse meal suggestion");}setChangeMealLoading(false);}} style={{width:"100%",padding:"10px",background:"transparent",border:"1px solid "+C.accent,borderRadius:8,color:C.accent,fontFamily:FM,fontSize:13,cursor:"pointer"}}>🍽 {changeMealLoading?"Thinking...":"Make This Meal"}</button>
+</div>
+<button onClick={()=>setChangeMealModal(null)} style={{width:"100%",padding:"8px",background:"transparent",border:"none",color:C.muted,fontFamily:FM,fontSize:12,cursor:"pointer"}}>Cancel</button>
+</div></div>}
 {/* == SHOPPING == */}
         {!loading&&tab==="shopping"&&(
           <div>
@@ -2026,7 +2030,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                       onMouseEnter={e=>{e.currentTarget.style.borderColor=C.accent;e.currentTarget.style.background=C.cardHover;}}
                       onMouseLeave={e=>{e.currentTarget.style.borderColor=rating===1?C.red+"66":rating>=4?C.accent+"66":C.border;e.currentTarget.style.background=C.card;}}>
                       <div style={{display:"flex",justifyContent:"space-between",marginBottom:8,alignItems:"flex-start"}}>
-                        <div style={{fontFamily:FD,fontSize:19,lineHeight:1.3,flex:1}}>{d.name}{rating===5&&<span style={{marginLeft:6,fontSize:14}}>🏆</span>}{rating===4&&<span style={{marginLeft:6,fontSize:14}}>❤️</span>}</div>
+                        <div style={{fontFamily:FD,fontSize:19,lineHeight:1.3,flex:1}}>{d.name}{rating===5&&<span style={{marginLeft:6,fontSize:14}}>🏆</span>}{rating===4&&<span style={{marginLeft:6,fontSize:14}}>❤</span>}</div>
                         <span style={{...bTag(d.difficulty==="Easy"?C.green:d.difficulty==="Hard"?C.red:C.accent),marginLeft:8}}>{d.difficulty}</span>
                       </div>
                       <div style={{color:C.muted,fontSize:13,marginBottom:12,lineHeight:1.5}}>{d.description}</div>
@@ -2109,7 +2113,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                         </div>
                       </div>
                       <button onClick={()=>setEditingProfile(isEditing?null:profile.id)} style={{...bBtn("ghost"),padding:"5px 10px",fontSize:11}}>
-                        {isEditing?"✓ Done":"✏️ Edit"}
+                        {isEditing?"✓ Done":"✏ Edit"}
                       </button>
                     </div>
                     {isEditing&&(
@@ -2166,7 +2170,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
             </div>
             <div style={{marginTop:20,borderTop:"1px solid "+C.border,paddingTop:16}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-                  <div style={{fontFamily:FD,fontSize:16,color:"#a78bfa"}}>⚕️ Temporary Medical Diets</div>
+                  <div style={{fontFamily:FD,fontSize:16,color:"#a78bfa"}}>⚕ Temporary Medical Diets</div>
                   <button style={{...bBtn("ghost"),fontSize:11,padding:"4px 10px",border:"1px solid #a78bfa",color:"#a78bfa"}} onClick={()=>setShowTempForm(f=>!f)}>+ Add</button>
                 </div>
                 {showTempForm&&(
@@ -2190,7 +2194,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                       setTempProfiles(p=>[...p,{...newTemp,id:Date.now()}]);
                       setNewTemp({name:"",reason:"",restriction:"lowSodium",customNotes:"",startDate:new Date().toISOString().split("T")[0],endDate:"",duration:7});
                       setShowTempForm(false);
-                    }}>⚕️ Save Temporary Diet</button>
+                    }}>⚕ Save Temporary Diet</button>
                   </div>
                 )}
                 {tempProfiles.length===0&&!showTempForm&&<div style={{fontFamily:"system-ui,-apple-system,sans-serif",fontSize:12,color:C.muted,textAlign:"center",padding:"12px 0"}}>No temporary diets active</div>}
@@ -2368,7 +2372,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
         <div style={{position:"fixed",inset:0,background:"#000c",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:16}} onClick={()=>{if(scanStage!=="review")setScanOpen(false);}}>
           <div style={{background:C.surface,border:"1px solid "+C.borderLight,borderRadius:18,padding:"12px 16px",maxWidth:540,width:"100%",maxHeight:"92vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-              <div style={{fontSize:12,fontFamily:FM,color:C.muted}}>{scanMode==="receipt"?"🧾 Receipt Scanner":scanMode==="weeklyad"?"🏷️ Weekly Ad Scanner":"📷 Shelf Scanner"} · {scanStage==="review"?"Review items":"tap photo or browse"}</div>
+              <div style={{fontSize:12,fontFamily:FM,color:C.muted}}>{scanMode==="receipt"?"🧾 Receipt Scanner":scanMode==="weeklyad"?"🏷 Weekly Ad Scanner":"📷 Shelf Scanner"} · {scanStage==="review"?"Review items":"tap photo or browse"}</div>
               <button onClick={()=>setScanOpen(false)} style={{background:"transparent",border:"none",color:C.muted,cursor:"pointer",fontSize:20}}>✕</button>
             </div>
             {scanStage==="upload"&&(
@@ -2384,7 +2388,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                   </button>
                   <button onClick={()=>{setScanMode("weeklyad");setScanPreview(null);setScanB64(null);}}
                     style={{flex:1,padding:"12px",borderRadius:9,border:"1px solid "+(scanMode==="weeklyad"?"#f59e0b":C.border),background:scanMode==="weeklyad"?"#f59e0b22":"transparent",color:scanMode==="weeklyad"?"#f59e0b":C.muted,cursor:"pointer",fontFamily:FM,fontSize:13,fontWeight:700}}>
-                    🏷️ Weekly Ad
+                    🏷 Weekly Ad
                   </button>
                 </div>
                 {scanMode==="receipt"&&(
@@ -2394,7 +2398,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                 )}
                 {scanMode==="weeklyad"&&(
                   <div style={{background:"#1a1a00",borderRadius:10,padding:12,marginBottom:12,fontSize:12,color:"#fbbf24",lineHeight:1.6}}>
-                    🏷️ Screenshot the weekly ad from your Meijer app, or photograph a printed flyer. Select all pages at once - Smart Kitchen will scan each page and combine results automatically.
+                    🏷 Screenshot the weekly ad from your Meijer app, or photograph a printed flyer. Select all pages at once - Smart Kitchen will scan each page and combine results automatically.
                   </div>
                 )}
                 <div onClick={()=>fileRef.current.click()}
@@ -2406,7 +2410,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                     </div>
                   ):(
                     <div style={{textAlign:"center",padding:30}}>
-                      <div style={{fontSize:32,marginBottom:8}}>{scanMode==="receipt"?"🧾":scanMode==="weeklyad"?"🏷️":"📷"}</div>
+                      <div style={{fontSize:32,marginBottom:8}}>{scanMode==="receipt"?"🧾":scanMode==="weeklyad"?"🏷":"📷"}</div>
                       <div style={{fontFamily:FD,fontSize:16,color:C.text}}>{scanMode==="receipt"?"Tap to photograph receipt":scanMode==="weeklyad"?"Tap to screenshot weekly ad":"Tap to photograph shelf"}</div>
                       <div style={{fontSize:12,color:C.muted,marginBottom:12}}>opens camera directly</div>
                       <button onClick={e=>{e.stopPropagation();galleryRef.current.click();}} style={{background:"transparent",border:"1px solid "+C.border,borderRadius:8,color:C.muted,cursor:"pointer",fontFamily:FM,fontSize:11,padding:"6px 14px"}}>{scanMode==="weeklyad"?"Select All Pages (multi-select OK)":"Choose from Gallery"}</button>
@@ -2419,7 +2423,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                   <button style={{flex:1,padding:"9px",borderRadius:9,border:"1px solid "+C.border,background:"transparent",color:C.muted,cursor:"pointer",fontFamily:FM,fontSize:12,fontWeight:600}} onClick={()=>setScanOpen(false)}>Cancel</button>
                   <button style={{flex:2,padding:"9px",borderRadius:9,border:"none",background:scanB64?C.accent:C.border,color:scanB64?"#0c0e14":C.muted,cursor:scanB64?"pointer":"not-allowed",fontFamily:FM,fontSize:12,fontWeight:700,opacity:scanB64?1:0.5}}
                     onClick={scanMode==="receipt"?analyzeReceipt:scanMode==="weeklyad"?analyzeWeeklyAd:analyzePhoto} disabled={!scanB64}>
-                    {scanMode==="receipt"?"🧾 Read Receipt":scanMode==="weeklyad"?"🏷️ Extract Sale Items":"🔍 Analyze Photo"}
+                    {scanMode==="receipt"?"🧾 Read Receipt":scanMode==="weeklyad"?"🏷 Extract Sale Items":"🔍 Analyze Photo"}
                   </button>
                 </div>
               </div>
@@ -2626,7 +2630,7 @@ Return JSON: {verdict:"YES"|"LIMITED"|"NO", flag:"brief reason phrase", explanat
                 {/* Verdict */}
                 {(()=>{
                   const vColor=canIHaveResult.verdict==="YES"?"#22c55e":canIHaveResult.verdict==="LIMITED"?"#f59e0b":"#ef4444";
-                  const vEmoji=canIHaveResult.verdict==="YES"?"✅":canIHaveResult.verdict==="LIMITED"?"⚠️":"❌";
+                  const vEmoji=canIHaveResult.verdict==="YES"?"✅":canIHaveResult.verdict==="LIMITED"?"⚠":"❌";
                   const vBg=canIHaveResult.verdict==="YES"?"#052e16":canIHaveResult.verdict==="LIMITED"?"#1c1400":"#1f0000";
                   return(
                     <div style={{background:vBg,border:"2px solid "+vColor,borderRadius:12,padding:"18px 20px",marginBottom:16,textAlign:"center"}}>
@@ -2711,7 +2715,7 @@ Return JSON: {verdict:"YES"|"LIMITED"|"NO", flag:"brief reason phrase", explanat
                 setTimeout(()=>input.setAttribute("capture","environment"),1000);
               }}
               style={{...bBtn("ghost"),width:"100%",padding:"10px",marginBottom:10,fontSize:13,border:"1px solid "+C.border,color:C.text}}>
-              🖼️ Choose from Gallery
+              🖼 Choose from Gallery
             </button>
             <button onClick={()=>{
                 const next=photoSkipCount+1;
@@ -2913,7 +2917,7 @@ useDays is days from today the food is safe to eat (cooked food: 3-4 days typica
                   <div style={{fontSize:10,color:C.muted,marginBottom:2}}>USE BY</div>
                   <div style={{fontSize:13,fontWeight:700,color:leftoversResult.useDays<=2?"#f66":"#4c4"}}>
                     {new Date(Date.now()+leftoversResult.useDays*86400000).toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})}
-                    {leftoversResult.useDays<=2?" ⚠️ Soon!":" ✓"}
+                    {leftoversResult.useDays<=2?" ⚠ Soon!":" ✓"}
                   </div>
                 </div>
                 <div style={{background:C.bg,borderRadius:8,padding:10}}>
@@ -3128,7 +3132,7 @@ What can I substitute and do I have what I need?`,
 
               {subResult.warning&&(
                 <div style={{background:"#2a2000",border:"1px solid #fa0",borderRadius:10,padding:12}}>
-                  <div style={{fontSize:12,color:"#fa0"}}>⚠️ {subResult.warning}</div>
+                  <div style={{fontSize:12,color:"#fa0"}}>⚠ {subResult.warning}</div>
                 </div>
               )}
 
