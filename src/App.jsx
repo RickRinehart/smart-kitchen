@@ -1490,7 +1490,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
         </div>
       )}
       {showInstallBanner&&(<div style={{background:C.surface,borderBottom:"2px solid "+C.accent,padding:"10px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}><div style={{display:"flex",alignItems:"center",gap:10}}><span style={{fontSize:22}}>📱</span><div><div style={{fontFamily:FM,fontSize:12,fontWeight:600,color:C.accent}}>Install Smart Kitchen on your phone</div><div style={{fontFamily:FM,fontSize:11,color:C.muted,marginTop:2}}>{/iPhone|iPad|iPod/.test(navigator.userAgent)?"Tap Share then Add to Home Screen":"Tap menu then Add to Home Screen"}</div></div></div><button onClick={dismissInstall} style={{background:"transparent",border:"1px solid "+C.border,borderRadius:8,color:C.muted,cursor:"pointer",fontFamily:FM,fontSize:11,padding:"5px 10px"}}>Got it</button></div>)}
-      {seniorMode&&<div style={{background:"#1a2e3a",borderBottom:"2px solid #60a5fa",padding:"10px 20px",display:"flex",alignItems:"center",justifyContent:"space-between"}}><span style={{fontFamily:"system-ui",fontSize:18,color:"#93c5fd",fontWeight:700}}>👴 Senior Mode Active</span><button onClick={()=>setSeniorMode(false)} style={{background:"transparent",border:"2px solid #60a5fa",borderRadius:8,color:"#93c5fd",cursor:"pointer",fontFamily:"system-ui",fontSize:16,padding:"8px 18px",fontWeight:600}}>Turn Off</button></div>}
+      {seniorMode&&<div style={{background:"#1a2e3a",borderBottom:"2px solid #60a5fa",padding:"12px 20px",display:"flex",alignItems:"center",justifyContent:"space-between"}}><span style={{fontFamily:"system-ui",fontSize:20,color:"#93c5fd",fontWeight:700}}>👴 Senior-Friendly Mode is On</span><button onClick={()=>{if(window.confirm("Turn off larger text and simplified navigation?"))setSeniorMode(false);}} style={{background:"transparent",border:"2px solid #60a5fa",borderRadius:8,color:"#93c5fd",cursor:"pointer",fontFamily:"system-ui",fontSize:16,padding:"8px 18px",fontWeight:600}}>Turn Off</button></div>}
       {showInventoryReminder&&(
         <div style={{background:"#1a2e1a",borderBottom:"2px solid #22c55e",padding:"10px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
@@ -1509,8 +1509,8 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       {/* -- Header -- */}
       <div style={{background:C.surface,borderBottom:"1px solid "+C.border,padding:"14px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,flexWrap:"wrap"}}>
         <div>
-          <div style={{fontFamily:FD,fontSize:26,color:C.accent,lineHeight:1}}>Smart Kitchen™</div>
-          <div style={{fontSize:11,color:C.muted,marginTop:3,fontFamily:FM}}>
+          <div style={{fontFamily:FD,fontSize:seniorMode?36:26,color:C.accent,lineHeight:1}}>Smart Kitchen™</div>
+          <div style={{fontSize:seniorMode?15:11,color:C.muted,marginTop:3,fontFamily:FM}}>
             {totalPortions} protein portions · {blendItem?.qty||0} blend bags · {inventory.length} items
             {restrictedProfiles.length>0&&<span style={{...bTag("#f472b6"),marginLeft:8,fontSize:9}}>⚕️ dietary restrictions active</span>}
           </div>
@@ -1847,7 +1847,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
               <div style={{textAlign:"center",padding:60}}>
                 <div style={{fontFamily:FD,fontSize:48,color:C.accent,marginBottom:16}}>📅</div>
                 <div style={{color:C.muted,marginBottom:20}}>Builds around your protein portions and sauté blend bags</div>
-                <button style={bBtn("primary")} onClick={buildMealPlan}>📅 Build Meal Plan</button>
+                <button style={{...bBtn("primary"),padding:seniorMode?"18px 36px":"10px 24px",fontSize:seniorMode?20:13}} onClick={buildMealPlan}>📅 Build Meal Plan</button>
               </div>
             ):(
               <div>
@@ -1859,13 +1859,13 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                 </div>
                 <div style={{display:"flex",flexDirection:"column",gap:9}}>
                   {mealPlan.map((day,i)=>(
-                    <div key={i} style={{background:C.card,border:"1px solid "+(day.quickMeal?"#f59e0b":C.border),borderRadius:12,padding:12}}>
+                    <div key={i} style={{background:C.card,border:"1px solid "+(day.quickMeal?"#f59e0b":C.border),borderRadius:seniorMode?16:12,padding:seniorMode?18:12}}>
                       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
                         <div style={{display:"flex",alignItems:"center",gap:10}}>
-                          <div style={{fontWeight:700,color:C.accent,fontSize:seniorMode?24:20,fontFamily:FD}}>{day.day}</div>
+                          <div style={{fontWeight:700,color:C.accent,fontSize:seniorMode?30:20,fontFamily:FD}}>{day.day}</div>
                           <div style={{fontFamily:FM,fontSize:9,color:C.muted}}>DAY {i+1}</div>
                         </div>
-                        <button onClick={()=>day.quickMeal?clearQuickMeal(i):quickMealForDay(i)} style={{background:day.quickMeal?"#f59e0b22":"transparent",border:"1px solid "+(day.quickMeal?"#f59e0b":C.border),borderRadius:6,color:day.quickMeal?"#f59e0b":C.muted,cursor:"pointer",fontFamily:FM,fontSize:10,padding:"3px 8px"}}>{day.quickMeal?"⚡ Busy Night":"⚡ Busy?"}</button>
+                        <button onClick={()=>day.quickMeal?clearQuickMeal(i):quickMealForDay(i)} style={{background:day.quickMeal?"#f59e0b22":"transparent",border:"1px solid "+(day.quickMeal?"#f59e0b":C.border),borderRadius:6,color:day.quickMeal?"#f59e0b":C.muted,cursor:"pointer",fontFamily:FM,fontSize:seniorMode?14:10,padding:seniorMode?"6px 14px":"3px 8px"}}>{day.quickMeal?"⚡ Busy Night":"⚡ Busy?"}</button>
                       </div>
                       <div style={{display:"flex",flexDirection:"column",gap:8}}>
                       <div style={{flex:1,minWidth:0}}>
@@ -1891,7 +1891,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                           }).filter(Boolean);
                           return badges.length>0?<div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:4}}>{badges}</div>:null;
                         })()}
-                        <div><div onClick={()=>openMealPlanRecipe(day)} style={{fontFamily:FD,fontSize:seniorMode?22:19,marginBottom:4,color:C.accent,cursor:"pointer",lineHeight:1.4}}>🔍 {day.meal}</div>
+                        <div><div onClick={()=>openMealPlanRecipe(day)} style={{fontFamily:FD,fontSize:seniorMode?26:19,marginBottom:4,color:C.accent,cursor:"pointer",lineHeight:1.4}}>🔍 {day.meal}</div>
                         {/* Star rating on meal plan card */}
                         <div style={{display:"flex",gap:3,marginBottom:6}} onClick={e=>e.stopPropagation()}>
                           {[1,2,3,4,5].map(star=>{
@@ -1911,8 +1911,8 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                         {(day.shoppingNeeded||[]).length===0
                           ?<span style={bTag(C.green)}>✅ Ready</span>
                           :<div style={{width:"100%",marginBottom:4}}><div style={{fontSize:9,color:C.muted,marginBottom:3,fontFamily:FM}}>NEED</div>{(day.shoppingNeeded||[]).map((s,j)=><div key={j} style={{fontSize:seniorMode?15:13,color:C.red,marginBottom:2}}>· {s.qty} {s.unit} {s.name}</div>)}</div>}
-                        <button onClick={()=>madeMeal(day)} style={{background:"#3ecf8e22",border:"1px solid #3ecf8e44",borderRadius:6,color:"#3ecf8e",cursor:"pointer",fontFamily:FM,fontSize:seniorMode?14:11,padding:"8px 14px",flexShrink:0}}>✅ Made It!</button>
-                        <button onClick={()=>{setChangeMealModal(i);setChangeMealRequest("");}} style={{background:"transparent",border:"1px solid "+C.border,borderRadius:4,color:C.muted,fontFamily:FM,fontSize:seniorMode?14:11,padding:"8px 14px",cursor:"pointer",flexShrink:0}}>🔄 Change Meal</button>
+                        <button onClick={()=>madeMeal(day)} style={{background:"#3ecf8e22",border:"1px solid #3ecf8e44",borderRadius:seniorMode?10:6,color:"#3ecf8e",cursor:"pointer",fontFamily:FM,fontSize:seniorMode?18:11,padding:seniorMode?"12px 20px":"8px 14px",flexShrink:0,fontWeight:seniorMode?700:400}}>✅ Made It!</button>
+                        <button onClick={()=>{setChangeMealModal(i);setChangeMealRequest("");}} style={{background:"transparent",border:"1px solid "+C.border,borderRadius:seniorMode?10:4,color:C.muted,fontFamily:FM,fontSize:seniorMode?18:11,padding:seniorMode?"12px 20px":"8px 14px",cursor:"pointer",flexShrink:0}}>🔄 Change Meal</button>
                         <button onClick={()=>{const today=new Date();const daysToMon=today.getDay()===0?1:8-today.getDay();const monday=new Date(today);monday.setDate(today.getDate()+daysToMon);const offsets={Monday:0,Tuesday:1,Wednesday:2,Thursday:3,Friday:4,Saturday:5,Sunday:6};const d=new Date(monday);d.setDate(monday.getDate()+(offsets[day.day]??0));const dateStr=d.toISOString().split("T")[0].replace(/-/g,"");const desc=[day.proteinUsed?"Protein: "+day.proteinUsed:"",day.sideUsed?"Side: "+day.sideUsed:"",(day.shoppingNeeded||[]).length>0?"Need: "+day.shoppingNeeded.map(s=>s.name).join(", "):"All on hand"].filter(Boolean).join(" | ");window.open("https://calendar.google.com/calendar/render?action=TEMPLATE&text="+encodeURIComponent("Dinner: "+day.meal)+"&dates="+dateStr+"/"+dateStr+"&details="+encodeURIComponent(desc),"_blank");}} style={{background:"transparent",border:"1px solid #5b9cf6",borderRadius:4,color:"#5b9cf6",fontFamily:FM,fontSize:seniorMode?14:11,padding:"8px 14px",cursor:"pointer",flexShrink:0}}>📅 Add to Calendar</button>
                       </div>
                       </div>
