@@ -3031,7 +3031,10 @@ What can I substitute and do I have what I need?`,
       {makeThisModal&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:400,padding:16}} onClick={()=>{if(!makeThisLoading){setMakeThisModal(false);}}}>
           <div style={{background:C.card,border:"1px solid "+C.border,borderRadius:18,padding:28,maxWidth:480,width:"100%"}} onClick={e=>e.stopPropagation()}>
-            <div style={{fontFamily:FD,fontSize:22,color:C.accent,marginBottom:6}}>🍽 Make This</div>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+              <div style={{fontFamily:FD,fontSize:22,color:C.accent}}>🍽 Make This</div>
+              <button onClick={()=>{if(!makeThisLoading){setMakeThisModal(false);setMakeThisResult(null);setMakeThisInput("");}}} style={{background:"transparent",border:"none",color:C.muted,cursor:"pointer",fontSize:22,lineHeight:1,padding:"2px 6px"}} title="Close">✕</button>
+            </div>
             <div style={{fontFamily:FM,fontSize:13,color:C.muted,marginBottom:16}}>Type any dish — Claude will find the recipe and check your pantry.</div>
             {!makeThisResult?(
               <div>
