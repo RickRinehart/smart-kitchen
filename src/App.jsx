@@ -3033,7 +3033,7 @@ What can I substitute and do I have what I need?`,
           <div style={{background:C.card,border:"1px solid "+C.border,borderRadius:18,padding:28,maxWidth:480,width:"100%"}} onClick={e=>e.stopPropagation()}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
               <div style={{fontFamily:FD,fontSize:22,color:C.accent}}>🍽 Make This</div>
-              <button onClick={()=>{if(!makeThisLoading){setMakeThisModal(false);setMakeThisResult(null);setMakeThisInput("");}}} style={{background:"transparent",border:"none",color:C.muted,cursor:"pointer",fontSize:22,lineHeight:1,padding:"2px 6px"}} title="Close">✕</button>
+              <button onClick={()=>{if(!makeThisLoading){setMakeThisModal(false);setMakeThisResult(null);setMakeThisInput("");}}} style={{background:C.surface,border:"1px solid "+C.border,borderRadius:6,color:C.text,cursor:"pointer",fontSize:16,lineHeight:1,padding:"4px 10px",fontWeight:600}} title="Close">✕ Close</button>
             </div>
             <div style={{fontFamily:FM,fontSize:13,color:C.muted,marginBottom:16}}>Type any dish — Claude will find the recipe and check your pantry.</div>
             {!makeThisResult?(
