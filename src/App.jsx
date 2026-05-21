@@ -1885,7 +1885,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                         <div style={{display:"flex",gap:3,marginBottom:6}} onClick={e=>e.stopPropagation()}>
                           {[1,2,3,4,5].map(star=>{
                             const mealRating=recipeRatings[day.meal]?.rating||0;
-                            return <button key={star} onClick={e=>{e.stopPropagation();setRecipeRatings(prev=>{const cur=prev[day.meal]?.rating||0;const next={...prev};if(cur===star){delete next[day.meal];}else{next[day.meal]={rating:star,recipe:{name:day.meal,description:"",time:"",difficulty:"Easy",usesFromInventory:day.ingredients||[],missingIngredients:day.shoppingNeeded?.map(s=>s.name)||[]}};}if(star===5&&cur!==5){const skips=parseInt(localStorage.getItem("sk_photoSkipCount")||"0");if(skips<15) setTimeout(()=>setPhotoPromptMeal(day.meal),300);}return next;});}} style={{background:"none",border:"none",cursor:"pointer",fontSize:seniorMode?20:16,padding:"0 1px",color:star<=mealRating?"#f59e0b":"#555"}} title={star===1?"Never suggest again":star===5?"Keeper!":"Rate "+star+" stars"}>{star<=mealRating?"★":"☆"}</button>;
+                            return <button key={star} onClick={e=>{e.stopPropagation();setRecipeRatings(prev=>{const cur=prev[day.meal]?.rating||0;const next={...prev};if(cur===star){delete next[day.meal];}else{next[day.meal]={rating:star,recipe:{name:day.meal,description:"",time:"",difficulty:"Easy",usesFromInventory:day.ingredients||[],missingIngredients:day.shoppingNeeded?.map(s=>s.name)||[]}};}if(star===5&&cur!==5){const skips=parseInt(localStorage.getItem("sk_photoSkipCount")||"0");if(skips<3) setTimeout(()=>setPhotoPromptMeal(day.meal),300);}return next;});}} style={{background:"none",border:"none",cursor:"pointer",fontSize:seniorMode?20:16,padding:"0 1px",color:star<=mealRating?"#f59e0b":"#555"}} title={star===1?"Never suggest again":star===5?"Keeper!":"Rate "+star+" stars"}>{star<=mealRating?"★":"☆"}</button>;
                           })}
                           {(recipeRatings[day.meal]?.rating||0)>=3&&<span style={{fontSize:9,color:C.muted,fontFamily:FM,marginLeft:3,alignSelf:"center"}}>{recipeRatings[day.meal]?.rating===5?"🏆":recipeRatings[day.meal]?.rating===4?"❤️":"👍"}</span>}
                         </div>
@@ -2500,7 +2500,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                 setPhotoPromptMeal(null);
               }}
               style={{background:"transparent",border:"none",color:C.muted,fontFamily:FM,fontSize:12,cursor:"pointer",width:"100%",padding:"8px"}}>
-              {photoSkipCount>=12?"Don't ask again":"Skip for now"}
+              {photoSkipCount>=2?"Don't ask again":"Skip for now"}
             </button>
           </div>
         </div>
