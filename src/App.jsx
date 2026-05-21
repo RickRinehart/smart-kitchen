@@ -415,6 +415,8 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [familyProfiles,setFamilyProfiles]=useState(()=>loadLocal("sk_familyProfiles",DEFAULT_PROFILES));
   const [tempProfiles,setTempProfiles]=useState(()=>loadLocal("sk_tempProfiles",[]));
   const [seniorMode,setSeniorMode]=useState(()=>{try{return localStorage.getItem("sk_seniorMode")==="1";}catch{return false;}});
+  const [seniorPromptDismissed,setSeniorPromptDismissed]=useState(()=>{try{return localStorage.getItem("sk_seniorPromptDismissed")==="1";}catch{return false;}});
+  const [showSeniorPrompt,setShowSeniorPrompt]=useState(false);
   const [darkMode,setDarkMode]=useState(()=>{try{return localStorage.getItem("sk_darkMode")!=="0";}catch{return true;}});
   // Apply theme by toggling body class — CSS variables handle the rest
   useEffect(()=>{
@@ -515,6 +517,15 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   useEffect(()=>{try{localStorage.setItem("sk_familyProfiles",JSON.stringify(familyProfiles));}catch{}},[familyProfiles]);
   useEffect(()=>{try{localStorage.setItem("sk_tempProfiles",JSON.stringify(tempProfiles));}catch{}},[tempProfiles]);
   useEffect(()=>{try{localStorage.setItem("sk_seniorMode",seniorMode?"1":"0");}catch{}},[seniorMode]);
+  useEffect(()=>{
+    const person1=familyProfiles[0];
+    if(person1?.restriction==="senior"&&!seniorMode&&!seniorPromptDismissed){
+      const timer=setTimeout(()=>setShowSeniorPrompt(true),800);
+      return ()=>clearTimeout(timer);
+    } else {
+      setShowSeniorPrompt(false);
+    }
+  },[familyProfiles,seniorMode,seniorPromptDismissed]);
   useEffect(()=>{try{localStorage.setItem("sk_recipes",JSON.stringify(recipes));}catch{}},[recipes]);
   useEffect(()=>{try{localStorage.setItem("sk_desserts",JSON.stringify(desserts));}catch{}},[desserts]);
   useEffect(()=>{try{localStorage.setItem("sk_dessertRatings",JSON.stringify(dessertRatings));}catch{}},[dessertRatings]);
@@ -2457,6 +2468,38 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       )}
 
       {/* == RECIPE MODAL == */}
+      {showSeniorPrompt&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:700,padding:20}} onClick={()=>{setSeniorPromptDismissed(true);try{localStorage.setItem("sk_seniorPromptDismissed","1");}catch{}setShowSeniorPrompt(false);}}>
+          <div style={{background:C.surface,border:"1px solid "+C.borderLight,borderRadius:16,padding:28,maxWidth:360,width:"100%",textAlign:"center"}} onClick={e=>e.stopPropagation()}>
+            <div style={{fontSize:48,marginBottom:10}}>👴</div>
+            <div style={{fontFamily:FD,fontSize:22,fontWeight:700,color:C.accent,marginBottom:8}}>Senior-Friendly Mode</div>
+            <div style={{fontFamily:FM,fontSize:15,color:C.muted,marginBottom:24,lineHeight:1.7}}>
+              We noticed your profile is set to <strong style={{color:C.text}}>Senior Adult</strong>. Would you like larger text and easier navigation to make Smart Kitchen more comfortable to use?
+            </div>
+            <button onClick={()=>{
+                setSeniorMode(true);
+                setSeniorPromptDismissed(true);
+                try{localStorage.setItem("sk_seniorMode","1");localStorage.setItem("sk_seniorPromptDismissed","1");}catch{}
+                setShowSeniorPrompt(false);
+              }}
+              style={{...bBtn("primary"),width:"100%",padding:"14px",fontSize:16,marginBottom:12,borderRadius:10}}>
+              ✅ Yes please — bigger text
+            </button>
+            <button onClick={()=>{
+                setSeniorPromptDismissed(true);
+                try{localStorage.setItem("sk_seniorPromptDismissed","1");}catch{}
+                setShowSeniorPrompt(false);
+              }}
+              style={{...bBtn("ghost"),width:"100%",padding:"12px",fontSize:14,border:"1px solid "+C.border,color:C.text,borderRadius:10,marginBottom:8}}>
+              No thanks — keep it as is
+            </button>
+            <div style={{fontFamily:FM,fontSize:11,color:C.muted,marginTop:4,lineHeight:1.5}}>
+              You can always change this later using the <strong>🔤 Senior</strong> button in the menu.
+            </div>
+          </div>
+        </div>
+      )}
+
       {photoPromptMeal&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:600,padding:20}} onClick={()=>setPhotoPromptMeal(null)}>
           <div style={{background:C.surface,border:"1px solid "+C.borderLight,borderRadius:16,padding:24,maxWidth:340,width:"100%",textAlign:"center"}} onClick={e=>e.stopPropagation()}>
