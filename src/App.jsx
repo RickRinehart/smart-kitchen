@@ -1508,12 +1508,20 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       )}
       {/* -- Header -- */}
       <div style={{background:C.surface,borderBottom:"1px solid "+C.border,padding:"14px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,flexWrap:"wrap"}}>
-        <div>
-          <div style={{fontFamily:FD,fontSize:seniorMode?36:26,color:C.accent,lineHeight:1}}>Smart Kitchen™</div>
-          <div style={{fontSize:seniorMode?15:11,color:C.muted,marginTop:3,fontFamily:FM}}>
-            {totalPortions} protein portions · {blendItem?.qty||0} blend bags · {inventory.length} items
-            {restrictedProfiles.length>0&&<span style={{...bTag("#f472b6"),marginLeft:8,fontSize:9}}>⚕️ dietary restrictions active</span>}
+        <div style={{display:"flex",alignItems:"flex-start",gap:12}}>
+          <div>
+            <div style={{fontFamily:FD,fontSize:seniorMode?36:26,color:C.accent,lineHeight:1}}>Smart Kitchen™</div>
+            <div style={{fontSize:seniorMode?15:11,color:C.muted,marginTop:3,fontFamily:FM}}>
+              {totalPortions} protein portions · {blendItem?.qty||0} blend bags · {inventory.length} items
+              {restrictedProfiles.length>0&&<span style={{...bTag("#f472b6"),marginLeft:8,fontSize:9}}>⚕️ dietary restrictions active</span>}
+            </div>
           </div>
+          <button onClick={()=>setShowSettings(true)} title="Settings"
+            style={{background:"transparent",border:"1px solid "+C.border,borderRadius:8,color:C.muted,cursor:"pointer",fontSize:seniorMode?22:16,padding:seniorMode?"8px 12px":"5px 9px",marginTop:2,lineHeight:1,transition:"all 0.15s"}}
+            onMouseOver={e=>e.currentTarget.style.color=C.accent}
+            onMouseOut={e=>e.currentTarget.style.color=C.muted}>
+            ⚙️
+          </button>
         </div>
         <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
           <button style={bBtn("ghost")} onClick={()=>setProfileModalOpen(true)}>👨‍👩‍👧 Family</button>
@@ -1529,7 +1537,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
             fetchRecipes();
           }}>✨ Recipes</button>
           <button style={{...bBtn("ghost"),fontSize:16,padding:"7px 10px",border:"1px solid "+C.accent,color:C.accent}} onClick={()=>{setMakeThisModal(true);setMakeThisInput("");setMakeThisResult(null);}}>🍽 Make This</button>
-          <button style={{...bBtn("ghost"),fontSize:16,padding:"7px 10px"}} onClick={()=>setShowSettings(true)}>Settings</button>
+
         </div>
       </div>
 
