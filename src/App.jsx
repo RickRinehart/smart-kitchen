@@ -2682,18 +2682,22 @@ Return JSON: {verdict:"YES"|"LIMITED"|"NO", flag:"brief reason phrase", explanat
             ):(
               <div>
                 {/* Verdict */}
-                {(()=>{
-                  const vColor=canIHaveResult.verdict==="YES"?"#22c55e":canIHaveResult.verdict==="LIMITED"?"#f59e0b":"#ef4444";
-                  const vEmoji=canIHaveResult.verdict==="YES"?"✅":canIHaveResult.verdict==="LIMITED"?"⚠":"❌";
-                  const vBg=canIHaveResult.verdict==="YES"?"#052e16":canIHaveResult.verdict==="LIMITED"?"#1c1400":"#1f0000";
-                  return(
-                    <div style={{background:vBg,border:"2px solid "+vColor,borderRadius:12,padding:"18px 20px",marginBottom:16,textAlign:"center"}}>
-                      <div style={{fontSize:48,marginBottom:6}}>{vEmoji}</div>
-                      <div style={{fontFamily:FD,fontSize:28,fontWeight:700,color:vColor,marginBottom:4}}>{canIHaveResult.verdict}</div>
-                      <div style={{fontSize:13,fontWeight:700,color:vColor,fontFamily:FM,letterSpacing:0.5}}>{canIHaveResult.flag}</div>
-                    </div>
-                  );
-                })()}
+                <div style={{
+                  background:canIHaveResult.verdict==="YES"?"#052e16":canIHaveResult.verdict==="LIMITED"?"#1c1400":"#1f0000",
+                  border:"2px solid "+(canIHaveResult.verdict==="YES"?"#22c55e":canIHaveResult.verdict==="LIMITED"?"#f59e0b":"#ef4444"),
+                  borderRadius:12,padding:"18px 20px",marginBottom:16,textAlign:"center"}}>
+                  <div style={{fontSize:48,marginBottom:6}}>
+                    {canIHaveResult.verdict==="YES"?"✅":canIHaveResult.verdict==="LIMITED"?"⚠":"❌"}
+                  </div>
+                  <div style={{fontFamily:FD,fontSize:28,fontWeight:700,marginBottom:4,
+                    color:canIHaveResult.verdict==="YES"?"#22c55e":canIHaveResult.verdict==="LIMITED"?"#f59e0b":"#ef4444"}}>
+                    {canIHaveResult.verdict}
+                  </div>
+                  <div style={{fontSize:13,fontWeight:700,fontFamily:FM,letterSpacing:0.5,
+                    color:canIHaveResult.verdict==="YES"?"#22c55e":canIHaveResult.verdict==="LIMITED"?"#f59e0b":"#ef4444"}}>
+                    {canIHaveResult.flag}
+                  </div>
+                </div>
 
                 {/* Photo thumbnail */}
                 {canIHavePreview&&<img src={canIHavePreview} alt="" style={{width:"100%",borderRadius:8,maxHeight:120,objectFit:"cover",marginBottom:12,border:"1px solid "+C.border}}/>}
