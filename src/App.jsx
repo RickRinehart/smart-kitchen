@@ -1536,7 +1536,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
             }
             fetchRecipes();
           }}>✨ Recipes</button>
-          <button style={{...bBtn("primary"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px"}} onClick={()=>{setMakeThisModal(true);setMakeThisInput("");setMakeThisResult(null);}}>🍽 Make This</button>
+          <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px",border:"1px solid "+C.accent,color:C.accent}} onClick={()=>{setMakeThisModal(true);setMakeThisInput("");setMakeThisResult(null);}}>🍽 Make This</button>
         </div>
       </div>
 
