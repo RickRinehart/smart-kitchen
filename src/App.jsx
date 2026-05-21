@@ -1739,67 +1739,51 @@ Close</button>
           </div>
         )}
 
-        {swapRecipeModal&&(
-  <div
-    style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.7)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}}
-    onClick={()=>setSwapRecipeModal(null)}>
-    <div style={{background:C.card,borderRadius:12,padding:24,width:360,maxWidth:"90vw"}}
-      onClick={e=>e.stopPropagation()}>
-      <div style={{fontFamily:FD,fontSize:18,fontWeight:700,color:C.text,marginBottom:16}}>
-        Swap Recipe
-      </div>
-      <button
-        onClick={async()=>{
-          setSwapRecipeLoading(true);
-          const prompt="Give me ONE different recipe suggestion"+(swapRecipeRequest.trim()?" for: "+swapRecipeRequest.trim():" (different from "+swapRecipeModal.name+")")+". Inventory: "+inventory.map(i=>i.name).filter(Boolean).join(", ")+". Return ONLY valid JSON: {name,description,time,difficulty,instructions:[4 short strings],usesFromInventory:[],missingIngredients:[]}";
-          const res=await callClaude({system:"Recipe AI. Return ONLY valid JSON, no markdown.",prompt,maxTokens:600});
-          try{
-            const raw=typeof res==="string"?res:Array.isArray(res)?res.map(r=>r.text||"").join(""):res?.content?.[0]?.text||"";
-            const clean=raw.replace(/```json|```/g,"").trim();
-            const parsed=JSON.parse(clean);
-            setRecipes(prev=>prev.map(r=>r.id===swapRecipeModal.id?{...parsed,id:swapRecipeModal.id,usesFromInventory:parsed.usesFromInventory||[],missingIngredients:parsed.missingIngredients||[]}:r));
-            setSwapRecipeModal(null);
-          }catch(e){alert("Could not parse recipe.");}
-          setSwapRecipeLoading(false);
-        }}
-        style={{width:"100%",padding:"12px",borderRadius:8,background:C.accent,border:"none",color:"#000",fontFamily:FM,fontSize:14,fontWeight:700,cursor:"pointer",marginBottom:10}}>
-        {swapRecipeLoading?"Thinking...":"✦ Surprise Me"}
-      </button>
-      <div style={{color:C.muted,fontFamily:FM,fontSize:12,textAlign:"center",marginBottom:8}}>
-        — or request a specific recipe —
-      </div>
-      <input
-        value={swapRecipeRequest}
-        onChange={e=>setSwapRecipeRequest(e.target.value)}
-        placeholder='e.g. "Something with chicken"'
-        style={{width:"100%",padding:"8px 12px",borderRadius:6,border:"1px solid "+C.border,background:C.surface,color:C.text,fontFamily:FM,fontSize:13,boxSizing:"border-box",marginBottom:10}}
-      />
-      <button
-        onClick={async()=>{
-          if(!swapRecipeRequest.trim()){alert("Please type a recipe request first.");return;}
-          setSwapRecipeLoading(true);
-          const prompt="Give me ONE recipe for: "+swapRecipeRequest.trim()+". Inventory: "+inventory.map(i=>i.name).filter(Boolean).join(", ")+". Return ONLY valid JSON: {name,description,time,difficulty,instructions:[4 short strings],usesFromInventory:[],missingIngredients:[]}";
-          const res=await callClaude({system:"Recipe AI. Return ONLY valid JSON, no markdown.",prompt,maxTokens:600});
-          try{
-            const raw=typeof res==="string"?res:Array.isArray(res)?res.map(r=>r.text||"").join(""):res?.content?.[0]?.text||"";
-            const clean=raw.replace(/```json|```/g,"").trim();
-            const parsed=JSON.parse(clean);
-            setRecipes(prev=>prev.map(r=>r.id===swapRecipeModal.id?{...parsed,id:swapRecipeModal.id,usesFromInventory:parsed.usesFromInventory||[],missingIngredients:parsed.missingIngredients||[]}:r));
-            setSwapRecipeModal(null);
-          }catch(e){alert("Could not parse recipe.");}
-          setSwapRecipeLoading(false);
-        }}
-        style={{width:"100%",padding:"12px",borderRadius:8,background:"transparent",border:"1px solid "+C.accent,color:C.accent,fontFamily:FM,fontSize:14,cursor:"pointer",marginBottom:8}}>
-        Make This Recipe
-      </button>
-      <button onClick={()=>setSwapRecipeModal(null)}
-        style={{width:"100%",padding:"8px",borderRadius:8,background:"transparent",border:"none",color:C.muted,fontFamily:FM,fontSize:12,cursor:"pointer"}}>
-        Cancel
-      </button>
-    </div>
-  </div>
-)}
-        {/* == SAVED RECIPES == */}
+        {swapRecipeModal&&<div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.7)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setSwapRecipeModal(null)}>
+          <div style={{background:C.card,borderRadius:12,padding:24,width:360,maxWidth:"90vw"}} onClick={e=>e.stopPropagation()}>
+            <div style={{fontFamily:FD,fontSize:18,fontWeight:700,color:C.text,marginBottom:16}}>Swap Recipe</div>
+            <button onClick={async()=>{
+              setSwapRecipeLoading(true);
+              const prompt="Give me ONE different recipe suggestion"+(swapRecipeRequest.trim()?" for: "+swapRecipeRequest.trim():" (different from "+swapRecipeModal.name+")")+". Inventory: "+inventory.map(i=>i.name).filter(Boolean).join(", ")+". Return ONLY valid JSON: {name,description,time,difficulty,instructions:[4 short strings],usesFromInventory:[],missingIngredients:[]}";
+              const res=await callClaude({system:"Recipe AI. Return ONLY valid JSON, no markdown.",prompt,maxTokens:600});
+              try{
+                const raw=typeof res==="string"?res:Array.isArray(res)?res.map(r=>r.text||"").join(""):res?.content?.[0]?.text||"";
+                const clean=raw.replace(/```json|```/g,"").trim();
+                const parsed=JSON.parse(clean);
+                setRecipes(prev=>prev.map(r=>r.id===swapRecipeModal.id?{...parsed,id:swapRecipeModal.id,usesFromInventory:parsed.usesFromInventory||[],missingIngredients:parsed.missingIngredients||[]}:r));
+                setSwapRecipeModal(null);
+              }catch(e){alert("Could not parse recipe.");}
+              setSwapRecipeLoading(false);
+            }} style={{width:"100%",padding:"12px",borderRadius:8,background:C.accent,border:"none",color:"#000",fontFamily:FM,fontSize:14,fontWeight:700,cursor:"pointer",marginBottom:10}}>
+              {swapRecipeLoading?"Thinking...":"✦ Surprise Me"}
+            </button>
+            <div style={{color:C.muted,fontFamily:FM,fontSize:12,textAlign:"center",marginBottom:8}}>— or request a specific recipe —</div>
+            <input value={swapRecipeRequest} onChange={e=>setSwapRecipeRequest(e.target.value)}
+              placeholder='e.g. "Something with chicken"'
+              style={{width:"100%",padding:"8px 12px",borderRadius:6,border:"1px solid "+C.border,background:C.surface,color:C.text,fontFamily:FM,fontSize:13,boxSizing:"border-box",marginBottom:10}}/>
+            <button onClick={async()=>{
+              if(!swapRecipeRequest.trim()){alert("Please type a recipe request first.");return;}
+              setSwapRecipeLoading(true);
+              const prompt="Give me ONE recipe for: "+swapRecipeRequest.trim()+". Inventory: "+inventory.map(i=>i.name).filter(Boolean).join(", ")+". Return ONLY valid JSON: {name,description,time,difficulty,instructions:[4 short strings],usesFromInventory:[],missingIngredients:[]}";
+              const res=await callClaude({system:"Recipe AI. Return ONLY valid JSON, no markdown.",prompt,maxTokens:600});
+              try{
+                const raw=typeof res==="string"?res:Array.isArray(res)?res.map(r=>r.text||"").join(""):res?.content?.[0]?.text||"";
+                const clean=raw.replace(/```json|```/g,"").trim();
+                const parsed=JSON.parse(clean);
+                setRecipes(prev=>prev.map(r=>r.id===swapRecipeModal.id?{...parsed,id:swapRecipeModal.id,usesFromInventory:parsed.usesFromInventory||[],missingIngredients:parsed.missingIngredients||[]}:r));
+                setSwapRecipeModal(null);
+              }catch(e){alert("Could not parse recipe.");}
+              setSwapRecipeLoading(false);
+            }} style={{width:"100%",padding:"12px",borderRadius:8,background:"transparent",border:"1px solid "+C.accent,color:C.accent,fontFamily:FM,fontSize:14,cursor:"pointer",marginBottom:8}}>
+              Make This Recipe
+            </button>
+            <button onClick={()=>setSwapRecipeModal(null)}
+              style={{width:"100%",padding:"8px",borderRadius:8,background:"transparent",border:"none",color:C.muted,fontFamily:FM,fontSize:12,cursor:"pointer"}}>
+              Cancel
+            </button>
+          </div>
+        </div>}
+                {/* == SAVED RECIPES == */}
         {tab==="saved"&&(
           <div style={{padding:20,maxWidth:940,margin:"0 auto"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
