@@ -391,6 +391,9 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [mealPhotos,setMealPhotos]=useState(()=>loadLocal("sk_mealPhotos",{}));
   const [photoPromptMeal,setPhotoPromptMeal]=useState(null);
   const [photoSkipCount,setPhotoSkipCount]=useState(()=>{try{return parseInt(localStorage.getItem("sk_photoSkipCount")||"0");}catch{return 0;}});
+  const [mealPhotos,setMealPhotos]=useState(()=>loadLocal("sk_mealPhotos",{}));
+  const [photoPromptMeal,setPhotoPromptMeal]=useState(null);
+  const [photoSkipCount,setPhotoSkipCount]=useState(()=>{try{return parseInt(localStorage.getItem("sk_photoSkipCount")||"0");}catch{return 0;}});
   const [savedRecipesFilter,setSavedRecipesFilter]=useState("all");
   const [recipeError,setRecipeError]=useState("");
   const [mealPlan,setMealPlan]=useState(()=>loadLocal("sk_mealPlan",[]));
@@ -415,6 +418,8 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [familyProfiles,setFamilyProfiles]=useState(()=>loadLocal("sk_familyProfiles",DEFAULT_PROFILES));
   const [tempProfiles,setTempProfiles]=useState(()=>loadLocal("sk_tempProfiles",[]));
   const [seniorMode,setSeniorMode]=useState(()=>{try{return localStorage.getItem("sk_seniorMode")==="1";}catch{return false;}});
+  const [seniorPromptDismissed,setSeniorPromptDismissed]=useState(()=>{try{return localStorage.getItem("sk_seniorPromptDismissed")==="1";}catch{return false;}});
+  const [showSeniorPrompt,setShowSeniorPrompt]=useState(false);
   const [seniorPromptDismissed,setSeniorPromptDismissed]=useState(()=>{try{return localStorage.getItem("sk_seniorPromptDismissed")==="1";}catch{return false;}});
   const [showSeniorPrompt,setShowSeniorPrompt]=useState(false);
   const [darkMode,setDarkMode]=useState(()=>{try{return localStorage.getItem("sk_darkMode")!=="0";}catch{return true;}});
@@ -532,10 +537,20 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
       setShowSeniorPrompt(false);
     }
   },[familyProfiles,seniorMode,seniorPromptDismissed]);
+  useEffect(()=>{
+    const person1=familyProfiles[0];
+    if(person1?.restriction==="senior"&&!seniorMode&&!seniorPromptDismissed){
+      const timer=setTimeout(()=>setShowSeniorPrompt(true),800);
+      return ()=>clearTimeout(timer);
+    } else {
+      setShowSeniorPrompt(false);
+    }
+  },[familyProfiles,seniorMode,seniorPromptDismissed]);
   useEffect(()=>{try{localStorage.setItem("sk_recipes",JSON.stringify(recipes));}catch{}},[recipes]);
   useEffect(()=>{try{localStorage.setItem("sk_desserts",JSON.stringify(desserts));}catch{}},[desserts]);
   useEffect(()=>{try{localStorage.setItem("sk_dessertRatings",JSON.stringify(dessertRatings));}catch{}},[dessertRatings]);
   useEffect(()=>{try{localStorage.setItem("sk_recipeRatings",JSON.stringify(recipeRatings));}catch{}},[recipeRatings]);
+  useEffect(()=>{try{localStorage.setItem("sk_mealPhotos",JSON.stringify(mealPhotos));}catch{}},[mealPhotos]);
   useEffect(()=>{try{localStorage.setItem("sk_mealPhotos",JSON.stringify(mealPhotos));}catch{}},[mealPhotos]);
   useEffect(()=>{try{localStorage.setItem("sk_sportsNights",JSON.stringify(sportsNights));}catch{}},[sportsNights]);
   useEffect(()=>{try{localStorage.setItem("sk_activeTab",tab);}catch{}},[tab]);
@@ -604,6 +619,12 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
         if(f.includes("low-carb")) parts.push("LOW CARB");
         if(f.includes("low-sodium")) parts.push("low sodium");
         if(f.includes("limit-protein")) parts.push("limited protein");
+        if(f.includes("soft-textures")) parts.push("soft easy-to-chew textures preferred");
+        if(f.includes("simple-prep")) parts.push("simple preparation — minimal steps");
+        if(f.includes("familiar-foods")) parts.push("familiar comfort foods — avoid exotic ingredients");
+        if(f.includes("small-portions")) parts.push("smaller senior-appropriate portions");
+        if(f.includes("high-protein")) parts.push("HIGH PROTEIN for athlete performance");
+        if(f.includes("high-calorie")) parts.push("HIGH CALORIE for athlete energy needs");
         if(f.includes("soft-textures")) parts.push("soft easy-to-chew textures preferred");
         if(f.includes("simple-prep")) parts.push("simple preparation — minimal steps");
         if(f.includes("familiar-foods")) parts.push("familiar comfort foods — avoid exotic ingredients");
@@ -1293,15 +1314,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
 
   
-      {showSettings&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setShowSettings(false)}>
-<div style={{background:C.card,borderRadius:16,padding:28,width:340,maxWidth:"90vw",maxHeight:"90vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}><div style={{fontFamily:FD,fontSize:20,fontWeight:700,color:C.text,marginBottom:4}}>Settings</div><div style={{fontSize:11,color:C.muted,fontFamily:FM,marginBottom:20}}>Smart Kitchen v1.5</div><div style={{marginTop:12,background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:8}}>Shopping Partner</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:6}}>Who gets the emailed shopping list?</div><input placeholder="Name (e.g. Lisa)" value={shopPartnerName} onChange={e=>{setShopPartnerName(e.target.value);localStorage.setItem("sk_shopPartnerName",e.target.value);}} style={{width:"100%",background:C.card,border:"1px solid "+C.border,borderRadius:6,padding:"6px 10px",color:C.text,fontFamily:FM,fontSize:12,marginBottom:6,boxSizing:"border-box"}}/><input placeholder="Email address" value={shopPartnerEmail} onChange={e=>{setShopPartnerEmail(e.target.value);localStorage.setItem("sk_shopPartnerEmail",e.target.value);}} style={{width:"100%",background:C.card,border:"1px solid "+C.border,borderRadius:6,padding:"6px 10px",color:C.text,fontFamily:FM,fontSize:12,boxSizing:"border-box"}}/></div><div style={{display:"flex",flexDirection:"column",gap:12}}><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>{darkMode?"🌙 Dark Mode":"☀ Light Mode"}</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Switch between dark and light display themes.</div><button style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.border,color:C.text}} onClick={()=>setDarkMode(m=>!m)}>{darkMode?"Switch to Light Mode ☀":"Switch to Dark Mode 🌙"}</button></div><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>Recipe Search Site</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Where to search for recipes when you tap a meal name.</div><div style={{display:"flex",flexDirection:"column",gap:6}}>{[["google","🔍 Google Recipes"],["allrecipes","🍳 AllRecipes"],["pinterest","📌 Pinterest"],["foodnetwork","📺 Food Network"]].map(([key,label])=>(<button key={key} onClick={()=>{setRecipeSite(key);localStorage.setItem("sk_recipeSite",key);}} style={{padding:"8px 12px",borderRadius:8,border:"1px solid "+(recipeSite===key?C.accent:C.border),background:recipeSite===key?C.accent+"22":"transparent",color:recipeSite===key?C.accent:C.text,fontFamily:FM,fontSize:12,cursor:"pointer",textAlign:"left"}}>{label}{recipeSite===key?" ✓":""}</button>))}</div></div><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>Reset Inventory</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Clears all inventory items. Keeps profiles, meal plan, and preferences.</div><button style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.red,color:C.red}} onClick={()=>{if(window.confirm("Clear all inventory? Cannot be undone.")){localStorage.removeItem("sk_inventory");localStorage.removeItem("sk_portionFixV2");setInventory([]);setShowSettings(false);alert("Inventory cleared.");}}}>Clear Inventory</button></div><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>Reset All Data</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Wipes everything and restarts the Setup Wizard. Use for demo resets.</div><button style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.red,color:C.red}} onClick={()=>{if(window.confirm("Reset ALL data? Cannot be undone.")){["sk_inventory","sk_familyProfiles","sk_familySize","sk_mealPlan","sk_sportsNights","sk_recipeSite","sk_seniorMode","sk_setupDone","sk_portionFixV2","sk_installDismissed","sk_reminderDismissed","sk_saleItems","sk_tempProfiles","sk_activeTab","sk_chatWelcomeDone","sk_tourChoice","sk_tourStep","sk_guestCaptured","sk_darkMode","sk_recipes","sk_recipeRatings","sk_desserts","sk_dessertRatings"].forEach(k=>localStorage.removeItem(k));
-window.location.reload();}}}>
-Reset All Data</button>
-</div></div>
-<button style={{...bBtn("ghost"),width:"100%",marginTop:16}} onClick={()=>setShowSettings(false)}>
-
-Close</button>
-</div></div>}
+      {showSettings&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setShowSettings(false)}><div style={{background:C.card,borderRadius:16,padding:28,width:340,maxWidth:"90vw",maxHeight:"90vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}><div style={{fontFamily:FD,fontSize:20,fontWeight:700,color:C.text,marginBottom:4}}>Settings</div><div style={{fontSize:11,color:C.muted,fontFamily:FM,marginBottom:20}}>Smart Kitchen v1.5</div><div style={{marginTop:12,background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:8}}>Shopping Partner</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:6}}>Who gets the emailed shopping list?</div><input placeholder="Name (e.g. Lisa)" value={shopPartnerName} onChange={e=>{setShopPartnerName(e.target.value);localStorage.setItem("sk_shopPartnerName",e.target.value);}} style={{width:"100%",background:C.card,border:"1px solid "+C.border,borderRadius:6,padding:"6px 10px",color:C.text,fontFamily:FM,fontSize:12,marginBottom:6,boxSizing:"border-box"}}/><input placeholder="Email address" value={shopPartnerEmail} onChange={e=>{setShopPartnerEmail(e.target.value);localStorage.setItem("sk_shopPartnerEmail",e.target.value);}} style={{width:"100%",background:C.card,border:"1px solid "+C.border,borderRadius:6,padding:"6px 10px",color:C.text,fontFamily:FM,fontSize:12,boxSizing:"border-box"}}/></div><div style={{display:"flex",flexDirection:"column",gap:12}}><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>{darkMode?"🌙 Dark Mode":"☀ Light Mode"}</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Switch between dark and light display themes.</div><button style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.border,color:C.text}} onClick={()=>setDarkMode(m=>!m)}>{darkMode?"Switch to Light Mode ☀":"Switch to Dark Mode 🌙"}</button></div><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>Recipe Search Site</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Where to search for recipes when you tap a meal name.</div><div style={{display:"flex",flexDirection:"column",gap:6}}>{[["google","🔍 Google Recipes"],["allrecipes","🍳 AllRecipes"],["pinterest","📌 Pinterest"],["foodnetwork","📺 Food Network"]].map(([key,label])=>(<button key={key} onClick={()=>{setRecipeSite(key);localStorage.setItem("sk_recipeSite",key);}} style={{padding:"8px 12px",borderRadius:8,border:"1px solid "+(recipeSite===key?C.accent:C.border),background:recipeSite===key?C.accent+"22":"transparent",color:recipeSite===key?C.accent:C.text,fontFamily:FM,fontSize:12,cursor:"pointer",textAlign:"left"}}>{label}{recipeSite===key?" ✓":""}</button>))}</div></div><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>Reset Inventory</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Clears all inventory items. Keeps profiles, meal plan, and preferences.</div><button style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.red,color:C.red}} onClick={()=>{if(window.confirm("Clear all inventory? Cannot be undone.")){localStorage.removeItem("sk_inventory");localStorage.removeItem("sk_portionFixV2");setInventory([]);setShowSettings(false);alert("Inventory cleared.");}}}>Clear Inventory</button></div><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>Reset All Data</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Wipes everything and restarts the Setup Wizard. Use for demo resets.</div><button style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.red,color:C.red}} onClick={()=>{if(window.confirm("Reset ALL data? Cannot be undone.")){["sk_inventory","sk_familyProfiles","sk_familySize","sk_mealPlan","sk_sportsNights","sk_recipeSite","sk_seniorMode","sk_setupDone","sk_portionFixV2","sk_installDismissed","sk_reminderDismissed","sk_saleItems","sk_tempProfiles","sk_activeTab","sk_chatWelcomeDone","sk_tourChoice","sk_tourStep","sk_guestCaptured","sk_darkMode","sk_recipes","sk_recipeRatings","sk_desserts","sk_dessertRatings"].forEach(k=>localStorage.removeItem(k));window.location.reload();}}}>Reset All Data</button></div></div><button style={{...bBtn("ghost"),width:"100%",marginTop:16}} onClick={()=>setShowSettings(false)}>Close</button></div></div>}
     {showWizard&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
           <div style={{background:C.surface,borderRadius:16,padding:28,maxWidth:440,width:"100%",border:"1px solid "+C.border,maxHeight:"90vh",overflowY:"auto"}}>
@@ -1552,9 +1565,7 @@ Close</button>
             fetchRecipes();
           }}>✨ Recipes</button>
           <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px",border:"1px solid "+C.accent,color:C.accent}} onClick={()=>{setMakeThisModal(true);setMakeThisInput("");setMakeThisResult(null);}}>🍽 Make This</button>
-          {restrictedProfiles.length>0&&(
-            <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px",border:"1px solid #f472b6",color:"#f472b6"}} onClick={()=>{setCanIHaveOpen(true);setCanIHavePreview(null);setCanIHaveB64(null);setCanIHaveResult(null);}}>🔍 Can I Have This?</button>
-          )}
+          {restrictedProfiles.length>0&&<button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px",border:"1px solid #f472b6",color:"#f472b6"}} onClick={()=>{setCanIHaveOpen(true);setCanIHavePreview(null);setCanIHaveB64(null);setCanIHaveResult(null);}}>🔍 Can I Have This?</button>}
         </div>
       </div>
 
@@ -1739,51 +1750,8 @@ Close</button>
           </div>
         )}
 
-        {swapRecipeModal&&<div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.7)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setSwapRecipeModal(null)}>
-          <div style={{background:C.card,borderRadius:12,padding:24,width:360,maxWidth:"90vw"}} onClick={e=>e.stopPropagation()}>
-            <div style={{fontFamily:FD,fontSize:18,fontWeight:700,color:C.text,marginBottom:16}}>Swap Recipe</div>
-            <button onClick={async()=>{
-              setSwapRecipeLoading(true);
-              const prompt="Give me ONE different recipe suggestion"+(swapRecipeRequest.trim()?" for: "+swapRecipeRequest.trim():" (different from "+swapRecipeModal.name+")")+". Inventory: "+inventory.map(i=>i.name).filter(Boolean).join(", ")+". Return ONLY valid JSON: {name,description,time,difficulty,instructions:[4 short strings],usesFromInventory:[],missingIngredients:[]}";
-              const res=await callClaude({system:"Recipe AI. Return ONLY valid JSON, no markdown.",prompt,maxTokens:600});
-              try{
-                const raw=typeof res==="string"?res:Array.isArray(res)?res.map(r=>r.text||"").join(""):res?.content?.[0]?.text||"";
-                const clean=raw.replace(/```json|```/g,"").trim();
-                const parsed=JSON.parse(clean);
-                setRecipes(prev=>prev.map(r=>r.id===swapRecipeModal.id?{...parsed,id:swapRecipeModal.id,usesFromInventory:parsed.usesFromInventory||[],missingIngredients:parsed.missingIngredients||[]}:r));
-                setSwapRecipeModal(null);
-              }catch(e){alert("Could not parse recipe.");}
-              setSwapRecipeLoading(false);
-            }} style={{width:"100%",padding:"12px",borderRadius:8,background:C.accent,border:"none",color:"#000",fontFamily:FM,fontSize:14,fontWeight:700,cursor:"pointer",marginBottom:10}}>
-              {swapRecipeLoading?"Thinking...":"✦ Surprise Me"}
-            </button>
-            <div style={{color:C.muted,fontFamily:FM,fontSize:12,textAlign:"center",marginBottom:8}}>— or request a specific recipe —</div>
-            <input value={swapRecipeRequest} onChange={e=>setSwapRecipeRequest(e.target.value)}
-              placeholder='e.g. "Something with chicken"'
-              style={{width:"100%",padding:"8px 12px",borderRadius:6,border:"1px solid "+C.border,background:C.surface,color:C.text,fontFamily:FM,fontSize:13,boxSizing:"border-box",marginBottom:10}}/>
-            <button onClick={async()=>{
-              if(!swapRecipeRequest.trim()){alert("Please type a recipe request first.");return;}
-              setSwapRecipeLoading(true);
-              const prompt="Give me ONE recipe for: "+swapRecipeRequest.trim()+". Inventory: "+inventory.map(i=>i.name).filter(Boolean).join(", ")+". Return ONLY valid JSON: {name,description,time,difficulty,instructions:[4 short strings],usesFromInventory:[],missingIngredients:[]}";
-              const res=await callClaude({system:"Recipe AI. Return ONLY valid JSON, no markdown.",prompt,maxTokens:600});
-              try{
-                const raw=typeof res==="string"?res:Array.isArray(res)?res.map(r=>r.text||"").join(""):res?.content?.[0]?.text||"";
-                const clean=raw.replace(/```json|```/g,"").trim();
-                const parsed=JSON.parse(clean);
-                setRecipes(prev=>prev.map(r=>r.id===swapRecipeModal.id?{...parsed,id:swapRecipeModal.id,usesFromInventory:parsed.usesFromInventory||[],missingIngredients:parsed.missingIngredients||[]}:r));
-                setSwapRecipeModal(null);
-              }catch(e){alert("Could not parse recipe.");}
-              setSwapRecipeLoading(false);
-            }} style={{width:"100%",padding:"12px",borderRadius:8,background:"transparent",border:"1px solid "+C.accent,color:C.accent,fontFamily:FM,fontSize:14,cursor:"pointer",marginBottom:8}}>
-              Make This Recipe
-            </button>
-            <button onClick={()=>setSwapRecipeModal(null)}
-              style={{width:"100%",padding:"8px",borderRadius:8,background:"transparent",border:"none",color:C.muted,fontFamily:FM,fontSize:12,cursor:"pointer"}}>
-              Cancel
-            </button>
-          </div>
-        </div>}
-                {/* == SAVED RECIPES == */}
+        {swapRecipeModal&&<div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.7)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setSwapRecipeModal(null)}><div style={{background:C.card,borderRadius:12,padding:24,width:360,maxWidth:"90vw"}} onClick={e=>e.stopPropagation()}><div style={{fontFamily:FD,fontSize:18,fontWeight:700,color:C.text,marginBottom:16}}>Swap Recipe</div><button onClick={async()=>{setSwapRecipeLoading(true);const prompt="Give me ONE different recipe suggestion"+( swapRecipeRequest.trim()?" for: "+swapRecipeRequest.trim():" (different from "+swapRecipeModal.name+")")+". Inventory: "+inventory.map(i=>i.name).filter(Boolean).join(", ")+". Return ONLY valid JSON: {name,description,time,difficulty,instructions:[4 short strings],usesFromInventory:[],missingIngredients:[]}";const res=await callClaude({system:"Recipe AI. Return ONLY valid JSON, no markdown.",prompt,maxTokens:600});try{const raw=typeof res==="string"?res:Array.isArray(res)?res.map(r=>r.text||"").join(""):res?.content?.[0]?.text||"";const clean=raw.replace(/```json|```/g,"").trim();const parsed=JSON.parse(clean);setRecipes(prev=>prev.map(r=>r.id===swapRecipeModal.id?{...parsed,id:swapRecipeModal.id,usesFromInventory:parsed.usesFromInventory||[],missingIngredients:parsed.missingIngredients||[]}:r));setSwapRecipeModal(null);}catch(e){alert("Could not parse recipe.");}setSwapRecipeLoading(false);}} style={{width:"100%",padding:"12px",borderRadius:8,background:C.accent,border:"none",color:"#000",fontFamily:FM,fontSize:14,fontWeight:700,cursor:"pointer",marginBottom:10}}>{swapRecipeLoading?"Thinking...":"✦ Surprise Me"}</button><div style={{color:C.muted,fontFamily:FM,fontSize:12,textAlign:"center",marginBottom:8}}>— or request a specific recipe —</div><input value={swapRecipeRequest} onChange={e=>setSwapRecipeRequest(e.target.value)} placeholder='e.g. "Something with chicken"' style={{width:"100%",padding:"8px 12px",borderRadius:6,border:"1px solid "+C.border,background:C.surface,color:C.text,fontFamily:FM,fontSize:13,boxSizing:"border-box",marginBottom:10}}/><button onClick={async()=>{if(!swapRecipeRequest.trim()){alert("Please type a recipe request first.");return;}setSwapRecipeLoading(true);const prompt="Give me ONE recipe for: "+swapRecipeRequest.trim()+". Inventory: "+inventory.map(i=>i.name).filter(Boolean).join(", ")+". Return ONLY valid JSON: {name,description,time,difficulty,instructions:[4 short strings],usesFromInventory:[],missingIngredients:[]}";const res=await callClaude({system:"Recipe AI. Return ONLY valid JSON, no markdown.",prompt,maxTokens:600});try{const raw=typeof res==="string"?res:Array.isArray(res)?res.map(r=>r.text||"").join(""):res?.content?.[0]?.text||"";const clean=raw.replace(/```json|```/g,"").trim();const parsed=JSON.parse(clean);setRecipes(prev=>prev.map(r=>r.id===swapRecipeModal.id?{...parsed,id:swapRecipeModal.id,usesFromInventory:parsed.usesFromInventory||[],missingIngredients:parsed.missingIngredients||[]}:r));setSwapRecipeModal(null);}catch(e){alert("Could not parse recipe.");}setSwapRecipeLoading(false);}} style={{width:"100%",padding:"12px",borderRadius:8,background:"transparent",border:"1px solid "+C.accent,color:C.accent,fontFamily:FM,fontSize:14,cursor:"pointer",marginBottom:8}}>Make This Recipe</button><button onClick={()=>setSwapRecipeModal(null)} style={{width:"100%",padding:"8px",borderRadius:8,background:"transparent",border:"none",color:C.muted,fontFamily:FM,fontSize:12,cursor:"pointer"}}>Cancel</button></div></div>}
+        {/* == SAVED RECIPES == */}
         {tab==="saved"&&(
           <div style={{padding:20,maxWidth:940,margin:"0 auto"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
@@ -1939,6 +1907,8 @@ Close</button>
                       <div style={{flex:1,minWidth:0}}>
                         {day.quickMeal&&<span style={{fontSize:10,background:"#f59e0b22",color:"#f59e0b",padding:"2px 6px",borderRadius:4,fontFamily:FM,display:"inline-block",marginBottom:4}}>⚡ BUSY NIGHT — under 20 min</span>}
                         {mealPhotos[day.meal]&&<div style={{marginBottom:6}}><img src={mealPhotos[day.meal]} alt={day.meal} style={{width:"100%",maxHeight:160,objectFit:"cover",borderRadius:8,border:"1px solid "+C.borderLight}} /></div>}
+                        {restrictedProfiles.length>0&&(()=>{const badges=restrictedProfiles.map(p=>{const r=RESTRICTION_PRESETS[p.restriction];if(!r||p.restriction==="standard"||p.restriction==="none") return null;const name=p.name||(r.label);const hints=[];if(p.restriction==="diabetic"||p.restriction==="diabeticRenal") hints.push("low-carb");if(p.restriction==="senior") hints.push("senior-friendly");if(p.restriction==="renal"||p.restriction==="diabeticRenal") hints.push("kidney-safe");if(p.restriction==="heartHealthy") hints.push("heart-healthy");if(p.restriction==="lowSodium") hints.push("low-sodium");if(p.restriction==="athlete") hints.push("high-protein");return (<span key={p.id} style={{fontSize:10,background:r.color+"22",color:r.color,padding:"2px 7px",borderRadius:4,fontFamily:FM,display:"inline-flex",alignItems:"center",gap:3,marginBottom:4,border:"1px solid "+r.color+"44"}}>{r.icon} {name}{hints.length>0?" · "+hints[0]:""}</span>);}).filter(Boolean);return badges.length>0?<div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:4}}>{badges}</div>:null;})()}
+                        {mealPhotos[day.meal]&&<div style={{marginBottom:6}}><img src={mealPhotos[day.meal]} alt={day.meal} style={{width:"100%",maxHeight:160,objectFit:"cover",borderRadius:8,border:"1px solid "+C.borderLight}} /></div>}
                         {restrictedProfiles.length>0&&(()=>{
                           const badges=restrictedProfiles.map(p=>{
                             const r=RESTRICTION_PRESETS[p.restriction];
@@ -1992,13 +1962,7 @@ Close</button>
           </div>
         )}
 
-        {changeMealModal!==null&&<div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.7)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setChangeMealModal(null)}><div style={{background:C.card,borderRadius:12,padding:24,width:360,maxWidth:"90vw"}} onClick={e=>e.stopPropagation()}><div style={{fontFamily:FD,fontSize:18,fontWeight:700,color:C.text,marginBottom:16}}>🔄 Change {mealPlan[changeMealModal]?.day} Meal</div><div style={{marginBottom:16}}><button onClick={async()=>{setChangeMealLoading(true);try{const h=JSON.parse(localStorage.getItem("sk_changeMealHistory")||"[]");const d=mealPlan[changeMealModal];if(d){h.push({meal:d.meal,protein:d.proteinUsed||null,day:d.day,ts:Date.now()});localStorage.setItem("sk_changeMealHistory",JSON.stringify(h.slice(-100)));}}catch{} const day=mealPlan[changeMealModal];const prompt=`Suggest a different dinner meal for ${day.day}. Current meal was: ${day.meal}. INVENTORY (items already owned — do NOT put these in needToBuy): ${inventory.map(i=>String(i.name||"")).filter(Boolean).join(", ")}. STRICT RULE: needToBuy must contain ONLY ingredients required for this meal that are NOT in the inventory list above. If an ingredient appears in inventory, it must NOT appear in needToBuy. Cross-check every needToBuy item against inventory before returning. Return JSON: {meal,ingredients:[],needToBuy:[],proteinUsed:"",sauteBagsUsed:0,quickMeal:false}.`;const res=await callClaude({system:"Meal planning AI. Return ONLY valid JSON, no markdown.",prompt,maxTokens:600});try{console.log("changeMeal res:",JSON.stringify(res));const resText=typeof res==="string"?res:Array.isArray(res)?res.map(r=>r.text||"").join(""):res?.content?.[0]?.text||res?.[0]?.text||"";const raw=resText.replace(/```json|```/g,"").trim();console.log("raw:",raw);const s=raw.indexOf("{"),e=raw.lastIndexOf("}");const parsed=JSON.parse(raw.slice(s,e+1));setMealPlan(p=>p.map((d,i)=>i===changeMealModal?{...d,...parsed,needToBuy:parsed.needToBuy||[],shoppingNeeded:(parsed.needToBuy||[]).map(n=>typeof n==="string"?{qty:1,unit:"",name:n}:n),ingredients:parsed.ingredients||[]}:d));setChangeMealModal(null);}catch(err){console.error("Parse error:",err);alert("Could not parse meal suggestion");}setChangeMealLoading(false);}} style={{width:"100%",padding:"10px",background:C.accent,border:"none",borderRadius:8,color:"#000",fontFamily:FM,fontSize:13,fontWeight:600,cursor:"pointer",marginBottom:10}}>✨ {changeMealLoading?"Thinking...":"Surprise Me"}</button><div style={{fontFamily:FM,fontSize:12,color:C.muted,marginBottom:8}}>— or request a specific meal —</div><input style={{width:"100%",padding:"8px",background:C.surface,border:"1px solid "+C.border,borderRadius:6,color:C.text,fontFamily:FM,fontSize:13,boxSizing:"border-box",marginBottom:10}} placeholder='e.g. "Goulash"' value={changeMealRequest} onChange={e=>setChangeMealRequest(e.target.value)} onClick={e=>e.stopPropagation()} onFocus={e=>e.stopPropagation()} /><button onClick={async()=>{if(!changeMealRequest.trim())return;setChangeMealLoading(true);try{const h=JSON.parse(localStorage.getItem("sk_changeMealHistory")||"[]");const d=mealPlan[changeMealModal];if(d){h.push({meal:d.meal,protein:d.proteinUsed||null,day:d.day,ts:Date.now()});localStorage.setItem("sk_changeMealHistory",JSON.stringify(h.slice(-100)));}}catch{} const day=mealPlan[changeMealModal];const prompt=`Create a dinner meal for ${day.day} using "${changeMealRequest}". INVENTORY (items already owned — do NOT put these in needToBuy): ${inventory.map(i=>String(i.name||"")).filter(Boolean).join(", ")}. STRICT RULE: needToBuy must contain ONLY ingredients required for this meal that are NOT in the inventory list above. If an ingredient appears in inventory, it must NOT appear in needToBuy. Cross-check every needToBuy item against inventory before returning. Return JSON: {meal,ingredients:[],needToBuy:[],proteinUsed:"",sauteBagsUsed:0,quickMeal:false}.`;const res=await callClaude({system:"Meal planning AI. Return ONLY valid JSON, no markdown.",prompt,maxTokens:600});try{const resText3=typeof res==="string"?res:Array.isArray(res)?res.map(r=>r.text||"").join(""):res?.content?.[0]?.text||res?.[0]?.text||"";const raw=resText3;const s=raw.indexOf("{"),e=raw.lastIndexOf("}");const parsed=JSON.parse(raw.slice(s,e+1));setMealPlan(p=>p.map((d,i)=>i===changeMealModal?{...d,...parsed,needToBuy:parsed.needToBuy||[],shoppingNeeded:(parsed.needToBuy||[]).map(n=>typeof n==="string"?{qty:1,unit:"",name:n}:n),ingredients:parsed.ingredients||[]}:d));setChangeMealModal(null);}catch(e){alert("Could not parse meal suggestion");}setChangeMealLoading(false);}} style={{width:"100%",padding:"10px",background:"transparent",border:"1px solid "+C.accent,borderRadius:8,color:C.accent,fontFamily:FM,fontSize:13,cursor:"pointer"}}>🍽 {changeMealLoading?"Thinking...":"Make This Meal"}
-</button>
-</div>
-<button onClick={()=>setChangeMealModal(null)}
- style={{width:"100%",padding:"8px",background:"transparent",border:"none",color:C.muted,fontFamily:FM,fontSize:12,cursor:"pointer"}}>
-Cancel</button>
-</div></div>}
+        {changeMealModal!==null&&<div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.7)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setChangeMealModal(null)}><div style={{background:C.card,borderRadius:12,padding:24,width:360,maxWidth:"90vw"}} onClick={e=>e.stopPropagation()}><div style={{fontFamily:FD,fontSize:18,fontWeight:700,color:C.text,marginBottom:16}}>🔄 Change {mealPlan[changeMealModal]?.day} Meal</div><div style={{marginBottom:16}}><button onClick={async()=>{setChangeMealLoading(true);try{const h=JSON.parse(localStorage.getItem("sk_changeMealHistory")||"[]");const d=mealPlan[changeMealModal];if(d){h.push({meal:d.meal,protein:d.proteinUsed||null,day:d.day,ts:Date.now()});localStorage.setItem("sk_changeMealHistory",JSON.stringify(h.slice(-100)));}}catch{} const day=mealPlan[changeMealModal];const prompt=`Suggest a different dinner meal for ${day.day}. Current meal was: ${day.meal}. INVENTORY (items already owned — do NOT put these in needToBuy): ${inventory.map(i=>String(i.name||"")).filter(Boolean).join(", ")}. STRICT RULE: needToBuy must contain ONLY ingredients required for this meal that are NOT in the inventory list above. If an ingredient appears in inventory, it must NOT appear in needToBuy. Cross-check every needToBuy item against inventory before returning. Return JSON: {meal,ingredients:[],needToBuy:[],proteinUsed:"",sauteBagsUsed:0,quickMeal:false}.`;const res=await callClaude({system:"Meal planning AI. Return ONLY valid JSON, no markdown.",prompt,maxTokens:600});try{console.log("changeMeal res:",JSON.stringify(res));const resText=typeof res==="string"?res:Array.isArray(res)?res.map(r=>r.text||"").join(""):res?.content?.[0]?.text||res?.[0]?.text||"";const raw=resText.replace(/```json|```/g,"").trim();console.log("raw:",raw);const s=raw.indexOf("{"),e=raw.lastIndexOf("}");const parsed=JSON.parse(raw.slice(s,e+1));setMealPlan(p=>p.map((d,i)=>i===changeMealModal?{...d,...parsed,needToBuy:parsed.needToBuy||[],shoppingNeeded:(parsed.needToBuy||[]).map(n=>typeof n==="string"?{qty:1,unit:"",name:n}:n),ingredients:parsed.ingredients||[]}:d));setChangeMealModal(null);}catch(err){console.error("Parse error:",err);alert("Could not parse meal suggestion");}setChangeMealLoading(false);}} style={{width:"100%",padding:"10px",background:C.accent,border:"none",borderRadius:8,color:"#000",fontFamily:FM,fontSize:13,fontWeight:600,cursor:"pointer",marginBottom:10}}>✨ {changeMealLoading?"Thinking...":"Surprise Me"}</button><div style={{fontFamily:FM,fontSize:12,color:C.muted,marginBottom:8}}>— or request a specific meal —</div><input style={{width:"100%",padding:"8px",background:C.surface,border:"1px solid "+C.border,borderRadius:6,color:C.text,fontFamily:FM,fontSize:13,boxSizing:"border-box",marginBottom:10}} placeholder='e.g. "Goulash"' value={changeMealRequest} onChange={e=>setChangeMealRequest(e.target.value)} onClick={e=>e.stopPropagation()} onFocus={e=>e.stopPropagation()} /><button onClick={async()=>{if(!changeMealRequest.trim())return;setChangeMealLoading(true);try{const h=JSON.parse(localStorage.getItem("sk_changeMealHistory")||"[]");const d=mealPlan[changeMealModal];if(d){h.push({meal:d.meal,protein:d.proteinUsed||null,day:d.day,ts:Date.now()});localStorage.setItem("sk_changeMealHistory",JSON.stringify(h.slice(-100)));}}catch{} const day=mealPlan[changeMealModal];const prompt=`Create a dinner meal for ${day.day} using "${changeMealRequest}". INVENTORY (items already owned — do NOT put these in needToBuy): ${inventory.map(i=>String(i.name||"")).filter(Boolean).join(", ")}. STRICT RULE: needToBuy must contain ONLY ingredients required for this meal that are NOT in the inventory list above. If an ingredient appears in inventory, it must NOT appear in needToBuy. Cross-check every needToBuy item against inventory before returning. Return JSON: {meal,ingredients:[],needToBuy:[],proteinUsed:"",sauteBagsUsed:0,quickMeal:false}.`;const res=await callClaude({system:"Meal planning AI. Return ONLY valid JSON, no markdown.",prompt,maxTokens:600});try{const resText3=typeof res==="string"?res:Array.isArray(res)?res.map(r=>r.text||"").join(""):res?.content?.[0]?.text||res?.[0]?.text||"";const raw=resText3;const s=raw.indexOf("{"),e=raw.lastIndexOf("}");const parsed=JSON.parse(raw.slice(s,e+1));setMealPlan(p=>p.map((d,i)=>i===changeMealModal?{...d,...parsed,needToBuy:parsed.needToBuy||[],shoppingNeeded:(parsed.needToBuy||[]).map(n=>typeof n==="string"?{qty:1,unit:"",name:n}:n),ingredients:parsed.ingredients||[]}:d));setChangeMealModal(null);}catch(e){alert("Could not parse meal suggestion");}setChangeMealLoading(false);}} style={{width:"100%",padding:"10px",background:"transparent",border:"1px solid "+C.accent,borderRadius:8,color:C.accent,fontFamily:FM,fontSize:13,cursor:"pointer"}}>🍽 {changeMealLoading?"Thinking...":"Make This Meal"}</button></div><button onClick={()=>setChangeMealModal(null)} style={{width:"100%",padding:"8px",background:"transparent",border:"none",color:C.muted,fontFamily:FM,fontSize:12,cursor:"pointer"}}>Cancel</button></div></div>}
 {/* == SHOPPING == */}
         {!loading&&tab==="shopping"&&(
           <div>
@@ -2574,171 +2538,6 @@ Cancel</button>
         </div>
       )}
 
-      {canIHaveOpen&&(
-        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:600,padding:16}} onClick={()=>{if(!canIHaveLoading){setCanIHaveOpen(false);}}}>
-          <div style={{background:C.surface,border:"1px solid "+C.borderLight,borderRadius:16,padding:24,maxWidth:420,width:"100%",maxHeight:"90vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
-
-            {/* Header */}
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-              <div style={{fontFamily:FD,fontSize:20,color:"#f472b6",fontWeight:700}}>🔍 Can I Have This?</div>
-              <button onClick={()=>{if(!canIHaveLoading){setCanIHaveOpen(false);setCanIHaveResult(null);setCanIHavePreview(null);setCanIHaveB64(null);}}} style={{background:C.surface,border:"1px solid "+C.border,borderRadius:6,color:C.text,cursor:"pointer",fontSize:13,padding:"4px 10px"}}>✕ Close</button>
-            </div>
-
-            {/* Active restrictions summary */}
-            <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:14}}>
-              {restrictedProfiles.map(p=>{
-                const r=RESTRICTION_PRESETS[p.restriction];
-                if(!r) return null;
-                return <span key={p.id} style={{fontSize:10,background:r.color+"22",color:r.color,padding:"2px 8px",borderRadius:12,border:"1px solid "+r.color+"44",fontFamily:FM,fontWeight:700}}>{r.icon} {p.name||r.label}</span>;
-              })}
-            </div>
-
-            <div style={{fontFamily:FM,fontSize:13,color:C.muted,marginBottom:16,lineHeight:1.6}}>
-              Photograph an ingredient label, food package, or menu item. Claude will check it against your dietary profiles instantly.
-            </div>
-
-            {!canIHaveResult?(
-              <div>
-                {/* Image capture area */}
-                <div
-                  style={{border:"2px dashed "+(canIHavePreview?C.accent:C.border),borderRadius:12,cursor:"pointer",overflow:"hidden",minHeight:160,display:"flex",alignItems:"center",justifyContent:"center",background:canIHavePreview?"transparent":C.card,marginBottom:12}}
-                  onClick={()=>document.getElementById("canIHaveInput").click()}>
-                  {canIHavePreview?(
-                    <img src={canIHavePreview} alt="" style={{width:"100%",display:"block",borderRadius:10,maxHeight:220,objectFit:"cover"}}/>
-                  ):(
-                    <div style={{textAlign:"center",padding:24}}>
-                      <div style={{fontSize:40,marginBottom:8}}>📸</div>
-                      <div style={{fontFamily:FD,fontSize:15,color:C.text,marginBottom:4}}>Tap to photograph label</div>
-                      <div style={{fontSize:12,color:C.muted,fontFamily:FM}}>opens camera directly</div>
-                    </div>
-                  )}
-                </div>
-
-                <input type="file" accept="image/*" capture="environment" id="canIHaveInput" style={{display:"none"}}
-                  onChange={async e=>{
-                    const file=e.target.files?.[0];
-                    if(!file) return;
-                    setCanIHavePreview(URL.createObjectURL(file));
-                    setCanIHaveMime(file.type||"image/jpeg");
-                    setCanIHaveB64(await fileToBase64(file));
-                  }}
-                />
-
-                {canIHavePreview&&(
-                  <button onClick={()=>{setCanIHavePreview(null);setCanIHaveB64(null);document.getElementById("canIHaveInput").value="";}}
-                    style={{...bBtn("ghost"),width:"100%",marginBottom:10,fontSize:12,border:"1px solid "+C.border,color:C.muted}}>
-                    🔄 Retake Photo
-                  </button>
-                )}
-
-                <button
-                  disabled={!canIHaveB64||canIHaveLoading}
-                  onClick={async()=>{
-                    if(!canIHaveB64) return;
-                    setCanIHaveLoading(true);
-                    const profileSummary=restrictedProfiles.map(p=>{
-                      const r=RESTRICTION_PRESETS[p.restriction];
-                      const flags=r?.flags||[];
-                      const parts=[];
-                      if(flags.includes("zero-sugar")) parts.push("ZERO SUGAR — no sugar, corn syrup, honey, maltose, dextrose");
-                      if(flags.includes("low-carb")) parts.push("LOW CARB — flag if over 15g net carbs per serving");
-                      if(flags.includes("no-white-rice")) parts.push("NO white rice");
-                      if(flags.includes("no-regular-pasta")) parts.push("NO regular pasta — whole wheat only");
-                      if(flags.includes("low-sodium")) parts.push("LOW SODIUM — flag if over 400mg sodium per serving");
-                      if(flags.includes("low-potassium")) parts.push("LOW POTASSIUM — flag high-potassium ingredients like bananas, potatoes, tomatoes, oranges");
-                      if(flags.includes("low-phosphorus")) parts.push("LOW PHOSPHORUS — flag dairy, nuts, seeds, whole grains, dark cola");
-                      if(flags.includes("limit-protein")) parts.push("LIMITED PROTEIN — flag if over 7g protein per serving");
-                      if(flags.includes("low-saturated-fat")) parts.push("LOW SATURATED FAT — flag butter, cream, fatty meats, coconut oil");
-                      if(flags.includes("high-protein")) parts.push("HIGH PROTEIN preferred — note protein content");
-                      const name=p.name||(r?.label||"Person");
-                      return parts.length>0?name+": "+parts.join("; "):null;
-                    }).filter(Boolean).join("
-");
-
-                    const res=await callClaude({
-                      system:"You are a dietary safety checker for a family meal planning app. Analyze the ingredient label or food item in the image and check it against the provided dietary restrictions. Be thorough but concise. Return ONLY valid JSON, no markdown.",
-                      prompt:`Check this food item against these dietary restrictions:
-${profileSummary}
-
-Return JSON: {verdict:"YES"|"LIMITED"|"NO", flag:"brief reason phrase", explanation:"2-3 plain English sentences explaining why it is or isn't safe, what specific ingredients triggered any flags, and any portion guidance if LIMITED", warnings:[list of specific flagged ingredients or concerns, empty array if none]}`,
-                      imageBase64:canIHaveB64,
-                      imageType:canIHaveMime,
-                      maxTokens:400
-                    });
-                    try{
-                      const raw=(typeof res==="string"?res:Array.isArray(res)?res.map(r=>r.text||"").join(""):res?.content?.[0]?.text||"").replace(/```json|```/g,"").trim();
-                      const s=raw.indexOf("{"),e=raw.lastIndexOf("}");
-                      const parsed=JSON.parse(raw.slice(s,e+1));
-                      setCanIHaveResult(parsed);
-                    }catch(err){
-                      setCanIHaveResult({verdict:"NO",flag:"Could not read label",explanation:"We couldn't read the ingredients clearly. Try photographing the label in better lighting, closer up, and making sure the full ingredient list is visible.",warnings:[]});
-                    }
-                    setCanIHaveLoading(false);
-                  }}
-                  style={{...bBtn("primary"),width:"100%",padding:"13px",fontSize:seniorMode?17:14,opacity:canIHaveB64&&!canIHaveLoading?1:0.4}}>
-                  {canIHaveLoading?"🔍 Checking ingredients...":"🔍 Check This Item"}
-                </button>
-              </div>
-            ):(
-              <div>
-                {/* Verdict */}
-                <div style={{
-                  background:canIHaveResult.verdict==="YES"?"#052e16":canIHaveResult.verdict==="LIMITED"?"#1c1400":"#1f0000",
-                  border:"2px solid "+(canIHaveResult.verdict==="YES"?"#22c55e":canIHaveResult.verdict==="LIMITED"?"#f59e0b":"#ef4444"),
-                  borderRadius:12,padding:"18px 20px",marginBottom:16,textAlign:"center"}}>
-                  <div style={{fontSize:48,marginBottom:6}}>
-                    {canIHaveResult.verdict==="YES"?"✅":canIHaveResult.verdict==="LIMITED"?"⚠":"❌"}
-                  </div>
-                  <div style={{fontFamily:FD,fontSize:28,fontWeight:700,marginBottom:4,
-                    color:canIHaveResult.verdict==="YES"?"#22c55e":canIHaveResult.verdict==="LIMITED"?"#f59e0b":"#ef4444"}}>
-                    {canIHaveResult.verdict}
-                  </div>
-                  <div style={{fontSize:13,fontWeight:700,fontFamily:FM,letterSpacing:0.5,
-                    color:canIHaveResult.verdict==="YES"?"#22c55e":canIHaveResult.verdict==="LIMITED"?"#f59e0b":"#ef4444"}}>
-                    {canIHaveResult.flag}
-                  </div>
-                </div>
-
-                {/* Photo thumbnail */}
-                {canIHavePreview&&<img src={canIHavePreview} alt="" style={{width:"100%",borderRadius:8,maxHeight:120,objectFit:"cover",marginBottom:12,border:"1px solid "+C.border}}/>}
-
-                {/* Explanation */}
-                <div style={{fontFamily:FM,fontSize:13,color:C.text,lineHeight:1.7,marginBottom:12}}>
-                  {canIHaveResult.explanation}
-                </div>
-
-                {/* Warnings list */}
-                {(canIHaveResult.warnings||[]).length>0&&(
-                  <div style={{background:C.card,borderRadius:8,padding:"10px 14px",marginBottom:16}}>
-                    <div style={{fontSize:10,fontFamily:FM,color:C.muted,letterSpacing:0.8,marginBottom:6}}>FLAGGED INGREDIENTS</div>
-                    {canIHaveResult.warnings.map((w,i)=>(
-                      <div key={i} style={{fontSize:12,color:"#f87171",fontFamily:FM,marginBottom:3}}>⚠ {w}</div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Disclaimer */}
-                <div style={{fontSize:10,color:C.muted,fontFamily:FM,lineHeight:1.6,marginBottom:16,fontStyle:"italic"}}>
-                  Smart Kitchen provides general wellness guidance, not medical advice. Always consult your physician or dietitian for clinical decisions.
-                </div>
-
-                {/* Actions */}
-                <div style={{display:"flex",gap:8}}>
-                  <button onClick={()=>{setCanIHaveResult(null);setCanIHavePreview(null);setCanIHaveB64(null);document.getElementById("canIHaveInput").value="";}}
-                    style={{...bBtn("ghost"),flex:1,fontSize:13,border:"1px solid "+C.border,color:C.text}}>
-                    📸 Scan Another
-                  </button>
-                  <button onClick={()=>{setCanIHaveOpen(false);setCanIHaveResult(null);setCanIHavePreview(null);setCanIHaveB64(null);}}
-                    style={{...bBtn("ghost"),flex:1,fontSize:13,border:"1px solid "+C.border,color:C.text}}>
-                    ✕ Close
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
       {photoPromptMeal&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:600,padding:20}} onClick={()=>setPhotoPromptMeal(null)}>
           <div style={{background:C.surface,border:"1px solid "+C.borderLight,borderRadius:16,padding:24,maxWidth:340,width:"100%",textAlign:"center"}} onClick={e=>e.stopPropagation()}>
@@ -2788,6 +2587,112 @@ Return JSON: {verdict:"YES"|"LIMITED"|"NO", flag:"brief reason phrase", explanat
         </div>
       )}
 
+      {photoPromptMeal&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:600,padding:20}} onClick={()=>setPhotoPromptMeal(null)}>
+        <div style={{background:C.surface,border:"1px solid "+C.borderLight,borderRadius:16,padding:24,maxWidth:340,width:"100%",textAlign:"center"}} onClick={e=>e.stopPropagation()}>
+          <div style={{fontSize:40,marginBottom:8}}>🏆</div>
+          <div style={{fontFamily:FD,fontSize:20,fontWeight:700,color:C.accent,marginBottom:6}}>5-Star Keeper!</div>
+          <div style={{fontFamily:FM,fontSize:13,color:C.muted,marginBottom:20,lineHeight:1.6}}>
+            <strong style={{color:C.text}}>{photoPromptMeal}</strong> just earned a spot in your recipe hall of fame. Want to snap a photo to remember it?
+          </div>
+          <input type="file" accept="image/*" capture="environment" id="mealPhotoInput" style={{display:"none"}}
+            onChange={e=>{const file=e.target.files?.[0];if(!file) return;const reader=new FileReader();reader.onload=ev=>{const dataUrl=ev.target?.result;if(dataUrl){setMealPhotos(prev=>({...prev,[photoPromptMeal]:dataUrl}));setPhotoPromptMeal(null);}};reader.readAsDataURL(file);}}
+          />
+          <button onClick={()=>document.getElementById("mealPhotoInput").click()}
+            style={{...bBtn("primary"),width:"100%",padding:"12px",marginBottom:10,fontSize:14}}>
+            📸 Take a Photo
+          </button>
+          <button onClick={()=>{setPhotoSkipCount(n=>{const next=n+1;try{localStorage.setItem("sk_photoSkipCount",String(next));}catch{}return next;});setPhotoPromptMeal(null);}}
+            style={{background:"transparent",border:"none",color:C.muted,fontFamily:FM,fontSize:12,cursor:"pointer",width:"100%",padding:"8px"}}>
+            {photoSkipCount>=2?"Don't ask again":"Skip for now"}
+          </button>
+        </div>
+      </div>}
+
+      {showSeniorPrompt&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:700,padding:20}} onClick={()=>{setSeniorPromptDismissed(true);try{localStorage.setItem("sk_seniorPromptDismissed","1");}catch{}setShowSeniorPrompt(false);}}>
+        <div style={{background:C.surface,border:"1px solid "+C.borderLight,borderRadius:16,padding:28,maxWidth:360,width:"100%",textAlign:"center"}} onClick={e=>e.stopPropagation()}>
+          <div style={{fontSize:48,marginBottom:10}}>👴</div>
+          <div style={{fontFamily:FD,fontSize:22,fontWeight:700,color:C.accent,marginBottom:8}}>Senior-Friendly Mode</div>
+          <div style={{fontFamily:FM,fontSize:15,color:C.muted,marginBottom:24,lineHeight:1.7}}>
+            We noticed your profile is set to <strong style={{color:C.text}}>Senior Adult</strong>. Would you like larger text and easier navigation?
+          </div>
+          <button onClick={()=>{setSeniorMode(true);setSeniorPromptDismissed(true);try{localStorage.setItem("sk_seniorMode","1");localStorage.setItem("sk_seniorPromptDismissed","1");}catch{}setShowSeniorPrompt(false);}}
+            style={{...bBtn("primary"),width:"100%",padding:"14px",fontSize:16,marginBottom:12,borderRadius:10}}>
+            Yes please — bigger text
+          </button>
+          <button onClick={()=>{setSeniorPromptDismissed(true);try{localStorage.setItem("sk_seniorPromptDismissed","1");}catch{}setShowSeniorPrompt(false);}}
+            style={{...bBtn("ghost"),width:"100%",padding:"12px",fontSize:14,border:"1px solid "+C.border,color:C.text,borderRadius:10,marginBottom:8}}>
+            No thanks — keep it as is
+          </button>
+          <div style={{fontFamily:FM,fontSize:11,color:C.muted,marginTop:4,lineHeight:1.5}}>
+            You can always change this later using the Senior button in the menu.
+          </div>
+        </div>
+      </div>}
+
+      {canIHaveOpen&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:600,padding:16}} onClick={()=>{if(!canIHaveLoading)setCanIHaveOpen(false);}}>
+        <div style={{background:C.surface,border:"1px solid "+C.borderLight,borderRadius:16,padding:24,maxWidth:420,width:"100%",maxHeight:"90vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+            <div style={{fontFamily:FD,fontSize:20,color:"#f472b6",fontWeight:700}}>🔍 Can I Have This?</div>
+            <button onClick={()=>{if(!canIHaveLoading){setCanIHaveOpen(false);setCanIHaveResult(null);setCanIHavePreview(null);setCanIHaveB64(null);}}} style={{background:C.surface,border:"1px solid "+C.border,borderRadius:6,color:C.text,cursor:"pointer",fontSize:13,padding:"4px 10px"}}>✕ Close</button>
+          </div>
+          <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:14}}>
+            {restrictedProfiles.map(p=>{const r=RESTRICTION_PRESETS[p.restriction];if(!r) return null;return <span key={p.id} style={{fontSize:10,background:r.color+"22",color:r.color,padding:"2px 8px",borderRadius:12,border:"1px solid "+r.color+"44",fontFamily:FM,fontWeight:700}}>{r.icon} {p.name||r.label}</span>;})}
+          </div>
+          <div style={{fontFamily:FM,fontSize:13,color:C.muted,marginBottom:16,lineHeight:1.6}}>
+            Photograph an ingredient label or food package. Claude will check it against your dietary profiles instantly.
+          </div>
+          {!canIHaveResult?<div>
+            <div style={{border:"2px dashed "+(canIHavePreview?C.accent:C.border),borderRadius:12,cursor:"pointer",overflow:"hidden",minHeight:160,display:"flex",alignItems:"center",justifyContent:"center",background:canIHavePreview?"transparent":C.card,marginBottom:12}} onClick={()=>document.getElementById("canIHaveInput").click()}>
+              {canIHavePreview?<img src={canIHavePreview} alt="" style={{width:"100%",display:"block",borderRadius:10,maxHeight:220,objectFit:"cover"}}/>
+              :<div style={{textAlign:"center",padding:24}}>
+                <div style={{fontSize:40,marginBottom:8}}>📸</div>
+                <div style={{fontFamily:FD,fontSize:15,color:C.text,marginBottom:4}}>Tap to photograph label</div>
+                <div style={{fontSize:12,color:C.muted,fontFamily:FM}}>opens camera directly</div>
+              </div>}
+            </div>
+            <input type="file" accept="image/*" capture="environment" id="canIHaveInput" style={{display:"none"}}
+              onChange={async e=>{const file=e.target.files?.[0];if(!file) return;setCanIHavePreview(URL.createObjectURL(file));setCanIHaveMime(file.type||"image/jpeg");setCanIHaveB64(await fileToBase64(file));}}
+            />
+            {canIHavePreview&&<button onClick={()=>{setCanIHavePreview(null);setCanIHaveB64(null);document.getElementById("canIHaveInput").value="";}} style={{...bBtn("ghost"),width:"100%",marginBottom:10,fontSize:12,border:"1px solid "+C.border,color:C.muted}}>🔄 Retake Photo</button>}
+            <button disabled={!canIHaveB64||canIHaveLoading}
+              onClick={async()=>{
+                if(!canIHaveB64) return;
+                setCanIHaveLoading(true);
+                const profileSummary=restrictedProfiles.map(p=>{const r=RESTRICTION_PRESETS[p.restriction];const flags=r?.flags||[];const parts=[];if(flags.includes("zero-sugar")) parts.push("ZERO SUGAR");if(flags.includes("low-carb")) parts.push("LOW CARB — flag if over 15g net carbs per serving");if(flags.includes("low-sodium")) parts.push("LOW SODIUM — flag if over 400mg sodium per serving");if(flags.includes("low-potassium")) parts.push("LOW POTASSIUM");if(flags.includes("low-phosphorus")) parts.push("LOW PHOSPHORUS");if(flags.includes("limit-protein")) parts.push("LIMITED PROTEIN");if(flags.includes("low-saturated-fat")) parts.push("LOW SATURATED FAT");return parts.length>0?(p.name||r?.label||"Person")+": "+parts.join("; "):null;}).filter(Boolean).join("
+");
+                const res=await callClaude({system:"You are a dietary safety checker. Analyze the ingredient label in the image against the dietary restrictions. Return ONLY valid JSON, no markdown.",prompt:"Check this food against:
+"+profileSummary+"
+
+Return JSON: {verdict:"YES"|"LIMITED"|"NO",flag:"brief reason",explanation:"2-3 sentences",warnings:[]}",imageBase64:canIHaveB64,imageType:canIHaveMime,maxTokens:400});
+                try{const raw=(typeof res==="string"?res:Array.isArray(res)?res.map(r=>r.text||"").join(""):res?.content?.[0]?.text||"").replace(/```json|```/g,"").trim();const s=raw.indexOf("{"),e=raw.lastIndexOf("}");setCanIHaveResult(JSON.parse(raw.slice(s,e+1)));}
+                catch{setCanIHaveResult({verdict:"NO",flag:"Could not read label",explanation:"Try photographing the label in better lighting, closer up with the full ingredient list visible.",warnings:[]});}
+                setCanIHaveLoading(false);
+              }}
+              style={{...bBtn("primary"),width:"100%",padding:"13px",fontSize:seniorMode?17:14,opacity:canIHaveB64&&!canIHaveLoading?1:0.4}}>
+              {canIHaveLoading?"🔍 Checking...":"🔍 Check This Item"}
+            </button>
+          </div>
+          :<div>
+            <div style={{background:canIHaveResult.verdict==="YES"?"#052e16":canIHaveResult.verdict==="LIMITED"?"#1c1400":"#1f0000",border:"2px solid "+(canIHaveResult.verdict==="YES"?"#22c55e":canIHaveResult.verdict==="LIMITED"?"#f59e0b":"#ef4444"),borderRadius:12,padding:"18px 20px",marginBottom:16,textAlign:"center"}}>
+              <div style={{fontSize:48,marginBottom:6}}>{canIHaveResult.verdict==="YES"?"✅":canIHaveResult.verdict==="LIMITED"?"⚠":"❌"}</div>
+              <div style={{fontFamily:FD,fontSize:28,fontWeight:700,marginBottom:4,color:canIHaveResult.verdict==="YES"?"#22c55e":canIHaveResult.verdict==="LIMITED"?"#f59e0b":"#ef4444"}}>{canIHaveResult.verdict}</div>
+              <div style={{fontSize:13,fontWeight:700,fontFamily:FM,color:canIHaveResult.verdict==="YES"?"#22c55e":canIHaveResult.verdict==="LIMITED"?"#f59e0b":"#ef4444"}}>{canIHaveResult.flag}</div>
+            </div>
+            {canIHavePreview&&<img src={canIHavePreview} alt="" style={{width:"100%",borderRadius:8,maxHeight:120,objectFit:"cover",marginBottom:12,border:"1px solid "+C.border}}/>}
+            <div style={{fontFamily:FM,fontSize:13,color:C.text,lineHeight:1.7,marginBottom:12}}>{canIHaveResult.explanation}</div>
+            {(canIHaveResult.warnings||[]).length>0&&<div style={{background:C.card,borderRadius:8,padding:"10px 14px",marginBottom:16}}>
+              <div style={{fontSize:10,fontFamily:FM,color:C.muted,letterSpacing:0.8,marginBottom:6}}>FLAGGED INGREDIENTS</div>
+              {canIHaveResult.warnings.map((w,i)=><div key={i} style={{fontSize:12,color:"#f87171",fontFamily:FM,marginBottom:3}}>⚠ {w}</div>)}
+            </div>}
+            <div style={{fontSize:10,color:C.muted,fontFamily:FM,lineHeight:1.6,marginBottom:16,fontStyle:"italic"}}>Smart Kitchen provides general wellness guidance, not medical advice.</div>
+            <div style={{display:"flex",gap:8}}>
+              <button onClick={()=>{setCanIHaveResult(null);setCanIHavePreview(null);setCanIHaveB64(null);}} style={{...bBtn("ghost"),flex:1,fontSize:13,border:"1px solid "+C.border,color:C.text}}>📸 Scan Another</button>
+              <button onClick={()=>{setCanIHaveOpen(false);setCanIHaveResult(null);setCanIHavePreview(null);setCanIHaveB64(null);}} style={{...bBtn("ghost"),flex:1,fontSize:13,border:"1px solid "+C.border,color:C.text}}>✕ Close</button>
+            </div>
+          </div>}
+        </div>
+      </div>}
+
       {activeRecipe&&(
         <div style={{position:"fixed",inset:0,background:"#000b",display:"flex",alignItems:"center",justifyContent:"center",zIndex:500,padding:16}} onClick={()=>setActiveRecipe(null)}>
           <div style={{background:C.surface,border:"1px solid "+C.borderLight,borderRadius:16,padding:22,maxWidth:500,width:"100%",maxHeight:"88vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
@@ -2795,6 +2700,7 @@ Return JSON: {verdict:"YES"|"LIMITED"|"NO", flag:"brief reason phrase", explanat
               <div style={{fontFamily:FD,fontSize:24,lineHeight:1.3,flex:1}}>{activeRecipe.name}</div>
               <button onClick={()=>setActiveRecipe(null)} style={{background:"transparent",border:"none",color:C.muted,cursor:"pointer",fontSize:20}}>✕</button>
             </div>
+            {mealPhotos[activeRecipe.name]&&<div style={{marginBottom:12}}><img src={mealPhotos[activeRecipe.name]} alt={activeRecipe.name} style={{width:"100%",maxHeight:200,objectFit:"cover",borderRadius:10,border:"1px solid "+C.borderLight}} /></div>}
             {mealPhotos[activeRecipe.name]&&<div style={{marginBottom:12}}><img src={mealPhotos[activeRecipe.name]} alt={activeRecipe.name} style={{width:"100%",maxHeight:200,objectFit:"cover",borderRadius:10,border:"1px solid "+C.borderLight}} /></div>}
             <div style={{color:C.muted,fontSize:13,marginBottom:14,lineHeight:1.6}}>{activeRecipe.description}</div>
             <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap"}}>
