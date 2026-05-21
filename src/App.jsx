@@ -110,7 +110,7 @@ const RESTRICTION_PRESETS={
   none:         {label:"No Restrictions",   color:C.green,   icon:"✅", flags:[]},
   standard:     {label:"Standard Adult",    color:C.muted,   icon:"👤", flags:[]},
   athlete:      {label:"Teen Athlete",      color:C.green,   icon:"🏃", flags:["high-protein","high-calorie"]},
-  senior:       {label:"Senior Adult",      color:C.teal,    icon:"👴", flags:["low-sodium"]},
+  senior:       {label:"Senior Adult",      color:C.teal,    icon:"👴", flags:["low-sodium","soft-textures","simple-prep","familiar-foods","small-portions"]},
   diabetic:     {label:"Diabetic (Strict)", color:C.blue,    icon:"💉", flags:["zero-sugar","no-white-rice","no-regular-pasta","whole-wheat-only","brown-rice-only","low-carb"]},
   renal:        {label:"Renal/Kidney",      color:C.purple,  icon:"🫘", flags:["low-potassium","low-phosphorus","low-sodium","limit-protein"]},
   diabeticRenal:{label:"Diabetic+Renal",    color:"#f472b6", icon:"⚕️", flags:["zero-sugar","no-white-rice","no-regular-pasta","whole-wheat-only","brown-rice-only","low-carb","low-potassium","low-phosphorus","low-sodium","limit-protein"]},
@@ -583,6 +583,12 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
         if(f.includes("low-carb")) parts.push("LOW CARB");
         if(f.includes("low-sodium")) parts.push("low sodium");
         if(f.includes("limit-protein")) parts.push("limited protein");
+        if(f.includes("soft-textures")) parts.push("soft easy-to-chew textures preferred");
+        if(f.includes("simple-prep")) parts.push("simple preparation — minimal steps");
+        if(f.includes("familiar-foods")) parts.push("familiar comfort foods — avoid exotic ingredients");
+        if(f.includes("small-portions")) parts.push("smaller senior-appropriate portions");
+        if(f.includes("high-protein")) parts.push("HIGH PROTEIN for athlete performance");
+        if(f.includes("high-calorie")) parts.push("HIGH CALORIE for athlete energy needs");
         const c=p.customParams||{};
         if(c.carbsPerMeal) parts.push("max "+c.carbsPerMeal+"g carbs/meal");
         if(c.sodiumMg) parts.push("max "+c.sodiumMg+"mg sodium/day");
@@ -1849,6 +1855,26 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                       <div style={{display:"flex",flexDirection:"column",gap:8}}>
                       <div style={{flex:1,minWidth:0}}>
                         {day.quickMeal&&<span style={{fontSize:10,background:"#f59e0b22",color:"#f59e0b",padding:"2px 6px",borderRadius:4,fontFamily:FM,display:"inline-block",marginBottom:4}}>⚡ BUSY NIGHT — under 20 min</span>}
+                        {restrictedProfiles.length>0&&(()=>{
+                          const badges=restrictedProfiles.map(p=>{
+                            const r=RESTRICTION_PRESETS[p.restriction];
+                            if(!r||p.restriction==="standard"||p.restriction==="none") return null;
+                            const name=p.name||(r.label);
+                            const hints=[];
+                            if(p.restriction==="diabetic"||p.restriction==="diabeticRenal") hints.push("low-carb");
+                            if(p.restriction==="senior") hints.push("senior-friendly");
+                            if(p.restriction==="renal"||p.restriction==="diabeticRenal") hints.push("kidney-safe");
+                            if(p.restriction==="heartHealthy") hints.push("heart-healthy");
+                            if(p.restriction==="lowSodium") hints.push("low-sodium");
+                            if(p.restriction==="athlete") hints.push("high-protein");
+                            return (
+                              <span key={p.id} style={{fontSize:10,background:r.color+"22",color:r.color,padding:"2px 7px",borderRadius:4,fontFamily:FM,display:"inline-flex",alignItems:"center",gap:3,marginBottom:4,border:"1px solid "+r.color+"44"}}>
+                                {r.icon} {name}{hints.length>0?" · "+hints[0]:""}
+                              </span>
+                            );
+                          }).filter(Boolean);
+                          return badges.length>0?<div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:4}}>{badges}</div>:null;
+                        })()}
                         <div><div onClick={()=>openMealPlanRecipe(day)} style={{fontFamily:FD,fontSize:seniorMode?22:19,marginBottom:4,color:C.accent,cursor:"pointer",lineHeight:1.4}}>🔍 {day.meal}</div>
                         {/* Star rating on meal plan card */}
                         <div style={{display:"flex",gap:3,marginBottom:6}} onClick={e=>e.stopPropagation()}>
