@@ -391,9 +391,6 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [mealPhotos,setMealPhotos]=useState(()=>loadLocal("sk_mealPhotos",{}));
   const [photoPromptMeal,setPhotoPromptMeal]=useState(null);
   const [photoSkipCount,setPhotoSkipCount]=useState(()=>{try{return parseInt(localStorage.getItem("sk_photoSkipCount")||"0");}catch{return 0;}});
-  const [mealPhotos,setMealPhotos]=useState(()=>loadLocal("sk_mealPhotos",{}));
-  const [photoPromptMeal,setPhotoPromptMeal]=useState(null);
-  const [photoSkipCount,setPhotoSkipCount]=useState(()=>{try{return parseInt(localStorage.getItem("sk_photoSkipCount")||"0");}catch{return 0;}});
   const [savedRecipesFilter,setSavedRecipesFilter]=useState("all");
   const [recipeError,setRecipeError]=useState("");
   const [mealPlan,setMealPlan]=useState(()=>loadLocal("sk_mealPlan",[]));
@@ -418,8 +415,6 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [familyProfiles,setFamilyProfiles]=useState(()=>loadLocal("sk_familyProfiles",DEFAULT_PROFILES));
   const [tempProfiles,setTempProfiles]=useState(()=>loadLocal("sk_tempProfiles",[]));
   const [seniorMode,setSeniorMode]=useState(()=>{try{return localStorage.getItem("sk_seniorMode")==="1";}catch{return false;}});
-  const [seniorPromptDismissed,setSeniorPromptDismissed]=useState(()=>{try{return localStorage.getItem("sk_seniorPromptDismissed")==="1";}catch{return false;}});
-  const [showSeniorPrompt,setShowSeniorPrompt]=useState(false);
   const [seniorPromptDismissed,setSeniorPromptDismissed]=useState(()=>{try{return localStorage.getItem("sk_seniorPromptDismissed")==="1";}catch{return false;}});
   const [showSeniorPrompt,setShowSeniorPrompt]=useState(false);
   const [darkMode,setDarkMode]=useState(()=>{try{return localStorage.getItem("sk_darkMode")!=="0";}catch{return true;}});
@@ -537,20 +532,11 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
       setShowSeniorPrompt(false);
     }
   },[familyProfiles,seniorMode,seniorPromptDismissed]);
-  useEffect(()=>{
-    const person1=familyProfiles[0];
-    if(person1?.restriction==="senior"&&!seniorMode&&!seniorPromptDismissed){
-      const timer=setTimeout(()=>setShowSeniorPrompt(true),800);
-      return ()=>clearTimeout(timer);
-    } else {
-      setShowSeniorPrompt(false);
-    }
-  },[familyProfiles,seniorMode,seniorPromptDismissed]);
+  
   useEffect(()=>{try{localStorage.setItem("sk_recipes",JSON.stringify(recipes));}catch{}},[recipes]);
   useEffect(()=>{try{localStorage.setItem("sk_desserts",JSON.stringify(desserts));}catch{}},[desserts]);
   useEffect(()=>{try{localStorage.setItem("sk_dessertRatings",JSON.stringify(dessertRatings));}catch{}},[dessertRatings]);
   useEffect(()=>{try{localStorage.setItem("sk_recipeRatings",JSON.stringify(recipeRatings));}catch{}},[recipeRatings]);
-  useEffect(()=>{try{localStorage.setItem("sk_mealPhotos",JSON.stringify(mealPhotos));}catch{}},[mealPhotos]);
   useEffect(()=>{try{localStorage.setItem("sk_mealPhotos",JSON.stringify(mealPhotos));}catch{}},[mealPhotos]);
   useEffect(()=>{try{localStorage.setItem("sk_sportsNights",JSON.stringify(sportsNights));}catch{}},[sportsNights]);
   useEffect(()=>{try{localStorage.setItem("sk_activeTab",tab);}catch{}},[tab]);
@@ -619,12 +605,6 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
         if(f.includes("low-carb")) parts.push("LOW CARB");
         if(f.includes("low-sodium")) parts.push("low sodium");
         if(f.includes("limit-protein")) parts.push("limited protein");
-        if(f.includes("soft-textures")) parts.push("soft easy-to-chew textures preferred");
-        if(f.includes("simple-prep")) parts.push("simple preparation — minimal steps");
-        if(f.includes("familiar-foods")) parts.push("familiar comfort foods — avoid exotic ingredients");
-        if(f.includes("small-portions")) parts.push("smaller senior-appropriate portions");
-        if(f.includes("high-protein")) parts.push("HIGH PROTEIN for athlete performance");
-        if(f.includes("high-calorie")) parts.push("HIGH CALORIE for athlete energy needs");
         if(f.includes("soft-textures")) parts.push("soft easy-to-chew textures preferred");
         if(f.includes("simple-prep")) parts.push("simple preparation — minimal steps");
         if(f.includes("familiar-foods")) parts.push("familiar comfort foods — avoid exotic ingredients");
@@ -1908,7 +1888,6 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                         {day.quickMeal&&<span style={{fontSize:10,background:"#f59e0b22",color:"#f59e0b",padding:"2px 6px",borderRadius:4,fontFamily:FM,display:"inline-block",marginBottom:4}}>⚡ BUSY NIGHT — under 20 min</span>}
                         {mealPhotos[day.meal]&&<div style={{marginBottom:6}}><img src={mealPhotos[day.meal]} alt={day.meal} style={{width:"100%",maxHeight:160,objectFit:"cover",borderRadius:8,border:"1px solid "+C.borderLight}} /></div>}
                         {restrictedProfiles.length>0&&(()=>{const badges=restrictedProfiles.map(p=>{const r=RESTRICTION_PRESETS[p.restriction];if(!r||p.restriction==="standard"||p.restriction==="none") return null;const name=p.name||(r.label);const hints=[];if(p.restriction==="diabetic"||p.restriction==="diabeticRenal") hints.push("low-carb");if(p.restriction==="senior") hints.push("senior-friendly");if(p.restriction==="renal"||p.restriction==="diabeticRenal") hints.push("kidney-safe");if(p.restriction==="heartHealthy") hints.push("heart-healthy");if(p.restriction==="lowSodium") hints.push("low-sodium");if(p.restriction==="athlete") hints.push("high-protein");return (<span key={p.id} style={{fontSize:10,background:r.color+"22",color:r.color,padding:"2px 7px",borderRadius:4,fontFamily:FM,display:"inline-flex",alignItems:"center",gap:3,marginBottom:4,border:"1px solid "+r.color+"44"}}>{r.icon} {name}{hints.length>0?" · "+hints[0]:""}</span>);}).filter(Boolean);return badges.length>0?<div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:4}}>{badges}</div>:null;})()}
-                        {mealPhotos[day.meal]&&<div style={{marginBottom:6}}><img src={mealPhotos[day.meal]} alt={day.meal} style={{width:"100%",maxHeight:160,objectFit:"cover",borderRadius:8,border:"1px solid "+C.borderLight}} /></div>}
                         {restrictedProfiles.length>0&&(()=>{
                           const badges=restrictedProfiles.map(p=>{
                             const r=RESTRICTION_PRESETS[p.restriction];
@@ -2506,86 +2485,6 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       )}
 
       {/* == RECIPE MODAL == */}
-      {showSeniorPrompt&&(
-        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:700,padding:20}} onClick={()=>{setSeniorPromptDismissed(true);try{localStorage.setItem("sk_seniorPromptDismissed","1");}catch{}setShowSeniorPrompt(false);}}>
-          <div style={{background:C.surface,border:"1px solid "+C.borderLight,borderRadius:16,padding:28,maxWidth:360,width:"100%",textAlign:"center"}} onClick={e=>e.stopPropagation()}>
-            <div style={{fontSize:48,marginBottom:10}}>👴</div>
-            <div style={{fontFamily:FD,fontSize:22,fontWeight:700,color:C.accent,marginBottom:8}}>Senior-Friendly Mode</div>
-            <div style={{fontFamily:FM,fontSize:15,color:C.muted,marginBottom:24,lineHeight:1.7}}>
-              We noticed your profile is set to <strong style={{color:C.text}}>Senior Adult</strong>. Would you like larger text and easier navigation to make Smart Kitchen more comfortable to use?
-            </div>
-            <button onClick={()=>{
-                setSeniorMode(true);
-                setSeniorPromptDismissed(true);
-                try{localStorage.setItem("sk_seniorMode","1");localStorage.setItem("sk_seniorPromptDismissed","1");}catch{}
-                setShowSeniorPrompt(false);
-              }}
-              style={{...bBtn("primary"),width:"100%",padding:"14px",fontSize:16,marginBottom:12,borderRadius:10}}>
-              ✅ Yes please — bigger text
-            </button>
-            <button onClick={()=>{
-                setSeniorPromptDismissed(true);
-                try{localStorage.setItem("sk_seniorPromptDismissed","1");}catch{}
-                setShowSeniorPrompt(false);
-              }}
-              style={{...bBtn("ghost"),width:"100%",padding:"12px",fontSize:14,border:"1px solid "+C.border,color:C.text,borderRadius:10,marginBottom:8}}>
-              No thanks — keep it as is
-            </button>
-            <div style={{fontFamily:FM,fontSize:11,color:C.muted,marginTop:4,lineHeight:1.5}}>
-              You can always change this later using the <strong>🔤 Senior</strong> button in the menu.
-            </div>
-          </div>
-        </div>
-      )}
-
-      {photoPromptMeal&&(
-        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:600,padding:20}} onClick={()=>setPhotoPromptMeal(null)}>
-          <div style={{background:C.surface,border:"1px solid "+C.borderLight,borderRadius:16,padding:24,maxWidth:340,width:"100%",textAlign:"center"}} onClick={e=>e.stopPropagation()}>
-            <div style={{fontSize:40,marginBottom:8}}>🏆</div>
-            <div style={{fontFamily:FD,fontSize:20,fontWeight:700,color:C.accent,marginBottom:6}}>5-Star Keeper!</div>
-            <div style={{fontFamily:FM,fontSize:13,color:C.muted,marginBottom:20,lineHeight:1.6}}>
-              <strong style={{color:C.text}}>{photoPromptMeal}</strong> just earned a spot in your recipe hall of fame. Want to snap a photo to remember it?
-            </div>
-            <input type="file" accept="image/*" capture="environment" id="mealPhotoInput" style={{display:"none"}}
-              onChange={e=>{
-                const file=e.target.files?.[0];
-                if(!file) return;
-                const reader=new FileReader();
-                reader.onload=ev=>{
-                  const dataUrl=ev.target?.result;
-                  if(dataUrl){
-                    setMealPhotos(prev=>({...prev,[photoPromptMeal]:dataUrl}));
-                    setPhotoPromptMeal(null);
-                  }
-                };
-                reader.readAsDataURL(file);
-              }}
-            />
-            <button onClick={()=>document.getElementById("mealPhotoInput").click()}
-              style={{...bBtn("primary"),width:"100%",padding:"12px",marginBottom:10,fontSize:14}}>
-              📸 Take a Photo
-            </button>
-            <button onClick={()=>{
-                const input=document.getElementById("mealPhotoInput");
-                input.removeAttribute("capture");
-                input.click();
-                setTimeout(()=>input.setAttribute("capture","environment"),1000);
-              }}
-              style={{...bBtn("ghost"),width:"100%",padding:"10px",marginBottom:10,fontSize:13,border:"1px solid "+C.border,color:C.text}}>
-              🖼 Choose from Gallery
-            </button>
-            <button onClick={()=>{
-                const next=photoSkipCount+1;
-                setPhotoSkipCount(next);
-                try{localStorage.setItem("sk_photoSkipCount",String(next));}catch{}
-                setPhotoPromptMeal(null);
-              }}
-              style={{background:"transparent",border:"none",color:C.muted,fontFamily:FM,fontSize:12,cursor:"pointer",width:"100%",padding:"8px"}}>
-              {photoSkipCount>=2?"Don't ask again":"Skip for now"}
-            </button>
-          </div>
-        </div>
-      )}
 
       {photoPromptMeal&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:600,padding:20}} onClick={()=>setPhotoPromptMeal(null)}>
         <div style={{background:C.surface,border:"1px solid "+C.borderLight,borderRadius:16,padding:24,maxWidth:340,width:"100%",textAlign:"center"}} onClick={e=>e.stopPropagation()}>
@@ -2700,7 +2599,6 @@ Return JSON: {verdict:"YES"|"LIMITED"|"NO",flag:"brief reason",explanation:"2-3 
               <div style={{fontFamily:FD,fontSize:24,lineHeight:1.3,flex:1}}>{activeRecipe.name}</div>
               <button onClick={()=>setActiveRecipe(null)} style={{background:"transparent",border:"none",color:C.muted,cursor:"pointer",fontSize:20}}>✕</button>
             </div>
-            {mealPhotos[activeRecipe.name]&&<div style={{marginBottom:12}}><img src={mealPhotos[activeRecipe.name]} alt={activeRecipe.name} style={{width:"100%",maxHeight:200,objectFit:"cover",borderRadius:10,border:"1px solid "+C.borderLight}} /></div>}
             {mealPhotos[activeRecipe.name]&&<div style={{marginBottom:12}}><img src={mealPhotos[activeRecipe.name]} alt={activeRecipe.name} style={{width:"100%",maxHeight:200,objectFit:"cover",borderRadius:10,border:"1px solid "+C.borderLight}} /></div>}
             <div style={{color:C.muted,fontSize:13,marginBottom:14,lineHeight:1.6}}>{activeRecipe.description}</div>
             <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap"}}>
