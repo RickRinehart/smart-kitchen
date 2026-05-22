@@ -472,6 +472,10 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [makeThisInput,setMakeThisInput]=useState("");
   const [makeThisResult,setMakeThisResult]=useState(null);
   const [makeThisLoading,setMakeThisLoading]=useState(false);
+  const [canIHaveOpen,setCanIHaveOpen]=useState(false);
+  const [canIHaveImg,setCanIHaveImg]=useState(null);
+  const [canIHaveLoading,setCanIHaveLoading]=useState(false);
+  const [canIHaveResult,setCanIHaveResult]=useState(null);
   const [scanOpen,setScanOpen]=useState(false);
   const [scanLoc,setScanLoc]=useState("");
   const [scanShelf,setScanShelf]=useState("");
@@ -1537,6 +1541,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
             fetchRecipes();
           }}>✨ Recipes</button>
           <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px",border:"1px solid "+C.accent,color:C.accent}} onClick={()=>{setMakeThisModal(true);setMakeThisInput("");setMakeThisResult(null);}}>🍽 Make This</button>
+          {restrictedProfiles.length>0&&<button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px",border:"1px solid #f472b6",color:"#f472b6"}} onClick={()=>{setCanIHaveOpen(true);setCanIHaveImg(null);setCanIHaveResult(null);}}>🔍 Can I Have This?</button>}
         </div>
       </div>
 
@@ -2556,7 +2561,37 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
         </div>
       )}
 
-      {activeRecipe&&(
+{canIHaveOpen&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:600,padding:16}} onClick={()=>setCanIHaveOpen(false)}>
+        <div style={{background:"#1a1f2e",border:"1px solid #2a3042",borderRadius:16,padding:24,maxWidth:400,width:"100%",maxHeight:"90vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+            <span style={{fontSize:18,fontWeight:700,color:"#f472b6"}}>🔍 Can I Have This?</span>
+            <button onClick={()=>setCanIHaveOpen(false)} style={{background:"transparent",border:"none",color:"#888",cursor:"pointer",fontSize:18}}>✕</button>
+          </div>
+          <div style={{fontSize:13,color:"#888",marginBottom:14}}>
+            {restrictedProfiles.map(p=>RESTRICTION_PRESETS[p.restriction]).filter(Boolean).map((r,i)=><span key={i} style={{fontSize:10,background:r.color+"22",color:r.color,padding:"2px 8px",borderRadius:10,marginRight:4,border:"1px solid "+r.color+"44"}}>{r.icon} {r.label}</span>)}
+          </div>
+          <div style={{border:"2px dashed "+(canIHaveImg?"#C8963E":"#3a3f52"),borderRadius:10,minHeight:140,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",marginBottom:12,overflow:"hidden"}} onClick={()=>document.getElementById("cihInput").click()}>
+            {canIHaveImg?<img src={canIHaveImg} alt="" style={{width:"100%",maxHeight:200,objectFit:"cover"}}/>:<div style={{textAlign:"center",color:"#888"}}><div style={{fontSize:36}}>📸</div><div style={{fontSize:13,marginTop:8}}>Tap to photograph ingredient label</div></div>}
+          </div>
+          <input type="file" accept="image/*" capture="environment" id="cihInput" style={{display:"none"}} onChange={e=>{const f=e.target.files?.[0];if(f){const reader=new FileReader();reader.onload=ev=>{setCanIHaveImg(ev.target.result);};reader.readAsDataURL(f);}}}/>
+          {canIHaveImg&&!canIHaveResult&&<button disabled={canIHaveLoading} onClick={async()=>{if(!canIHaveImg) return;setCanIHaveLoading(true);const flags=restrictedProfiles.flatMap(p=>RESTRICTION_PRESETS[p.restriction]?.flags||[]);const checks=[];if(flags.includes("zero-sugar")) checks.push("no sugar");if(flags.includes("low-carb")) checks.push("low carb");if(flags.includes("low-sodium")) checks.push("low sodium");if(flags.includes("low-potassium")) checks.push("low potassium");if(flags.includes("low-phosphorus")) checks.push("low phosphorus");if(flags.includes("limit-protein")) checks.push("limited protein");if(flags.includes("low-saturated-fat")) checks.push("low saturated fat");const restrictions=checks.join(", ")||"general healthy";const res=await callClaude({system:"Dietary checker. Return ONLY valid JSON: {verdict:YES or LIMITED or NO,flag:short reason,explanation:one sentence}",prompt:"Check this food label. Dietary restrictions: "+restrictions+". Is it safe?",imageBase64:canIHaveImg.split(",")[1],imageType:"image/jpeg",maxTokens:200});try{const raw=(typeof res==="string"?res:res?.content?.[0]?.text||"").replace(/```json|```/g,"").trim();const s=raw.indexOf("{"),e=raw.lastIndexOf("}");setCanIHaveResult(JSON.parse(raw.slice(s,e+1)));}catch{setCanIHaveResult({verdict:"NO",flag:"Could not read",explanation:"Try better lighting."});}setCanIHaveLoading(false);}} style={{width:"100%",padding:"12px",background:"#C8963E",border:"none",borderRadius:8,color:"#000",fontWeight:700,cursor:"pointer",marginBottom:8,fontSize:14}}>
+            {canIHaveLoading?"Checking...":"🔍 Check This Item"}
+          </button>}
+          {canIHaveResult&&<div>
+            <div style={{background:canIHaveResult.verdict==="YES"?"#052e16":canIHaveResult.verdict==="LIMITED"?"#1c1400":"#1f0000",border:"2px solid "+(canIHaveResult.verdict==="YES"?"#22c55e":canIHaveResult.verdict==="LIMITED"?"#f59e0b":"#ef4444"),borderRadius:10,padding:"16px",marginBottom:12,textAlign:"center"}}>
+              <div style={{fontSize:40}}>{canIHaveResult.verdict==="YES"?"✅":canIHaveResult.verdict==="LIMITED"?"⚠":"❌"}</div>
+              <div style={{fontSize:24,fontWeight:700,color:canIHaveResult.verdict==="YES"?"#22c55e":canIHaveResult.verdict==="LIMITED"?"#f59e0b":"#ef4444"}}>{canIHaveResult.verdict}</div>
+              <div style={{fontSize:12,color:"#aaa",marginTop:4}}>{canIHaveResult.flag}</div>
+            </div>
+            <div style={{fontSize:13,color:"#ccc",marginBottom:12}}>{canIHaveResult.explanation}</div>
+            <div style={{display:"flex",gap:8}}>
+              <button onClick={()=>setCanIHaveResult(null)} style={{flex:1,padding:"10px",background:"transparent",border:"1px solid #3a3f52",borderRadius:6,color:"#888",cursor:"pointer"}}>📸 Try Again</button>
+              <button onClick={()=>{setCanIHaveOpen(false);setCanIHaveResult(null);setCanIHaveImg(null);}} style={{flex:1,padding:"10px",background:"transparent",border:"1px solid #3a3f52",borderRadius:6,color:"#888",cursor:"pointer"}}>Done</button>
+            </div>
+          </div>}
+        </div>
+      </div>}
+            {activeRecipe&&(
         <div style={{position:"fixed",inset:0,background:"#000b",display:"flex",alignItems:"center",justifyContent:"center",zIndex:500,padding:16}} onClick={()=>setActiveRecipe(null)}>
           <div style={{background:C.surface,border:"1px solid "+C.borderLight,borderRadius:16,padding:22,maxWidth:500,width:"100%",maxHeight:"88vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
             <div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}>
