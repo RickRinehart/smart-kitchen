@@ -1761,14 +1761,15 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                     onMouseEnter={e=>{e.currentTarget.style.background=C.cardHover;}}
                     onMouseLeave={e=>{e.currentTarget.style.background=C.card;}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
-                      <div style={{fontFamily:FD,fontSize:seniorMode?26:19,lineHeight:1.3,flex:1}}><a href={getRecipeUrl(name)} target="_blank" rel="noopener noreferrer" style={{color:C.accent,textDecoration:"none"}}>{isDesert?"🍰":"🔍"} {name}</a></div>
+                      {mealPhotos[name]&&<div style={{marginBottom:10,borderRadius:8,overflow:"hidden",gridColumn:"1/-1"}}><img src={mealPhotos[name]} alt={name} style={{width:"100%",maxHeight:140,objectFit:"cover",display:"block",borderRadius:8}} /></div>}
+                    <div style={{fontFamily:FD,fontSize:seniorMode?26:19,lineHeight:1.3,flex:1}}><a href={getRecipeUrl(name)} target="_blank" rel="noopener noreferrer" style={{color:C.accent,textDecoration:"none"}}>{isDesert?"🍰":"🔍"} {name}</a></div>
                       <span style={{...bTag(r.difficulty==="Easy"?C.green:r.difficulty==="Hard"?C.red:C.accent),marginLeft:8}}>{r.difficulty}</span>
                     </div>
                     {r.description&&<div style={{color:C.muted,fontSize:seniorMode?17:13,marginBottom:8,lineHeight:1.6}}>{r.description}</div>}
                     {/* Star rating */}
                     <div style={{display:"flex",gap:4,marginBottom:10}} onClick={e=>e.stopPropagation()}>
                       {[1,2,3,4,5].map(star=>(
-                        <button key={star} onClick={e=>{e.stopPropagation();const setter=isDesert?setDessertRatings:setRecipeRatings;setter(prev=>{const cur=prev[name]?.rating||0;const next={...prev};if(cur===star){delete next[name];}else{next[name]={rating:star,recipe:r};}return next;});}} style={{background:"none",border:"none",cursor:"pointer",fontSize:seniorMode?22:16,padding:"0 1px",color:star<=rating?"#f59e0b":"#555"}}>
+                        <button key={star} onClick={e=>{e.stopPropagation();const mealName=name;const setter=isDesert?setDessertRatings:setRecipeRatings;setter(prev=>{const cur=prev[name]?.rating||0;const next={...prev};if(cur===star){delete next[name];}else{next[name]={rating:star,recipe:r};}if(star===5&&cur!==5){const skips=parseInt(localStorage.getItem("sk_photoSkipCount")||"0");if(skips<3) setTimeout(()=>setPhotoPromptMeal(mealName),300);}return next;});}} style={{background:"none",border:"none",cursor:"pointer",fontSize:seniorMode?22:16,padding:"0 1px",color:star<=rating?"#f59e0b":"#555"}}>
                           {star<=rating?"★":"☆"}
                         </button>
                       ))}
@@ -1787,6 +1788,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                     </div>
                     <div style={{display:"flex",gap:8}}>
                       <button onClick={e=>{e.stopPropagation();if(isDesert){setDessertRatings(prev=>{const next={...prev};delete next[name];return next;});}else{setRecipeRatings(prev=>{const next={...prev};delete next[name];return next;});}}} style={{flex:1,padding:"8px",borderRadius:8,border:"1px solid "+C.red,background:"transparent",color:C.red,fontFamily:FM,fontSize:11,cursor:"pointer"}}>🗑 Remove</button>
+                      <button onClick={e=>{e.stopPropagation();setPhotoPromptMeal(name);}} style={{padding:"8px 14px",borderRadius:8,border:"1px solid "+C.border,background:"transparent",color:C.muted,fontFamily:FM,fontSize:11,cursor:"pointer"}} title="Add or change photo">📸 {mealPhotos[name]?"Change Photo":"Add Photo"}</button>
                     </div>
                   </div>
                 )})}
@@ -3089,6 +3091,7 @@ What can I substitute and do I have what I need?`,
                     <div style={{fontFamily:FD,fontSize:19,color:C.accent,flex:1}}>🔍 {makeThisResult.name}</div>
                     <span style={bTag(makeThisResult.difficulty==="Easy"?C.green:makeThisResult.difficulty==="Hard"?C.red:C.accent)}>{makeThisResult.difficulty}</span>
                   </div>
+                  {mealPhotos[makeThisResult.name]&&<div style={{marginBottom:10,borderRadius:8,overflow:"hidden"}}><img src={mealPhotos[makeThisResult.name]} alt={makeThisResult.name} style={{width:"100%",maxHeight:140,objectFit:"cover",display:"block",borderRadius:8}} /></div>}
                   <div style={{color:C.muted,fontSize:13,marginBottom:12,lineHeight:1.5}}>{makeThisResult.description}</div>
                   <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
                     {makeThisResult.time&&<span style={bTag(C.muted)}>⏱ {makeThisResult.time}</span>}
@@ -3100,7 +3103,7 @@ What can I substitute and do I have what I need?`,
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                     <div style={{display:"flex",gap:2}}>
                       {[1,2,3,4,5].map(star=>(
-                        <button key={star} onClick={e=>{e.stopPropagation();setRecipeRatings(prev=>{const cur=prev[makeThisResult.name]?.rating||0;const next={...prev};if(cur===star){delete next[makeThisResult.name];}else{next[makeThisResult.name]={rating:star,recipe:makeThisResult};}try{localStorage.setItem("sk_recipeRatings",JSON.stringify(next));}catch{}return next;});}} style={{background:"none",border:"none",cursor:"pointer",fontSize:16,padding:"0 1px",color:star<=(recipeRatings[makeThisResult.name]?.rating||0)?"#f59e0b":"#555"}}>
+                        <button key={star} onClick={e=>{e.stopPropagation();const mealName=makeThisResult.name;setRecipeRatings(prev=>{const cur=prev[makeThisResult.name]?.rating||0;const next={...prev};if(cur===star){delete next[makeThisResult.name];}else{next[makeThisResult.name]={rating:star,recipe:makeThisResult};}try{localStorage.setItem("sk_recipeRatings",JSON.stringify(next));}catch{}if(star===5&&cur!==5){const skips=parseInt(localStorage.getItem("sk_photoSkipCount")||"0");if(skips<3) setTimeout(()=>setPhotoPromptMeal(mealName),300);}return next;});}} style={{background:"none",border:"none",cursor:"pointer",fontSize:16,padding:"0 1px",color:star<=(recipeRatings[makeThisResult.name]?.rating||0)?"#f59e0b":"#555"}}>
                           {star<=(recipeRatings[makeThisResult.name]?.rating||0)?"★":"☆"}
                         </button>
                       ))}
@@ -3108,6 +3111,7 @@ What can I substitute and do I have what I need?`,
                     <div style={{display:"flex",gap:10,alignItems:"center"}}>
                       <span onClick={e=>{e.stopPropagation();setActiveRecipe(makeThisResult);}} style={{fontSize:11,color:C.accent,fontFamily:FM,letterSpacing:0.5,cursor:"pointer"}}>TAP FOR FULL RECIPE →</span>
                       <a href={getRecipeUrl(makeThisResult.name)} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{fontSize:10,color:"#60a5fa",fontFamily:FM,textDecoration:"none",fontWeight:600}}>🌐 web</a>
+                      <button onClick={e=>{e.stopPropagation();setPhotoPromptMeal(makeThisResult.name);}} style={{background:"transparent",border:"none",color:C.muted,fontFamily:FM,fontSize:12,cursor:"pointer",padding:"0 4px"}} title="Add photo">📸</button>
                     </div>
                   </div>
                 </div>
