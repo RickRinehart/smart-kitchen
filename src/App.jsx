@@ -1695,6 +1695,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                       onClick={()=>setActiveRecipe(r)}
                       onMouseEnter={e=>{e.currentTarget.style.borderColor=C.accent;e.currentTarget.style.background=C.cardHover;}}
                       onMouseLeave={e=>{e.currentTarget.style.borderColor=C.border;e.currentTarget.style.background=C.card;}}>
+                      {mealPhotos[r.name]&&<div style={{marginBottom:10,borderRadius:8,overflow:"hidden"}}><img src={mealPhotos[r.name]} alt={r.name} style={{width:"100%",maxHeight:140,objectFit:"cover",display:"block",borderRadius:8}} /></div>}
                       <div style={{display:"flex",justifyContent:"space-between",marginBottom:8,alignItems:"flex-start"}}>
                         <div style={{fontFamily:FD,fontSize:seniorMode?26:19,lineHeight:1.3,flex:1}}><a href={getRecipeUrl(r.name)} target="_blank" rel="noopener noreferrer" style={{color:C.accent,textDecoration:"none"}}>🔍 {r.name}</a></div>
                         <span style={{...bTag(r.difficulty==="Easy"?C.green:r.difficulty==="Hard"?C.red:C.accent),marginLeft:8}}>{r.difficulty}</span>
@@ -2022,6 +2023,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                       onMouseEnter={e=>{e.currentTarget.style.borderColor=C.accent;e.currentTarget.style.background=C.cardHover;}}
                       onMouseLeave={e=>{e.currentTarget.style.borderColor=rating===1?C.red+"66":rating>=4?C.accent+"66":C.border;e.currentTarget.style.background=C.card;}}>
                       <div style={{display:"flex",justifyContent:"space-between",marginBottom:8,alignItems:"flex-start"}}>
+                        {mealPhotos[d.name]&&<div style={{marginBottom:8,borderRadius:8,overflow:"hidden"}}><img src={mealPhotos[d.name]} alt={d.name} style={{width:"100%",maxHeight:140,objectFit:"cover",display:"block",borderRadius:8}} /></div>}
                         <div style={{fontFamily:FD,fontSize:19,lineHeight:1.3,flex:1}}>{d.name}{rating===5&&<span style={{marginLeft:6,fontSize:14}}>🏆</span>}{rating===4&&<span style={{marginLeft:6,fontSize:14}}>❤</span>}</div>
                         <span style={{...bTag(d.difficulty==="Easy"?C.green:d.difficulty==="Hard"?C.red:C.accent),marginLeft:8}}>{d.difficulty}</span>
                       </div>
@@ -2631,6 +2633,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
               <div style={{fontFamily:FD,fontSize:24,lineHeight:1.3,flex:1,color:C.accent}}>{activeDessert.name}</div>
               <button onClick={()=>setActiveDessert(null)} style={{background:"transparent",border:"none",color:C.muted,cursor:"pointer",fontSize:20}}>✕</button>
             </div>
+            {mealPhotos[activeDessert.name]&&<div style={{marginBottom:12}}><img src={mealPhotos[activeDessert.name]} alt={activeDessert.name} style={{width:"100%",maxHeight:200,objectFit:"cover",borderRadius:10,border:"1px solid "+C.borderLight}} /></div>}
             <div style={{color:C.muted,fontSize:13,marginBottom:14,lineHeight:1.6}}>{activeDessert.description}</div>
             <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap"}}>
               <span style={bTag(C.muted)}>⏱ {activeDessert.time}</span>
