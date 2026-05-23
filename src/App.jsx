@@ -534,7 +534,21 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   useEffect(()=>{try{localStorage.setItem("sk_desserts",JSON.stringify(desserts));}catch{}},[desserts]);
   useEffect(()=>{try{localStorage.setItem("sk_dessertRatings",JSON.stringify(dessertRatings));}catch{}},[dessertRatings]);
   useEffect(()=>{try{localStorage.setItem("sk_recipeRatings",JSON.stringify(recipeRatings));}catch{}},[recipeRatings]);
-  useEffect(()=>{try{localStorage.setItem("sk_mealPhotos",JSON.stringify(mealPhotos));}catch{}},[mealPhotos]);
+  useEffect(()=>{
+    try{
+      localStorage.setItem("sk_mealPhotos",JSON.stringify(mealPhotos));
+    }catch(e){
+      // If quota exceeded, remove oldest photo and retry
+      try{
+        const keys=Object.keys(mealPhotos);
+        if(keys.length>1){
+          const trimmed={...mealPhotos};
+          delete trimmed[keys[0]];
+          localStorage.setItem("sk_mealPhotos",JSON.stringify(trimmed));
+        }
+      }catch{}
+    }
+  },[mealPhotos]);
   useEffect(()=>{try{localStorage.setItem("sk_sportsNights",JSON.stringify(sportsNights));}catch{}},[sportsNights]);
   useEffect(()=>{try{localStorage.setItem("sk_activeTab",tab);}catch{}},[tab]);
   useEffect(()=>{
@@ -2540,15 +2554,25 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
               onChange={e=>{
                 const file=e.target.files?.[0];
                 if(!file) return;
-                const reader=new FileReader();
-                reader.onload=ev=>{
-                  const dataUrl=ev.target?.result;
-                  if(dataUrl){
-                    setMealPhotos(prev=>({...prev,[photoPromptMeal]:dataUrl}));
-                    setPhotoPromptMeal(null);
-                  }
+                const img=new Image();
+                const url=URL.createObjectURL(file);
+                img.onload=()=>{
+                  const canvas=document.createElement("canvas");
+                  const max=600;
+                  const ratio=Math.min(max/img.width,max/img.height,1);
+                  canvas.width=img.width*ratio;
+                  canvas.height=img.height*ratio;
+                  canvas.getContext("2d").drawImage(img,0,0,canvas.width,canvas.height);
+                  const compressed=canvas.toDataURL("image/jpeg",0.7);
+                  URL.revokeObjectURL(url);
+                  setMealPhotos(prev=>{
+                    const next={...prev,[photoPromptMeal]:compressed};
+                    try{localStorage.setItem("sk_mealPhotos",JSON.stringify(next));}catch{}
+                    return next;
+                  });
+                  setPhotoPromptMeal(null);
                 };
-                reader.readAsDataURL(file);
+                img.src=url;
               }}
             />
             <button onClick={()=>document.getElementById("mealPhotoInput").click()}
@@ -2589,7 +2613,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
           <div style={{border:"2px dashed "+(canIHaveImg?"#C8963E":"#3a3f52"),borderRadius:10,minHeight:140,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",marginBottom:12,overflow:"hidden"}} onClick={()=>document.getElementById("cihInput").click()}>
             {canIHaveImg?<img src={canIHaveImg} alt="" style={{width:"100%",maxHeight:200,objectFit:"cover"}}/>:<div style={{textAlign:"center",color:"#888"}}><div style={{fontSize:36}}>📸</div><div style={{fontSize:13,marginTop:8}}>Tap to photograph ingredient label</div></div>}
           </div>
-          <input type="file" accept="image/*" capture="environment" id="cihInput" style={{display:"none"}} onChange={e=>{const f=e.target.files?.[0];if(f){const reader=new FileReader();reader.onload=ev=>{setCanIHaveImg(ev.target.result);};reader.readAsDataURL(f);}}}/>
+          <input type="file" accept="image/*" capture="environment" id="cihInput" style={{display:"none"}} onChange={e=>{const f=e.target.files?.[0];if(f){const img=new Image();const url=URL.createObjectURL(f);img.onload=()=>{const canvas=document.createElement("canvas");const max=800;const ratio=Math.min(max/img.width,max/img.height,1);canvas.width=img.width*ratio;canvas.height=img.height*ratio;const ctx=canvas.getContext("2d");ctx.drawImage(img,0,0,canvas.width,canvas.height);URL.revokeObjectURL(url);setCanIHaveImg(canvas.toDataURL("image/jpeg",0.8));};img.src=url;}}}/>
           {canIHaveImg&&!canIHaveResult&&<button disabled={canIHaveLoading} onClick={async()=>{if(!canIHaveImg) return;setCanIHaveLoading(true);const flags=restrictedProfiles.flatMap(p=>RESTRICTION_PRESETS[p.restriction]?.flags||[]);const checks=[];if(flags.includes("zero-sugar")) checks.push("no sugar");if(flags.includes("low-carb")) checks.push("low carb");if(flags.includes("low-sodium")) checks.push("low sodium");if(flags.includes("low-potassium")) checks.push("low potassium");if(flags.includes("low-phosphorus")) checks.push("low phosphorus");if(flags.includes("limit-protein")) checks.push("limited protein");if(flags.includes("low-saturated-fat")) checks.push("low saturated fat");const restrictions=checks.join(", ")||"general healthy";const res=await callClaude({system:"Dietary checker. Return ONLY valid JSON: {verdict:YES or LIMITED or NO,flag:short reason,explanation:one sentence}",prompt:"Check this food label. Dietary restrictions: "+restrictions+". Is it safe?",imageBase64:canIHaveImg.split(",")[1],imageType:"image/jpeg",maxTokens:200});try{const raw=(typeof res==="string"?res:res?.content?.[0]?.text||"").replace(/```json|```/g,"").trim();const s=raw.indexOf("{"),e=raw.lastIndexOf("}");setCanIHaveResult(JSON.parse(raw.slice(s,e+1)));}catch{setCanIHaveResult({verdict:"NO",flag:"Could not read",explanation:"Try better lighting."});}setCanIHaveLoading(false);}} style={{width:"100%",padding:"12px",background:"#C8963E",border:"none",borderRadius:8,color:"#000",fontWeight:700,cursor:"pointer",marginBottom:8,fontSize:14}}>
             {canIHaveLoading?"Checking...":"🔍 Check This Item"}
           </button>}
