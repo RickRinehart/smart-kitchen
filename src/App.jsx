@@ -437,6 +437,8 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [showInstallBanner,setShowInstallBanner]=useState(()=>{try{return localStorage.getItem("sk_installDismissed")!=="1";}catch{return true;}});
   // -- Support Chat State -------------------------------------------------------
   const [chatOpen,setChatOpen]=useState(false);
+  const [chatBubblePos,setChatBubblePos]=useState(()=>{try{const s=localStorage.getItem("sk_chatBubblePos");return s?JSON.parse(s):{x:null,y:null};}catch{return {x:null,y:null};}});
+  const chatDragRef=React.useRef({dragging:false,startX:0,startY:0,startPosX:0,startPosY:0});
   const [chatMessages,setChatMessages]=useState([]);
   const [chatInput,setChatInput]=useState("");
   const [chatLoading,setChatLoading]=useState(false);
@@ -3307,7 +3309,64 @@ What can I substitute and do I have what I need?`,
       </div>}
 
       {/* -- Support Chat Floating Button -- */}
-      <button onClick={openChat} style={{position:"fixed",bottom:90,right:16,width:50,height:50,borderRadius:"50%",background:"#C8963E",border:"none",cursor:"pointer",zIndex:900,boxShadow:"0 4px 20px rgba(200,150,62,0.5)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,transition:"transform 0.2s"}} title="Chat with Smart Kitchen">
+      <button
+        title="Chat with Smart Kitchen (drag to move)"
+        onClick={e=>{if(!chatDragRef.current.moved) openChat();}}
+        onMouseDown={e=>{
+          const el=e.currentTarget;
+          const rect=el.getBoundingClientRect();
+          chatDragRef.current={dragging:true,moved:false,startX:e.clientX,startY:e.clientY,
+            startPosX:chatBubblePos.x!==null?chatBubblePos.x:window.innerWidth-rect.width-16,
+            startPosY:chatBubblePos.y!==null?chatBubblePos.y:window.innerHeight-rect.height-90};
+          const onMove=mv=>{
+            const dx=mv.clientX-chatDragRef.current.startX;
+            const dy=mv.clientY-chatDragRef.current.startY;
+            if(Math.abs(dx)>4||Math.abs(dy)>4) chatDragRef.current.moved=true;
+            const nx=Math.max(8,Math.min(window.innerWidth-58,chatDragRef.current.startPosX+dx));
+            const ny=Math.max(8,Math.min(window.innerHeight-58,chatDragRef.current.startPosY+dy));
+            const pos={x:nx,y:ny};
+            setChatBubblePos(pos);
+            try{localStorage.setItem("sk_chatBubblePos",JSON.stringify(pos));}catch{}
+          };
+          const onUp=()=>{chatDragRef.current.dragging=false;window.removeEventListener("mousemove",onMove);window.removeEventListener("mouseup",onUp);};
+          window.addEventListener("mousemove",onMove);
+          window.addEventListener("mouseup",onUp);
+        }}
+        onTouchStart={e=>{
+          const touch=e.touches[0];
+          const el=e.currentTarget;
+          const rect=el.getBoundingClientRect();
+          chatDragRef.current={dragging:true,moved:false,startX:touch.clientX,startY:touch.clientY,
+            startPosX:chatBubblePos.x!==null?chatBubblePos.x:window.innerWidth-rect.width-16,
+            startPosY:chatBubblePos.y!==null?chatBubblePos.y:window.innerHeight-rect.height-90};
+          const onMove=mv=>{
+            const t=mv.touches[0];
+            const dx=t.clientX-chatDragRef.current.startX;
+            const dy=t.clientY-chatDragRef.current.startY;
+            if(Math.abs(dx)>4||Math.abs(dy)>4){chatDragRef.current.moved=true;mv.preventDefault();}
+            const nx=Math.max(8,Math.min(window.innerWidth-58,chatDragRef.current.startPosX+dx));
+            const ny=Math.max(8,Math.min(window.innerHeight-58,chatDragRef.current.startPosY+dy));
+            const pos={x:nx,y:ny};
+            setChatBubblePos(pos);
+            try{localStorage.setItem("sk_chatBubblePos",JSON.stringify(pos));}catch{}
+          };
+          const onEnd=()=>{chatDragRef.current.dragging=false;window.removeEventListener("touchmove",onMove);window.removeEventListener("touchend",onEnd);};
+          window.addEventListener("touchmove",onMove,{passive:false});
+          window.addEventListener("touchend",onEnd);
+        }}
+        style={{
+          position:"fixed",
+          left:chatBubblePos.x!==null?chatBubblePos.x+"px":"auto",
+          right:chatBubblePos.x!==null?"auto":"16px",
+          top:chatBubblePos.y!==null?chatBubblePos.y+"px":"auto",
+          bottom:chatBubblePos.y!==null?"auto":"90px",
+          width:50,height:50,borderRadius:"50%",
+          background:"#C8963E",border:"none",
+          cursor:"grab",zIndex:900,
+          boxShadow:"0 4px 20px rgba(200,150,62,0.5)",
+          display:"flex",alignItems:"center",justifyContent:"center",
+          fontSize:22,touchAction:"none",userSelect:"none"
+        }}>
         💬
       </button>
 
