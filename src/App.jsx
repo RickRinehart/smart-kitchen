@@ -2830,23 +2830,40 @@ useDays is days from today the food is safe to eat (cooked food: 3-4 days typica
               {leftoversResult.notes&&<div style={{fontSize:12,color:C.muted,marginBottom:12,fontStyle:"italic"}}>💡 {leftoversResult.notes}</div>}
               <button style={{...bBtn("primary"),width:"100%",fontSize:13}} onClick={()=>{
                 const useByDate=new Date(Date.now()+leftoversResult.useDays*86400000).toLocaleDateString("en-US",{month:"short",day:"numeric"});
-                const newItem={
-                  id:Date.now(),
-                  name:leftoversResult.dish,
-                  qty:leftoversResult.servings,
-                  unit:"serving",
-                  category:"Leftovers",
-                  location:"Fridge",
-                  useBy:useByDate,
-                  useDays:leftoversResult.useDays,
-                  isLeftover:true,
-                  addedAt:new Date().toISOString()
+                const saveLeftover=(photoDataUrl)=>{
+                  const newItem={
+                    id:Date.now(),
+                    name:leftoversResult.dish,
+                    qty:leftoversResult.servings,
+                    unit:"serving",
+                    category:"Leftovers",
+                    location:"Fridge",
+                    useBy:useByDate,
+                    useDays:leftoversResult.useDays,
+                    isLeftover:true,
+                    addedAt:new Date().toISOString(),
+                    photo:photoDataUrl||null
+                  };
+                  setInventory(prev=>[...prev,newItem]);
+                  setLeftoversResult(null);
+                  setLeftoversPreview(null);
+                  setLeftoversB64(null);
+                  setLeftoversOpen(false);
                 };
-                setInventory(prev=>[...prev,newItem]);
-                setLeftoversResult(null);
-                setLeftoversPreview(null);
-                setLeftoversB64(null);
-                setLeftoversOpen(false);
+                if(leftoversB64){
+                  const img=new Image();
+                  img.onload=()=>{
+                    const canvas=document.createElement("canvas");
+                    const max=400;
+                    const ratio=Math.min(max/img.width,max/img.height,1);
+                    canvas.width=img.width*ratio;canvas.height=img.height*ratio;
+                    canvas.getContext("2d").drawImage(img,0,0,canvas.width,canvas.height);
+                    saveLeftover(canvas.toDataURL("image/jpeg",0.65));
+                  };
+                  img.src="data:"+leftoversMime+";base64,"+leftoversB64;
+                } else {
+                  saveLeftover(null);
+                }
                 alert("✅ "+leftoversResult.dish+" saved to inventory! Use by "+useByDate+".");
               }}>
                 💾 Save to Inventory
@@ -2866,14 +2883,18 @@ useDays is days from today the food is safe to eat (cooked food: 3-4 days typica
                 const urgent=daysLeft!==null&&daysLeft<=1;
                 const warning=daysLeft!==null&&daysLeft<=2;
                 return(
-                  <div key={idx} style={{background:C.card,border:"1px solid "+(urgent?"#f66":warning?"#fa0":C.border),borderRadius:10,padding:"10px 14px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                    <div>
-                      <div style={{fontSize:seniorMode?20:14,fontWeight:600,color:C.text}}>{item.name}</div>
-                      <div style={{fontSize:seniorMode?16:11,color:C.muted}}>{item.qty} {item.unit}{item.useBy?" · Use by "+item.useBy:""}</div>
+                  <div key={idx} style={{background:C.card,border:"1px solid "+(urgent?"#f66":warning?"#fa0":C.border),borderRadius:10,padding:"10px 14px",marginBottom:8}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <div style={{display:"flex",gap:10,alignItems:"center",flex:1}}>
+                      {item.photo&&<img src={item.photo} alt={item.name} style={{width:seniorMode?72:56,height:seniorMode?72:56,objectFit:"cover",borderRadius:8,flexShrink:0,border:"1px solid "+C.border}} />}
+                      <div>
+                        <div style={{fontSize:seniorMode?20:14,fontWeight:600,color:C.text}}>{item.name}</div>
+                        <div style={{fontSize:seniorMode?16:11,color:C.muted}}>{item.qty} {item.unit}{item.useBy?" · Use by "+item.useBy:""}</div>
+                        {urgent&&<span style={{fontSize:seniorMode?15:10,color:"#f66",fontWeight:700}}>⚠ Use TODAY</span>}
+                        {warning&&!urgent&&<span style={{fontSize:seniorMode?15:10,color:"#fa0",fontWeight:700}}>⚠ Use SOON</span>}
+                      </div>
                     </div>
                     <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap",justifyContent:"flex-end"}}>
-                      {urgent&&<span style={{fontSize:seniorMode?15:10,color:"#f66",fontWeight:700}}>TODAY</span>}
-                      {warning&&!urgent&&<span style={{fontSize:seniorMode?15:10,color:"#fa0",fontWeight:700}}>SOON</span>}
                       {item._askMealType?(
                         <>
                           <span style={{fontSize:seniorMode?15:10,color:C.muted}}>Used as:</span>
