@@ -1035,25 +1035,35 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       recentMade.forEach(m=>{if(m.meal){const k=m.meal.toLowerCase();mealCounts[k]=(mealCounts[k]||0)+1;}});
       const freqFavs=Object.entries(mealCounts).filter(([,c])=>c>=2).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([m,c])=>m+" (cooked "+c+"x)");
       // Star rating signals
-      const starKeepers=Object.entries(ratings).filter(([,v])=>v?.rating>=4).map(([name])=>name);
       const starBanned=Object.entries(ratings).filter(([,v])=>v?.rating===1).map(([name])=>name);
-      const starGood=Object.entries(ratings).filter(([,v])=>v?.rating===5).map(([name])=>name);
-      // Merge favorites: freq favs + 4-5 star rated meals
-      const allFavs=[...new Set([...freqFavs,...starGood.map(n=>n+" (5-star keeper)")])].slice(0,8);
-      // Merge rejected: change meal history + 1-star rated meals
-      const allRejected=[...new Set([...recentChanged.map(c=>c.meal).filter(Boolean),...starBanned])].slice(0,12);
+      const starFive=Object.entries(ratings).filter(([,v])=>v?.rating===5).map(([name])=>name);
+      const starFour=Object.entries(ratings).filter(([,v])=>v?.rating===4).map(([name])=>name);
+      // 4-week rotation: find 5-star meals made in last 28 days
+      const now=Date.now();
+      const fourWeeksMs=28*24*60*60*1000;
+      const recentFiveStar=recentMade.filter(m=>m.meal&&starFive.includes(m.meal)&&m.ts&&(now-m.ts)<fourWeeksMs).map(m=>m.meal);
+      // 5-star meals NOT made in last 28 days — eligible for suggestion (max 3 per week)
+      const eligibleFiveStar=starFive.filter(n=>!recentFiveStar.includes(n)).slice(0,3);
+      // 4-star meals available for suggestions
+      const eligibleFourStar=starFour.filter(n=>!recentFiveStar.includes(n)).slice(0,3);
+      // Merge favorites: freq favs + eligible 5-star
+      const allFavs=[...new Set([...freqFavs,...eligibleFiveStar.map(n=>n+" (5-star keeper, eligible this week)")])].slice(0,8);
+      // Merge rejected: change meal history + 1-star + recently made 5-star (cooldown)
+      const allRejected=[...new Set([...recentChanged.map(c=>c.meal).filter(Boolean),...starBanned,...recentFiveStar])].slice(0,15);
       // Protein preference from Made It history
       const proteins=recentMade.map(m=>m.protein).filter(Boolean);
       const proteinCounts={};
       proteins.forEach(p=>{proteinCounts[p]=(proteinCounts[p]||0)+1;});
       const favProteins=Object.entries(proteinCounts).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([p])=>p);
       // Assemble summary
-      if(!allFavs.length&&!allRejected.length&&!favProteins.length&&!starKeepers.length) return "";
+      if(!allFavs.length&&!allRejected.length&&!favProteins.length&&!eligibleFiveStar.length) return "";
       let summary="";
-      if(allFavs.length) summary+=" HOUSEHOLD FAVORITES (suggest often): "+allFavs.join(", ")+".";
-      if(starKeepers.length) summary+=" HIGHLY RATED MEALS (4-5 stars, prioritize): "+starKeepers.join(", ")+".";
-      if(allRejected.length) summary+=" NEVER SUGGEST THESE (1-star or rejected): "+allRejected.join(", ")+".";
+      if(eligibleFiveStar.length) summary+=" 5-STAR KEEPERS ELIGIBLE THIS WEEK (max 3 of these per week — mix with new meals): "+eligibleFiveStar.join(", ")+".";
+      if(eligibleFourStar.length) summary+=" 4-STAR FAVORITES (occasionally suggest): "+eligibleFourStar.join(", ")+".";
+      if(allFavs.length) summary+=" HOUSEHOLD FAVORITES: "+allFavs.join(", ")+".";
+      if(allRejected.length) summary+=" DO NOT SUGGEST THESE (1-star, rejected, or made within last 4 weeks): "+allRejected.join(", ")+".";
       if(favProteins.length) summary+=" PREFERRED PROTEINS: "+favProteins.join(", ")+".";
+      summary+=" IMPORTANT: No more than 3 meals per week from the 5-star keeper list. The remaining 4+ meals must be fresh new suggestions not from the keeper list.";
       return summary;
     }catch{return "";}
   };
@@ -1069,7 +1079,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       const fs=familySummary();
       const raw=await callClaude({
         system:"Return ONLY a JSON array of 7 dinner plan objects. No other text. Start with [ end with ]. Each: {day,meal,proteinUsed,sauteBagsUsed,sideUsed,shoppingNeeded}. day is Monday through Sunday. proteinUsed is string or null. sauteBagsUsed is number. sideUsed is string or null. shoppingNeeded is array of {name,qty,unit} — ONLY items NOT in the inventory list.",
-        prompt:(()=>{const wh=inventory.filter(i=>i.category==="Wild Harvest").map(i=>i.name+" ("+i.qty+" "+i.unit+")").join(", ");const hh=inventory.filter(i=>i.category==="Home Harvest").map(i=>i.name+" ("+i.qty+" "+i.unit+")").join(", ");const lv=inventory.filter(i=>i.isLeftover&&i.qty>0).map(i=>i.name+" "+i.qty+" servings (use by "+i.useBy+")").join(", ");const prefS=buildPreferenceSummary();return"Proteins available: "+proteins+". Saute blend: "+(blendItem?.qty||0)+" bags."+(wh?" Wild Harvest inventory (treat as premium proteins, species-aware cooking): "+wh+".":"")+(hh?" Home Harvest produce/eggs/livestock: "+hh+" — prioritize fresh produce nearing end of shelf life.":"")+(lv?" LEFTOVER MEALS AVAILABLE (prioritize for Busy Nights, use before expiry): "+lv+".":"")+" Full inventory on hand (DO NOT put these in shoppingNeeded): "+inventory.map(i=>String(i.name||"")).filter(Boolean).join(", ")+". "+fs+prefS+"Plan 7 dinners Mon-Sun using proteins and inventory above. Max 3 chicken meals. At least 1 beef. At least 1 pork or kielbasa. No same protein two days in a row. If Wild Harvest proteins are present, include at least 1 wild game or fish meal. If Home Harvest produce is present, feature it prominently. If leftovers are available, schedule at least 1 leftover meal as a Busy Night option. shoppingNeeded must ONLY list items not found in the inventory list above.";})(),
+        prompt:(()=>{const wh=inventory.filter(i=>i.category==="Wild Harvest").map(i=>i.name+" ("+i.qty+" "+i.unit+")").join(", ");const hh=inventory.filter(i=>i.category==="Home Harvest").map(i=>i.name+" ("+i.qty+" "+i.unit+")").join(", ");const lv=inventory.filter(i=>i.isLeftover&&i.qty>0).map(i=>i.name+" "+i.qty+" servings (use by "+i.useBy+")").join(", ");const prefS=buildPreferenceSummary();return"Proteins available: "+proteins+". Saute blend: "+(blendItem?.qty||0)+" bags."+(wh?" Wild Harvest inventory (treat as premium proteins, species-aware cooking): "+wh+".":"")+(hh?" Home Harvest produce/eggs/livestock: "+hh+" — prioritize fresh produce nearing end of shelf life.":"")+(lv?" LEFTOVER MEALS AVAILABLE (prioritize for Busy Nights, use before expiry): "+lv+".":"")+" Full inventory on hand (DO NOT put these in shoppingNeeded): "+inventory.map(i=>String(i.name||"")).filter(Boolean).join(", ")+". "+fs+prefS+"Plan 7 dinners Mon-Sun using proteins and inventory above. Max 3 chicken meals. At least 1 beef. At least 1 pork or kielbasa. No same protein two days in a row. CRITICAL ROTATION RULE: Maximum 3 meals may come from the 5-star keeper list — the other 4 or more meals MUST be creative new suggestions the family has not had recently. Variety and discovery are essential. If Wild Harvest proteins are present, include at least 1 wild game or fish meal. If Home Harvest produce is present, feature it prominently. If leftovers are available, schedule at least 1 leftover meal as a Busy Night option. shoppingNeeded must ONLY list items not found in the inventory list above.";})(),
         maxTokens:3000,
       });
       const s=raw.indexOf("["),e=raw.lastIndexOf("]");
