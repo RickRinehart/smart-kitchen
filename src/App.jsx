@@ -2850,6 +2850,7 @@ useDays is days from today the food is safe to eat (cooked food: 3-4 days typica
                   setLeftoversB64(null);
                   setLeftoversOpen(false);
                 };
+                const dishName=leftoversResult.dish;
                 if(leftoversB64){
                   const img=new Image();
                   img.onload=()=>{
@@ -2859,12 +2860,17 @@ useDays is days from today the food is safe to eat (cooked food: 3-4 days typica
                     canvas.width=img.width*ratio;canvas.height=img.height*ratio;
                     canvas.getContext("2d").drawImage(img,0,0,canvas.width,canvas.height);
                     saveLeftover(canvas.toDataURL("image/jpeg",0.65));
+                    alert("✅ "+dishName+" saved! Use by "+useByDate+".");
                   };
+                  img.onerror=()=>{saveLeftover(leftoversPreview||null);alert("✅ "+dishName+" saved! Use by "+useByDate+".");};
                   img.src="data:"+leftoversMime+";base64,"+leftoversB64;
+                } else if(leftoversPreview){
+                  saveLeftover(leftoversPreview);
+                  alert("✅ "+dishName+" saved! Use by "+useByDate+".");
                 } else {
                   saveLeftover(null);
+                  alert("✅ "+dishName+" saved! Use by "+useByDate+".");
                 }
-                alert("✅ "+leftoversResult.dish+" saved to inventory! Use by "+useByDate+".");
               }}>
                 💾 Save to Inventory
               </button>
@@ -2902,23 +2908,23 @@ useDays is days from today the food is safe to eat (cooked food: 3-4 days typica
                             const log=JSON.parse(localStorage.getItem("sk_leftoverHistory")||"[]");
                             log.push({dish:item.name,servings:item.qty,consumedAs:"dinner",daysSinceAdded:item.useDays?Math.ceil((Date.now()-new Date(item.addedAt).getTime())/86400000):null,wasted:false,ts:Date.now()});
                             localStorage.setItem("sk_leftoverHistory",JSON.stringify(log));
-                            setInventory(prev=>prev.filter((_,ii)=>ii!==inventory.indexOf(item)));
+                            setInventory(prev=>prev.filter(it=>it.id!==item.id));
                           }}>Dinner</button>
                           <button style={{background:"#1a2e3a",border:"1px solid "+C.blue,borderRadius:6,color:C.blue,cursor:"pointer",fontSize:seniorMode?15:10,padding:seniorMode?"5px 14px":"3px 8px"}} onClick={()=>{
                             const log=JSON.parse(localStorage.getItem("sk_leftoverHistory")||"[]");
                             log.push({dish:item.name,servings:item.qty,consumedAs:"lunch",daysSinceAdded:item.useDays?Math.ceil((Date.now()-new Date(item.addedAt).getTime())/86400000):null,wasted:false,ts:Date.now()});
                             localStorage.setItem("sk_leftoverHistory",JSON.stringify(log));
-                            setInventory(prev=>prev.filter((_,ii)=>ii!==inventory.indexOf(item)));
+                            setInventory(prev=>prev.filter(it=>it.id!==item.id));
                           }}>Lunch</button>
                         </>
                       ):(
                         <>
-                          <button style={{background:"#1a3a1a",border:"1px solid #4c4",borderRadius:6,color:"#4c4",cursor:"pointer",fontSize:seniorMode?15:10,padding:"3px 8px"}} onClick={()=>setInventory(prev=>prev.map((it,ii)=>ii===inventory.indexOf(item)?{...it,_askMealType:true}:it))}>Used</button>
+                          <button style={{background:"#1a3a1a",border:"1px solid #4c4",borderRadius:6,color:"#4c4",cursor:"pointer",fontSize:seniorMode?15:10,padding:"3px 8px"}} onClick={()=>setInventory(prev=>prev.map(it=>it.id===item.id?{...it,_askMealType:true}:it))}>Used</button>
                           <button style={{background:"transparent",border:"1px solid "+C.border,borderRadius:6,color:C.muted,cursor:"pointer",fontSize:seniorMode?15:10,padding:seniorMode?"5px 14px":"3px 8px"}} onClick={()=>{
                             const log=JSON.parse(localStorage.getItem("sk_leftoverHistory")||"[]");
                             log.push({dish:item.name,servings:item.qty,consumedAs:null,wasted:true,reason:null,ts:Date.now()});
                             localStorage.setItem("sk_leftoverHistory",JSON.stringify(log));
-                            setInventory(prev=>prev.filter((_,ii)=>ii!==inventory.indexOf(item)));
+                            setInventory(prev=>prev.filter(it=>it.id!==item.id));
                           }}>Remove</button>
                         </>
                       )}
@@ -3300,7 +3306,7 @@ What can I substitute and do I have what I need?`,
       </div>}
 
       {/* -- Support Chat Floating Button -- */}
-      <button onClick={openChat} style={{position:"fixed",bottom:24,right:24,width:56,height:56,borderRadius:"50%",background:"#C8963E",border:"none",cursor:"pointer",zIndex:900,boxShadow:"0 4px 20px rgba(200,150,62,0.5)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,transition:"transform 0.2s"}} title="Chat with Smart Kitchen">
+      <button onClick={openChat} style={{position:"fixed",bottom:90,right:16,width:50,height:50,borderRadius:"50%",background:"#C8963E",border:"none",cursor:"pointer",zIndex:900,boxShadow:"0 4px 20px rgba(200,150,62,0.5)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,transition:"transform 0.2s"}} title="Chat with Smart Kitchen">
         💬
       </button>
 
