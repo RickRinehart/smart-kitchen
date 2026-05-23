@@ -2929,6 +2929,7 @@ useDays is days from today the food is safe to eat (cooked food: 3-4 days typica
                         </>
                       )}
                     </div>
+                    </div>
                   </div>
                 );
               })}
