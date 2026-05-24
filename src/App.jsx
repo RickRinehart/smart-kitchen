@@ -409,6 +409,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [filterCat,setFilterCat]=useState("All");const [invSearch,setInvSearch]=useState("");const [invSort,setInvSort]=useState("category");
   const [filterLoc,setFilterLoc]=useState("All");
   const [showAdd,setShowAdd]=useState(false);
+  const [showRejected,setShowRejected]=useState(true);
   const [newItem,setNewItem]=useState({name:"",qty:"",unit:"",category:"Pantry",location:"Pantry",harvestType:""});
   const [activeRecipe,setActiveRecipe]=useState(null);
   const [familySize,setFamilySize]=useState(()=>loadLocal("sk_familySize",3));
@@ -1850,9 +1851,12 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                 <div style={{marginTop:24}}>
                   <div style={{fontFamily:FM,fontSize:11,color:C.red,letterSpacing:0.8,marginBottom:10,display:"flex",alignItems:"center",gap:6}}>
                     <span>🚫</span><span>REJECTED MEALS</span>
-                    <span style={{fontSize:10,color:C.muted,fontWeight:400,marginLeft:4}}>Tap Restore to add back to suggestions</span>
+                    <span style={{fontSize:10,color:C.muted,fontWeight:400,marginLeft:4}}>{showRejected?"Tap Restore to add back to suggestions":"Hidden"}</span>
+                    <button onClick={()=>setShowRejected(v=>!v)} style={{marginLeft:"auto",background:"transparent",border:"1px solid "+C.border,borderRadius:6,color:C.muted,cursor:"pointer",fontSize:10,padding:"2px 8px",fontFamily:FM}}>
+                      {showRejected?"✕ Hide":"▼ Show"}
+                    </button>
                   </div>
-                  {allBanned.map(({name,reason})=>(
+                  {showRejected&&allBanned.map(({name,reason})=>(
                     <div key={name} style={{background:C.card,border:"1px solid "+C.border,borderRadius:10,padding:"10px 14px",marginBottom:6,display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
                       <div>
                         <div style={{fontSize:seniorMode?17:13,fontWeight:600,color:C.text}}>{name}</div>
