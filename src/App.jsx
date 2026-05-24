@@ -1311,7 +1311,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     } catch(e){ alert("Calendar push failed: "+e.message); }
   };
 
-  const filtered=[...inventory.filter(i=>(filterCat==="All"||i.category===filterCat)&&(filterLoc==="All"||i.location===filterLoc)&&(invSearch===""||i.name.toLowerCase().includes(invSearch.toLowerCase())))].sort((a,b)=>invSort==="category"?(a.category||"").localeCompare(b.category||"")||a.name.localeCompare(b.name):a.name.localeCompare(b.name));
+  const filtered=[...inventory.filter(i=>(filterCat==="All"||(i.category===filterCat)||(i.harvestType===filterCat&&(i.category==="Wild Harvest"||i.category==="Home Harvest")))&&(filterLoc==="All"||i.location===filterLoc)&&(invSearch===""||i.name.toLowerCase().includes(invSearch.toLowerCase())))].sort((a,b)=>invSort==="category"?(a.category||"").localeCompare(b.category||"")||a.name.localeCompare(b.name):a.name.localeCompare(b.name));
 
   // -- Render -----------------------------------------------------------------
   return(
