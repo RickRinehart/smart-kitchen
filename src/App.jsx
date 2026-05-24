@@ -409,7 +409,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [filterCat,setFilterCat]=useState("All");const [invSearch,setInvSearch]=useState("");const [invSort,setInvSort]=useState("category");
   const [filterLoc,setFilterLoc]=useState("All");
   const [showAdd,setShowAdd]=useState(false);
-  const [newItem,setNewItem]=useState({name:"",qty:"",unit:"",category:"Pantry",location:"Pantry"});
+  const [newItem,setNewItem]=useState({name:"",qty:"",unit:"",category:"Pantry",location:"Pantry",harvestType:""});
   const [activeRecipe,setActiveRecipe]=useState(null);
   const [familySize,setFamilySize]=useState(()=>loadLocal("sk_familySize",3));
   const [familyProfiles,setFamilyProfiles]=useState(()=>loadLocal("sk_familyProfiles",DEFAULT_PROFILES));
@@ -590,7 +590,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
 
   // -- Computed values --------------------------------------------------------
   const blendItem=inventory.find(i=>i.vegType==="sauteBlend")||inventory.find(i=>i.name.toLowerCase().includes("saute")&&i.category==="Frozen");
-  const proteinItems=inventory.filter(i=>i.isBulkProtein);
+  const proteinItems=inventory.filter(i=>i.isBulkProtein||(i.harvestType==="Protein"&&(i.category==="Wild Harvest"||i.category==="Home Harvest")));
   const totalPortions=proteinItems.reduce((a,i)=>a+(parseFloat(i.qty)||0),0);
   const condimentItems=inventory.filter(i=>i.isCondiment);
   const activeProfiles=familyProfiles.filter(p=>p.active);
@@ -1250,10 +1250,12 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
   const addItem=()=>{
     if(!newItem.name||!newItem.qty) return;
     const isProtein=newItem.category==="Protein";
+    const isHarvestProtein=(newItem.category==="Wild Harvest"||newItem.category==="Home Harvest")&&newItem.harvestType==="Protein";
     const item={...newItem,id:Date.now(),qty:parseFloat(newItem.qty)};
     if(isProtein){item.isBulkProtein=true;if(!newItem.location||newItem.location==="Pantry")item.location="Freezer";if(!item.unit)item.unit="portions";if(!item.portionOz)item.portionOz=6;}
+    if(isHarvestProtein){item.isBulkProtein=true;if(!item.unit)item.unit="lbs";if(!item.portionOz)item.portionOz=6;}
     setInventory(p=>[...p,item]);
-    setNewItem({name:"",qty:"",unit:"",category:"Pantry",location:"Pantry"});
+    setNewItem({name:"",qty:"",unit:"",category:"Pantry",location:"Pantry",harvestType:""});
     setShowAdd(false);
   };
 
@@ -1636,7 +1638,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                 <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
                   <span style={{fontFamily:FM,fontSize:11,color:C.muted,marginRight:2}}>Category:</span>
                   {[["Protein","#ef4444"],["Produce","#22c55e"],["Dairy","#60a5fa"],["Frozen","#a78bfa"],["Pantry","#f59e0b"],["Baking","#f472b6"],["Grains","#d97706"],["Condiments","#94a3b8"],["Other","#6b7280"],["Wild Harvest","#5a8a2e"],["Home Harvest","#2e8a5a"]].map(([cat,col])=>(
-                    <button key={cat} onClick={()=>{const autoLoc=cat==="Protein"?"Freezer":cat==="Dairy"||cat==="Produce"?"Fridge":cat==="Frozen"?"Freezer":cat==="Wild Harvest"||cat==="Home Harvest"?newItem.location:newItem.location;setNewItem(p=>({...p,category:cat,location:autoLoc}));}} style={{padding:"4px 10px",borderRadius:20,border:"2px solid "+(newItem.category===cat?col:"transparent"),background:newItem.category===cat?col+"22":"transparent",color:newItem.category===cat?col:C.muted,fontFamily:FM,fontSize:11,fontWeight:600,cursor:"pointer",transition:"all 0.15s"}}>{cat}</button>
+                    <button key={cat} onClick={()=>{const autoLoc=cat==="Protein"?"Freezer":cat==="Dairy"||cat==="Produce"?"Fridge":cat==="Frozen"?"Freezer":cat==="Wild Harvest"||cat==="Home Harvest"?newItem.location:newItem.location;const isHarvest=cat==="Wild Harvest"||cat==="Home Harvest";setNewItem(p=>({...p,category:cat,location:autoLoc,harvestType:isHarvest?p.harvestType:""}));}} style={{padding:"4px 10px",borderRadius:20,border:"2px solid "+(newItem.category===cat?col:"transparent"),background:newItem.category===cat?col+"22":"transparent",color:newItem.category===cat?col:C.muted,fontFamily:FM,fontSize:11,fontWeight:600,cursor:"pointer",transition:"all 0.15s"}}>{cat}</button>
                   ))}
                   <span style={{marginLeft:"auto",fontFamily:FM,fontSize:11,color:C.muted,whiteSpace:"nowrap",paddingLeft:8}}>📍 Location:</span>
                   <div style={{display:"flex",gap:6,flexShrink:0}}>
@@ -1645,6 +1647,17 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                     ))}
                   </div>
                 </div>
+                {(newItem.category==="Wild Harvest"||newItem.category==="Home Harvest")&&(
+                  <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center",marginTop:8,paddingTop:8,borderTop:"1px solid "+C.border}}>
+                    <span style={{fontFamily:FM,fontSize:11,color:C.muted,marginRight:2}}>{newItem.category==="Wild Harvest"?"🦌":"🌱"} Type:</span>
+                    {[["Protein","🥩","#ef4444"],["Produce","🥦","#22c55e"],["Pantry","🫙","#f59e0b"]].map(([ht,ico,col])=>(
+                      <button key={ht} onClick={()=>setNewItem(p=>({...p,harvestType:ht}))} style={{padding:"4px 12px",borderRadius:20,border:"2px solid "+(newItem.harvestType===ht?col:"transparent"),background:newItem.harvestType===ht?col+"22":"transparent",color:newItem.harvestType===ht?col:C.muted,fontSize:11,cursor:"pointer",fontFamily:FM}}>
+                        {ico} {ht}
+                      </button>
+                    ))}
+                    {!newItem.harvestType&&<span style={{fontSize:10,color:C.dim,marginLeft:4}}>Select a type to count toward protein or produce</span>}
+                  </div>
+                )}
               </div>
             )}
 
