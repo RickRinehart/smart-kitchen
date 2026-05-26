@@ -544,6 +544,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   useEffect(()=>{try{localStorage.setItem("sk_familyProfiles",JSON.stringify(familyProfiles));}catch{}},[familyProfiles]);
   useEffect(()=>{try{localStorage.setItem("sk_tempProfiles",JSON.stringify(tempProfiles));}catch{}},[tempProfiles]);
   useEffect(()=>{try{localStorage.setItem("sk_seniorMode",seniorMode?"1":"0");}catch{}},[seniorMode]);
+  useEffect(()=>{try{localStorage.setItem("sk_familyRecipes",JSON.stringify(familyRecipes));}catch{}},[familyRecipes]);
   useEffect(()=>{
     const person1=familyProfiles[0];
     if(person1?.restriction==="senior"&&!seniorMode&&!seniorPromptDismissed){
