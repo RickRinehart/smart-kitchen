@@ -344,9 +344,11 @@ const bInp={background:C.surface,border:"1px solid "+C.border,borderRadius:8,pad
 const Label=({children})=><div style={{fontSize:10,color:C.muted,fontFamily:FM,letterSpacing:0.8,marginBottom:5}}>{children}</div>;
 
 // -- Claude API ----------------------------------------------------------------
-async function callClaude({system,prompt,imageBase64,imageType,maxTokens=4000}){
+async function callClaude({system,prompt,imageBase64,imageB64,imageType,extraImages=[],maxTokens=4000}){
   const content=[];
-  if(imageBase64) content.push({type:"image",source:{type:"base64",media_type:imageType||"image/jpeg",data:imageBase64}});
+  const primaryImg=imageBase64||imageB64;
+  if(primaryImg) content.push({type:"image",source:{type:"base64",media_type:imageType||"image/jpeg",data:primaryImg}});
+  (extraImages||[]).forEach(img=>content.push({type:"image",source:{type:"base64",media_type:"image/jpeg",data:img}}));
   content.push({type:"text",text:prompt});
   const apiKey=import.meta.env?.VITE_ANTHROPIC_API_KEY||"";
   const res=await fetch("https://api.anthropic.com/v1/messages",{
@@ -489,6 +491,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [frLoading,setFrLoading]=useState(false);
   const [frPhotoPreview,setFrPhotoPreview]=useState(null);
   const [frPhotoB64,setFrPhotoB64]=useState(null);
+  const [frPhotos,setFrPhotos]=useState([]);
   const [frIdeaInput,setFrIdeaInput]=useState("");
   const [frServings,setFrServings]=useState(4);
   const [frDraft,setFrDraft]=useState({name:"",kitchenOf:"",notes:"",servings:4,ingredients:[],steps:[],rotation:false,frequency:"4week",seasons:[],photo:null});
@@ -3413,25 +3416,67 @@ What can I substitute and do I have what I need?`,
             {frAddMode==="photo"&&!frEditRecipe&&(<div>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
                 <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?22:18,color:"#5c3317",fontWeight:700}}>📸 Photo Recipe Scan</div>
-                <button onClick={()=>setFrAddMode("pick")} style={{background:"transparent",border:"none",fontSize:20,cursor:"pointer",color:"#8b6340"}}>✕</button>
+                <button onClick={()=>{setFrAddMode("pick");setFrPhotos([]);}} style={{background:"transparent",border:"none",fontSize:20,cursor:"pointer",color:"#8b6340"}}>✕</button>
               </div>
-              <div style={{background:"#fffbf0",border:"2px dashed #e8d5b0",borderRadius:12,padding:20,textAlign:"center",marginBottom:14,cursor:"pointer"}} onClick={()=>document.getElementById("fr-photo-input").click()}>
-                {frPhotoPreview?<img src={frPhotoPreview} style={{maxWidth:"100%",maxHeight:200,borderRadius:8,objectFit:"contain"}} alt="Recipe"/>:<><div style={{fontSize:40,marginBottom:8}}>📷</div><div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?16:13,color:"#8b6340"}}>Tap to take a photo or choose from gallery</div></>}
-              </div>
-              <input id="fr-photo-input" type="file" accept="image/*" capture="environment" style={{display:"none"}} onChange={e=>{const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=ev=>{setFrPhotoPreview(ev.target.result);const b64=ev.target.result.split(",")[1];setFrPhotoB64(b64);};reader.readAsDataURL(file);}}/>
-              {frPhotoPreview&&<button onClick={async()=>{
-                setFrLoading(true);
-                try{
-                  const res=await callClaude({system:"You are a recipe reader. Extract the recipe from the image and return ONLY valid JSON with no markdown: {name,kitchenOf,servings,ingredients:[strings],steps:[strings],notes}. kitchenOf is the person's name if written on the recipe. If not present use empty string.",prompt:"Read this recipe image and extract all details.",imageB64:frPhotoB64,maxTokens:1200});
-                  const raw=(typeof res==="string"?res:res?.content?.[0]?.text||"").replace(/```json|```/g,"").trim();
-                  const s=raw.indexOf("{"),e=raw.lastIndexOf("}");
-                  const parsed=JSON.parse(raw.slice(s,e+1));
-                  setFrEditRecipe({...parsed,id:Date.now(),rotation:false,frequency:"4week",seasons:[],photo:frPhotoPreview});
-                  setFrServings(parsed.servings||4);
-                  setFrAddMode("review");
-                }catch(err){alert("Could not read recipe. Try a clearer photo.");}
-                setFrLoading(false);
-              }} disabled={frLoading} style={{width:"100%",background:"#5c3317",border:"none",borderRadius:10,padding:"13px",color:"#fdf6ec",fontFamily:"Georgia,serif",fontSize:seniorMode?17:14,cursor:"pointer",fontWeight:700,opacity:frLoading?0.6:1}}>{frLoading?"Reading recipe...":"Read Recipe →"}</button>}
+              <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?14:12,color:"#8b6340",marginBottom:10,lineHeight:1.6}}>Add as many photos as needed — front and back, multiple pages, recipe cards. AI will read them all and build one complete recipe card.</div>
+              {/* Photo thumbnails */}
+              {frPhotos.length>0&&<div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:12}}>
+                {frPhotos.map((p,i)=>(
+                  <div key={i} style={{position:"relative",width:72,height:72}}>
+                    <img src={p.preview} style={{width:72,height:72,objectFit:"cover",borderRadius:8,border:"2px solid #e8d5b0"}} alt={"Page "+(i+1)}/>
+                    <div style={{position:"absolute",top:-6,right:-6,background:"#5c3317",color:"#fdf6ec",borderRadius:"50%",width:18,height:18,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,cursor:"pointer"}} onClick={()=>setFrPhotos(prev=>prev.filter((_,j)=>j!==i))}>✕</div>
+                    <div style={{position:"absolute",bottom:2,left:0,right:0,textAlign:"center",fontFamily:"Georgia,serif",fontSize:9,color:"#fff",background:"rgba(92,51,23,0.6)",borderRadius:"0 0 6px 6px"}}>Photo {i+1}</div>
+                  </div>
+                ))}
+                {/* Add another photo tile */}
+                <div style={{width:72,height:72,border:"2px dashed #e8d5b0",borderRadius:8,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:"pointer",background:"#fffbf0"}} onClick={()=>document.getElementById("fr-photo-input").click()}>
+                  <div style={{fontSize:22}}>📷</div>
+                  <div style={{fontFamily:"Georgia,serif",fontSize:9,color:"#8b6340",marginTop:2}}>Add</div>
+                </div>
+              </div>}
+              {/* Empty state drop zone */}
+              {frPhotos.length===0&&<div style={{background:"#fffbf0",border:"2px dashed #e8d5b0",borderRadius:12,padding:28,textAlign:"center",marginBottom:14,cursor:"pointer"}} onClick={()=>document.getElementById("fr-photo-input").click()}>
+                <div style={{fontSize:40,marginBottom:8}}>📷</div>
+                <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?16:13,color:"#8b6340"}}>Tap to take a photo or choose from gallery</div>
+                <div style={{fontFamily:"Georgia,serif",fontSize:11,color:"#c8963e",marginTop:6}}>You can add multiple photos</div>
+              </div>}
+              <input id="fr-photo-input" type="file" accept="image/*" capture="environment" style={{display:"none"}} onChange={e=>{
+                const file=e.target.files[0];
+                if(!file)return;
+                const reader=new FileReader();
+                reader.onload=ev=>{
+                  const preview=ev.target.result;
+                  const b64=preview.split(",")[1];
+                  setFrPhotos(prev=>[...prev,{preview,b64}]);
+                };
+                reader.readAsDataURL(file);
+                e.target.value="";
+              }}/>
+              {frPhotos.length>0&&<div style={{display:"flex",gap:8,marginTop:4}}>
+                <button onClick={()=>document.getElementById("fr-photo-input").click()} style={{flex:1,background:"transparent",border:"2px solid #c8963e",borderRadius:10,padding:"11px",color:"#5c3317",fontFamily:"Georgia,serif",fontSize:seniorMode?15:13,cursor:"pointer",fontWeight:700}}>+ Add Another Photo</button>
+                <button onClick={async()=>{
+                  setFrLoading(true);
+                  try{
+                    const photoDesc=frPhotos.map((p,i)=>"Photo "+(i+1)).join(", ");
+                    const prompt="I am sending you "+(frPhotos.length>1?frPhotos.length+" photos of a recipe ("+photoDesc+"). Read all photos together and combine into one complete recipe.":"a photo of a recipe. Read it and extract all details.")+" Return ONLY valid JSON with no markdown: {name,kitchenOf,servings,ingredients:[strings with amounts],steps:[strings],notes}. kitchenOf is the person's name if written on the recipe — empty string if not present. Combine all pages into one complete recipe.";
+                    const res=await callClaude({
+                      system:"You are a recipe reader. Extract recipes from images and return ONLY valid JSON, no markdown, no backticks.",
+                      prompt,
+                      imageB64:frPhotos[0].b64,
+                      extraImages:frPhotos.slice(1).map(p=>p.b64),
+                      maxTokens:1600
+                    });
+                    const raw=(typeof res==="string"?res:res?.content?.[0]?.text||"").replace(/```json|```/g,"").trim();
+                    const s=raw.indexOf("{"),e=raw.lastIndexOf("}");
+                    const parsed=JSON.parse(raw.slice(s,e+1));
+                    setFrEditRecipe({...parsed,id:Date.now(),rotation:false,frequency:"4week",seasons:[],photo:frPhotos[0].preview});
+                    setFrServings(parsed.servings||4);
+                    setFrPhotos([]);
+                    setFrAddMode("review");
+                  }catch(err){alert("Could not read recipe. Try clearer photos or better lighting.");}
+                  setFrLoading(false);
+                }} disabled={frLoading} style={{flex:2,background:"#5c3317",border:"none",borderRadius:10,padding:"13px",color:"#fdf6ec",fontFamily:"Georgia,serif",fontSize:seniorMode?17:14,cursor:"pointer",fontWeight:700,opacity:frLoading?0.6:1}}>{frLoading?"Reading "+(frPhotos.length>1?"all "+frPhotos.length+" photos":"recipe")+"...":"Read Recipe →"+(frPhotos.length>1?" ("+frPhotos.length+" photos)":"")}</button>
+              </div>}
             </div>)}
 
             {/* ── IDEA ── */}
