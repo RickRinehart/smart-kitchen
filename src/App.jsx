@@ -3290,7 +3290,7 @@ What can I substitute and do I have what I need?`,
               </div>
               <div style={{background:"#fffbf0",border:"1px solid #e8d5b0",borderRadius:10,padding:14,marginBottom:14}}>
                 <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?16:13,fontWeight:700,color:"#5c3317",marginBottom:8,borderBottom:"1px dashed #e8d5b0",paddingBottom:6}}>Ingredients</div>
-                {(frViewRecipe.ingredients||[]).map((ing,i)=>{
+                {(frViewRecipe.ingredients||[]).filter(ing=>ing&&ing.trim()).map((ing,i)=>{
                   const base=frViewRecipe.servings||4;
                   const scale=frServings/base;
                   const match=ing.match(/^([\d.\/]+)\s*(.*)/);
@@ -3300,9 +3300,12 @@ What can I substitute and do I have what I need?`,
               </div>
               <div style={{background:"#fffbf0",border:"1px solid #e8d5b0",borderRadius:10,padding:14,marginBottom:14}}>
                 <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?16:13,fontWeight:700,color:"#5c3317",marginBottom:8,borderBottom:"1px dashed #e8d5b0",paddingBottom:6}}>Instructions</div>
-                {(frViewRecipe.steps||[]).map((step,i)=><div key={i} style={{fontFamily:"Georgia,serif",fontSize:seniorMode?16:13,color:"#3d2008",marginBottom:8,display:"flex",gap:8,lineHeight:1.6}}><span style={{fontWeight:700,color:"#c8963e",flexShrink:0}}>{i+1}.</span><span>{step}</span></div>)}
+                {(frViewRecipe.steps||[]).filter(step=>step&&step.trim()).map((step,i)=><div key={i} style={{fontFamily:"Georgia,serif",fontSize:seniorMode?16:13,color:"#3d2008",marginBottom:8,display:"flex",gap:8,lineHeight:1.6}}><span style={{fontWeight:700,color:"#c8963e",flexShrink:0}}>{i+1}.</span><span>{step}</span></div>)}
               </div>
               {frViewRecipe.notes&&<div style={{background:"#fef9f0",border:"1px dashed #c8963e",borderRadius:10,padding:12,marginBottom:14,fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,color:"#8b6340",fontStyle:"italic"}}>💛 {frViewRecipe.notes}</div>}
+              <div style={{position:"sticky",bottom:0,background:"#fdf6ec",paddingTop:10,paddingBottom:4,marginTop:4}}>
+                <button onClick={()=>setFrViewRecipe(null)} style={{width:"100%",background:"transparent",border:"2px solid #e8d5b0",borderRadius:10,padding:"11px",color:"#8b6340",fontFamily:"Georgia,serif",fontSize:16,cursor:"pointer",fontWeight:700}}>✕ Close Recipe</button>
+              </div>
               <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                 <button onClick={()=>{
                   const missing=(frViewRecipe.ingredients||[]).filter(ing=>{
