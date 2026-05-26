@@ -3440,7 +3440,7 @@ What can I substitute and do I have what I need?`,
                 <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?16:13,color:"#8b6340"}}>Tap to take a photo or choose from gallery</div>
                 <div style={{fontFamily:"Georgia,serif",fontSize:11,color:"#c8963e",marginTop:6}}>You can add multiple photos</div>
               </div>}
-              <input id="fr-photo-input" type="file" accept="image/*" capture="environment" style={{display:"none"}} onChange={e=>{
+              <input id="fr-photo-input" type="file" accept="image/*" style={{display:"none"}} onChange={e=>{
                 const file=e.target.files[0];
                 if(!file)return;
                 const reader=new FileReader();
