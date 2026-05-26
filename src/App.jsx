@@ -481,6 +481,17 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [makeThisInput,setMakeThisInput]=useState("");
   const [makeThisResult,setMakeThisResult]=useState(null);
   const [makeThisLoading,setMakeThisLoading]=useState(false);
+  const [familyRecipesOpen,setFamilyRecipesOpen]=useState(false);
+  const [familyRecipes,setFamilyRecipes]=useState(()=>{try{const s=localStorage.getItem("sk_familyRecipes");return s?JSON.parse(s):[];}catch{return [];}});
+  const [frAddMode,setFrAddMode]=useState(null);
+  const [frEditRecipe,setFrEditRecipe]=useState(null);
+  const [frViewRecipe,setFrViewRecipe]=useState(null);
+  const [frLoading,setFrLoading]=useState(false);
+  const [frPhotoPreview,setFrPhotoPreview]=useState(null);
+  const [frPhotoB64,setFrPhotoB64]=useState(null);
+  const [frIdeaInput,setFrIdeaInput]=useState("");
+  const [frServings,setFrServings]=useState(4);
+  const [frDraft,setFrDraft]=useState({name:"",kitchenOf:"",notes:"",servings:4,ingredients:[],steps:[],rotation:false,frequency:"4week",seasons:[],photo:null});
   const [canIHaveOpen,setCanIHaveOpen]=useState(false);
   const [canIHaveImg,setCanIHaveImg]=useState(null);
   const [canIHaveLoading,setCanIHaveLoading]=useState(false);
@@ -1102,7 +1113,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       const fs=familySummary();
       const raw=await callClaude({
         system:"Return ONLY a JSON array of 7 dinner plan objects. No other text. Start with [ end with ]. Each: {day,meal,proteinUsed,sauteBagsUsed,sideUsed,shoppingNeeded}. day is Monday through Sunday. proteinUsed is string or null. sauteBagsUsed is number. sideUsed is string or null. shoppingNeeded is array of {name,qty,unit} — ONLY items NOT in the inventory list.",
-        prompt:(()=>{const wh=inventory.filter(i=>i.category==="Wild Harvest").map(i=>i.name+" ("+i.qty+" "+i.unit+")").join(", ");const hh=inventory.filter(i=>i.category==="Home Harvest").map(i=>i.name+" ("+i.qty+" "+i.unit+")").join(", ");const lv=inventory.filter(i=>i.isLeftover&&i.qty>0).map(i=>i.name+" "+i.qty+" servings (use by "+i.useBy+")").join(", ");const prefS=buildPreferenceSummary();return"Proteins available: "+proteins+". Saute blend: "+(blendItem?.qty||0)+" bags."+(wh?" Wild Harvest inventory (treat as premium proteins, species-aware cooking): "+wh+".":"")+(hh?" Home Harvest produce/eggs/livestock: "+hh+" — prioritize fresh produce nearing end of shelf life.":"")+(lv?" LEFTOVER MEALS AVAILABLE (prioritize for Busy Nights, use before expiry): "+lv+".":"")+" Full inventory on hand (DO NOT put these in shoppingNeeded): "+inventory.map(i=>String(i.name||"")).filter(Boolean).join(", ")+". "+fs+prefS+"Plan 7 dinners Mon-Sun using proteins and inventory above. Max 3 chicken meals. At least 1 beef. At least 1 pork or kielbasa. No same protein two days in a row. CRITICAL ROTATION RULE: Maximum 3 meals may come from the 5-star keeper list — the other 4 or more meals MUST be creative new suggestions the family has not had recently. Variety and discovery are essential. If Wild Harvest proteins are present, include at least 1 wild game or fish meal. If Home Harvest produce is present, feature it prominently. If leftovers are available, schedule at least 1 leftover meal as a Busy Night option. shoppingNeeded must ONLY list items not found in the inventory list above.";})(),
+        prompt:(()=>{const wh=inventory.filter(i=>i.category==="Wild Harvest").map(i=>i.name+" ("+i.qty+" "+i.unit+")").join(", ");const hh=inventory.filter(i=>i.category==="Home Harvest").map(i=>i.name+" ("+i.qty+" "+i.unit+")").join(", ");const lv=inventory.filter(i=>i.isLeftover&&i.qty>0).map(i=>i.name+" "+i.qty+" servings (use by "+i.useBy+")").join(", ");const prefS=buildPreferenceSummary();return"Proteins available: "+proteins+". Saute blend: "+(blendItem?.qty||0)+" bags."+(wh?" Wild Harvest inventory (treat as premium proteins, species-aware cooking): "+wh+".":"")+(hh?" Home Harvest produce/eggs/livestock: "+hh+" — prioritize fresh produce nearing end of shelf life.":"")+(lv?" LEFTOVER MEALS AVAILABLE (prioritize for Busy Nights, use before expiry): "+lv+".":"")+" Full inventory on hand (DO NOT put these in shoppingNeeded): "+inventory.map(i=>String(i.name||"")).filter(Boolean).join(", ")+". "+fs+prefS+"Plan 7 dinners Mon-Sun using proteins and inventory above. Max 3 chicken meals. At least 1 beef. At least 1 pork or kielbasa. No same protein two days in a row. CRITICAL ROTATION RULE: Maximum 3 meals may come from the 5-star keeper list — the other 4 or more meals MUST be creative new suggestions the family has not had recently. Variety and discovery are essential. If Wild Harvest proteins are present, include at least 1 wild game or fish meal. If Home Harvest produce is present, feature it prominently. If leftovers are available, schedule at least 1 leftover meal as a Busy Night option. shoppingNeeded must ONLY list items not found in the inventory list above."+(()=>{const now=new Date();const month=now.getMonth();const season=month>=2&&month<=4?"Spring":month>=5&&month<=7?"Summer":month>=8&&month<=10?"Fall":"Winter";const holiday=month===11?"Christmas":month===10?"Thanksgiving":month===3?"Easter":month===6?"Fourth of July":null;const eligible=familyRecipes.filter(r=>r.rotation&&(r.frequency==="weekly"||(r.frequency==="4week")||(r.frequency==="seasonal"&&((r.seasons||[]).includes("\u2744 Winter")&&season==="Winter"||(r.seasons||[]).includes("\u2600 Summer")&&season==="Summer"||(r.seasons||[]).includes("\ud83c\udf38 Spring")&&season==="Spring"||(r.seasons||[]).includes("\ud83c\udf42 Fall")&&season==="Fall"||(holiday&&(r.seasons||[]).some(s=>s.includes(holiday)))))));return eligible.length>0?" FAMILY RECIPES available for rotation (include 1-2 if ingredients are on hand): "+eligible.map(r=>r.name+(r.ingredients&&r.ingredients.length>0?" (needs: "+r.ingredients.slice(0,4).join(", ")+")":"")).join("; ")+".":"";})();})(),
         maxTokens:3000,
       });
       const s=raw.indexOf("["),e=raw.lastIndexOf("]");
@@ -1616,6 +1627,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
             fetchRecipes();
           }}>✨ Recipes</button>
           <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px",border:"1px solid "+C.accent,color:C.accent}} onClick={()=>{setMakeThisModal(true);setMakeThisInput("");setMakeThisResult(null);}}>🍽 Make This</button>
+          <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px",border:"1px solid #b45309",color:"#b45309"}} onClick={()=>{setFamilyRecipesOpen(true);setFrAddMode(null);setFrEditRecipe(null);setFrViewRecipe(null);}}>📖 Family Recipes</button>
           {restrictedProfiles.length>0&&<button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px",border:"1px solid #f472b6",color:"#f472b6"}} onClick={()=>{setCanIHaveOpen(true);setCanIHaveImg(null);setCanIHaveResult(null);}}>🔍 Can I Have This?</button>}
         </div>
       </div>
@@ -3248,6 +3260,233 @@ What can I substitute and do I have what I need?`,
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+      {familyRecipesOpen&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.82)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:500,padding:16}} onClick={()=>{if(!frLoading){setFamilyRecipesOpen(false);setFrAddMode(null);setFrEditRecipe(null);setFrViewRecipe(null);}}}>
+          <div style={{background:"#fdf6ec",borderRadius:18,padding:24,width:"100%",maxWidth:520,maxHeight:"90vh",overflowY:"auto",boxShadow:"0 8px 48px rgba(0,0,0,0.5)",border:"3px solid #c8963e"}} onClick={e=>e.stopPropagation()}>
+
+            {/* ── VIEW RECIPE ── */}
+            {frViewRecipe&&!frEditRecipe&&(<div>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
+                <div style={{flex:1}}>
+                  <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?28:22,color:"#5c3317",lineHeight:1.2}}>{frViewRecipe.name}</div>
+                  {frViewRecipe.kitchenOf&&<div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,color:"#8b6340",fontStyle:"italic",marginTop:2}}>From the kitchen of {frViewRecipe.kitchenOf}</div>}
+                </div>
+                <button onClick={()=>setFrViewRecipe(null)} style={{background:"transparent",border:"none",fontSize:20,cursor:"pointer",color:"#8b6340",padding:"0 4px"}}>✕</button>
+              </div>
+              {frViewRecipe.photo&&<img src={frViewRecipe.photo} alt={frViewRecipe.name} style={{width:"100%",maxHeight:180,objectFit:"cover",borderRadius:10,marginBottom:14,border:"2px solid #e8d5b0"}}/>}
+              <div style={{display:"flex",gap:10,marginBottom:14,flexWrap:"wrap",alignItems:"center"}}>
+                <div style={{display:"flex",alignItems:"center",gap:6,background:"#fef3c7",borderRadius:20,padding:"4px 12px",border:"1px solid #f59e0b"}}>
+                  <span style={{fontSize:14}}>🍽</span>
+                  <span style={{fontFamily:"Georgia,serif",fontSize:13,color:"#92400e",fontWeight:700}}>Serves</span>
+                  <button onClick={()=>setFrServings(s=>Math.max(1,s-1))} style={{background:"#f59e0b",border:"none",borderRadius:"50%",width:20,height:20,cursor:"pointer",fontSize:12,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700}}>−</button>
+                  <span style={{fontFamily:"Georgia,serif",fontSize:15,color:"#92400e",fontWeight:700,minWidth:16,textAlign:"center"}}>{frServings}</span>
+                  <button onClick={()=>setFrServings(s=>s+1)} style={{background:"#f59e0b",border:"none",borderRadius:"50%",width:20,height:20,cursor:"pointer",fontSize:12,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700}}>+</button>
+                </div>
+                {frViewRecipe.rotation&&<span style={{background:"#dcfce7",border:"1px solid #16a34a",borderRadius:20,padding:"4px 10px",fontSize:12,color:"#166534",fontFamily:"Georgia,serif"}}>🔄 {frViewRecipe.frequency==="weekly"?"Weekly":frViewRecipe.frequency==="4week"?"Monthly":"Seasonal"}</span>}
+                {(frViewRecipe.seasons||[]).map(s=><span key={s} style={{background:"#ede9fe",border:"1px solid #7c3aed",borderRadius:20,padding:"4px 10px",fontSize:12,color:"#5b21b6",fontFamily:"Georgia,serif"}}>{s}</span>)}
+              </div>
+              <div style={{background:"#fffbf0",border:"1px solid #e8d5b0",borderRadius:10,padding:14,marginBottom:14}}>
+                <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?16:13,fontWeight:700,color:"#5c3317",marginBottom:8,borderBottom:"1px dashed #e8d5b0",paddingBottom:6}}>Ingredients</div>
+                {(frViewRecipe.ingredients||[]).map((ing,i)=>{
+                  const base=frViewRecipe.servings||4;
+                  const scale=frServings/base;
+                  const match=ing.match(/^([\d.\/]+)\s*(.*)/);
+                  const scaled=match?((parseFloat(match[1])*scale)%1===0?(parseFloat(match[1])*scale).toString():(parseFloat(match[1])*scale).toFixed(1))+" "+match[2]:ing;
+                  return <div key={i} style={{fontFamily:"Georgia,serif",fontSize:seniorMode?16:13,color:"#3d2008",padding:"4px 0",borderBottom:"1px dotted #e8d5b0"}}>• {scaled}</div>;
+                })}
+              </div>
+              <div style={{background:"#fffbf0",border:"1px solid #e8d5b0",borderRadius:10,padding:14,marginBottom:14}}>
+                <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?16:13,fontWeight:700,color:"#5c3317",marginBottom:8,borderBottom:"1px dashed #e8d5b0",paddingBottom:6}}>Instructions</div>
+                {(frViewRecipe.steps||[]).map((step,i)=><div key={i} style={{fontFamily:"Georgia,serif",fontSize:seniorMode?16:13,color:"#3d2008",marginBottom:8,display:"flex",gap:8,lineHeight:1.6}}><span style={{fontWeight:700,color:"#c8963e",flexShrink:0}}>{i+1}.</span><span>{step}</span></div>)}
+              </div>
+              {frViewRecipe.notes&&<div style={{background:"#fef9f0",border:"1px dashed #c8963e",borderRadius:10,padding:12,marginBottom:14,fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,color:"#8b6340",fontStyle:"italic"}}>💛 {frViewRecipe.notes}</div>}
+              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                <button onClick={()=>{
+                  const missing=(frViewRecipe.ingredients||[]).filter(ing=>{
+                    const name=ing.replace(/^[\d.\/\s]+[a-zA-Z]*\s*/,"").toLowerCase().trim();
+                    return !inventory.some(i=>(i.name||"").toLowerCase().includes(name.split(" ")[0]));
+                  });
+                  if(missing.length===0){alert("You have all the ingredients on hand!");}
+                  else{
+                    const existing=JSON.parse(localStorage.getItem("sk_shoppingList")||"[]");
+                    const added=missing.filter(m=>!existing.some(e=>e.name===m));
+                    localStorage.setItem("sk_shoppingList",JSON.stringify([...existing,...added.map(m=>({name:m,checked:false,source:"Family Recipe: "+frViewRecipe.name}))]));
+                    alert(added.length+" ingredient"+(added.length!==1?"s":"")+" added to your shopping list!");
+                  }
+                }} style={{flex:1,background:"#5c3317",border:"none",borderRadius:10,padding:"12px",color:"#fdf6ec",fontFamily:"Georgia,serif",fontSize:seniorMode?16:13,cursor:"pointer",fontWeight:700}}>🛒 Add Missing to Shopping List</button>
+                <button onClick={()=>{setFrEditRecipe({...frViewRecipe});setFrServings(frViewRecipe.servings||4);}} style={{background:"transparent",border:"2px solid #c8963e",borderRadius:10,padding:"10px 16px",color:"#5c3317",fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,cursor:"pointer"}}>✏ Edit</button>
+                <button onClick={()=>{if(window.confirm("Delete "+frViewRecipe.name+"?")){const updated=familyRecipes.filter(r=>r.id!==frViewRecipe.id);setFamilyRecipes(updated);try{localStorage.setItem("sk_familyRecipes",JSON.stringify(updated));}catch{}setFrViewRecipe(null);}}} style={{background:"transparent",border:"2px solid #dc2626",borderRadius:10,padding:"10px 16px",color:"#dc2626",fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,cursor:"pointer"}}>🗑 Delete</button>
+              </div>
+            </div>)}
+
+            {/* ── EDIT / REVIEW RECIPE ── */}
+            {frEditRecipe&&(<div>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+                <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?22:18,color:"#5c3317",fontWeight:700}}>✏ Edit Recipe</div>
+                <button onClick={()=>setFrEditRecipe(null)} style={{background:"transparent",border:"none",fontSize:20,cursor:"pointer",color:"#8b6340"}}>✕</button>
+              </div>
+              {[["Recipe Name","name"],["From the Kitchen of (optional)","kitchenOf"],["Family Notes (optional)","notes"]].map(([label,field])=>(
+                <div key={field} style={{marginBottom:10}}>
+                  <div style={{fontFamily:"Georgia,serif",fontSize:12,color:"#8b6340",marginBottom:4}}>{label}</div>
+                  <input value={frEditRecipe[field]||""} onChange={e=>setFrEditRecipe(r=>({...r,[field]:e.target.value}))} style={{width:"100%",padding:"10px 12px",borderRadius:8,border:"1px solid #e8d5b0",fontFamily:"Georgia,serif",fontSize:seniorMode?16:13,color:"#3d2008",background:"#fffbf0",boxSizing:"border-box"}}/>
+                </div>
+              ))}
+              <div style={{marginBottom:10}}>
+                <div style={{fontFamily:"Georgia,serif",fontSize:12,color:"#8b6340",marginBottom:4}}>Servings</div>
+                <input type="number" value={frEditRecipe.servings||4} onChange={e=>setFrEditRecipe(r=>({...r,servings:parseInt(e.target.value)||4}))} style={{width:80,padding:"8px 12px",borderRadius:8,border:"1px solid #e8d5b0",fontFamily:"Georgia,serif",fontSize:13,color:"#3d2008",background:"#fffbf0"}}/>
+              </div>
+              <div style={{marginBottom:10}}>
+                <div style={{fontFamily:"Georgia,serif",fontSize:12,color:"#8b6340",marginBottom:6}}>Ingredients (one per line)</div>
+                <textarea value={(frEditRecipe.ingredients||[]).join("\n")} onChange={e=>setFrEditRecipe(r=>({...r,ingredients:e.target.value.split("\n")}))} rows={5} style={{width:"100%",padding:"10px 12px",borderRadius:8,border:"1px solid #e8d5b0",fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,color:"#3d2008",background:"#fffbf0",boxSizing:"border-box",resize:"vertical"}}/>
+              </div>
+              <div style={{marginBottom:14}}>
+                <div style={{fontFamily:"Georgia,serif",fontSize:12,color:"#8b6340",marginBottom:6}}>Steps (one per line)</div>
+                <textarea value={(frEditRecipe.steps||[]).join("\n")} onChange={e=>setFrEditRecipe(r=>({...r,steps:e.target.value.split("\n")}))} rows={6} style={{width:"100%",padding:"10px 12px",borderRadius:8,border:"1px solid #e8d5b0",fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,color:"#3d2008",background:"#fffbf0",boxSizing:"border-box",resize:"vertical"}}/>
+              </div>
+              <div style={{background:"#fef9f0",border:"1px solid #e8d5b0",borderRadius:10,padding:14,marginBottom:14}}>
+                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+                  <input type="checkbox" checked={frEditRecipe.rotation||false} onChange={e=>setFrEditRecipe(r=>({...r,rotation:e.target.checked}))} style={{width:18,height:18,cursor:"pointer",accentColor:"#c8963e"}}/>
+                  <span style={{fontFamily:"Georgia,serif",fontSize:seniorMode?16:13,color:"#5c3317",fontWeight:700}}>Include in meal plan rotation</span>
+                </div>
+                {frEditRecipe.rotation&&(<>
+                  <div style={{fontFamily:"Georgia,serif",fontSize:12,color:"#8b6340",marginBottom:6}}>How often?</div>
+                  <div style={{display:"flex",gap:8,marginBottom:10,flexWrap:"wrap"}}>
+                    {[["weekly","Weekly"],["4week","Monthly"],["seasonal","Seasonal"]].map(([val,label])=>(
+                      <button key={val} onClick={()=>setFrEditRecipe(r=>({...r,frequency:val}))} style={{padding:"6px 14px",borderRadius:20,border:"2px solid "+(frEditRecipe.frequency===val?"#c8963e":"#e8d5b0"),background:frEditRecipe.frequency===val?"#fef3c7":"transparent",fontFamily:"Georgia,serif",fontSize:12,color:frEditRecipe.frequency===val?"#92400e":"#8b6340",cursor:"pointer",fontWeight:frEditRecipe.frequency===val?700:400}}>{label}</button>
+                    ))}
+                  </div>
+                  {frEditRecipe.frequency==="seasonal"&&(<>
+                    <div style={{fontFamily:"Georgia,serif",fontSize:12,color:"#8b6340",marginBottom:6}}>Seasons & Holidays</div>
+                    <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                      {["🌸 Spring","☀ Summer","🍂 Fall","❄ Winter","🎄 Christmas","🦃 Thanksgiving","🐣 Easter","🎆 Fourth of July"].map(s=>{
+                        const active=(frEditRecipe.seasons||[]).includes(s);
+                        return <button key={s} onClick={()=>setFrEditRecipe(r=>({...r,seasons:active?(r.seasons||[]).filter(x=>x!==s):[...(r.seasons||[]),s]}))} style={{padding:"5px 10px",borderRadius:20,border:"2px solid "+(active?"#7c3aed":"#e8d5b0"),background:active?"#ede9fe":"transparent",fontFamily:"Georgia,serif",fontSize:11,color:active?"#5b21b6":"#8b6340",cursor:"pointer"}}>{s}</button>;
+                      })}
+                    </div>
+                  </>)}
+                </>)}
+              </div>
+              <div style={{display:"flex",gap:8}}>
+                <button onClick={()=>{
+                  const saved={...frEditRecipe,id:frEditRecipe.id||Date.now()};
+                  const existing=familyRecipes.find(r=>r.id===saved.id);
+                  const updated=existing?familyRecipes.map(r=>r.id===saved.id?saved:r):[...familyRecipes,saved];
+                  setFamilyRecipes(updated);
+                  try{localStorage.setItem("sk_familyRecipes",JSON.stringify(updated));}catch{}
+                  setFrEditRecipe(null);
+                  setFrAddMode(null);
+                  setFrViewRecipe(saved);
+                }} style={{flex:2,background:"#5c3317",border:"none",borderRadius:10,padding:"13px",color:"#fdf6ec",fontFamily:"Georgia,serif",fontSize:seniorMode?17:14,cursor:"pointer",fontWeight:700}}>💾 Save Recipe</button>
+                <button onClick={()=>setFrEditRecipe(null)} style={{flex:1,background:"transparent",border:"2px solid #e8d5b0",borderRadius:10,padding:"11px",color:"#8b6340",fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,cursor:"pointer"}}>Cancel</button>
+              </div>
+            </div>)}
+
+            {/* ── ADD MODE PICKER ── */}
+            {frAddMode==="pick"&&!frEditRecipe&&!frViewRecipe&&(<div>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+                <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?22:18,color:"#5c3317",fontWeight:700}}>📖 Add a Family Recipe</div>
+                <button onClick={()=>setFrAddMode(null)} style={{background:"transparent",border:"none",fontSize:20,cursor:"pointer",color:"#8b6340"}}>✕</button>
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                <button onClick={()=>{setFrAddMode("type");setFrEditRecipe({name:"",kitchenOf:"",notes:"",servings:4,ingredients:[],steps:[],rotation:false,frequency:"4week",seasons:[],photo:null});}} style={{background:"#fffbf0",border:"2px solid #e8d5b0",borderRadius:12,padding:"16px",textAlign:"left",cursor:"pointer"}}>
+                  <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?18:15,color:"#5c3317",fontWeight:700,marginBottom:4}}>✏ Type it in</div>
+                  <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?14:12,color:"#8b6340"}}>Enter the recipe name, ingredients, and steps yourself</div>
+                </button>
+                <button onClick={()=>setFrAddMode("photo")} style={{background:"#fffbf0",border:"2px solid #e8d5b0",borderRadius:12,padding:"16px",textAlign:"left",cursor:"pointer"}}>
+                  <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?18:15,color:"#5c3317",fontWeight:700,marginBottom:4}}>📸 Photo of a written recipe</div>
+                  <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?14:12,color:"#8b6340"}}>Take a photo of a handwritten or printed recipe and AI will read it</div>
+                </button>
+                <button onClick={()=>setFrAddMode("idea")} style={{background:"#fffbf0",border:"2px solid #e8d5b0",borderRadius:12,padding:"16px",textAlign:"left",cursor:"pointer"}}>
+                  <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?18:15,color:"#5c3317",fontWeight:700,marginBottom:4}}>💡 I have an idea for a recipe</div>
+                  <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?14:12,color:"#8b6340"}}>Describe it and AI will build a full recipe card with ingredients and steps</div>
+                </button>
+              </div>
+            </div>)}
+
+            {/* ── PHOTO SCAN ── */}
+            {frAddMode==="photo"&&!frEditRecipe&&(<div>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+                <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?22:18,color:"#5c3317",fontWeight:700}}>📸 Photo Recipe Scan</div>
+                <button onClick={()=>setFrAddMode("pick")} style={{background:"transparent",border:"none",fontSize:20,cursor:"pointer",color:"#8b6340"}}>✕</button>
+              </div>
+              <div style={{background:"#fffbf0",border:"2px dashed #e8d5b0",borderRadius:12,padding:20,textAlign:"center",marginBottom:14,cursor:"pointer"}} onClick={()=>document.getElementById("fr-photo-input").click()}>
+                {frPhotoPreview?<img src={frPhotoPreview} style={{maxWidth:"100%",maxHeight:200,borderRadius:8,objectFit:"contain"}} alt="Recipe"/>:<><div style={{fontSize:40,marginBottom:8}}>📷</div><div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?16:13,color:"#8b6340"}}>Tap to take a photo or choose from gallery</div></>}
+              </div>
+              <input id="fr-photo-input" type="file" accept="image/*" capture="environment" style={{display:"none"}} onChange={e=>{const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=ev=>{setFrPhotoPreview(ev.target.result);const b64=ev.target.result.split(",")[1];setFrPhotoB64(b64);};reader.readAsDataURL(file);}}/>
+              {frPhotoPreview&&<button onClick={async()=>{
+                setFrLoading(true);
+                try{
+                  const res=await callClaude({system:"You are a recipe reader. Extract the recipe from the image and return ONLY valid JSON with no markdown: {name,kitchenOf,servings,ingredients:[strings],steps:[strings],notes}. kitchenOf is the person's name if written on the recipe. If not present use empty string.",prompt:"Read this recipe image and extract all details.",imageB64:frPhotoB64,maxTokens:1200});
+                  const raw=(typeof res==="string"?res:res?.content?.[0]?.text||"").replace(/```json|```/g,"").trim();
+                  const s=raw.indexOf("{"),e=raw.lastIndexOf("}");
+                  const parsed=JSON.parse(raw.slice(s,e+1));
+                  setFrEditRecipe({...parsed,id:Date.now(),rotation:false,frequency:"4week",seasons:[],photo:frPhotoPreview});
+                  setFrServings(parsed.servings||4);
+                  setFrAddMode("review");
+                }catch(err){alert("Could not read recipe. Try a clearer photo.");}
+                setFrLoading(false);
+              }} disabled={frLoading} style={{width:"100%",background:"#5c3317",border:"none",borderRadius:10,padding:"13px",color:"#fdf6ec",fontFamily:"Georgia,serif",fontSize:seniorMode?17:14,cursor:"pointer",fontWeight:700,opacity:frLoading?0.6:1}}>{frLoading?"Reading recipe...":"Read Recipe →"}</button>}
+            </div>)}
+
+            {/* ── IDEA ── */}
+            {frAddMode==="idea"&&!frEditRecipe&&(<div>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+                <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?22:18,color:"#5c3317",fontWeight:700}}>💡 Recipe Idea</div>
+                <button onClick={()=>setFrAddMode("pick")} style={{background:"transparent",border:"none",fontSize:20,cursor:"pointer",color:"#8b6340"}}>✕</button>
+              </div>
+              <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?15:13,color:"#8b6340",marginBottom:10,lineHeight:1.6}}>Describe your recipe idea — as much or as little as you know. AI will create a full recipe card.</div>
+              <textarea value={frIdeaInput} onChange={e=>setFrIdeaInput(e.target.value)} placeholder={'e.g. "Grandma\'s chicken casserole with cream of mushroom soup and egg noodles" or "A hearty winter beef stew"'} rows={4} style={{width:"100%",padding:"12px",borderRadius:10,border:"2px solid #e8d5b0",fontFamily:"Georgia,serif",fontSize:seniorMode?16:13,color:"#3d2008",background:"#fffbf0",boxSizing:"border-box",resize:"none",marginBottom:14}}/>
+              <button onClick={async()=>{
+                if(!frIdeaInput.trim())return;
+                setFrLoading(true);
+                try{
+                  const res=await callClaude({system:"You are a recipe creator. Create a complete family-style recipe and return ONLY valid JSON with no markdown: {name,kitchenOf,servings,ingredients:[strings with amounts],steps:[strings],notes}. kitchenOf should be empty string. Make it warm, homey, and practical.",prompt:"Create a complete recipe for: "+frIdeaInput.trim()+". Inventory available: "+inventory.map(i=>i.name).filter(Boolean).join(", "),maxTokens:1200});
+                  const raw=(typeof res==="string"?res:res?.content?.[0]?.text||"").replace(/```json|```/g,"").trim();
+                  const s=raw.indexOf("{"),e=raw.lastIndexOf("}");
+                  const parsed=JSON.parse(raw.slice(s,e+1));
+                  setFrEditRecipe({...parsed,id:Date.now(),rotation:false,frequency:"4week",seasons:[],photo:null});
+                  setFrServings(parsed.servings||4);
+                  setFrAddMode("review");
+                }catch(err){alert("Could not create recipe. Please try again.");}
+                setFrLoading(false);
+              }} disabled={!frIdeaInput.trim()||frLoading} style={{width:"100%",background:"#5c3317",border:"none",borderRadius:10,padding:"13px",color:"#fdf6ec",fontFamily:"Georgia,serif",fontSize:seniorMode?17:14,cursor:frIdeaInput.trim()&&!frLoading?"pointer":"default",fontWeight:700,opacity:frIdeaInput.trim()&&!frLoading?1:0.5}}>{frLoading?"Creating recipe...":"Create Recipe Card →"}</button>
+            </div>)}
+
+            {/* ── RECIPE LIST (home screen) ── */}
+            {!frAddMode&&!frEditRecipe&&!frViewRecipe&&(<div>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+                <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?26:20,color:"#5c3317",fontWeight:700}}>📖 Family Recipes</div>
+                <button onClick={()=>setFamilyRecipesOpen(false)} style={{background:"transparent",border:"none",fontSize:20,cursor:"pointer",color:"#8b6340"}}>✕</button>
+              </div>
+              {familyRecipes.length===0&&<div style={{textAlign:"center",padding:"30px 0"}}>
+                <div style={{fontSize:48,marginBottom:12}}>🫙</div>
+                <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?17:14,color:"#8b6340",lineHeight:1.8}}>Your family recipe box is empty.<br/>Add your first recipe to get started.</div>
+              </div>}
+              <div style={{display:"flex",flexDirection:"column",gap:12,marginBottom:16}}>
+                {familyRecipes.map(r=>(
+                  <div key={r.id} onClick={()=>{setFrViewRecipe(r);setFrServings(r.servings||4);}} style={{background:"#fffbf0",border:"2px solid #e8d5b0",borderRadius:12,padding:"14px 16px",cursor:"pointer",display:"flex",gap:12,alignItems:"center",boxShadow:"0 2px 8px rgba(92,51,23,0.08)",transition:"border-color 0.15s"}}
+                    onMouseOver={e=>e.currentTarget.style.borderColor="#c8963e"}
+                    onMouseOut={e=>e.currentTarget.style.borderColor="#e8d5b0"}>
+                    {r.photo&&<img src={r.photo} alt={r.name} style={{width:56,height:56,borderRadius:8,objectFit:"cover",flexShrink:0,border:"1px solid #e8d5b0"}}/>}
+                    {!r.photo&&<div style={{width:56,height:56,borderRadius:8,background:"#fef3c7",display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,flexShrink:0}}>🍲</div>}
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?18:15,color:"#5c3317",fontWeight:700,marginBottom:2}}>{r.name}</div>
+                      {r.kitchenOf&&<div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?13:11,color:"#8b6340",fontStyle:"italic",marginBottom:4}}>From the kitchen of {r.kitchenOf}</div>}
+                      <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                        {r.rotation&&<span style={{background:"#dcfce7",border:"1px solid #16a34a",borderRadius:20,padding:"2px 8px",fontSize:10,color:"#166534",fontFamily:"Georgia,serif"}}>{r.frequency==="weekly"?"Weekly":r.frequency==="4week"?"Monthly":"Seasonal"}</span>}
+                        {(r.seasons||[]).slice(0,2).map(s=><span key={s} style={{background:"#ede9fe",border:"1px solid #7c3aed",borderRadius:20,padding:"2px 8px",fontSize:10,color:"#5b21b6",fontFamily:"Georgia,serif"}}>{s}</span>)}
+                      </div>
+                    </div>
+                    <span style={{color:"#c8963e",fontSize:18,flexShrink:0}}>›</span>
+                  </div>
+                ))}
+              </div>
+              <button onClick={()=>setFrAddMode("pick")} style={{width:"100%",background:"#5c3317",border:"none",borderRadius:12,padding:"14px",color:"#fdf6ec",fontFamily:"Georgia,serif",fontSize:seniorMode?18:15,cursor:"pointer",fontWeight:700}}>+ Add a Family Recipe</button>
+            </div>)}
+
           </div>
         </div>
       )}
