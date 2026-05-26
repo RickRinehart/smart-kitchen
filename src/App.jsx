@@ -3429,18 +3429,35 @@ What can I substitute and do I have what I need?`,
                   </div>
                 ))}
                 {/* Add another photo tile */}
-                <div style={{width:72,height:72,border:"2px dashed #e8d5b0",borderRadius:8,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:"pointer",background:"#fffbf0"}} onClick={()=>document.getElementById("fr-photo-input").click()}>
+                <div style={{width:72,height:72,border:"2px dashed #e8d5b0",borderRadius:8,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:"pointer",background:"#fffbf0"}} onClick={()=>document.getElementById("fr-photo-gallery").click()}>
                   <div style={{fontSize:22}}>📷</div>
                   <div style={{fontFamily:"Georgia,serif",fontSize:9,color:"#8b6340",marginTop:2}}>Add</div>
                 </div>
               </div>}
               {/* Empty state drop zone */}
-              {frPhotos.length===0&&<div style={{background:"#fffbf0",border:"2px dashed #e8d5b0",borderRadius:12,padding:28,textAlign:"center",marginBottom:14,cursor:"pointer"}} onClick={()=>document.getElementById("fr-photo-input").click()}>
-                <div style={{fontSize:40,marginBottom:8}}>📷</div>
-                <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?16:13,color:"#8b6340"}}>Tap to take a photo or choose from gallery</div>
-                <div style={{fontFamily:"Georgia,serif",fontSize:11,color:"#c8963e",marginTop:6}}>You can add multiple photos</div>
+              {frPhotos.length===0&&<div style={{display:"flex",gap:10,marginBottom:14}}>
+                <button onClick={()=>document.getElementById("fr-photo-camera").click()} style={{flex:1,background:"#fffbf0",border:"2px dashed #e8d5b0",borderRadius:12,padding:"20px 10px",textAlign:"center",cursor:"pointer"}}>
+                  <div style={{fontSize:36,marginBottom:6}}>📷</div>
+                  <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,color:"#8b6340"}}>Take a Photo</div>
+                </button>
+                <button onClick={()=>document.getElementById("fr-photo-gallery").click()} style={{flex:1,background:"#fffbf0",border:"2px dashed #e8d5b0",borderRadius:12,padding:"20px 10px",textAlign:"center",cursor:"pointer"}}>
+                  <div style={{fontSize:36,marginBottom:6}}>🖼</div>
+                  <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,color:"#8b6340"}}>Choose from Gallery</div>
+                </button>
               </div>}
-              <input id="fr-photo-input" type="file" accept="image/*" style={{display:"none"}} onChange={e=>{
+              <input id="fr-photo-camera" type="file" accept="image/*" capture="environment" style={{display:"none"}} onChange={e=>{
+                const file=e.target.files[0];
+                if(!file)return;
+                const reader=new FileReader();
+                reader.onload=ev=>{
+                  const preview=ev.target.result;
+                  const b64=preview.split(",")[1];
+                  setFrPhotos(prev=>[...prev,{preview,b64}]);
+                };
+                reader.readAsDataURL(file);
+                e.target.value="";
+              }}/>
+              <input id="fr-photo-gallery" type="file" accept="image/*" style={{display:"none"}} onChange={e=>{
                 const file=e.target.files[0];
                 if(!file)return;
                 const reader=new FileReader();
@@ -3453,7 +3470,7 @@ What can I substitute and do I have what I need?`,
                 e.target.value="";
               }}/>
               {frPhotos.length>0&&<div style={{display:"flex",gap:8,marginTop:4}}>
-                <button onClick={()=>document.getElementById("fr-photo-input").click()} style={{flex:1,background:"transparent",border:"2px solid #c8963e",borderRadius:10,padding:"11px",color:"#5c3317",fontFamily:"Georgia,serif",fontSize:seniorMode?15:13,cursor:"pointer",fontWeight:700}}>+ Add Another Photo</button>
+                <button onClick={()=>document.getElementById("fr-photo-gallery").click()} style={{flex:1,background:"transparent",border:"2px solid #c8963e",borderRadius:10,padding:"11px",color:"#5c3317",fontFamily:"Georgia,serif",fontSize:seniorMode?15:13,cursor:"pointer",fontWeight:700}}>+ Add Another Photo</button>
                 <button onClick={async()=>{
                   setFrLoading(true);
                   try{
