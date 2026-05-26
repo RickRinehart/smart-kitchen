@@ -3471,16 +3471,18 @@ What can I substitute and do I have what I need?`,
                 reader.readAsDataURL(file);
                 e.target.value="";
               }}/>
-              <input id="fr-photo-gallery" type="file" accept="image/*" style={{display:"none"}} onChange={e=>{
-                const file=e.target.files[0];
-                if(!file)return;
-                const reader=new FileReader();
-                reader.onload=ev=>{
-                  const preview=ev.target.result;
-                  const b64=preview.split(",")[1];
-                  setFrPhotos(prev=>[...prev,{preview,b64}]);
-                };
-                reader.readAsDataURL(file);
+              <input id="fr-photo-gallery" type="file" accept="image/*" multiple style={{display:"none"}} onChange={e=>{
+                const files=Array.from(e.target.files);
+                if(!files.length)return;
+                files.forEach(file=>{
+                  const reader=new FileReader();
+                  reader.onload=ev=>{
+                    const preview=ev.target.result;
+                    const b64=preview.split(",")[1];
+                    setFrPhotos(prev=>[...prev,{preview,b64}]);
+                  };
+                  reader.readAsDataURL(file);
+                });
                 e.target.value="";
               }}/>
               {frPhotos.length>0&&<div style={{display:"flex",gap:8,marginTop:4}}>
