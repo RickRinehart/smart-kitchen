@@ -3342,7 +3342,7 @@ What can I substitute and do I have what I need?`,
               ))}
               <div style={{marginBottom:10}}>
                 <div style={{fontFamily:"Georgia,serif",fontSize:12,color:"#8b6340",marginBottom:4}}>Servings</div>
-                <input type="number" value={frEditRecipe.servings||4} onChange={e=>setFrEditRecipe(r=>({...r,servings:parseInt(e.target.value)||4}))} style={{width:80,padding:"8px 12px",borderRadius:8,border:"1px solid #e8d5b0",fontFamily:"Georgia,serif",fontSize:13,color:"#3d2008",background:"#fffbf0"}}/>
+                <input type="number" value={frEditRecipe.servings||""} placeholder="4" onChange={e=>setFrEditRecipe(r=>({...r,servings:parseInt(e.target.value)||4}))} style={{width:80,padding:"8px 12px",borderRadius:8,border:"1px solid #e8d5b0",fontFamily:"Georgia,serif",fontSize:13,color:"#3d2008",background:"#fffbf0"}}/>
               </div>
               <div style={{marginBottom:10}}>
                 <div style={{fontFamily:"Georgia,serif",fontSize:12,color:"#8b6340",marginBottom:6}}>Ingredients (one per line)</div>
@@ -3469,8 +3469,9 @@ What can I substitute and do I have what I need?`,
                     const raw=(typeof res==="string"?res:res?.content?.[0]?.text||"").replace(/```json|```/g,"").trim();
                     const s=raw.indexOf("{"),e=raw.lastIndexOf("}");
                     const parsed=JSON.parse(raw.slice(s,e+1));
-                    setFrEditRecipe({...parsed,id:Date.now(),rotation:false,frequency:"4week",seasons:[],photo:frPhotos[0].preview});
-                    setFrServings(parsed.servings||4);
+                    const parsedServings=parseInt(parsed.servings)||4;
+                  setFrEditRecipe({...parsed,id:Date.now(),servings:parsedServings,rotation:false,frequency:"4week",seasons:[],photo:frPhotos[0].preview});
+                    setFrServings(parsedServings);
                     setFrPhotos([]);
                     setFrAddMode("review");
                   }catch(err){alert("Could not read recipe. Try clearer photos or better lighting.");}
