@@ -1435,19 +1435,15 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
               </div>
             </div>)}
             {wizardStep===1&&(<div>
-              <div style={{fontFamily:FD,fontSize:24,color:C.accent,marginBottom:8}}>👋 Let's set up your kitchen!</div>
-              <div style={{fontFamily:"system-ui,-apple-system,sans-serif",fontSize:14,color:C.muted,marginBottom:20,lineHeight:1.7}}>Takes about 2 minutes. We'll start with your <strong>family profile</strong> — dietary needs and restrictions — then add your <strong>proteins</strong> so we can build your first personalized meal plan.</div>
-              <div style={{fontFamily:FM,fontSize:13,color:C.muted,marginBottom:12}}>How would you like to get started?</div>
-          <div style={{display:"flex",flexDirection:"column",gap:10}}>
-            <button style={{...bBtn("primary"),padding:"14px",textAlign:"left"}} onClick={()=>{try{localStorage.setItem('sk_setupDone','1');}catch{} setShowWizard(false);setTimeout(()=>setScanOpen(true),300);}}>
-              <div style={{fontFamily:FD,fontSize:14}}>📸 Scan items with camera</div>
-              <div style={{fontFamily:FM,fontSize:12,color:C.muted,marginTop:4}}>Take photos of receipts, packages, or pantry items</div>
-            </button>
-            <button style={{...bBtn("ghost"),padding:"14px",textAlign:"left"}} onClick={()=>setWizardStep(2)}>
-              <div style={{fontFamily:FD,fontSize:14}}>✏ Enter items manually</div>
-              <div style={{fontFamily:FM,fontSize:12,color:C.muted,marginTop:4}}>Type in your proteins, produce, and pantry staples</div>
-            </button>
-          </div>
+              <div style={{fontFamily:FD,fontSize:seniorMode?28:20,color:C.accent,marginBottom:6}}>🔍 Recipe Search</div>
+              <div style={{fontFamily:FM,fontSize:seniorMode?16:12,color:C.muted,marginBottom:16,lineHeight:1.6}}>When you tap a meal name, which site opens for the full recipe?</div>
+              {[["google","🔍 Google Recipes"],["allrecipes","🍳 AllRecipes"],["pinterest","📌 Pinterest"],["foodnetwork","📺 Food Network"]].map(([key,label])=>(
+                <div key={key} onClick={()=>setRecipeSite(key)} style={{padding:seniorMode?"16px":"12px 16px",borderRadius:10,marginBottom:8,cursor:"pointer",border:"2px solid "+(recipeSite===key?C.accent:C.border),background:recipeSite===key?C.accent+"11":C.card,fontFamily:FM,fontSize:seniorMode?17:13,color:recipeSite===key?C.accent:C.text}}>{label}</div>
+              ))}
+              <div style={{display:"flex",gap:8,marginTop:16}}>
+                <button style={{...bBtn("ghost"),flex:1}} onClick={()=>setWizardStep(0)}>← Back</button>
+                <button style={{...bBtn("primary"),flex:2}} onClick={()=>setWizardStep(2)}>Next →</button>
+              </div>
             </div>)}
             {wizardStep===2&&(<div>
               <div style={{fontFamily:FD,fontSize:20,color:C.accent,marginBottom:6}}>🥩 Add Your Proteins</div>
@@ -1460,66 +1456,50 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
               <button style={{...bBtn("primary"),marginBottom:16,width:"100%"}} onClick={()=>{if(wizardProteinInput.name&&wizardProteinInput.qty){setWizardProteins(p=>[...p,{...wizardProteinInput}]);setWizardProteinInput({name:"",qty:"",oz:"6"});}}}>+ Add Protein</button>
               {wizardProteins.map((p,i)=><div key={i} style={{fontFamily:FM,fontSize:12,color:C.text,padding:"6px 10px",background:C.card,borderRadius:8,marginBottom:6,display:"flex",justifyContent:"space-between"}}><span>{p.name} — {p.qty} portions ({p.oz}oz)</span><span style={{cursor:"pointer",color:C.red}} onClick={()=>setWizardProteins(prev=>prev.filter((_,j)=>j!==i))}>✕</span></div>)}
               <div style={{display:"flex",gap:8,marginTop:8}}>
+                <button style={{...bBtn("ghost"),flex:1}} onClick={()=>setWizardStep(1)}>← Back</button>
                 <button style={{...bBtn("ghost"),flex:1}} onClick={()=>setWizardStep(3)}>Skip</button>
                 <button style={{...bBtn("primary"),flex:2}} onClick={()=>setWizardStep(3)}>Next →</button>
               </div>
             </div>)}
             {wizardStep===3&&(<div>
-              <div style={{fontFamily:FD,fontSize:20,color:C.accent,marginBottom:6}}>🔍 Recipe Search</div>
-              <div style={{fontFamily:FM,fontSize:12,color:C.muted,marginBottom:16}}>When you tap a meal name, which site opens for detailed recipes?</div>
-              {[["google","🔍 Google Recipes"],["allrecipes","🍳 AllRecipes"],["pinterest","📌 Pinterest"],["foodnetwork","📺 Food Network"]].map(([key,label])=>(
-                <div key={key} onClick={()=>setRecipeSite(key)} style={{padding:"12px 16px",borderRadius:10,marginBottom:8,cursor:"pointer",border:"2px solid "+(recipeSite===key?C.accent:C.border),background:recipeSite===key?C.accent+"11":C.card,fontFamily:FM,fontSize:13,color:recipeSite===key?C.accent:C.text}}>{label}</div>
-              ))}
-              <div style={{display:"flex",gap:8,marginTop:16}}>
-                <button style={{...bBtn("ghost"),flex:1}} onClick={()=>setWizardStep(2)}>← Back</button>
-                <button style={{...bBtn("primary"),flex:2}} onClick={()=>setWizardStep(4)}>Next →</button>
-              </div>
-            </div>)}
-            {wizardStep===4&&(<div>
-              <div style={{fontFamily:FD,fontSize:20,color:C.accent,marginBottom:6}}>📦 Inventory Setup</div>
-              <div style={{fontFamily:FM,fontSize:13,color:C.muted,marginBottom:20,lineHeight:1.6}}>How do you want to start your pantry inventory?</div>
+              <div style={{fontFamily:FD,fontSize:seniorMode?28:20,color:C.accent,marginBottom:6}}>📦 Inventory Setup</div>
+              <div style={{fontFamily:FM,fontSize:seniorMode?16:13,color:C.muted,marginBottom:20,lineHeight:1.6}}>How do you want to start your pantry inventory?</div>
               <div style={{display:'flex',flexDirection:'column',gap:10}}>
-                <button style={{...bBtn('primary'),padding:'16px',textAlign:'left'}} onClick={()=>{setPantryChecklist(COMMON_PANTRY.map(i=>({...i,checked:true})));setWizardStep(5)}}>
-                  <div style={{fontFamily:FD,fontSize:14}}>✅ Start with common pantry items</div>
-                  <div style={{fontFamily:FM,fontSize:12,color:C.muted,marginTop:4}}>We'll pre-check ~30 staples — just uncheck what you don't have</div>
+                <button style={{...bBtn('primary'),padding:seniorMode?'20px':'16px',textAlign:'left'}} onClick={()=>{setPantryChecklist(COMMON_PANTRY.map(i=>({...i,checked:true})));setWizardStep(4);}}>
+                  <div style={{fontFamily:FD,fontSize:seniorMode?18:14}}>✅ Start with common pantry items</div>
+                  <div style={{fontFamily:FM,fontSize:seniorMode?15:12,color:C.muted,marginTop:4}}>We'll pre-check ~30 staples — just uncheck what you don't have</div>
                 </button>
-                <button style={{...bBtn('ghost'),padding:'16px',textAlign:'left'}} onClick={()=>{setPantryChecklist(COMMON_PANTRY.map(i=>({...i,checked:false})));setWizardStep(5)}}>
-                  <div style={{fontFamily:FD,fontSize:14}}>🔲 Start from scratch</div>
-                  <div style={{fontFamily:FM,fontSize:12,color:C.muted,marginTop:4}}>Manually check off what you have</div>
+                <button style={{...bBtn('ghost'),padding:seniorMode?'20px':'16px',textAlign:'left'}} onClick={()=>{setPantryChecklist(COMMON_PANTRY.map(i=>({...i,checked:false})));setWizardStep(4);}}>
+                  <div style={{fontFamily:FD,fontSize:seniorMode?18:14}}>🔲 Start from scratch</div>
+                  <div style={{fontFamily:FM,fontSize:seniorMode?15:12,color:C.muted,marginTop:4}}>Manually check off what you have</div>
+                </button>
+                <button style={{...bBtn('ghost'),padding:seniorMode?'20px':'16px',textAlign:'left'}} onClick={()=>completeWizard()}>
+                  <div style={{fontFamily:FD,fontSize:seniorMode?18:14}}>⏭ Skip for now</div>
+                  <div style={{fontFamily:FM,fontSize:seniorMode?15:12,color:C.muted,marginTop:4}}>Go straight to the app — you can add inventory anytime</div>
                 </button>
               </div>
               <div style={{display:'flex',gap:8,marginTop:16}}>
-                <button style={{...bBtn('ghost'),flex:1}} onClick={()=>setWizardStep(3)}>← Back</button>
+                <button style={{...bBtn('ghost'),flex:1}} onClick={()=>setWizardStep(2)}>← Back</button>
               </div>
             </div>)}
-            {wizardStep===5&&(<div>
-              <div style={{fontFamily:FD,fontSize:20,color:C.accent,marginBottom:6}}>🧺 Pantry Checklist</div>
-              <div style={{fontFamily:FM,fontSize:13,color:C.muted,marginBottom:12}}>Check off what you have on hand:</div>
+            {wizardStep===4&&(<div>
+              <div style={{fontFamily:FD,fontSize:seniorMode?28:20,color:C.accent,marginBottom:6}}>🧺 Pantry Checklist</div>
+              <div style={{fontFamily:FM,fontSize:seniorMode?16:13,color:C.muted,marginBottom:12,lineHeight:1.6}}>Check off what you have on hand:</div>
               <div style={{maxHeight:320,overflowY:'auto',marginBottom:12}}>
                 {pantryChecklist.map((item,idx)=>(
-                  <div key={idx} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 4px',borderBottom:'1px solid '+C.border}}>
-                    <input type='checkbox' checked={item.checked} onChange={e=>{
-                      const updated=[...pantryChecklist];
-                      updated[idx]={...updated[idx],checked:e.target.checked};
-                      setPantryChecklist(updated);
-                    }} style={{width:18,height:18,cursor:'pointer'}}/>
-                    <span style={{fontFamily:FM,fontSize:14,color:C.text}}>{item.name}</span>
-                    <span style={{fontFamily:FM,fontSize:11,color:C.muted,marginLeft:'auto'}}>{item.category}</span>
+                  <div key={idx} style={{display:'flex',alignItems:'center',gap:10,padding:seniorMode?'12px 4px':'8px 4px',borderBottom:'1px solid '+C.border}}>
+                    <input type='checkbox' checked={item.checked} onChange={e=>{const updated=[...pantryChecklist];updated[idx]={...updated[idx],checked:e.target.checked};setPantryChecklist(updated);}} style={{width:seniorMode?24:18,height:seniorMode?24:18,cursor:'pointer'}}/>
+                    <span style={{fontFamily:FM,fontSize:seniorMode?18:14,color:C.text}}>{item.name}</span>
+                    <span style={{fontFamily:FM,fontSize:seniorMode?14:11,color:C.muted,marginLeft:'auto'}}>{item.category}</span>
                   </div>
                 ))}
               </div>
               <div style={{display:'flex',gap:8}}>
-                <button style={{...bBtn('ghost'),flex:1}} onClick={()=>setWizardStep(4)}>← Back</button>
-                <button style={{...bBtn('primary'),flex:2}} onClick={()=>{
-                  const checked=pantryChecklist.filter(i=>i.checked).map(i=>i.name);
-                  if(checked.length>0){
-                    const newItems=checked.map(name=>({id:Date.now()+Math.random(),name,quantity:1,unit:'item',category:pantryChecklist.find(p=>p.name===name)?.category||'Pantry',addedDate:new Date().toISOString().split('T')[0]}));
-                    setInventory(prev=>[...prev,...newItems.filter(ni=>!prev.some(p=>p.name===ni.name))]);
-                  }
-                  completeWizard();
-                }}>🎉 Finish Setup ({pantryChecklist.filter(i=>i.checked).length} items)</button>
+                <button style={{...bBtn('ghost'),flex:1}} onClick={()=>setWizardStep(3)}>← Back</button>
+                <button style={{...bBtn('primary'),flex:2}} onClick={()=>{const checked=pantryChecklist.filter(i=>i.checked).map(i=>i.name);if(checked.length>0){const newItems=checked.map(name=>({id:Date.now()+Math.random(),name,quantity:1,unit:'item',category:pantryChecklist.find(p=>p.name===name)?.category||'Pantry',addedDate:new Date().toISOString().split('T')[0]}));setInventory(prev=>[...prev,...newItems.filter(ni=>!prev.some(p=>p.name===ni.name))]);}completeWizard();}}>🎉 Finish Setup ({pantryChecklist.filter(i=>i.checked).length} items)</button>
               </div>
             </div>)}
+            
           </div>
         </div>
       )}
