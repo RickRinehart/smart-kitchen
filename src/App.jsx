@@ -544,7 +544,20 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   useEffect(()=>{try{localStorage.setItem("sk_familyProfiles",JSON.stringify(familyProfiles));}catch{}},[familyProfiles]);
   useEffect(()=>{try{localStorage.setItem("sk_tempProfiles",JSON.stringify(tempProfiles));}catch{}},[tempProfiles]);
   useEffect(()=>{try{localStorage.setItem("sk_seniorMode",seniorMode?"1":"0");}catch{}},[seniorMode]);
-  useEffect(()=>{try{localStorage.setItem("sk_familyRecipes",JSON.stringify(familyRecipes));}catch{}},[familyRecipes]);
+  useEffect(()=>{
+    try{
+      const toStore=familyRecipes.map(r=>({...r,photo:null}));
+      localStorage.setItem("sk_familyRecipes",JSON.stringify(toStore));
+      // Try again with photos if small enough
+      try{localStorage.setItem("sk_familyRecipes",JSON.stringify(familyRecipes));}catch{}
+    }catch(e){
+      // If quota exceeded, store without photos
+      try{
+        const slim=familyRecipes.map(r=>({...r,photo:null}));
+        localStorage.setItem("sk_familyRecipes",JSON.stringify(slim));
+      }catch{}
+    }
+  },[familyRecipes]);
   useEffect(()=>{
     const person1=familyProfiles[0];
     if(person1?.restriction==="senior"&&!seniorMode&&!seniorPromptDismissed){
@@ -3488,7 +3501,9 @@ What can I substitute and do I have what I need?`,
                     const s=raw.indexOf("{"),e=raw.lastIndexOf("}");
                     const parsed=JSON.parse(raw.slice(s,e+1));
                     const parsedServings=parseInt(parsed.servings)||4;
-                  setFrEditRecipe({...parsed,id:Date.now(),servings:parsedServings,rotation:false,frequency:"4week",seasons:[],photo:frPhotos[0].preview});
+                  const compressPhoto=(src)=>new Promise(res=>{const img=new Image();img.onload=()=>{const canvas=document.createElement("canvas");const max=400;const scale=Math.min(max/img.width,max/img.height,1);canvas.width=img.width*scale;canvas.height=img.height*scale;canvas.getContext("2d").drawImage(img,0,0,canvas.width,canvas.height);res(canvas.toDataURL("image/jpeg",0.5));};img.src=src;});
+                  const compressedPhoto=await compressPhoto(frPhotos[0].preview).catch(()=>null);
+                  setFrEditRecipe({...parsed,id:Date.now(),servings:parsedServings,rotation:false,frequency:"4week",seasons:[],photo:compressedPhoto});
                     setFrServings(parsedServings);
                     setFrPhotos([]);
                     setFrAddMode("review");
