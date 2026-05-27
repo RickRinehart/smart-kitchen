@@ -3324,7 +3324,7 @@ What can I substitute and do I have what I need?`,
   };
   reader.readAsDataURL(file);
   e.target.value="";
-}}/}
+}}/>}
               <div style={{display:"flex",gap:10,marginBottom:14,flexWrap:"wrap",alignItems:"center"}}>
                 <div style={{display:"flex",alignItems:"center",gap:6,background:"#fef3c7",borderRadius:20,padding:"4px 12px",border:"1px solid #f59e0b"}}>
                   <span style={{fontSize:14}}>🍽</span>
