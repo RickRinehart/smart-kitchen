@@ -3384,6 +3384,57 @@ What can I substitute and do I have what I need?`,
               </div>
               <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                 <button onClick={()=>{
+                  const r=frViewRecipe;
+                  const scale=frServings/(r.servings||4);
+                  const scaledIngs=(r.ingredients||[]).filter(i=>i&&i.trim()).map(ing=>{
+                    const match=ing.match(/^([\d.\/]+)\s*(.*)/);
+                    if(!match)return ing;
+                    const num=parseFloat(match[1])*scale;
+                    return (num%1===0?num:num.toFixed(1))+" "+match[2];
+                  });
+                  const w=window.open("","_blank","width=750,height=950");
+                  w.document.write(`<!DOCTYPE html><html><head><title>${r.name}</title><style>
+                    @import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Lato:wght@300;400;700&display=swap");
+                    @page{margin:2cm;size:portrait;}
+                    body{font-family:"Lato","Georgia",serif;padding:40px 48px;color:#3d2008;margin:0;background:#fffdf8;}
+                    .header{border-bottom:3px solid #c8963e;padding-bottom:16px;margin-bottom:20px;}
+                    .title{font-family:"Playfair Display","Georgia",serif;font-size:34px;font-weight:700;color:#5c3317;margin:0 0 4px 0;line-height:1.2;}
+                    .kitchen-of{font-family:"Playfair Display","Georgia",serif;font-size:15px;font-style:italic;color:#8b6340;margin:0 0 10px 0;}
+                    .meta{display:flex;gap:20px;font-size:13px;color:#8b6340;margin-bottom:4px;}
+                    .meta span{background:#fef3c7;border:1px solid #f59e0b;border-radius:20px;padding:3px 12px;}
+                    .photo{width:100%;max-height:220px;object-fit:cover;border-radius:10px;margin-bottom:20px;border:2px solid #e8d5b0;}
+                    .section{margin-bottom:20px;}
+                    .section-title{font-family:"Playfair Display","Georgia",serif;font-size:16px;font-weight:700;color:#5c3317;text-transform:uppercase;letter-spacing:1px;border-bottom:1px dashed #e8d5b0;padding-bottom:6px;margin-bottom:10px;}
+                    .ingredient{font-size:14px;color:#3d2008;padding:5px 0;border-bottom:1px dotted #e8d5b0;display:flex;align-items:flex-start;gap:8px;}
+                    .ingredient::before{content:"•";color:#c8963e;font-weight:bold;flex-shrink:0;}
+                    .step{font-size:14px;color:#3d2008;margin-bottom:10px;display:flex;gap:10px;line-height:1.6;}
+                    .step-num{font-family:"Playfair Display","Georgia",serif;font-size:16px;font-weight:700;color:#c8963e;flex-shrink:0;min-width:20px;}
+                    .notes{background:#fef9f0;border:1px dashed #c8963e;border-radius:8px;padding:12px 16px;font-size:13px;font-style:italic;color:#8b6340;margin-bottom:20px;}
+                    .footer{border-top:2px solid #e8d5b0;padding-top:12px;margin-top:24px;display:flex;justify-content:space-between;align-items:center;}
+                    .brand{font-family:"Playfair Display","Georgia",serif;font-size:13px;color:#c8963e;font-weight:700;}
+                    .url{font-size:11px;color:#aaa;}
+                    @media print{body{background:white;padding:0;}}
+                  </style></head><body>
+                  <div class="header">
+                    <div class="title">${r.name}</div>
+                    ${r.kitchenOf?`<div class="kitchen-of">From the kitchen of ${r.kitchenOf}</div>`:""}
+                    <div class="meta"><span>🍽 Serves ${frServings}</span>${r.notes?"":""}${(r.seasons||[]).map(s=>`<span>${s}</span>`).join("")}</div>
+                  </div>
+                  ${r.photo?`<img class="photo" src="${r.photo}" alt="${r.name}"/>`:""}
+                  <div class="section">
+                    <div class="section-title">Ingredients</div>
+                    ${scaledIngs.map(i=>`<div class="ingredient">${i}</div>`).join("")}
+                  </div>
+                  <div class="section">
+                    <div class="section-title">Instructions</div>
+                    ${(r.steps||[]).filter(s=>s&&s.trim()).map((s,i)=>`<div class="step"><span class="step-num">${i+1}.</span><span>${s}</span></div>`).join("")}
+                  </div>
+                  ${r.notes?`<div class="notes">💛 ${r.notes}</div>":""}
+                  <div class="footer"><span class="brand">Smart Kitchen™</span><span class="url">smart-kitchen-opal.vercel.app</span></div>
+                  </body></html>`);
+                  w.document.close();w.focus();setTimeout(()=>{w.print();w.close();},600);
+                }} style={{flex:1,background:"#5c3317",border:"none",borderRadius:10,padding:"12px",color:"#fdf6ec",fontFamily:"Georgia,serif",fontSize:seniorMode?16:13,cursor:"pointer",fontWeight:700}}>🖨 Print Recipe</button>
+                <button onClick={()=>{
                   const missing=(frViewRecipe.ingredients||[]).filter(ing=>{
                     const name=ing.replace(/^[\d.\/\s]+[a-zA-Z]*\s*/,"").toLowerCase().trim();
                     return !inventory.some(i=>(i.name||"").toLowerCase().includes(name.split(" ")[0]));
