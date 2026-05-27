@@ -2786,8 +2786,9 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
             <div style={{display:"flex",gap:8,marginTop:10}}>
               <button style={{...bBtn("ghost"),flex:1,padding:10,fontSize:12}} onClick={()=>printRecipeCard(activeRecipe,mealPhotos[activeRecipe.name])}>&#128424; Print</button>
               <button style={{...bBtn("primary"),flex:3,padding:12}} onClick={()=>cookRecipe(activeRecipe)}>🍳 I Cooked This — Update Inventory</button>
-          </div>
+            </div>
         </div>
+      </div>
       )}
 
       {/* == DESSERT MODAL == */}
