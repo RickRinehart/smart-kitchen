@@ -3408,9 +3408,25 @@ What can I substitute and do I have what I need?`,
                     +notes
                     +"<div class='footer'><span class='brand'>Smart Kitchen&#8482;</span><span class='url'>smart-kitchen-opal.vercel.app</span></div>"
                     +"</body></html>";
-                  const w=window.open("","_blank","width=750,height=950");
-                  w.document.write(html);
-                  w.document.close();w.focus();setTimeout(()=>{w.print();w.close();},600);
+                  const isMobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                  if(isMobile){
+                    const blob=new Blob([html],{type:"text/html"});
+                    const url=URL.createObjectURL(blob);
+                    const iframe=document.createElement("iframe");
+                    iframe.style.cssText="position:fixed;top:0;left:0;width:100%;height:100%;border:none;z-index:9999;background:white;";
+                    iframe.src=url;
+                    document.body.appendChild(iframe);
+                    iframe.onload=()=>{
+                      setTimeout(()=>{
+                        iframe.contentWindow.print();
+                        setTimeout(()=>{document.body.removeChild(iframe);URL.revokeObjectURL(url);},1000);
+                      },400);
+                    };
+                  } else {
+                    const w=window.open("","_blank","width=750,height=950");
+                    w.document.write(html);
+                    w.document.close();w.focus();setTimeout(()=>{w.print();w.close();},600);
+                  }
                 }} style={{flex:1,background:"#5c3317",border:"none",borderRadius:10,padding:"12px",color:"#fdf6ec",fontFamily:"Georgia,serif",fontSize:seniorMode?16:13,cursor:"pointer",fontWeight:700}}>🖨 Print Recipe</button>
                 <button onClick={()=>{
                   const missing=(frViewRecipe.ingredients||[]).filter(ing=>{
