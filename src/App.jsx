@@ -1297,6 +1297,35 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
   // -- Print helpers ----------------------------------------------------------
   const printMealPlan=()=>setPrintModal("mealplan");
   const printShopping=()=>setPrintModal("shopping");
+  const printRecipeCard=(recipe,photo)=>{
+    const css="@page{margin:2cm;size:portrait;}body{font-family:Georgia,serif;padding:40px 48px;color:#111;margin:0;background:#fff;}.title{font-size:30px;font-weight:700;color:#1A2344;margin:0 0 6px 0;line-height:1.2;border-bottom:3px solid #C8963E;padding-bottom:12px;margin-bottom:16px;}.meta{display:flex;gap:12px;font-size:13px;color:#555;margin-bottom:16px;flex-wrap:wrap;}.meta span{background:#f5f5f5;border:1px solid #ddd;border-radius:20px;padding:3px 12px;}.photo{width:100%;max-height:220px;object-fit:cover;border-radius:8px;margin-bottom:16px;border:1px solid #ddd;}.section{margin-bottom:18px;}.section-title{font-size:13px;font-weight:700;color:#1A2344;text-transform:uppercase;letter-spacing:1px;border-bottom:1px dashed #ddd;padding-bottom:5px;margin-bottom:10px;}.ingredient{font-size:14px;color:#222;padding:4px 0;border-bottom:1px dotted #eee;}.step{font-size:14px;color:#222;margin-bottom:10px;display:flex;gap:10px;line-height:1.6;}.step-num{font-size:15px;font-weight:700;color:#C8963E;flex-shrink:0;min-width:20px;}.footer{border-top:1px solid #ddd;padding-top:10px;margin-top:20px;display:flex;justify-content:space-between;font-size:11px;color:#aaa;}@media print{body{background:white;padding:0;}}";
+    const photoHtml=photo?"<img class='photo' src='"+photo+"'/>":"";
+    const ings=(recipe.ingredients||[]).filter(i=>i&&i.trim()).map(i=>"<div class='ingredient'>&#8226; "+i+"</div>").join("");
+    const steps=(recipe.instructions||recipe.steps||[]).filter(s=>s&&s.trim()).map((s,i)=>"<div class='step'><span class='step-num'>"+(i+1)+".</span><span>"+s+"</span></div>").join("");
+    const meta="<span>&#9201; "+(recipe.time||"~30 min")+"</span><span>"+(recipe.difficulty||"")+"</span>";
+    const html="<!DOCTYPE html><html><head><title>"+recipe.name+"</title><meta charset='utf-8'/><style>"+css+"</style></head><body>"
+      +"<div class='title'>"+recipe.name+"</div>"
+      +"<div class='meta'>"+meta+"</div>"
+      +photoHtml
+      +(ings?"<div class='section'><div class='section-title'>Ingredients</div>"+ings+"</div>":"")
+      +(steps?"<div class='section'><div class='section-title'>Instructions</div>"+steps+"</div>":"")
+      +"<div class='footer'><span>Smart Kitchen&#8482;</span><span>smart-kitchen-opal.vercel.app</span></div>"
+      +"</body></html>";
+    const isMobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if(isMobile){
+      const blob=new Blob([html],{type:"text/html"});
+      const url=URL.createObjectURL(blob);
+      const iframe=document.createElement("iframe");
+      iframe.style.cssText="position:fixed;top:0;left:0;width:100%;height:100%;border:none;z-index:9999;background:white;";
+      iframe.src=url;
+      document.body.appendChild(iframe);
+      iframe.onload=()=>{setTimeout(()=>{iframe.contentWindow.print();setTimeout(()=>{document.body.removeChild(iframe);URL.revokeObjectURL(url);},1000);},400);};
+    } else {
+      const w=window.open("","_blank","width=750,height=950");
+      w.document.write(html);
+      w.document.close();w.focus();setTimeout(()=>{w.print();w.close();},600);
+    }
+  };
 
   // -- Push to Google Calendar ------------------------------------------------
   const pushToCalendar=async()=>{
@@ -1833,7 +1862,9 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                         {(r.missingIngredients||[]).length>0&&<span style={{...bTag(C.red),fontSize:seniorMode?14:undefined}}>🛒 {r.missingIngredients.length} needed</span>}
                       </div>
                       <div style={{fontSize:seniorMode?17:11,color:C.accent,fontFamily:FM,fontWeight:seniorMode?700:400}}>TAP FOR FULL RECIPE →</div>
-                      <div style={{marginTop:10,display:"flex",gap:8}}><button onClick={e=>{e.stopPropagation();setSwapRecipeModal(r);setSwapRecipeRequest("");}} style={{flex:1,padding:"8px",borderRadius:8,border:"1px solid "+C.border,background:C.surface,color:C.text,fontFamily:FM,fontSize:12,cursor:"pointer"}}>✦ Swap Recipe</button><button onClick={e=>{e.stopPropagation();setPhotoPromptMeal(r.name);}} style={{padding:"8px 12px",borderRadius:8,border:"1px solid "+C.border,background:C.surface,color:C.muted,fontFamily:FM,fontSize:seniorMode?16:12,cursor:"pointer"}} title="Add photo">📸 {mealPhotos[r.name]?"Change":"Photo"}</button></div>
+                      <div style={{marginTop:10,display:"flex",gap:8}}>
+                      <button onClick={e=>{e.stopPropagation();printRecipeCard(r,mealPhotos[r.name]);}} style={{padding:"8px 12px",borderRadius:8,border:"1px solid "+C.border,background:C.surface,color:C.text,fontSize:12,cursor:"pointer"}}>🖨 Print</button>
+                      <button onClick={e=>{e.stopPropagation();setSwapRecipeModal(r);setSwapRecipeRequest("");}} style={{flex:1,padding:"8px",borderRadius:8,border:"1px solid "+C.border,background:C.surface,color:C.text,fontFamily:FM,fontSize:12,cursor:"pointer"}}>✦ Swap Recipe</button><button onClick={e=>{e.stopPropagation();setPhotoPromptMeal(r.name);}} style={{padding:"8px 12px",borderRadius:8,border:"1px solid "+C.border,background:C.surface,color:C.muted,fontFamily:FM,fontSize:seniorMode?16:12,cursor:"pointer"}} title="Add photo">📸 {mealPhotos[r.name]?"Change":"Photo"}</button></div>
                     </div>
                   )})}
                 </div>
@@ -2752,7 +2783,9 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                 <div style={{fontSize:13,lineHeight:1.7,color:C.text}}>{step}</div>
               </div>
             ))}
-            <button style={{...bBtn("primary"),width:"100%",marginTop:10,padding:12}} onClick={()=>cookRecipe(activeRecipe)}>🍳 I Cooked This — Update Inventory</button>
+            <div style={{display:"flex",gap:8,marginTop:10}}>
+              <button style={{...bBtn("ghost"),flex:1,padding:10,fontSize:12}} onClick={()=>printRecipeCard(activeRecipe,mealPhotos[activeRecipe.name])}>&#128424; Print</button>
+              <button style={{...bBtn("primary"),flex:3,padding:12}} onClick={()=>cookRecipe(activeRecipe)}>🍳 I Cooked This — Update Inventory</button>
           </div>
         </div>
       )}
@@ -2791,6 +2824,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
               </div>
             ))}
             <div style={{display:"flex",gap:8,marginTop:10}}>
+              <button style={{...bBtn("ghost"),padding:"10px 14px",fontSize:12}} onClick={()=>printRecipeCard(activeDessert,mealPhotos[activeDessert.name])}>&#128424; Print</button>
               {(activeDessert.missingIngredients||[]).length>0&&<button style={{...bBtn("ghost"),flex:1,padding:12,border:"1px solid #f472b6",color:"#f472b6"}}
                 onClick={()=>{
                   setShopping(prev=>{
@@ -3272,6 +3306,7 @@ What can I substitute and do I have what I need?`,
                   </div>
                 </div>
                 <div style={{display:"flex",gap:10}}>
+                  <button onClick={()=>printRecipeCard(makeThisResult,mealPhotos[makeThisResult.name])} style={{...bBtn("ghost"),padding:"10px 12px",fontSize:12}}>🖨 Print</button>
                   <button onClick={()=>{setMakeThisResult(null);setMakeThisInput("");}} style={{...bBtn("ghost"),flex:1,padding:"10px"}}>← Try Another</button>
                   <button onClick={()=>setMakeThisModal(false)} style={{...bBtn("primary"),flex:1,padding:"10px"}}>Done</button>
                 </div>
