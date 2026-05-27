@@ -1428,6 +1428,8 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                       setWizardSignupError(signUpErr.message||"Could not create account. Try a different email.");
                     } else {
                       setWizardStep(-2);
+                      // Send welcome email with User Manual + Family Guide attached
+                      fetch("/api/send-welcome-email",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:wizardSignupEmail,name:wizardSignupName,tier:"solo"})}).catch(()=>{});
                     }
                   } catch(e){
                     setWizardSignupError("Connection error. Please try again.");
