@@ -3296,14 +3296,42 @@ What can I substitute and do I have what I need?`,
               {frViewRecipe.photo
   ?<div style={{position:"relative",marginBottom:14}}>
     <img src={frViewRecipe.photo} alt={frViewRecipe.name} style={{width:"100%",maxHeight:200,objectFit:"cover",borderRadius:10,border:"2px solid #e8d5b0"}}/>
-    <button onClick={()=>document.getElementById("fr-dish-photo-input").click()} style={{position:"absolute",bottom:8,right:8,background:"rgba(92,51,23,0.75)",border:"none",borderRadius:20,padding:"6px 12px",color:"#fdf6ec",fontFamily:"Georgia,serif",fontSize:12,cursor:"pointer"}}>📷 Change Photo</button>
+    <div style={{position:"absolute",bottom:8,right:8,display:"flex",gap:6}}>
+    <button onClick={()=>document.getElementById("fr-dish-camera").click()} style={{background:"rgba(92,51,23,0.75)",border:"none",borderRadius:20,padding:"6px 10px",color:"#fdf6ec",fontFamily:"Georgia,serif",fontSize:11,cursor:"pointer"}}>📷 Camera</button>
+    <button onClick={()=>document.getElementById("fr-dish-gallery").click()} style={{background:"rgba(92,51,23,0.75)",border:"none",borderRadius:20,padding:"6px 10px",color:"#fdf6ec",fontFamily:"Georgia,serif",fontSize:11,cursor:"pointer"}}>🖼 Gallery</button>
   </div>
-  :<div style={{marginBottom:14,textAlign:"center"}}>
-    <button onClick={()=>document.getElementById("fr-dish-photo-input").click()} style={{background:"#fffbf0",border:"2px dashed #e8d5b0",borderRadius:10,padding:"16px 24px",cursor:"pointer",fontFamily:"Georgia,serif",fontSize:seniorMode?16:13,color:"#8b6340"}}>
-      📷 Add a photo of this dish
+  </div>
+  :<div style={{marginBottom:14,display:"flex",gap:10}}>
+    <button onClick={()=>document.getElementById("fr-dish-camera").click()} style={{flex:1,background:"#fffbf0",border:"2px dashed #e8d5b0",borderRadius:10,padding:"16px 10px",cursor:"pointer",fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,color:"#8b6340",textAlign:"center"}}>
+      <div style={{fontSize:28,marginBottom:4}}>📷</div>Take a Photo
+    </button>
+    <button onClick={()=>document.getElementById("fr-dish-gallery").click()} style={{flex:1,background:"#fffbf0",border:"2px dashed #e8d5b0",borderRadius:10,padding:"16px 10px",cursor:"pointer",fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,color:"#8b6340",textAlign:"center"}}>
+      <div style={{fontSize:28,marginBottom:4}}>🖼</div>Choose from Gallery
     </button>
   </div>}
-<input id="fr-dish-photo-input" type="file" accept="image/*" capture="environment" style={{display:"none"}} onChange={e=>{
+<input id="fr-dish-camera" type="file" accept="image/*" capture="environment" style={{display:"none"}} onChange={e=>{
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const img=new Image();
+    img.onload=()=>{
+      const canvas=document.createElement("canvas");
+      const max=600;const scale=Math.min(max/img.width,max/img.height,1);
+      canvas.width=img.width*scale;canvas.height=img.height*scale;
+      canvas.getContext("2d").drawImage(img,0,0,canvas.width,canvas.height);
+      const compressed=canvas.toDataURL("image/jpeg",0.65);
+      const updated={...frViewRecipe,photo:compressed};
+      setFrViewRecipe(updated);
+      const updatedList=familyRecipes.map(r=>r.id===frViewRecipe.id?updated:r);
+      setFamilyRecipes(updatedList);
+      try{localStorage.setItem("sk_familyRecipes",JSON.stringify(updatedList));}catch{}
+    };
+    img.src=ev.target.result;
+  };
+  reader.readAsDataURL(file);
+  e.target.value="";
+}}/>
+<input id="fr-dish-gallery" type="file" accept="image/*" style={{display:"none"}} onChange={e=>{
   const file=e.target.files[0];if(!file)return;
   const reader=new FileReader();
   reader.onload=ev=>{
