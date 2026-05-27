@@ -3293,7 +3293,38 @@ What can I substitute and do I have what I need?`,
                 </div>
                 <button onClick={()=>setFrViewRecipe(null)} style={{background:"transparent",border:"none",fontSize:20,cursor:"pointer",color:"#8b6340",padding:"0 4px"}}>✕</button>
               </div>
-              {frViewRecipe.photo&&<img src={frViewRecipe.photo} alt={frViewRecipe.name} style={{width:"100%",maxHeight:180,objectFit:"cover",borderRadius:10,marginBottom:14,border:"2px solid #e8d5b0"}}/>}
+              {frViewRecipe.photo
+  ?<div style={{position:"relative",marginBottom:14}}>
+    <img src={frViewRecipe.photo} alt={frViewRecipe.name} style={{width:"100%",maxHeight:200,objectFit:"cover",borderRadius:10,border:"2px solid #e8d5b0"}}/>
+    <button onClick={()=>document.getElementById("fr-dish-photo-input").click()} style={{position:"absolute",bottom:8,right:8,background:"rgba(92,51,23,0.75)",border:"none",borderRadius:20,padding:"6px 12px",color:"#fdf6ec",fontFamily:"Georgia,serif",fontSize:12,cursor:"pointer"}}>📷 Change Photo</button>
+  </div>
+  :<div style={{marginBottom:14,textAlign:"center"}}>
+    <button onClick={()=>document.getElementById("fr-dish-photo-input").click()} style={{background:"#fffbf0",border:"2px dashed #e8d5b0",borderRadius:10,padding:"16px 24px",cursor:"pointer",fontFamily:"Georgia,serif",fontSize:seniorMode?16:13,color:"#8b6340"}}>
+      📷 Add a photo of this dish
+    </button>
+  </div>}
+<input id="fr-dish-photo-input" type="file" accept="image/*" capture="environment" style={{display:"none"}} onChange={e=>{
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const img=new Image();
+    img.onload=()=>{
+      const canvas=document.createElement("canvas");
+      const max=600;const scale=Math.min(max/img.width,max/img.height,1);
+      canvas.width=img.width*scale;canvas.height=img.height*scale;
+      canvas.getContext("2d").drawImage(img,0,0,canvas.width,canvas.height);
+      const compressed=canvas.toDataURL("image/jpeg",0.65);
+      const updated={...frViewRecipe,photo:compressed};
+      setFrViewRecipe(updated);
+      const updatedList=familyRecipes.map(r=>r.id===frViewRecipe.id?updated:r);
+      setFamilyRecipes(updatedList);
+      try{localStorage.setItem("sk_familyRecipes",JSON.stringify(updatedList));}catch{}
+    };
+    img.src=ev.target.result;
+  };
+  reader.readAsDataURL(file);
+  e.target.value="";
+}}/}
               <div style={{display:"flex",gap:10,marginBottom:14,flexWrap:"wrap",alignItems:"center"}}>
                 <div style={{display:"flex",alignItems:"center",gap:6,background:"#fef3c7",borderRadius:20,padding:"4px 12px",border:"1px solid #f59e0b"}}>
                   <span style={{fontSize:14}}>🍽</span>
@@ -3503,9 +3534,7 @@ What can I substitute and do I have what I need?`,
                     const s=raw.indexOf("{"),e=raw.lastIndexOf("}");
                     const parsed=JSON.parse(raw.slice(s,e+1));
                     const parsedServings=parseInt(parsed.servings)||4;
-                  const compressPhoto=(src)=>new Promise(res=>{const img=new Image();img.onload=()=>{const canvas=document.createElement("canvas");const max=400;const scale=Math.min(max/img.width,max/img.height,1);canvas.width=img.width*scale;canvas.height=img.height*scale;canvas.getContext("2d").drawImage(img,0,0,canvas.width,canvas.height);res(canvas.toDataURL("image/jpeg",0.5));};img.src=src;});
-                  const compressedPhoto=await compressPhoto(frPhotos[0].preview).catch(()=>null);
-                  setFrEditRecipe({...parsed,id:Date.now(),servings:parsedServings,rotation:false,frequency:"4week",seasons:[],photo:compressedPhoto});
+                  setFrEditRecipe({...parsed,id:Date.now(),servings:parsedServings,rotation:false,frequency:"4week",seasons:[],photo:null});
                     setFrServings(parsedServings);
                     setFrPhotos([]);
                     setFrAddMode("review");
