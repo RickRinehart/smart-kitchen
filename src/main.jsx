@@ -322,18 +322,24 @@ function Root() {
   const tier = isAdmin ? "medical" : (userProfile?.tier || "free");
   const trialEndsAt = userProfile?.trial_ends_at || null;
   const inTrial = !isAdmin && trialEndsAt && new Date(trialEndsAt) > new Date();
-  const effectiveTier = isAdmin ? "medical" : (inTrial ? (tier === "free" ? "family" : tier) : tier);
+  const effectiveTier = isAdmin ? "medical" : (inTrial ? (tier === "free" || tier === "solo" ? "solo" : tier) : tier);
   const isActive = isAdmin || userProfile?.subscription_status === "active" || inTrial;
   const daysLeft = trialDaysRemaining(trialEndsAt);
 
   const can = {
-    unlimitedRecipes:    isAdmin || ["solo", "family", "medical"].includes(effectiveTier),
-    sevenDayPlan:        isAdmin || ["family", "medical"].includes(effectiveTier),
-    busyNightFlag:       isAdmin || ["solo", "family", "medical"].includes(effectiveTier),
-    calendarIntegration: isAdmin || ["solo", "family", "medical"].includes(effectiveTier),
-    multipleProfiles:    isAdmin || ["family", "medical"].includes(effectiveTier),
+    unlimitedRecipes:    isAdmin || ["solo", "couple", "family", "medical"].includes(effectiveTier),
+    sevenDayPlan:        isAdmin || ["solo", "couple", "family", "medical"].includes(effectiveTier),
+    busyNightFlag:       isAdmin || ["solo", "couple", "family", "medical"].includes(effectiveTier),
+    calendarIntegration: isAdmin || ["solo", "couple", "family", "medical"].includes(effectiveTier),
+    multipleProfiles:    isAdmin || ["couple", "family", "medical"].includes(effectiveTier),
+    familyRecipes:       isAdmin || ["solo", "couple", "family", "medical"].includes(effectiveTier),
+    printRecipe:         isAdmin || ["solo", "couple", "family", "medical"].includes(effectiveTier),
+    wildHarvest:         isAdmin || ["family", "medical"].includes(effectiveTier),
+    homeHarvest:         isAdmin || ["family", "medical"].includes(effectiveTier),
+    adaptiveLearning:    isAdmin || ["solo", "couple", "family", "medical"].includes(effectiveTier),
     medicalCompliance:   isAdmin || effectiveTier === "medical",
     temporaryDiets:      isAdmin || effectiveTier === "medical",
+    cloudSync:           isAdmin || ["solo", "couple", "family", "medical"].includes(effectiveTier),
   };
 
   const tierLabel = isAdmin

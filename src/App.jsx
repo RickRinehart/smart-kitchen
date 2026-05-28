@@ -548,7 +548,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   useEffect(()=>{
     const handler=()=>{
       try{
-        const inv=localStorage.getItem("sk_inventory");if(inv)setInventory(JSON.parse(inv));
+        const inv=localStorage.getItem("sk_inventory");if(inv){const parsed=JSON.parse(inv);setInventory(parsed);}
         const fp=localStorage.getItem("sk_familyProfiles");if(fp)setFamilyProfiles(JSON.parse(fp));
         const fs=localStorage.getItem("sk_familySize");if(fs)setFamilySize(parseInt(fs)||2);
         const mp=localStorage.getItem("sk_mealPlan");if(mp)setMealPlan(JSON.parse(mp));
@@ -560,7 +560,12 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
         const dm=localStorage.getItem("sk_darkMode");if(dm)setDarkMode(dm==="1"||dm==="true");
         const sp=localStorage.getItem("sk_shopPartnerName");if(sp)setShopPartnerName(sp);
         const se=localStorage.getItem("sk_shopPartnerEmail");if(se)setShopPartnerEmail(se);
-        const sd=localStorage.getItem("sk_setupDone");if(sd)setWizardStep(null);
+        // If setup was done on another device, suppress wizard
+        const sd=localStorage.getItem("sk_setupDone");
+        if(sd==="1"||sd==="true"){
+          setShowWizard(false);
+          setWizardStep(null);
+        }
       }catch(e){}
     };
     window.addEventListener("sk_cloud_loaded",handler);
