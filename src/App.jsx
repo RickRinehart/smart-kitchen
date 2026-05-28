@@ -537,8 +537,24 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
       });
     });
   },[]);
-  useEffect(()=>{try{localStorage.setItem("sk_inventory",JSON.stringify(inventory));}catch{}},[inventory]);
-  useEffect(()=>{try{localStorage.setItem("sk_mealPlan",JSON.stringify(mealPlan));}catch{}},[mealPlan]);
+  useEffect(()=>{
+    try{localStorage.setItem("sk_inventory",JSON.stringify(inventory));}catch{}
+    if(user&&inventory.length>0){
+      clearTimeout(window._invSaveTimer);
+      window._invSaveTimer=setTimeout(()=>{
+        import("./supabaseClient").then(m=>m.saveCloudData(user.id)).catch(()=>{});
+      },10000);
+    }
+  },[inventory]);
+  useEffect(()=>{
+    try{localStorage.setItem("sk_mealPlan",JSON.stringify(mealPlan));}catch{}
+    if(user&&mealPlan.length>0){
+      clearTimeout(window._mpSaveTimer);
+      window._mpSaveTimer=setTimeout(()=>{
+        import("./supabaseClient").then(m=>m.saveCloudData(user.id)).catch(()=>{});
+      },10000);
+    }
+  },[mealPlan]);
   useEffect(()=>{try{localStorage.setItem("sk_saleItems",JSON.stringify(saleItems));}catch{}},[saleItems]);
   useEffect(()=>{try{localStorage.setItem("sk_familySize",JSON.stringify(familySize));}catch{}},[familySize]);
   useEffect(()=>{try{localStorage.setItem("sk_familyProfiles",JSON.stringify(familyProfiles));}catch{}},[familyProfiles]);

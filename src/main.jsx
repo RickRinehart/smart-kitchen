@@ -235,6 +235,8 @@ function Root() {
         loadCloudData(session.user.id).then(loaded => {
           if (loaded) window.dispatchEvent(new Event("sk_cloud_loaded"));
         }).catch(() => {});
+        // Save immediately on login to ensure Supabase has latest local data
+        setTimeout(() => saveCloudData(session.user.id).catch(() => {}), 3000);
         getUserProfile(session.user.id).then(setUserProfile);
       }
       setAuthReady(true);
@@ -277,7 +279,7 @@ function Root() {
     if (!user) return;
     const interval = setInterval(() => {
       saveCloudData(user.id).catch(() => {});
-    }, 5 * 60 * 1000);
+    }, 90 * 1000); // Every 90 seconds
     return () => clearInterval(interval);
   }, [user]);
 
