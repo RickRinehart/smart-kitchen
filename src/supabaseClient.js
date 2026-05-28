@@ -120,6 +120,18 @@ const SYNC_MAP = {
 // Load all user data from Supabase into localStorage on app start
 export async function loadCloudData(userId) {
   try {
+    // SAFETY: save current local state to backup keys before loading cloud
+    // This means we can always recover local data if cloud load goes wrong
+    const BACKUP_KEYS = ['sk_inventory','sk_mealPlan','sk_familyProfiles',
+      'sk_familySize','sk_familyRecipes','sk_recipeRatings','sk_dessertRatings',
+      'sk_recipes','sk_desserts','sk_madeItHistory','sk_changeMealHistory'];
+    BACKUP_KEYS.forEach(key => {
+      try {
+        const val = localStorage.getItem(key);
+        if (val) localStorage.setItem(key + '_backup', val);
+      } catch(e) {}
+    });
+
     const { data, error } = await supabase
       .from('user_data')
       .select('*')
@@ -160,6 +172,24 @@ export async function loadCloudData(userId) {
     console.warn('Cloud load failed:', e.message);
     return false;
   }
+}
+
+// Restore from backup if cloud load caused data loss
+export function restoreFromBackup() {
+  const BACKUP_KEYS = ['sk_inventory','sk_mealPlan','sk_familyProfiles',
+    'sk_familySize','sk_familyRecipes','sk_recipeRatings','sk_dessertRatings',
+    'sk_recipes','sk_desserts','sk_madeItHistory','sk_changeMealHistory'];
+  let restored = 0;
+  BACKUP_KEYS.forEach(key => {
+    try {
+      const backup = localStorage.getItem(key + '_backup');
+      if (backup) {
+        localStorage.setItem(key, backup);
+        restored++;
+      }
+    } catch(e) {}
+  });
+  return restored;
 }
 
 // Save all user data from localStorage to Supabase

@@ -1426,12 +1426,17 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
   const ok=await import("./supabaseClient").then(m=>m.saveCloudData(user.id));
   alert(ok?"Data saved to cloud ✓":"Sync failed — check connection");
 }}>Save to Cloud Now</button>
-<button style={{...bBtn("ghost"),width:"100%",border:"1px solid #1A2344",color:"#1A2344"}} onClick={async()=>{
+<button style={{...bBtn("ghost"),width:"100%",border:"1px solid #1A2344",color:"#1A2344",marginBottom:8}} onClick={async()=>{
   if(!user){alert("Sign in to use cloud sync.");return;}
   const ok=await import("./supabaseClient").then(m=>m.loadCloudData(user.id));
   if(ok){window.dispatchEvent(new Event("sk_cloud_loaded"));alert("Data loaded from cloud ✓");}
   else alert("Load failed — check connection");
 }}>Load from Cloud</button>
+<button style={{...bBtn("ghost"),width:"100%",border:"1px solid #b45309",color:"#b45309"}} onClick={async()=>{
+  const count=await import("./supabaseClient").then(m=>m.restoreFromBackup());
+  if(count>0){window.dispatchEvent(new Event("sk_cloud_loaded"));alert("Restored "+count+" items from backup ✓ Refresh to see changes.");}
+  else alert("No backup found.");
+}}>Restore from Backup</button>
 </div>
 <button style={{...bBtn("ghost"),width:"100%",marginTop:16}} onClick={()=>setShowSettings(false)}>Close</button></div></div>}
     {showWizard&&(
