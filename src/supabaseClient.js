@@ -128,16 +128,31 @@ export async function loadCloudData(userId) {
 
     if (error || !data) return false;
 
-    // Write each field to localStorage
+    // Write each field to localStorage — ONLY overwrite if cloud data is non-empty
+    // This prevents a bad/empty cloud record from wiping good local data
     Object.entries(SYNC_MAP).forEach(([dbCol, lsKey]) => {
-      if (data[dbCol] !== null && data[dbCol] !== undefined) {
-        try {
-          const val = typeof data[dbCol] === 'object'
-            ? JSON.stringify(data[dbCol])
-            : String(data[dbCol]);
-          localStorage.setItem(lsKey, val);
-        } catch(e) {}
-      }
+      if (data[dbCol] === null || data[dbCol] === undefined) return;
+      try {
+        // For arrays: only overwrite local if cloud has actual items
+        if (Array.isArray(data[dbCol])) {
+          const localRaw = localStorage.getItem(lsKey);
+          const localArr = localRaw ? JSON.parse(localRaw) : [];
+          // Use cloud data only if it has more items OR local is empty
+          if (data[dbCol].length > 0 || localArr.length === 0) {
+            localStorage.setItem(lsKey, JSON.stringify(data[dbCol]));
+          }
+          return;
+        }
+        // For objects: only overwrite if cloud object has keys
+        if (typeof data[dbCol] === 'object' && !Array.isArray(data[dbCol])) {
+          if (Object.keys(data[dbCol]).length > 0) {
+            localStorage.setItem(lsKey, JSON.stringify(data[dbCol]));
+          }
+          return;
+        }
+        // Primitives: always overwrite
+        localStorage.setItem(lsKey, String(data[dbCol]));
+      } catch(e) {}
     });
 
     return true;
