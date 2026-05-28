@@ -9,8 +9,13 @@ const supabase = createClient(
 const PRICE_TO_TIER = {
   [process.env.STRIPE_PRICE_SOLO_MONTHLY]: 'solo',
   [process.env.STRIPE_PRICE_SOLO_ANNUAL]: 'solo',
+  [process.env.STRIPE_PRICE_COUPLE_MONTHLY]: 'couple',
+  [process.env.STRIPE_PRICE_COUPLE_ANNUAL]: 'couple',
   [process.env.STRIPE_PRICE_FAMILY_MONTHLY]: 'family',
   [process.env.STRIPE_PRICE_FAMILY_ANNUAL]: 'family',
+  [process.env.STRIPE_PRICE_MEDICAL_ADDON_MONTHLY]: 'medical_addon',
+  [process.env.STRIPE_PRICE_MEDICAL_ADDON_ANNUAL]: 'medical_addon',
+  // Legacy grandfathered
   [process.env.STRIPE_PRICE_MEDICAL_MONTHLY]: 'medical',
   [process.env.STRIPE_PRICE_MEDICAL_ANNUAL]: 'medical',
 };
