@@ -87,3 +87,111 @@ export async function hasTouchpoint(userId, key) {
 
   return !!(profile?.trial_touchpoints?.[key])
 }
+
+// ── CLOUD SYNC ──────────────────────────────────────────────────────────────
+
+// Keys to sync to Supabase (photos stay local)
+const SYNC_MAP = {
+  inventory:            'sk_inventory',
+  family_profiles:      'sk_familyProfiles',
+  family_size:          'sk_familySize',
+  meal_plan:            'sk_mealPlan',
+  family_recipes:       'sk_familyRecipes',
+  recipe_ratings:       'sk_recipeRatings',
+  dessert_ratings:      'sk_dessertRatings',
+  made_it_history:      'sk_madeItHistory',
+  change_meal_history:  'sk_changeMealHistory',
+  leftover_history:     'sk_leftoverHistory',
+  shopping_list:        'sk_shoppingList',
+  recipes:              'sk_recipes',
+  desserts:             'sk_desserts',
+  sports_nights:        'sk_sportsNights',
+  restock_queue:        'sk_restockQueue',
+  sale_items:           'sk_saleItems',
+  yield_history:        'sk_yieldHistory',
+  recipe_site:          'sk_recipeSite',
+  shop_partner_name:    'sk_shopPartnerName',
+  shop_partner_email:   'sk_shopPartnerEmail',
+  senior_mode:          'sk_seniorMode',
+  dark_mode:            'sk_darkMode',
+  setup_done:           'sk_setupDone',
+};
+
+// Load all user data from Supabase into localStorage on app start
+export async function loadCloudData(userId) {
+  try {
+    const { data, error } = await supabase
+      .from('user_data')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+
+    if (error || !data) return false;
+
+    // Write each field to localStorage
+    Object.entries(SYNC_MAP).forEach(([dbCol, lsKey]) => {
+      if (data[dbCol] !== null && data[dbCol] !== undefined) {
+        try {
+          const val = typeof data[dbCol] === 'object'
+            ? JSON.stringify(data[dbCol])
+            : String(data[dbCol]);
+          localStorage.setItem(lsKey, val);
+        } catch(e) {}
+      }
+    });
+
+    return true;
+  } catch(e) {
+    console.warn('Cloud load failed:', e.message);
+    return false;
+  }
+}
+
+// Save all user data from localStorage to Supabase
+export async function saveCloudData(userId) {
+  try {
+    const row = { user_id: userId, updated_at: new Date().toISOString() };
+
+    Object.entries(SYNC_MAP).forEach(([dbCol, lsKey]) => {
+      try {
+        const raw = localStorage.getItem(lsKey);
+        if (raw === null) return;
+        // Try to parse JSON, fall back to raw string/boolean
+        try {
+          row[dbCol] = JSON.parse(raw);
+        } catch {
+          // Booleans stored as "1"/"0" or "true"/"false"
+          if (raw === '1' || raw === 'true') row[dbCol] = true;
+          else if (raw === '0' || raw === 'false') row[dbCol] = false;
+          else row[dbCol] = raw;
+        }
+      } catch(e) {}
+    });
+
+    const { error } = await supabase
+      .from('user_data')
+      .upsert(row, { onConflict: 'user_id' });
+
+    if (error) console.warn('Cloud save failed:', error.message);
+    return !error;
+  } catch(e) {
+    console.warn('Cloud save error:', e.message);
+    return false;
+  }
+}
+
+// Save a single field to Supabase (for real-time saves)
+export async function saveCloudField(userId, dbCol, value) {
+  try {
+    const { error } = await supabase
+      .from('user_data')
+      .upsert(
+        { user_id: userId, [dbCol]: value, updated_at: new Date().toISOString() },
+        { onConflict: 'user_id' }
+      );
+    if (error) console.warn('Cloud field save failed:', error.message);
+    return !error;
+  } catch(e) {
+    return false;
+  }
+}

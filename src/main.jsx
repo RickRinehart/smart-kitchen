@@ -4,7 +4,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import AuthModal from "./AuthModal";
 import SubscriptionModal from "./SubscriptionModal";
-import { supabase, getUserProfile, trialDaysRemaining, markTouchpoint } from "./supabaseClient";
+import { supabase, getUserProfile, trialDaysRemaining, markTouchpoint, loadCloudData, saveCloudData } from "./supabaseClient";
 import "./index.css";
 
 // Pre-auth accessibility toggles shown next to Sign In button
@@ -231,6 +231,10 @@ function Root() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setUser(session.user);
+        // Load cloud data into localStorage on every login/session restore
+        loadCloudData(session.user.id).then(loaded => {
+          if (loaded) window.dispatchEvent(new Event("sk_cloud_loaded"));
+        }).catch(() => {});
         getUserProfile(session.user.id).then(setUserProfile);
       }
       setAuthReady(true);
@@ -253,8 +257,29 @@ function Root() {
       window.history.replaceState({}, "", window.location.pathname);
     }
 
-    return () => subscription.unsubscribe();
+    // Save to cloud when tab becomes hidden
+    const handleVisibility = () => {
+      if (document.visibilityState === "hidden") {
+        supabase.auth.getUser().then(({data}) => {
+          if (data?.user) saveCloudData(data.user.id).catch(()=>{});
+        });
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      subscription.unsubscribe();
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
   }, []);
+
+  // Auto-save to cloud every 5 minutes when signed in
+  useEffect(() => {
+    if (!user) return;
+    const interval = setInterval(() => {
+      saveCloudData(user.id).catch(() => {});
+    }, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [user]);
 
   // Check touchpoints whenever profile loads
   useEffect(() => {
