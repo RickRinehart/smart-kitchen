@@ -158,7 +158,28 @@ export async function saveCloudData(userId) {
         if (raw === null) return;
         // Try to parse JSON, fall back to raw string/boolean
         try {
-          row[dbCol] = JSON.parse(raw);
+          let parsed = JSON.parse(raw);
+          // Strip photo/image data before saving to cloud (photos stay local)
+          if (dbCol === 'inventory' && Array.isArray(parsed)) {
+            parsed = parsed.map(item => {
+              const { photo, image, imageData, ...rest } = item;
+              return rest;
+            });
+          }
+          if (dbCol === 'family_recipes' && Array.isArray(parsed)) {
+            parsed = parsed.map(r => {
+              const { photo, ...rest } = r;
+              return rest;
+            });
+          }
+          if (dbCol === 'meal_plan' && Array.isArray(parsed)) {
+            parsed = parsed.map(day => {
+              if (!day) return day;
+              const { photo, ...rest } = day;
+              return rest;
+            });
+          }
+          row[dbCol] = parsed;
         } catch {
           // Booleans stored as "1"/"0" or "true"/"false"
           if (raw === '1' || raw === 'true') row[dbCol] = true;
