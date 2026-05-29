@@ -563,13 +563,13 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   useEffect(()=>{try{localStorage.setItem("sk_familyProfiles",JSON.stringify(familyProfiles));}catch{}},[familyProfiles]);
   useEffect(()=>{try{localStorage.setItem("sk_tempProfiles",JSON.stringify(tempProfiles));}catch{}},[tempProfiles]);
   useEffect(()=>{try{localStorage.setItem("sk_seniorMode",seniorMode?"1":"0");}catch{}},[seniorMode]);
-  // If user is already signed in (returning device), suppress wizard immediately
+  // Suppress wizard when signed in OR in viewer mode
   useEffect(()=>{
-    if(user){
+    if(user||isViewer){
       setShowWizard(false);
       setWizardStep(null);
     }
-  },[user]);
+  },[user,isViewer]);
   // Reload state from localStorage when cloud data arrives
   useEffect(()=>{
     const handler=()=>{
