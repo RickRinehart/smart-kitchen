@@ -1764,7 +1764,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
           <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px",border:"1px solid "+(seniorMode?C.blue:C.border),color:seniorMode?C.blue:C.muted}} onClick={()=>setSeniorMode(m=>!m)}>{seniorMode?"🔤 On":"🔤 Senior"}</button>
           <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px"}} onClick={()=>openRepack("veg")}>🫕 Prep Veg</button>
           <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px"}} onClick={()=>openRepack("protein")} disabled={isViewer}>🥩 Repackage</button>
-          <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px"}} onClick={()=>{setScanOpen(true);setScanStage("upload");setScanResults(null);setScanPreview(null);setScanB64(null);setScanMode("shelf"); disabled={isViewer}>📷 Scan</button>       <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px"}} onClick={()=>{
+          <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px"}} onClick={()=>{setScanOpen(true);setScanStage("upload");setScanResults(null);setScanPreview(null);setScanB64(null);setScanMode("shelf");}} disabled={isViewer}>📷 Scan</button>       <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px"}} onClick={()=>{
             if(!can.unlimitedRecipes){
               setUpgradeModal({feature:"Unlimited Recipe Suggestions",desc:"Get unlimited AI-powered recipe suggestions based on exactly what you have in your kitchen.",icon:"🍽"});
               return;
