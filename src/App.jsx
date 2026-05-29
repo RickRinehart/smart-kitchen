@@ -1446,22 +1446,29 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
 <div style={{background:"#EEF1F8",borderRadius:10,padding:16,marginTop:12}}>
 <div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:"#1A2344",marginBottom:4}}>🌐 Cloud Sync</div>
 <div style={{fontSize:12,color:"#888",fontFamily:FM,marginBottom:10}}>Your data syncs automatically every 5 minutes and when you switch apps. Tap to sync now.</div>
-<button style={{...bBtn("primary"),width:"100%",marginBottom:8}} onClick={async()=>{
+{!isViewer&&<button style={{...bBtn("primary"),width:"100%",marginBottom:8}} onClick={async()=>{
   if(!user){alert("Sign in to use cloud sync.");return;}
   const ok=await import("./supabaseClient").then(m=>m.saveCloudData(user.id));
   alert(ok?"Data saved to cloud ✓":"Sync failed — check connection");
-}}>Save to Cloud Now</button>
-<button style={{...bBtn("ghost"),width:"100%",border:"1px solid #1A2344",color:"#1A2344",marginBottom:8}} onClick={async()=>{
+}}>Save to Cloud Now</button>}
+{!isViewer&&<button style={{...bBtn("ghost"),width:"100%",border:"1px solid #1A2344",color:"#1A2344",marginBottom:8}} onClick={async()=>{
   if(!user){alert("Sign in to use cloud sync.");return;}
   const ok=await import("./supabaseClient").then(m=>m.loadCloudData(user.id));
   if(ok){window.dispatchEvent(new Event("sk_cloud_loaded"));alert("Data loaded from cloud ✓");}
   else alert("Load failed — check connection");
-}}>Load from Cloud</button>
-<button style={{...bBtn("ghost"),width:"100%",border:"1px solid #b45309",color:"#b45309"}} onClick={async()=>{
+}}>Load from Cloud</button>}
+{!isViewer&&<button style={{...bBtn("ghost"),width:"100%",border:"1px solid #b45309",color:"#b45309"}} onClick={async()=>{
   const count=await import("./supabaseClient").then(m=>m.restoreFromBackup());
   if(count>0){window.dispatchEvent(new Event("sk_cloud_loaded"));alert("Restored "+count+" items from backup ✓ Refresh to see changes.");}
   else alert("No backup found.");
-}}>Restore from Backup</button>
+}}>Restore from Backup</button>}
+{isViewer&&<button style={{...bBtn("primary"),width:"100%"}} onClick={async()=>{
+  const gv=JSON.parse(localStorage.getItem("sk_guest_viewer")||"{}");
+  if(gv.ownerUserId){
+    const ok=await import("./supabaseClient").then(m=>m.loadCloudData(gv.ownerUserId));
+    if(ok){window.dispatchEvent(new Event("sk_cloud_loaded"));alert("Updated! ✓");}
+  }
+}}>🔄 Refresh Family Data</button>}
 </div>
 <button style={{...bBtn("ghost"),width:"100%",marginTop:8,border:"1px solid #7c3aed",color:"#4a1d96"}} onClick={()=>{setShowSettings(false);setShowJoinViewer(true);}}>&#128065; Join as Viewer (enter family code)</button>
 <button style={{...bBtn("ghost"),width:"100%",marginTop:8}} onClick={()=>setShowSettings(false)}>Close</button></div></div>}
