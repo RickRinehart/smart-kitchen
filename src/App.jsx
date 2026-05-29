@@ -300,6 +300,14 @@ const YOUR_INVENTORY=[
 const INITIAL_INVENTORY=[];
 
 // Common pantry staples for new user setup
+// Common medications list for autocomplete
+const COMMON_MEDICATIONS=[
+  "Acetaminophen","Adderall","Albuterol","Alendronate","Allopurinol","Alprazolam","Amiodarone","Amitriptyline","Amlodipine","Amoxicillin","Amphetamine","Anastrozole","Apixaban","Aspirin","Atenolol","Atorvastatin","Azithromycin","Baclofen","Benazepril","Bupropion","Buspirone","Carvedilol","Cetirizine","Ciprofloxacin","Citalopram","Clonazepam","Clopidogrel","Clonidine","Colchicine","Cyclobenzaprine",
+  "Doxycycline","Duloxetine","Eliquis","Enalapril","Escitalopram","Esomeprazole","Ezetimibe","Famotidine","Fenofibrate","Finasteride","Fluoxetine","Fluticasone","Furosemide","Gabapentin","Glipizide","Glipizide","Hydrochlorothiazide","Hydrocodone","Hydroxyzine","Ibuprofen","Insulin Glargine","Insulin Lispro","Isosorbide","Januvia","Lamotrigine","Lansoprazole","Latanoprost","Levetiracetam","Levofloxacin","Levothyroxine",
+  "Linagliptin","Lisinopril","Lithium","Loperamide","Loratadine","Lorazepam","Losartan","Lovastatin","Meloxicam","Metformin","Methocarbamol","Methotrexate","Methylphenidate","Metoprolol","Metronidazole","Mirtazapine","Montelukast","Morphine","Naproxen","Nifedipine","Nitroglycerin","Omeprazole","Ondansetron","Oxycodone","Pantoprazole","Paroxetine","Phentermine","Pravastatin","Prednisone","Pregabalin",
+  "Propranolol","Quetiapine","Ramipril","Ranitidine","Risperidone","Rivaroxaban","Rosuvastatin","Sertraline","Sitagliptin","Spironolactone","Sulfamethoxazole","Sumatriptan","Tamsulosin","Tiotropium","Topiramate","Tramadol","Trazodone","Trimethoprim","Valacyclovir","Valsartan","Venlafaxine","Verapamil","Warfarin","Xarelto","Zolpidem","Zoloft","Zyrtec"
+];
+
 const COMMON_PANTRY=[
   {id:801,name:"Olive Oil",qty:1,unit:"bottle",category:"Pantry",location:"Pantry"},
   {id:802,name:"Vegetable Oil",qty:1,unit:"bottle",category:"Pantry",location:"Pantry"},
@@ -329,6 +337,48 @@ const COMMON_PANTRY=[
 ];
 
 // -- UI helpers ----------------------------------------------------------------
+function MedAutoComplete({value,onChange}){
+  const [open,setOpen]=React.useState(false);
+  const [query,setQuery]=React.useState(value||"");
+  const ref=React.useRef(null);
+  React.useEffect(()=>{setQuery(value||"");},[value]);
+  React.useEffect(()=>{
+    const handler=(e)=>{if(ref.current&&!ref.current.contains(e.target))setOpen(false);};
+    document.addEventListener("mousedown",handler);
+    return()=>document.removeEventListener("mousedown",handler);
+  },[]);
+  const matches=query.length>=2?COMMON_MEDICATIONS.filter(d=>d.toLowerCase().includes(query.toLowerCase())).slice(0,8):[];
+  const isDark=document.body.classList.contains("sk-dark");
+  const inputStyle={width:"100%",background:isDark?"#1e1e2e":"#fff",border:"1px solid "+(isDark?"#333":"#ddd"),borderRadius:6,padding:"6px 10px",color:isDark?"#e2e8f0":"#1a1a1a",fontFamily:"'JetBrains Mono',monospace",fontSize:12,boxSizing:"border-box",outline:"none"};
+  const dropStyle={position:"absolute",top:"100%",left:0,right:0,background:isDark?"#1e1e2e":"#fff",border:"1px solid "+(isDark?"#444":"#ddd"),borderRadius:6,zIndex:50,marginTop:2,boxShadow:"0 4px 12px rgba(0,0,0,0.15)",maxHeight:220,overflowY:"auto"};
+  const itemStyle=(hov)=>({padding:"8px 12px",cursor:"pointer",fontSize:12,fontFamily:"'JetBrains Mono',monospace",color:isDark?"#e2e8f0":"#1a1a1a",background:hov?(isDark?"#2d2d3f":"#f0f4ff"):"transparent",borderBottom:"1px solid "+(isDark?"#2a2a3a":"#f0f0f0")});
+  return(
+    <div ref={ref} style={{position:"relative",flex:1}}>
+      <input
+        style={inputStyle}
+        placeholder="Medication name..."
+        value={query}
+        onChange={e=>{setQuery(e.target.value);onChange(e.target.value);setOpen(true);}}
+        onFocus={()=>{if(query.length>=2)setOpen(true);}}
+        autoComplete="off"
+      />
+      {open&&matches.length>0&&(
+        <div style={dropStyle}>
+          {matches.map(drug=>(
+            <div key={drug}
+              style={itemStyle(false)}
+              onMouseEnter={e=>e.currentTarget.style.background=isDark?"#2d2d3f":"#f0f4ff"}
+              onMouseLeave={e=>e.currentTarget.style.background="transparent"}
+              onMouseDown={e=>{e.preventDefault();setQuery(drug);onChange(drug);setOpen(false);}}>
+              {drug}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 const bBtn=(v="primary",ex={})=>({
   padding:"9px 20px",borderRadius:9,border:"none",cursor:"pointer",
   fontFamily:FM,fontSize:12,fontWeight:600,letterSpacing:0.6,transition:"all 0.17s",
@@ -2451,7 +2501,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                             </div>
                             <div style={{marginBottom:8}}>
                               <Label>MEDICATIONS</Label>
-                              {(profile.medications||[]).map((med,mi)=>(<div key={mi} style={{display:"grid",gridTemplateColumns:"1fr 80px 1fr auto",gap:4,marginBottom:4,alignItems:"center"}}><input style={{...bInp,fontSize:12}} placeholder="Medication name" value={med.name||""} onChange={e=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,medications:pr.medications.map((m,i)=>i===mi?{...m,name:e.target.value}:m)}:pr))}/><input style={{...bInp,fontSize:12}} placeholder="Dose" value={med.dose||""} onChange={e=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,medications:pr.medications.map((m,i)=>i===mi?{...m,dose:e.target.value}:m)}:pr))}/><input style={{...bInp,fontSize:12}} placeholder="e.g. 2 daily, 1 nightly, 1 as needed" value={med.schedule||med.freq||""} onChange={e=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,medications:pr.medications.map((m,i)=>i===mi?{...m,schedule:e.target.value,freq:e.target.value}:m)}:pr))}/><button onClick={()=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,medications:pr.medications.filter((_,i)=>i!==mi)}:pr))} style={{...bBtn("ghost"),padding:"4px 8px",color:C.red,fontSize:12}}>X</button></div>))}
+                              {(profile.medications||[]).map((med,mi)=>(<div key={mi} style={{display:"grid",gridTemplateColumns:"1fr 80px 1fr auto",gap:4,marginBottom:4,alignItems:"center"}}><MedAutoComplete value={med.name||""} onChange={v=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,medications:pr.medications.map((m,i)=>i===mi?{...m,name:v}:m)}:pr))}/><input style={{...bInp,fontSize:12}} placeholder="Dose" value={med.dose||""} onChange={e=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,medications:pr.medications.map((m,i)=>i===mi?{...m,dose:e.target.value}:m)}:pr))}/><input style={{...bInp,fontSize:12}} placeholder="e.g. 2 daily, 1 nightly, 1 as needed" value={med.schedule||med.freq||""} onChange={e=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,medications:pr.medications.map((m,i)=>i===mi?{...m,schedule:e.target.value,freq:e.target.value}:m)}:pr))}/><button onClick={()=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,medications:pr.medications.filter((_,i)=>i!==mi)}:pr))} style={{...bBtn("ghost"),padding:"4px 8px",color:C.red,fontSize:12}}>X</button></div>))}
                               <button onClick={()=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,medications:[...(pr.medications||[]),{name:"",dose:"",freq:""}]}:pr))} style={{...bBtn("ghost"),fontSize:11,padding:"4px 10px"}}>+ Add Medication</button>
                             </div>
                             <div style={{marginBottom:8}}>
