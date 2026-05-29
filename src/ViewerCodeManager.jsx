@@ -194,3 +194,105 @@ export function JoinAsViewerModal({ user, onJoined, onClose }) {
     </div>
   )
 }
+
+// Guest viewer modal — no account required
+export function GuestViewerModal({ onClose, onJoined }) {
+  const [code, setCode] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  async function handleJoin() {
+    const clean = code.toUpperCase().replace(/[^A-Z0-9]/g, '')
+    if (clean.length < 4) { setError('Please enter a valid code.'); return }
+    setLoading(true)
+    setError('')
+    try {
+      const { createClient } = await import('@supabase/supabase-js')
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+      const sb = createClient(supabaseUrl, supabaseKey)
+      const { data, error: sbErr } = await sb
+        .from('viewer_codes')
+        .select('owner_user_id, label, active')
+        .eq('code', clean)
+        .single()
+      if (sbErr || !data) {
+        setError('Code not found. Check with your family member and try again.')
+        setLoading(false)
+        return
+      }
+      if (!data.active) {
+        setError('This code has been deactivated. Ask your family member for the new code.')
+        setLoading(false)
+        return
+      }
+      // Load owner data directly
+      const { loadCloudData } = await import('./supabaseClient')
+      const loaded = await loadCloudData(data.owner_user_id)
+      if (loaded) window.dispatchEvent(new Event('sk_cloud_loaded'))
+      onJoined(data.owner_user_id)
+    } catch(e) {
+      setError('Connection error. Please try again.')
+    }
+    setLoading(false)
+  }
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      zIndex: 1100, padding: 16
+    }} onClick={onClose}>
+      <div style={{
+        background: '#fff', borderRadius: 20, padding: 32,
+        width: '100%', maxWidth: 400, boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
+      }} onClick={e => e.stopPropagation()}>
+        <div style={{ fontSize: 32, textAlign: 'center', marginBottom: 8 }}>👁</div>
+        <h2 style={{ textAlign: 'center', color: PURPLE, fontSize: 22, fontWeight: 700, margin: '0 0 8px' }}>
+          Enter Family Code
+        </h2>
+        <p style={{ textAlign: 'center', color: '#666', fontSize: 14, marginBottom: 24, lineHeight: 1.6 }}>
+          Enter the code shared by your family member to view their meal plan and kitchen in read-only mode. No account required.
+        </p>
+        <input
+          value={code}
+          onChange={e => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
+          placeholder="Enter family code"
+          maxLength={12}
+          autoFocus
+          style={{
+            width: '100%', padding: '16px', borderRadius: 10,
+            border: '2px solid #c4b5fd', fontSize: 22, fontWeight: 700,
+            letterSpacing: 4, textTransform: 'uppercase',
+            color: PURPLE, marginBottom: 12, boxSizing: 'border-box',
+            fontFamily: 'Arial, sans-serif', textAlign: 'center',
+            outline: 'none'
+          }}
+          onKeyDown={e => e.key === 'Enter' && handleJoin()}
+        />
+        {error && (
+          <div style={{ color: '#dc2626', fontSize: 13, marginBottom: 12, textAlign: 'center' }}>
+            {error}
+          </div>
+        )}
+        <button
+          onClick={handleJoin}
+          disabled={loading || code.length < 4}
+          style={{
+            width: '100%', background: PURPLE, color: '#fff', border: 'none',
+            borderRadius: 10, padding: 16, fontSize: 16, fontWeight: 700,
+            cursor: 'pointer', marginBottom: 10,
+            opacity: loading || code.length < 4 ? 0.5 : 1
+          }}
+        >{loading ? 'Joining...' : 'View Kitchen →'}</button>
+        <button
+          onClick={onClose}
+          style={{
+            width: '100%', background: 'transparent', border: '1px solid #e5e7eb',
+            borderRadius: 10, padding: 12, fontSize: 14, color: '#888', cursor: 'pointer'
+          }}
+        >Cancel — Create my own account instead</button>
+      </div>
+    </div>
+  )
+}

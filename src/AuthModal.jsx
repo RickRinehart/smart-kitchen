@@ -2,7 +2,7 @@
 import { supabase } from './supabaseClient'
 import { setTrialStartDate } from './supabaseClient'
 
-export default function AuthModal({ onClose, onSuccess, initialMode = 'signup' }) {
+export default function AuthModal({ onClose, onSuccess, initialMode = 'signup', onShowGuestViewer }) {
   const [mode, setMode] = useState(initialMode)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -156,6 +156,7 @@ export default function AuthModal({ onClose, onSuccess, initialMode = 'signup' }
               <button style={styles.linkBtn} onClick={() => { setMode('reset'); setError(''); setMessage('') }}>Forgot password?</button>
               {' · '}
               <button style={styles.linkBtn} onClick={() => { setMode('signup'); setError(''); setMessage('') }}>Create account</button>
+              {onShowGuestViewer && <><br/><button style={{...styles.linkBtn,color:'#4a1d96',marginTop:8}} onClick={onShowGuestViewer}>👁 Have a family code?</button></>}
             </span>
           )}
           {mode === 'reset' && (
@@ -163,6 +164,11 @@ export default function AuthModal({ onClose, onSuccess, initialMode = 'signup' }
           )}
         </div>
 
+        {mode === 'signup' && onShowGuestViewer && (
+          <div style={{textAlign:'center', marginTop: 12}}>
+            <button onClick={onShowGuestViewer} style={{background:'none',border:'none',color:'#4a1d96',cursor:'pointer',fontSize:13,fontWeight:600,textDecoration:'underline'}}>👁 Have a family code? Enter it here</button>
+          </div>
+        )}
         {mode === 'signup' && (
           <div style={styles.trialBadge}>
             ✓ 30-day free trial · ✓ No credit card · ✓ Cancel anytime

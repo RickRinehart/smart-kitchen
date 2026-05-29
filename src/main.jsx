@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import AuthModal from "./AuthModal";
+import { GuestViewerModal } from "./ViewerCodeManager";
 import SubscriptionModal from "./SubscriptionModal";
 import { supabase, getUserProfile, trialDaysRemaining, markTouchpoint, loadCloudData, saveCloudData, getViewerRole } from "./supabaseClient";
 import "./index.css";
@@ -219,8 +220,19 @@ function Root() {
   const [user, setUser] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showGuestViewer, setShowGuestViewer] = useState(false);
   const [showSubModal, setShowSubModal] = useState(false);
-  const [viewerRole, setViewerRole] = useState(null); // null = owner, object = viewer of someone else
+  const [viewerRole, setViewerRole] = useState(() => {
+    // Check for guest viewer session in localStorage
+    try {
+      const guest = localStorage.getItem("sk_guest_viewer");
+      if (guest) {
+        const parsed = JSON.parse(guest);
+        if (parsed?.ownerUserId) return { ...parsed, role: "guest_viewer", label: "Family" };
+      }
+    } catch(e) {}
+    return null;
+  });
   const [showTouchpoint, setShowTouchpoint] = useState(false);
   const [seniorBannerActive] = useState(() => {
     try { return localStorage.getItem("sk_seniorMode") === "1"; } catch { return false; }
@@ -285,6 +297,21 @@ function Root() {
       subscription.unsubscribe();
       document.removeEventListener("visibilitychange", handleVisibility);
     };
+  }, []);
+
+  // Load guest viewer data on startup (no account needed)
+  useEffect(() => {
+    try {
+      const guest = localStorage.getItem("sk_guest_viewer");
+      if (guest) {
+        const parsed = JSON.parse(guest);
+        if (parsed?.ownerUserId) {
+          loadCloudData(parsed.ownerUserId).then(loaded => {
+            if (loaded) window.dispatchEvent(new Event("sk_cloud_loaded"));
+          }).catch(() => {});
+        }
+      }
+    } catch(e) {}
   }, []);
 
   // Auto-save to cloud every 5 minutes when signed in
@@ -407,7 +434,7 @@ function Root() {
         ) : (
           <div style={{display:"flex",alignItems:"center",gap:6}}>
             <AccessibilityToggles />
-            <button onClick={() => { setAuthMode("signup"); setShowAuthModal(true); }} style={{
+            <button onClick={() => { setAuthMode("signin"); setShowAuthModal(true); }} style={{
               fontSize: "12px", padding: "5px 14px", borderRadius: "12px",
               border: "none", background: "#c8963e", color: "#fff",
               cursor: "pointer", fontWeight: "700"
@@ -422,6 +449,7 @@ function Root() {
         onUpgrade={handleUpgrade}
         user={user}
         viewerRole={viewerRole}
+        onShowGuestViewer={() => { setShowAuthModal(false); setShowGuestViewer(true); }}
       />
 
       {/* Touchpoint pop-up */}
@@ -433,10 +461,22 @@ function Root() {
         />
       )}
 
+      {showGuestViewer && (
+        <GuestViewerModal
+          onClose={() => setShowGuestViewer(false)}
+          onJoined={(ownerUserId) => {
+            setShowGuestViewer(false);
+            // Store guest session in localStorage
+            localStorage.setItem("sk_guest_viewer", JSON.stringify({ ownerUserId, joined: Date.now() }));
+            window.location.reload();
+          }}
+        />
+      )}
       {showAuthModal && (
         <AuthModal
           initialMode={authMode}
           onClose={() => setShowAuthModal(false)}
+          onShowGuestViewer={() => { setShowAuthModal(false); setShowGuestViewer(true); }}
           onSuccess={(u) => {
             setUser(u);
             setShowAuthModal(false);

@@ -375,7 +375,7 @@ function LoadingDots(){
 
 // =============================================================================
 const loadLocal=(k,fb)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):fb;}catch{return fb;}};
-export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, user=null, viewerRole=null }){
+export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, user=null, viewerRole=null, onShowGuestViewer=null }){
   // -- State ------------------------------------------------------------------
   const isViewer = !!viewerRole; // true = read-only viewer of another account
   const [showJoinViewer,setShowJoinViewer]=useState(false);
@@ -1527,6 +1527,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
               >
                 Skip for now — explore first
               </button>
+              {onShowGuestViewer&&<button onClick={onShowGuestViewer} style={{background:"transparent",border:"none",color:"#a78bfa",fontFamily:FM,fontSize:seniorMode?15:12,cursor:"pointer",marginTop:4,textDecoration:"underline",display:"block",width:"100%",padding:"8px 0"}}>👁 Have a family code? View their kitchen</button>}
               <div style={{fontFamily:"system-ui",fontSize:seniorMode?14:11,color:C.muted,textAlign:"center",marginTop:10,lineHeight:1.6}}>30-day free trial · No credit card required · Cancel anytime</div>
             </div>)}
             {wizardStep===-2&&(<div style={{textAlign:"center",padding:"8px 0",maxHeight:"70vh",overflowY:"auto"}}>
