@@ -1463,11 +1463,19 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
   else alert("No backup found.");
 }}>Restore from Backup</button>}
 {isViewer&&<button style={{...bBtn("primary"),width:"100%"}} onClick={async()=>{
-  const gv=JSON.parse(localStorage.getItem("sk_guest_viewer")||"{}");
-  if(gv.ownerUserId){
-    const ok=await import("./supabaseClient").then(m=>m.loadCloudData(gv.ownerUserId));
-    if(ok){window.dispatchEvent(new Event("sk_cloud_loaded"));alert("Updated! ✓");}
-  }
+  try{
+    const gv=JSON.parse(localStorage.getItem("sk_guest_viewer")||"{}");
+    const code=gv.code||"";
+    if(!code){alert("No family code found. Try joining again from the welcome screen.");return;}
+    const res=await fetch("/api/viewer-data",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({code})});
+    const result=await res.json();
+    if(!result.success){alert(result.error||"Could not refresh. Check connection.");return;}
+    const SMAP={inventory:"sk_inventory",family_profiles:"sk_familyProfiles",family_size:"sk_familySize",meal_plan:"sk_mealPlan",family_recipes:"sk_familyRecipes",recipe_ratings:"sk_recipeRatings",dessert_ratings:"sk_dessertRatings",shopping_list:"sk_shoppingList",recipes:"sk_recipes",desserts:"sk_desserts",sports_nights:"sk_sportsNights",recipe_site:"sk_recipeSite",senior_mode:"sk_seniorMode",dark_mode:"sk_darkMode"};
+    const d=result.data;
+    Object.entries(SMAP).forEach(([k,v])=>{if(d[k]!==null&&d[k]!==undefined){try{if(Array.isArray(d[k])&&d[k].length===0)return;localStorage.setItem(v,typeof d[k]==="object"?JSON.stringify(d[k]):String(d[k]));}catch(e){}}});
+    window.dispatchEvent(new Event("sk_cloud_loaded"));
+    alert("Updated! ✓");
+  }catch(e){alert("Error: "+e.message);}
 }}>🔄 Refresh Family Data</button>}
 </div>
 <button style={{...bBtn("ghost"),width:"100%",marginTop:8,border:"1px solid #7c3aed",color:"#4a1d96"}} onClick={()=>{setShowSettings(false);setShowJoinViewer(true);}}>&#128065; Join as Viewer (enter family code)</button>

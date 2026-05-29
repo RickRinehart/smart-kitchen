@@ -207,27 +207,44 @@ export function GuestViewerModal({ onClose, onJoined }) {
     setLoading(true)
     setError('')
     try {
-      const { supabase } = await import('./supabaseClient')
-      const { data, error: sbErr } = await supabase
-        .from('viewer_codes')
-        .select('owner_user_id, label, active')
-        .eq('code', clean)
-        .single()
-      if (sbErr || !data) {
-        setError('Code not found. Check with your family member and try again.')
+      // Use server-side API to fetch owner data (bypasses Supabase RLS for unauthenticated users)
+      const res = await fetch('/api/viewer-data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: clean })
+      })
+      const result = await res.json()
+      if (!res.ok || !result.success) {
+        setError(result.error || 'Code not found. Check with your family member.')
         setLoading(false)
         return
       }
-      if (!data.active) {
-        setError('This code has been deactivated. Ask your family member for the new code.')
-        setLoading(false)
-        return
+      // Write owner data directly to localStorage
+      const SYNC_MAP = {
+        inventory: 'sk_inventory', family_profiles: 'sk_familyProfiles',
+        family_size: 'sk_familySize', meal_plan: 'sk_mealPlan',
+        family_recipes: 'sk_familyRecipes', recipe_ratings: 'sk_recipeRatings',
+        dessert_ratings: 'sk_dessertRatings', made_it_history: 'sk_madeItHistory',
+        change_meal_history: 'sk_changeMealHistory', shopping_list: 'sk_shoppingList',
+        recipes: 'sk_recipes', desserts: 'sk_desserts', sports_nights: 'sk_sportsNights',
+        recipe_site: 'sk_recipeSite', shop_partner_name: 'sk_shopPartnerName',
+        shop_partner_email: 'sk_shopPartnerEmail', senior_mode: 'sk_seniorMode',
+        dark_mode: 'sk_darkMode', setup_done: 'sk_setupDone',
       }
-      // Load owner data directly
-      const { loadCloudData } = await import('./supabaseClient')
-      const loaded = await loadCloudData(data.owner_user_id)
-      if (loaded) window.dispatchEvent(new Event('sk_cloud_loaded'))
-      onJoined(data.owner_user_id)
+      const d = result.data
+      Object.entries(SYNC_MAP).forEach(([dbCol, lsKey]) => {
+        if (d[dbCol] === null || d[dbCol] === undefined) return
+        try {
+          if (Array.isArray(d[dbCol]) && d[dbCol].length === 0) return
+          localStorage.setItem(lsKey, typeof d[dbCol] === 'object' ? JSON.stringify(d[dbCol]) : String(d[dbCol]))
+        } catch(e) {}
+      })
+      // Store guest session
+      localStorage.setItem('sk_guest_viewer', JSON.stringify({
+        ownerUserId: result.ownerUserId, label: result.label, code: clean, joined: Date.now()
+      }))
+      window.dispatchEvent(new Event('sk_cloud_loaded'))
+      onJoined(result.ownerUserId)
     } catch(e) {
       setError('Connection error. Please try again.')
     }
