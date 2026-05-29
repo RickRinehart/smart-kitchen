@@ -253,7 +253,7 @@ export default function SubscriptionModal({ user, currentTier, onClose, onSubscr
           🔒 Secure checkout via Stripe · All plans include 30-day free trial · Cancel or change plans anytime
         </div>
         <div style={s.promoNote}>
-          Have a promo code? Enter it at checkout — e.g. <strong>SMG528</strong> for $5/month off your first 12 months
+          Have a promo code? Enter it at checkout for savings on your first 12 months
         </div>
       </div>
     </div>
