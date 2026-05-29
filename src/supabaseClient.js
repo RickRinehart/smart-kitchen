@@ -261,3 +261,128 @@ export async function saveCloudField(userId, dbCol, value) {
     return false;
   }
 }
+
+// ── USER ROLES ──────────────────────────────────────────────────────────────
+
+// Create or update a viewer code for the owner
+export async function setViewerCode(ownerId, code, label = 'Family Viewer') {
+  const clean = code.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (clean.length < 4 || clean.length > 12) {
+    return { error: 'Code must be 4-12 letters and numbers' };
+  }
+  try {
+    // Check if code is already taken by someone else
+    const { data: existing } = await supabase
+      .from('viewer_codes')
+      .select('owner_user_id')
+      .eq('code', clean)
+      .single();
+    if (existing && existing.owner_user_id !== ownerId) {
+      return { error: 'That code is already taken. Try a different one.' };
+    }
+    // Upsert
+    const { error } = await supabase
+      .from('viewer_codes')
+      .upsert({ owner_user_id: ownerId, code: clean, label, active: true },
+        { onConflict: 'owner_user_id' });
+    if (error) return { error: error.message };
+    return { success: true, code: clean };
+  } catch(e) {
+    return { error: e.message };
+  }
+}
+
+// Get owner's current viewer code
+export async function getViewerCode(ownerId) {
+  try {
+    const { data } = await supabase
+      .from('viewer_codes')
+      .select('*')
+      .eq('owner_user_id', ownerId)
+      .single();
+    return data || null;
+  } catch(e) { return null; }
+}
+
+// Join as viewer using a code — returns the owner's user_id if valid
+export async function joinAsViewer(viewerUserId, code) {
+  const clean = code.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  try {
+    // Look up the code
+    const { data: codeData } = await supabase
+      .from('viewer_codes')
+      .select('*')
+      .eq('code', clean)
+      .eq('active', true)
+      .single();
+    if (!codeData) return { error: 'Code not found or inactive. Check with the account owner.' };
+    if (codeData.owner_user_id === viewerUserId) {
+      return { error: 'You cannot join your own account as a viewer.' };
+    }
+    // Create role record
+    const { error } = await supabase
+      .from('account_roles')
+      .upsert({
+        owner_user_id: codeData.owner_user_id,
+        viewer_user_id: viewerUserId,
+        role: 'viewer',
+        label: codeData.label,
+        code_used: clean,
+        active: true,
+        last_seen: new Date().toISOString()
+      }, { onConflict: 'viewer_user_id' });
+    if (error) return { error: error.message };
+    return { success: true, ownerUserId: codeData.owner_user_id };
+  } catch(e) {
+    return { error: e.message };
+  }
+}
+
+// Check if current user is a viewer of someone else's account
+export async function getViewerRole(userId) {
+  try {
+    const { data } = await supabase
+      .from('account_roles')
+      .select('*')
+      .eq('viewer_user_id', userId)
+      .eq('active', true)
+      .single();
+    return data || null;
+  } catch(e) { return null; }
+}
+
+// Get all active viewers for an owner
+export async function getActiveViewers(ownerId) {
+  try {
+    const { data } = await supabase
+      .from('account_roles')
+      .select('*')
+      .eq('owner_user_id', ownerId)
+      .eq('active', true)
+      .order('joined_at', { ascending: false });
+    return data || [];
+  } catch(e) { return []; }
+}
+
+// Revoke a viewer's access
+export async function revokeViewer(ownerId, roleId) {
+  try {
+    const { error } = await supabase
+      .from('account_roles')
+      .update({ active: false })
+      .eq('id', roleId)
+      .eq('owner_user_id', ownerId);
+    return !error;
+  } catch(e) { return false; }
+}
+
+// Revoke all viewers (e.g. when changing the code)
+export async function revokeAllViewers(ownerId) {
+  try {
+    await supabase
+      .from('account_roles')
+      .update({ active: false })
+      .eq('owner_user_id', ownerId);
+    return true;
+  } catch(e) { return false; }
+}

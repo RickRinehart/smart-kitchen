@@ -4,7 +4,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import AuthModal from "./AuthModal";
 import SubscriptionModal from "./SubscriptionModal";
-import { supabase, getUserProfile, trialDaysRemaining, markTouchpoint, loadCloudData, saveCloudData } from "./supabaseClient";
+import { supabase, getUserProfile, trialDaysRemaining, markTouchpoint, loadCloudData, saveCloudData, getViewerRole } from "./supabaseClient";
 import "./index.css";
 
 // Pre-auth accessibility toggles shown next to Sign In button
@@ -220,6 +220,7 @@ function Root() {
   const [userProfile, setUserProfile] = useState(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showSubModal, setShowSubModal] = useState(false);
+  const [viewerRole, setViewerRole] = useState(null); // null = owner, object = viewer of someone else
   const [showTouchpoint, setShowTouchpoint] = useState(false);
   const [seniorBannerActive] = useState(() => {
     try { return localStorage.getItem("sk_seniorMode") === "1"; } catch { return false; }
@@ -231,12 +232,24 @@ function Root() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setUser(session.user);
-        // Load cloud data into localStorage on every login/session restore
-        loadCloudData(session.user.id).then(loaded => {
-          if (loaded) window.dispatchEvent(new Event("sk_cloud_loaded"));
+        // Check if this user is a viewer of someone else's account
+        getViewerRole(session.user.id).then(role => {
+          if (role) {
+            setViewerRole(role);
+            // Load the OWNER's cloud data instead
+            loadCloudData(role.owner_user_id).then(loaded => {
+              if (loaded) window.dispatchEvent(new Event("sk_cloud_loaded"));
+            }).catch(() => {});
+          } else {
+            setViewerRole(null);
+            // Load own cloud data
+            loadCloudData(session.user.id).then(loaded => {
+              if (loaded) window.dispatchEvent(new Event("sk_cloud_loaded"));
+            }).catch(() => {});
+            // Save immediately on login
+            setTimeout(() => saveCloudData(session.user.id).catch(() => {}), 3000);
+          }
         }).catch(() => {});
-        // Save immediately on login to ensure Supabase has latest local data
-        setTimeout(() => saveCloudData(session.user.id).catch(() => {}), 3000);
         getUserProfile(session.user.id).then(setUserProfile);
       }
       setAuthReady(true);
@@ -408,6 +421,7 @@ function Root() {
         can={can}
         onUpgrade={handleUpgrade}
         user={user}
+        viewerRole={viewerRole}
       />
 
       {/* Touchpoint pop-up */}
