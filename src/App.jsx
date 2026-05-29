@@ -723,6 +723,24 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
     }
     const athletes=activeProfiles.filter(p=>p.restriction==="athlete");
     if(athletes.length>0) s+=athletes.length+" teen athlete(s) need larger portions. ";
+    // Medical+ profiles injection
+    if(can.medicalCompliance){
+      const medProfiles=activeProfiles.filter(p=>p.medicalPlan||((p.medicalAllergies||[]).length>0)||p.medicalAllergiesCustom||((p.medications||[]).length>0)||((p.supplements||[]).length>0));
+      if(medProfiles.length>0){
+        s+="MEDICAL+ PROFILES: "+medProfiles.map(p=>{
+          const parts=[];
+          if(p.medicalPlan) parts.push("Dietary Plan: "+p.medicalPlan+(p.customPlanNote?" ("+p.customPlanNote+")":""));
+          const allAllergies=[...(p.medicalAllergies||[])];
+          if(p.medicalAllergiesCustom) allAllergies.push(p.medicalAllergiesCustom);
+          if(allAllergies.length>0) parts.push("ALLERGIES (HARD STOP - never include): "+allAllergies.join(", "));
+          if((p.medications||[]).length>0) parts.push("Medications: "+p.medications.filter(m=>m.name).map(m=>m.name+(m.dose?" "+m.dose:"")+(m.freq?" "+m.freq:"")).join(", ")+" — avoid known food-drug interactions (warfarin/vitamin K, statins/grapefruit, MAOIs/tyramine, etc)");
+          if((p.supplements||[]).length>0) parts.push("Supplements: "+p.supplements.filter(s=>s.name).map(s=>s.name+(s.dose?" "+s.dose:"")).join(", "));
+          const enf=p.enforcement||"warn";
+          parts.push("Enforcement: "+enf+(enf==="strict"?" — NEVER suggest conflicting items":enf==="warn"?" — flag conflicts but may include":" — note for informational purposes"));
+          return (p.name||"Person")+": "+parts.join("; ");
+        }).join(" | ")+". ";
+      }
+    }
     return s;
   };
 
@@ -2408,6 +2426,46 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                             </div>
                           </div>
                         )}
+                        {/* Medical+ Profile Fields */}
+                        <div style={{marginTop:10,opacity:can.medicalCompliance?1:0.45,pointerEvents:can.medicalCompliance?"auto":"none",position:"relative"}}>
+                          {!can.medicalCompliance&&<div style={{position:"absolute",inset:0,zIndex:2,cursor:"pointer",borderRadius:10}} onClick={()=>onUpgrade()} title="Upgrade to Medical+"/>}
+                          <div style={{background:"#0a1628",borderRadius:10,padding:12}}>
+                            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+                              <Label>MEDICAL+ PROFILE</Label>
+                              {!can.medicalCompliance&&<span style={{fontSize:10,background:"#c8963e",color:"#fff",borderRadius:10,padding:"2px 8px",fontWeight:700,cursor:"pointer"}} onClick={()=>onUpgrade()}>Add $10/mo</span>}
+                            </div>
+                            <div style={{marginBottom:8}}>
+                              <Label>DIETARY PLAN</Label>
+                              <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
+                                {["Diabetic-Friendly","Renal","Cardiac","Bariatric","Low Sodium","Low FODMAP","Mediterranean","Keto","Gluten-Free","Custom"].map(plan=>(<button key={plan} onClick={()=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,medicalPlan:pr.medicalPlan===plan?null:plan}:pr))} style={{padding:"3px 9px",borderRadius:20,border:"1px solid "+(profile.medicalPlan===plan?"#818cf8":C.border),background:profile.medicalPlan===plan?"#818cf822":"transparent",color:profile.medicalPlan===plan?"#818cf8":C.muted,fontFamily:FM,fontSize:11,cursor:"pointer"}}>{plan}</button>))}
+                              </div>
+                              {profile.medicalPlan==="Custom"&&<input style={{...bInp,marginTop:6,fontSize:12}} placeholder="Describe custom dietary plan..." value={profile.customPlanNote||""} onChange={e=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,customPlanNote:e.target.value}:pr))}/>}
+                            </div>
+                            <div style={{marginBottom:8}}>
+                              <Label>ALLERGIES</Label>
+                              <div style={{display:"flex",flexWrap:"wrap",gap:4,marginBottom:4}}>
+                                {["Peanuts","Tree Nuts","Shellfish","Fish","Dairy","Eggs","Soy","Wheat/Gluten","Sesame"].map(a=>{const active=(profile.medicalAllergies||[]).includes(a);return <button key={a} onClick={()=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,medicalAllergies:active?(pr.medicalAllergies||[]).filter(x=>x!==a):[...(pr.medicalAllergies||[]),a]}:pr))} style={{padding:"3px 9px",borderRadius:20,border:"1px solid "+(active?"#ef4444":C.border),background:active?"#ef444422":"transparent",color:active?"#ef4444":C.muted,fontFamily:FM,fontSize:11,cursor:"pointer"}}>{a}</button>;})}
+                              </div>
+                              <input style={{...bInp,fontSize:12}} placeholder="Additional allergies (e.g. mango, latex)..." value={profile.medicalAllergiesCustom||""} onChange={e=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,medicalAllergiesCustom:e.target.value}:pr))}/>
+                            </div>
+                            <div style={{marginBottom:8}}>
+                              <Label>MEDICATIONS</Label>
+                              {(profile.medications||[]).map((med,mi)=>(<div key={mi} style={{display:"grid",gridTemplateColumns:"1fr 80px 80px auto",gap:4,marginBottom:4,alignItems:"center"}}><input style={{...bInp,fontSize:12}} placeholder="Medication name" value={med.name||""} onChange={e=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,medications:pr.medications.map((m,i)=>i===mi?{...m,name:e.target.value}:m)}:pr))}/><input style={{...bInp,fontSize:12}} placeholder="Dose" value={med.dose||""} onChange={e=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,medications:pr.medications.map((m,i)=>i===mi?{...m,dose:e.target.value}:m)}:pr))}/><input style={{...bInp,fontSize:12}} placeholder="Freq" value={med.freq||""} onChange={e=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,medications:pr.medications.map((m,i)=>i===mi?{...m,freq:e.target.value}:m)}:pr))}/><button onClick={()=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,medications:pr.medications.filter((_,i)=>i!==mi)}:pr))} style={{...bBtn("ghost"),padding:"4px 8px",color:C.red,fontSize:12}}>X</button></div>))}
+                              <button onClick={()=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,medications:[...(pr.medications||[]),{name:"",dose:"",freq:""}]}:pr))} style={{...bBtn("ghost"),fontSize:11,padding:"4px 10px"}}>+ Add Medication</button>
+                            </div>
+                            <div style={{marginBottom:8}}>
+                              <Label>SUPPLEMENTS</Label>
+                              {(profile.supplements||[]).map((sup,si)=>(<div key={si} style={{display:"grid",gridTemplateColumns:"1fr 80px auto",gap:4,marginBottom:4,alignItems:"center"}}><input style={{...bInp,fontSize:12}} placeholder="Supplement name" value={sup.name||""} onChange={e=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,supplements:pr.supplements.map((s,i)=>i===si?{...s,name:e.target.value}:s)}:pr))}/><input style={{...bInp,fontSize:12}} placeholder="Dose" value={sup.dose||""} onChange={e=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,supplements:pr.supplements.map((s,i)=>i===si?{...s,dose:e.target.value}:s)}:pr))}/><button onClick={()=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,supplements:pr.supplements.filter((_,i)=>i!==si)}:pr))} style={{...bBtn("ghost"),padding:"4px 8px",color:C.red,fontSize:12}}>X</button></div>))}
+                              <button onClick={()=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,supplements:[...(pr.supplements||[]),{name:"",dose:""}]}:pr))} style={{...bBtn("ghost"),fontSize:11,padding:"4px 10px"}}>+ Add Supplement</button>
+                            </div>
+                            <div>
+                              <Label>AI ENFORCEMENT LEVEL</Label>
+                              <div style={{display:"flex",gap:6}}>
+                                {[["strict","Strict","Never suggest conflicting meals"],["warn","Warn","Flag with badge on recipe"],["inform","Inform","Educational notes only"]].map(([val,label,desc])=>(<button key={val} onClick={()=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,enforcement:val}:pr))} style={{flex:1,padding:"6px 4px",borderRadius:8,border:"1px solid "+(profile.enforcement===val?"#818cf8":C.border),background:profile.enforcement===val?"#818cf822":"transparent",color:profile.enforcement===val?"#818cf8":C.muted,fontFamily:FM,fontSize:10,cursor:"pointer",textAlign:"center"}}><div style={{fontWeight:600}}>{label}</div><div style={{fontSize:9,marginTop:2,opacity:0.8}}>{desc}</div></button>))}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>
