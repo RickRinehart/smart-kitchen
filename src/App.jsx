@@ -2430,15 +2430,15 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                         <div style={{marginTop:10,position:"relative"}}>
                           {!can.medicalCompliance&&<div style={{position:"absolute",inset:0,zIndex:2,cursor:"pointer",borderRadius:10}} onClick={()=>onUpgrade()} title="Upgrade to Medical+"/>}
                           <div style={{opacity:can.medicalCompliance?1:0.45,pointerEvents:can.medicalCompliance?"auto":"none"}}>
-                          <div style={{background:"#0a1628",borderRadius:10,padding:12}}>
+                          <div style={{background:C.surface,borderRadius:10,padding:12,borderLeft:"3px solid #dc2626"}}>
                             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
-                              <Label>MEDICAL+ PROFILE</Label>
+                              <Label style={{color:"#dc2626"}}>MEDICAL+ PROFILE</Label>
                               {!can.medicalCompliance&&<span style={{fontSize:10,background:"#c8963e",color:"#fff",borderRadius:10,padding:"2px 8px",fontWeight:700,cursor:"pointer"}} onClick={()=>onUpgrade()}>Add $10/mo</span>}
                             </div>
                             <div style={{marginBottom:8}}>
                               <Label>DIETARY PLAN</Label>
                               <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
-                                {["Diabetic-Friendly","Renal","Cardiac","Bariatric","Low Sodium","Low FODMAP","Mediterranean","Keto","Gluten-Free","Custom"].map(plan=>(<button key={plan} onClick={()=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,medicalPlan:pr.medicalPlan===plan?null:plan}:pr))} style={{padding:"3px 9px",borderRadius:20,border:"1px solid "+(profile.medicalPlan===plan?"#818cf8":C.border),background:profile.medicalPlan===plan?"#818cf822":"transparent",color:profile.medicalPlan===plan?"#818cf8":C.muted,fontFamily:FM,fontSize:11,cursor:"pointer"}}>{plan}</button>))}
+                                {["Diabetic-Friendly","Renal","Cardiac","Bariatric","Low Sodium","Low FODMAP","Mediterranean","Keto","Gluten-Free","Custom"].map(plan=>(<button key={plan} onClick={()=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,medicalPlan:pr.medicalPlan===plan?null:plan}:pr))} style={{padding:"3px 9px",borderRadius:20,border:"1px solid "+(profile.medicalPlan===plan?"#dc2626":C.border),background:profile.medicalPlan===plan?"#dc262618":"transparent",color:profile.medicalPlan===plan?"#dc2626":C.muted,fontFamily:FM,fontSize:11,cursor:"pointer"}}>{plan}</button>))}
                               </div>
                               {profile.medicalPlan==="Custom"&&<input style={{...bInp,marginTop:6,fontSize:12}} placeholder="Describe custom dietary plan..." value={profile.customPlanNote||""} onChange={e=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,customPlanNote:e.target.value}:pr))}/>}
                             </div>
@@ -2462,7 +2462,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                             <div>
                               <Label>AI ENFORCEMENT LEVEL</Label>
                               <div style={{display:"flex",gap:6}}>
-                                {[["strict","Strict","Never suggest conflicting meals"],["warn","Warn","Flag with badge on recipe"],["inform","Inform","Educational notes only"]].map(([val,label,desc])=>(<button key={val} onClick={()=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,enforcement:val}:pr))} style={{flex:1,padding:"6px 4px",borderRadius:8,border:"1px solid "+(profile.enforcement===val?"#818cf8":C.border),background:profile.enforcement===val?"#818cf822":"transparent",color:profile.enforcement===val?"#818cf8":C.muted,fontFamily:FM,fontSize:10,cursor:"pointer",textAlign:"center"}}><div style={{fontWeight:600}}>{label}</div><div style={{fontSize:9,marginTop:2,opacity:0.8}}>{desc}</div></button>))}
+                                {[["strict","Strict","Never suggest conflicting meals"],["warn","Warn","Flag with badge on recipe"],["inform","Inform","Educational notes only"]].map(([val,label,desc])=>(<button key={val} onClick={()=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,enforcement:val}:pr))} style={{flex:1,padding:"6px 4px",borderRadius:8,border:"1px solid "+(profile.enforcement===val?"#dc2626":C.border),background:profile.enforcement===val?"#dc262618":"transparent",color:profile.enforcement===val?"#dc2626":C.muted,fontFamily:FM,fontSize:10,cursor:"pointer",textAlign:"center"}}><div style={{fontWeight:600}}>{label}</div><div style={{fontSize:9,marginTop:2,opacity:0.8}}>{desc}</div></button>))}
                               </div>
                             </div>
                           </div>
