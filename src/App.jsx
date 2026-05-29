@@ -2427,8 +2427,9 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                           </div>
                         )}
                         {/* Medical+ Profile Fields */}
-                        <div style={{marginTop:10,opacity:can.medicalCompliance?1:0.45,pointerEvents:can.medicalCompliance?"auto":"none",position:"relative"}}>
+                        <div style={{marginTop:10,position:"relative"}}>
                           {!can.medicalCompliance&&<div style={{position:"absolute",inset:0,zIndex:2,cursor:"pointer",borderRadius:10}} onClick={()=>onUpgrade()} title="Upgrade to Medical+"/>}
+                          <div style={{opacity:can.medicalCompliance?1:0.45,pointerEvents:can.medicalCompliance?"auto":"none"}}>
                           <div style={{background:"#0a1628",borderRadius:10,padding:12}}>
                             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
                               <Label>MEDICAL+ PROFILE</Label>
@@ -2465,6 +2466,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                               </div>
                             </div>
                           </div>
+                        </div>
                         </div>
                       </div>
                     )}
