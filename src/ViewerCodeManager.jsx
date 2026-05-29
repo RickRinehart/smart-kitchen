@@ -207,11 +207,8 @@ export function GuestViewerModal({ onClose, onJoined }) {
     setLoading(true)
     setError('')
     try {
-      const { createClient } = await import('@supabase/supabase-js')
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
-      const sb = createClient(supabaseUrl, supabaseKey)
-      const { data, error: sbErr } = await sb
+      const { supabase } = await import('./supabaseClient')
+      const { data, error: sbErr } = await supabase
         .from('viewer_codes')
         .select('owner_user_id, label, active')
         .eq('code', clean)
