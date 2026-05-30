@@ -151,7 +151,32 @@ export async function loadCloudData(userId) {
           const localArr = localRaw ? JSON.parse(localRaw) : [];
           // Use cloud data only if it has more items OR local is empty
           if (data[dbCol].length > 0 || localArr.length === 0) {
-            localStorage.setItem(lsKey, JSON.stringify(data[dbCol]));
+            // For family_profiles: preserve Medical+ fields from local if cloud record lacks them
+            if (dbCol === 'family_profiles' && localArr.length > 0) {
+              const MEDICAL_FIELDS = ['medications','supplements','medicalPlan','medicalAllergies',
+                'medicalAllergiesCustom','customPlanNote','enforcement'];
+              const merged = data[dbCol].map(cloudProfile => {
+                const localMatch = localArr.find(lp => lp.id === cloudProfile.id);
+                if (!localMatch) return cloudProfile;
+                const mergedProfile = { ...cloudProfile };
+                MEDICAL_FIELDS.forEach(field => {
+                  // Keep local value if cloud is empty/missing and local has data
+                  const cloudVal = cloudProfile[field];
+                  const localVal = localMatch[field];
+                  const cloudEmpty = cloudVal === null || cloudVal === undefined ||
+                    (Array.isArray(cloudVal) && cloudVal.length === 0);
+                  const localHasData = localVal !== null && localVal !== undefined &&
+                    !(Array.isArray(localVal) && localVal.length === 0);
+                  if (cloudEmpty && localHasData) {
+                    mergedProfile[field] = localVal;
+                  }
+                });
+                return mergedProfile;
+              });
+              localStorage.setItem(lsKey, JSON.stringify(merged));
+            } else {
+              localStorage.setItem(lsKey, JSON.stringify(data[dbCol]));
+            }
           }
           return;
         }
