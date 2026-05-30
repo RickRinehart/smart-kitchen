@@ -651,12 +651,10 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
 
   useEffect(()=>{
     try{
-      const toStore=familyRecipes.map(r=>({...r,photo:null}));
-      localStorage.setItem("sk_familyRecipes",JSON.stringify(toStore));
-      // Try again with photos if small enough
-      try{localStorage.setItem("sk_familyRecipes",JSON.stringify(familyRecipes));}catch{}
+      // Save WITH photos first — fall back to without only if quota exceeded
+      localStorage.setItem("sk_familyRecipes",JSON.stringify(familyRecipes));
     }catch(e){
-      // If quota exceeded, store without photos
+      // Quota exceeded — try saving without photos to preserve recipe data
       try{
         const slim=familyRecipes.map(r=>({...r,photo:null}));
         localStorage.setItem("sk_familyRecipes",JSON.stringify(slim));
