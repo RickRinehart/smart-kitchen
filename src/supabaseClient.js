@@ -237,10 +237,20 @@ export async function saveCloudData(userId) {
             });
           }
           if (dbCol === 'family_recipes' && Array.isArray(parsed)) {
-            parsed = parsed.map(r => {
-              const { photo, ...rest } = r;
-              return rest;
-            });
+            // Preserve local photos — cloud copy never has photos (stripped on save)
+            // Merge local photos back into cloud data before writing to localStorage
+            try {
+              const localRaw = localStorage.getItem('sk_familyRecipes');
+              const localRecipes = localRaw ? JSON.parse(localRaw) : [];
+              parsed = parsed.map(r => {
+                const localMatch = localRecipes.find(lr => lr.id === r.id);
+                const localPhoto = localMatch?.photo || null;
+                const { photo, ...rest } = r;
+                return localPhoto ? { ...rest, photo: localPhoto } : rest;
+              });
+            } catch(e) {
+              parsed = parsed.map(r => { const { photo, ...rest } = r; return rest; });
+            }
           }
           if (dbCol === 'meal_plan' && Array.isArray(parsed)) {
             parsed = parsed.map(day => {
