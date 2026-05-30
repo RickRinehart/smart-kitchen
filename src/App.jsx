@@ -760,7 +760,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
       {drugs:["spironolactone","lisinopril","losartan"],foods:["banana","avocado","potato","tomato","orange juice","sweet potato"],msg:"High potassium — caution with potassium-sparing med"},
       {drugs:["prednisone","fludrocortisone"],foods:["salt","sodium","soy sauce","canned soup","processed"],msg:"High sodium — caution with corticosteroid"},
     ];
-    activeProfiles.filter(p=>p.enforcement&&p.enforcement!=="inform"&&((p.medications||[]).length>0)).forEach(p=>{
+    activeProfiles.filter(p=>p.enforcement&&p.enforcement!=="inform"&&p.enforcement!=="none"&&((p.medications||[]).length>0)).forEach(p=>{
       const memberMeds=(p.medications||[]).map(m=>(m.name||"").toLowerCase());
       INTERACTIONS.forEach(({drugs,foods,msg})=>{
         const hasDrug=drugs.some(d=>memberMeds.some(m=>m.includes(d)));
@@ -815,8 +815,8 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
           if(allAllergies.length>0) parts.push("ALLERGIES (HARD STOP - never include): "+allAllergies.join(", "));
           if((p.medications||[]).length>0) parts.push("Medications: "+p.medications.filter(m=>m.name).map(m=>m.name+(m.dose?" "+m.dose:"")+(m.schedule||m.freq?" — "+(m.schedule||m.freq):"")).join(", ")+" — avoid known food-drug interactions (warfarin/vitamin K, statins/grapefruit, MAOIs/tyramine, etc)");
           if((p.supplements||[]).length>0) parts.push("Supplements: "+p.supplements.filter(s=>s.name).map(s=>s.name+(s.dose?" "+s.dose:"")+(s.schedule?" — "+s.schedule:"")).join(", "));
-          const enf=p.enforcement||"warn";
-          parts.push("Enforcement: "+enf+(enf==="strict"?" — NEVER suggest conflicting items":enf==="warn"?" — flag conflicts but may include":" — note for informational purposes"));
+          const enf=p.enforcement;if(!enf||enf==="none") return (p.name||"Person")+": "+parts.join("; ");
+          parts.push("Enforcement: "+enf+(enf==="strict"?" — NEVER suggest conflicting items":enf==="warn"?" — flag conflicts but may include":enf==="inform"?" — note for informational purposes":""));
           return (p.name||"Person")+": "+parts.join("; ");
         }).join(" | ")+". ";
       }
@@ -3003,6 +3003,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
               <div style={{fontFamily:FD,fontSize:24,lineHeight:1.3,flex:1}}>{activeRecipe.name}</div>
               <button onClick={()=>setActiveRecipe(null)} style={{background:"transparent",border:"none",color:C.muted,cursor:"pointer",fontSize:20}}>✕</button>
             </div>
+            {(()=>{const warns=getMedicalWarnings(activeRecipe.name);if(!warns.length)return null;return(<div style={{display:"flex",flexDirection:"column",gap:3,marginBottom:10}}>{warns.filter(w=>w.enforcement==="strict").map((w,i)=>(<div key={"rs"+i} style={{fontSize:11,background:"#7f1d1d22",color:"#fca5a5",padding:"5px 10px",borderRadius:6,fontFamily:FM,display:"flex",alignItems:"center",gap:6,border:"1px solid #7f1d1d66"}}>🚫 <span><strong>{w.member}</strong> — {w.msg}</span></div>))}{warns.filter(w=>w.enforcement==="warn").map((w,i)=>(<div key={"rw"+i} style={{fontSize:11,background:"#78350f22",color:"#fcd34d",padding:"5px 10px",borderRadius:6,fontFamily:FM,display:"flex",alignItems:"center",gap:6,border:"1px solid #78350f66"}}>⚠️ <span><strong>{w.member}</strong> — {w.msg}</span></div>))}</div>);})()}
             {mealPhotos[activeRecipe.name]&&<div style={{marginBottom:12}}><img src={mealPhotos[activeRecipe.name]} alt={activeRecipe.name} style={{width:"100%",maxHeight:200,objectFit:"cover",borderRadius:10,border:"1px solid "+C.borderLight}} /></div>}
             <div style={{color:C.muted,fontSize:13,marginBottom:14,lineHeight:1.6}}>{activeRecipe.description}</div>
             <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap"}}>
