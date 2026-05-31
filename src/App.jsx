@@ -457,6 +457,7 @@ function buildOccasionContext(occ){
   if(occ.eventType==="party") ctx+="Include make-ahead tips and scale ingredients. Separate occasion items on shopping list. ";
   if(occ.eventType==="quick") ctx+="HARD LIMIT: meal must be completable in 30 minutes or less. ";
   if(occ.audienceType==="kids") ctx+="No alcohol pairings. Allergen flags prominent. Fun presentation encouraged. ";
+  if(occ.audienceType==="adult") ctx+="Adults only (21+). Intimate dinner for 2. Suggest wine or cocktail pairing. Romantic elevated presentation. Candle-worthy plating. ";
   return ctx;
 }
 // -- Proactive Feature Announcements Registry ---------------------------------
@@ -3827,7 +3828,7 @@ What can I substitute and do I have what I need?`,
                 <div style={{fontFamily:FM,fontSize:12,fontWeight:600,color:C.text,marginBottom:8}}>Who is joining you?</div>
                 <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16}}>
                   {OCCASION_AUDIENCE_TYPES.map(au=>(
-                    <button key={au.key} onClick={()=>setOccasionState(s=>({...s,audienceType:au.key}))}
+                    <button key={au.key} onClick={()=>setOccasionState(s=>({...s,audienceType:au.key,headCount:au.key==="adult"?"2":s.headCount}))}
                       style={{padding:"8px 14px",borderRadius:20,border:"1px solid "+(occasionState.audienceType===au.key?C.accent:C.border),
                       background:occasionState.audienceType===au.key?C.accent+"22":"transparent",
                       color:occasionState.audienceType===au.key?C.accent:C.text,fontFamily:FM,fontSize:seniorMode?15:12,cursor:"pointer",fontWeight:600}}>
@@ -3835,6 +3836,15 @@ What can I substitute and do I have what I need?`,
                     </button>
                   ))}
                 </div>
+                {occasionState.audienceType==="adult"&&(
+                  <div style={{background:"#7c3aed"+"15",border:"1px solid "+"#7c3aed"+"44",borderRadius:10,padding:"10px 14px",marginBottom:14,display:"flex",alignItems:"center",gap:10}}>
+                    <span style={{fontSize:18}}>💑</span>
+                    <div>
+                      <div style={{fontFamily:FM,fontSize:12,fontWeight:700,color:"#7c3aed"}}>Intimate Date Night · Adults (21+)</div>
+                      <div style={{fontFamily:FM,fontSize:11,color:C.muted,marginTop:2}}>Head count set to 2. Smart Kitchen will suggest an elevated, romantic meal — wine pairings included.</div>
+                    </div>
+                  </div>
+                )}
                 <div style={{display:"flex",gap:10,marginBottom:16,flexWrap:"wrap"}}>
                   <div style={{flex:1,minWidth:120}}>
                     <div style={{fontFamily:FM,fontSize:12,fontWeight:600,color:C.text,marginBottom:6}}>Head count</div>
