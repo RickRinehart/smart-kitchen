@@ -439,7 +439,8 @@ const OCCASION_AUDIENCE_TYPES=[
   {key:"family",   label:"Family",        emoji:"👨\u200d👩\u200d👧\u200d👦"},
   {key:"kids",     label:"Kids Party",    emoji:"🧒"},
   {key:"adult",    label:"Date Night",    emoji:"💑"},
-  {key:"mixed",    label:"Mixed Crowd",   emoji:"🎊"}
+  {key:"mixed",    label:"Mixed Crowd",   emoji:"🎊"},
+  {key:"adults",   label:"Adults Party",  emoji:"🍻"}
 ];
 const OCCASION_BUDGETS=["Under $30","$30–$60","$60–$100","No limit"];
 function buildOccasionContext(occ){
