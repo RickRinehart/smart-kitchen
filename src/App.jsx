@@ -425,6 +425,24 @@ function LoadingDots(){
 
 // =============================================================================
 const loadLocal=(k,fb)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):fb;}catch{return fb;}};
+
+// -- Proactive Feature Announcements Registry ---------------------------------
+const FEATURE_ANNOUNCEMENTS=[
+  {
+    key:"occasionSystem",
+    title:"New: Occasion Planner",
+    intro:(name)=>`Hi ${name}! ✨ I have something exciting to show you.\n\nWe just added the **Occasion Planner** — now you can plan meals for Dinner Parties, Date Nights, Kids Parties, Quick Weeknights, and more. Just pick your event type and audience and Smart Kitchen handles the rest.\n\nWant me to walk you through it?`,
+    quickReplies:["Show me!","How does it work?","Maybe later"],
+    tab:"mealPlan"
+  },
+  {
+    key:"smsShoppingList",
+    title:"New: Text Your Shopping List",
+    intro:(name)=>`Hey ${name}! 💬 Quick heads up — you can now text your shopping list directly to your phone or your spouse’s phone with one tap.\n\nNo email app needed. Just add a phone number in Settings and you’re all set.\n\nWant me to show you where?`,
+    quickReplies:["Yes, show me","I’ll find it","Not right now"],
+    tab:"shopping"
+  }
+];
 export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, user=null, viewerRole=null, onShowGuestViewer=null }){
   // -- State ------------------------------------------------------------------
   const isViewer = !!viewerRole; // true = read-only viewer of another account
@@ -507,6 +525,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [chatWelcomeDone,setChatWelcomeDone]=useState(()=>{try{return localStorage.getItem("sk_chatWelcomeDone")==="1";}catch{return false;}});
   const [tourChoice,setTourChoice]=useState(()=>{try{return localStorage.getItem("sk_tourChoice")||null;}catch{return null;}});
   const [tourStep,setTourStep]=useState(()=>{try{return parseInt(localStorage.getItem("sk_tourStep")||"0");}catch{return 0;}});
+  const [proactiveQuickReplies,setProactiveQuickReplies]=useState([]);
   const chatEndRef=useRef(null);
   // -- Guest Email Capture State ------------------------------------------------
   const [showGuestCapture,setShowGuestCapture]=useState(false);
@@ -712,6 +731,26 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
     const t=setTimeout(()=>setShowGuestCapture(true), 3*60*1000);
     return ()=>clearTimeout(t);
   },[user,guestCaptured]);
+
+  // -- Proactive Feature Announcements -----------------------------------------
+  useEffect(()=>{
+    if(showWizard) return;
+    const t=setTimeout(()=>{
+      const unseen=FEATURE_ANNOUNCEMENTS.find(f=>{
+        try{return localStorage.getItem("sk_seenFeature_"+f.key)!=="1";}catch{return false;}
+      });
+      if(!unseen) return;
+      try{localStorage.setItem("sk_seenFeature_"+unseen.key,"1");}catch{}
+      setChatOpen(true);
+      const msg=unseen.intro(userName);
+      setTimeout(()=>{
+        addChatMsg("assistant",msg);
+        setProactiveQuickReplies(unseen.quickReplies||[]);
+      },600);
+    },3000);
+    return ()=>clearTimeout(t);
+  },[showWizard]);
+
   const submitGuestEmail=async()=>{
     if(!guestEmail||!guestEmail.includes("@")) return;
     try{
@@ -858,6 +897,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
     const text=(overrideMsg||chatInput).trim();
     if(!text||chatLoading) return;
     setChatInput("");
+    setProactiveQuickReplies([]);
     addChatMsg("user",text);
     setChatLoading(true);
     const m=text.toLowerCase();
@@ -1535,7 +1575,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
 
   
       {showJoinViewer&&user&&(<JoinAsViewerModal user={user} onClose={()=>setShowJoinViewer(false)} onJoined={()=>{setShowJoinViewer(false);window.location.reload();}}/>)}
-{showSettings&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setShowSettings(false)}><div style={{background:C.card,borderRadius:16,padding:28,width:340,maxWidth:"90vw",maxHeight:"90vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}><div style={{fontFamily:FD,fontSize:20,fontWeight:700,color:C.text,marginBottom:4}}>Settings</div><div style={{fontSize:11,color:C.muted,fontFamily:FM,marginBottom:20}}>Smart Kitchen v1.5</div><div style={{marginTop:12,background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:8}}>Shopping Partner</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:6}}>Who gets the emailed shopping list?</div><input placeholder="Name (e.g. Lisa)" value={shopPartnerName} onChange={e=>{setShopPartnerName(e.target.value);localStorage.setItem("sk_shopPartnerName",e.target.value);}} style={{width:"100%",background:C.card,border:"1px solid "+C.border,borderRadius:6,padding:"6px 10px",color:C.text,fontFamily:FM,fontSize:12,marginBottom:6,boxSizing:"border-box"}}/><input placeholder="Email address" value={shopPartnerEmail} onChange={e=>{setShopPartnerEmail(e.target.value);localStorage.setItem("sk_shopPartnerEmail",e.target.value);}} style={{width:"100%",background:C.card,border:"1px solid "+C.border,borderRadius:6,padding:"6px 10px",color:C.text,fontFamily:FM,fontSize:12,boxSizing:"border-box"}}/></div><div style={{display:"flex",flexDirection:"column",gap:12}}><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>{darkMode?"🌙 Dark Mode":"☀ Light Mode"}</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Switch between dark and light display themes.</div><button style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.border,color:C.text}} onClick={()=>setDarkMode(m=>!m)}>{darkMode?"Switch to Light Mode ☀":"Switch to Dark Mode 🌙"}</button></div><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>Recipe Search Site</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Where to search for recipes when you tap a meal name.</div><div style={{display:"flex",flexDirection:"column",gap:6}}>{[["google","🔍 Google Recipes"],["allrecipes","🍳 AllRecipes"],["pinterest","📌 Pinterest"],["foodnetwork","📺 Food Network"]].map(([key,label])=>(<button key={key} onClick={()=>{setRecipeSite(key);localStorage.setItem("sk_recipeSite",key);}} style={{padding:"8px 12px",borderRadius:8,border:"1px solid "+(recipeSite===key?C.accent:C.border),background:recipeSite===key?C.accent+"22":"transparent",color:recipeSite===key?C.accent:C.text,fontFamily:FM,fontSize:12,cursor:"pointer",textAlign:"left"}}>{label}{recipeSite===key?" ✓":""}</button>))}</div></div><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>Reset Inventory</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Clears all inventory items. Keeps profiles, meal plan, and preferences.</div><button style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.red,color:C.red}} onClick={()=>{if(window.confirm("Clear all inventory? Cannot be undone.")){localStorage.removeItem("sk_inventory");localStorage.removeItem("sk_portionFixV2");setInventory([]);setShowSettings(false);alert("Inventory cleared.");}}}>Clear Inventory</button></div><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>Reset All Data</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Wipes everything and restarts the Setup Wizard. Use for demo resets.</div><button style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.red,color:C.red}} onClick={()=>{if(window.confirm("Reset ALL data? Cannot be undone.")){["sk_inventory","sk_familyProfiles","sk_familySize","sk_mealPlan","sk_sportsNights","sk_recipeSite","sk_seniorMode","sk_setupDone","sk_portionFixV2","sk_installDismissed","sk_reminderDismissed","sk_saleItems","sk_tempProfiles","sk_activeTab","sk_chatWelcomeDone","sk_tourChoice","sk_tourStep","sk_guestCaptured","sk_darkMode","sk_recipes","sk_recipeRatings","sk_desserts","sk_dessertRatings"].forEach(k=>localStorage.removeItem(k));window.location.reload();}}}>Reset All Data</button></div></div><div style={{background:"#f5f3ff",borderRadius:10,padding:16,marginTop:12}}>
+{showSettings&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setShowSettings(false)}><div style={{background:C.card,borderRadius:16,padding:28,width:340,maxWidth:"90vw",maxHeight:"90vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}><div style={{fontFamily:FD,fontSize:20,fontWeight:700,color:C.text,marginBottom:4}}>Settings</div><div style={{fontSize:11,color:C.muted,fontFamily:FM,marginBottom:20}}>Smart Kitchen v1.5</div><div style={{marginTop:12,background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:8}}>Shopping Partner</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:6}}>Who gets the emailed shopping list?</div><input placeholder="Name (e.g. Lisa)" value={shopPartnerName} onChange={e=>{setShopPartnerName(e.target.value);localStorage.setItem("sk_shopPartnerName",e.target.value);}} style={{width:"100%",background:C.card,border:"1px solid "+C.border,borderRadius:6,padding:"6px 10px",color:C.text,fontFamily:FM,fontSize:12,marginBottom:6,boxSizing:"border-box"}}/><input placeholder="Email address" value={shopPartnerEmail} onChange={e=>{setShopPartnerEmail(e.target.value);localStorage.setItem("sk_shopPartnerEmail",e.target.value);}} style={{width:"100%",background:C.card,border:"1px solid "+C.border,borderRadius:6,padding:"6px 10px",color:C.text,fontFamily:FM,fontSize:12,boxSizing:"border-box"}}/></div><div style={{display:"flex",flexDirection:"column",gap:12}}><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>{darkMode?"🌙 Dark Mode":"☀ Light Mode"}</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Switch between dark and light display themes.</div><button style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.border,color:C.text}} onClick={()=>setDarkMode(m=>!m)}>{darkMode?"Switch to Light Mode ☀":"Switch to Dark Mode 🌙"}</button></div><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>Recipe Search Site</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Where to search for recipes when you tap a meal name.</div><div style={{display:"flex",flexDirection:"column",gap:6}}>{[["google","🔍 Google Recipes"],["allrecipes","🍳 AllRecipes"],["pinterest","📌 Pinterest"],["foodnetwork","📺 Food Network"]].map(([key,label])=>(<button key={key} onClick={()=>{setRecipeSite(key);localStorage.setItem("sk_recipeSite",key);}} style={{padding:"8px 12px",borderRadius:8,border:"1px solid "+(recipeSite===key?C.accent:C.border),background:recipeSite===key?C.accent+"22":"transparent",color:recipeSite===key?C.accent:C.text,fontFamily:FM,fontSize:12,cursor:"pointer",textAlign:"left"}}>{label}{recipeSite===key?" ✓":""}</button>))}</div></div><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>Reset Inventory</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Clears all inventory items. Keeps profiles, meal plan, and preferences.</div><button style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.red,color:C.red}} onClick={()=>{if(window.confirm("Clear all inventory? Cannot be undone.")){localStorage.removeItem("sk_inventory");localStorage.removeItem("sk_portionFixV2");setInventory([]);setShowSettings(false);alert("Inventory cleared.");}}}>Clear Inventory</button></div><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>Reset All Data</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Wipes everything and restarts the Setup Wizard. Use for demo resets.</div><button style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.red,color:C.red}} onClick={()=>{if(window.confirm("Reset ALL data? Cannot be undone.")){["sk_inventory","sk_familyProfiles","sk_familySize","sk_mealPlan","sk_sportsNights","sk_recipeSite","sk_seniorMode","sk_setupDone","sk_portionFixV2","sk_installDismissed","sk_reminderDismissed","sk_saleItems","sk_tempProfiles","sk_activeTab","sk_chatWelcomeDone","sk_tourChoice","sk_tourStep","sk_guestCaptured","sk_darkMode","sk_recipes","sk_recipeRatings","sk_desserts","sk_dessertRatings","sk_seenFeature_occasionSystem","sk_seenFeature_smsShoppingList"].forEach(k=>localStorage.removeItem(k));window.location.reload();}}}>Reset All Data</button></div></div><div style={{background:"#f5f3ff",borderRadius:10,padding:16,marginTop:12}}>
 <div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:"#4a1d96",marginBottom:4}}>👁 Family Viewer Access</div>
 <div style={{fontSize:12,color:"#888",fontFamily:FM,marginBottom:10}}>Set a custom code so family members can view your meal plan and inventory in read-only mode on their own device.</div>
 <ViewerCodeManager user={user} isViewer={isViewer} viewerRole={viewerRole}/>
@@ -4261,6 +4301,14 @@ What can I substitute and do I have what I need?`,
           </div>}
           <div ref={chatEndRef}/>
         </div>
+        {/* Quick Reply Buttons */}
+        {proactiveQuickReplies.length>0&&<div style={{padding:"8px 16px 0",display:"flex",gap:8,flexWrap:"wrap",flexShrink:0}}>
+          {proactiveQuickReplies.map((reply,i)=>(
+            <button key={i} onClick={()=>{setProactiveQuickReplies([]);sendChatMessage(reply);}} style={{padding:"8px 14px",borderRadius:20,border:"1px solid #C8963E",background:"transparent",color:"#C8963E",fontFamily:FM,fontSize:seniorMode?16:12,cursor:"pointer",fontWeight:600,whiteSpace:"nowrap"}}>
+              {reply}
+            </button>
+          ))}
+        </div>}
         {/* Input */}
         <div style={{padding:"12px 16px",borderTop:"1px solid "+C.border,display:"flex",gap:8,flexShrink:0,background:C.card}}>
           <input
