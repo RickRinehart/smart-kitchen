@@ -1387,6 +1387,64 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
   };
 
 
+
+  // -- Bluetooth Scale (Medical+) -------------------------------------------
+  const SCALE_SVC="00001910-0000-1000-8000-00805f9b34fb";
+  const SCALE_CHR_ETK="00002c12-0000-1000-8000-00805f9b34fb";
+  const SCALE_CHR_RNP="00002b10-0000-1000-8000-00805f9b34fb";
+  function decodeScaleWt(value){
+    const bytes=new Uint8Array(value.buffer);
+    if(bytes.length<6||bytes[0]!==0xFD) return null;
+    const grams=((bytes[3]<<8)|bytes[4])/10;
+    const unit=bytes[5]===0x02?"oz":bytes[5]===0x03?"lb":"g";
+    return {grams,unit};
+  }
+  const connectScale=async()=>{
+    if(!navigator.bluetooth){setScaleError("Web Bluetooth requires Chrome or Edge on Android, Windows, or Mac.");return;}
+    setScaleConnecting(true);setScaleError("");
+    try{
+      const dev=await navigator.bluetooth.requestDevice({
+        filters:[{services:[SCALE_SVC]}],optionalServices:[SCALE_SVC]
+      });
+      setScaleDevice(dev);
+      dev.addEventListener("gattserverdisconnected",()=>{setScaleDevice(null);setScaleWeight(null);setScaleError("Scale disconnected.");});
+      const server=await dev.gatt.connect();
+      const svc=await server.getPrimaryService(SCALE_SVC);
+      let chr;
+      try{chr=await svc.getCharacteristic(SCALE_CHR_ETK);}
+      catch{chr=await svc.getCharacteristic(SCALE_CHR_RNP);}
+      await chr.startNotifications();
+      chr.addEventListener("characteristicvaluechanged",(e)=>{
+        const d=decodeScaleWt(e.target.value);
+        if(d&&d.grams>0){setScaleWeight(d.grams);setScaleUnit(d.unit||"g");}
+      });
+    }catch(err){
+      if(err.name==="NotFoundError") setScaleError("No scale found. Make sure your scale is on and nearby.");
+      else setScaleError("Could not connect: "+err.message);
+    }
+    setScaleConnecting(false);
+  };
+  const disconnectScale=()=>{
+    if(scaleDevice?.gatt?.connected) scaleDevice.gatt.disconnect();
+    setScaleDevice(null);setScaleWeight(null);setScaleCalcResult(null);
+    setScaleFoodName("");setScaleError("");
+  };
+  const calcScaleNutrition=async()=>{
+    if(!scaleFoodName.trim()||!scaleWeight) return;
+    setScaleCalcLoading(true);setScaleCalcResult(null);
+    try{
+      const raw=await callClaude({
+        system:"Nutrition AI. Return ONLY valid JSON: {calories,protein_g,carbs_g,fat_g,fiber_g,sodium_mg,notes}. Numbers only.",
+        prompt:"Estimate nutrition for "+scaleWeight+"g of "+scaleFoodName.trim()+". Return JSON only.",
+        maxTokens:200,
+      });
+      const text=typeof raw==="string"?raw:raw?.content?.[0]?.text||"";
+      const clean=text.replace(/```json|```/g,"").trim();
+      const s=clean.indexOf("{"),e=clean.lastIndexOf("}");
+      setScaleCalcResult(JSON.parse(clean.slice(s,e+1)));
+    }catch(err){setScaleError("Could not estimate nutrition.");}
+    setScaleCalcLoading(false);
+  };
   const planOccasionMeal=async()=>{
     if(!occasionState.eventType){
       alert("Please select an occasion type first.");
