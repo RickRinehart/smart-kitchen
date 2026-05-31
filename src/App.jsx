@@ -1388,9 +1388,9 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       const invSummary=(proteinItems.length?"Proteins on hand: "+proteinItems.join(", ")+". ":"No proteins on hand — shopping required. ")+
                        (otherItems.length?"Also have: "+otherItems.join(", ")+". ":"");
       const raw=await callClaude({
-        system:"Meal planning AI. Return ONLY valid JSON — no markdown, no backticks. Single object with exactly these keys: meal, description, time, servings, proteinUsed, makeAheadTips, shoppingNeeded, ingredients. description is 2 sentences. makeAheadTips is a string or null. shoppingNeeded is an array of strings (item names only). ingredients is an array of strings.",
-        prompt:occCtx+"Plan ONE special occasion meal for "+headCount+" people. "+(occasionState.mode==="use"?"Use proteins and ingredients already on hand.":"Create something impressive — budget: "+(occasionState.budget||"flexible")+". ")+(fs?"Dietary rules: "+fs+". ":"")+(occasionState.guestRestrictions?"Guest needs: "+occasionState.guestRestrictions+". ":"")+(occasionState.note?"Special request: "+occasionState.note+". ":"")+invSummary+"List only items NOT on hand in shoppingNeeded.",
-        maxTokens:500,
+        system:"Meal planning AI. Return ONLY valid JSON — no markdown, no backticks. Return a single object with ONLY these 6 keys: meal(string), description(string, max 2 sentences), time(string like 45 min), servings(number), makeAheadTips(string or null), shoppingNeeded(array of strings, item names only — max 5 items). No other keys. Keep response under 300 tokens.",
+        prompt:occCtx+"Plan ONE special occasion meal for "+headCount+" people. "+(occasionState.mode==="use"?"Use proteins already on hand.":"Create something impressive — budget: "+(occasionState.budget||"flexible")+". ")+(fs?"Dietary rules: "+fs+". ":"")+(occasionState.guestRestrictions?"Guest needs: "+occasionState.guestRestrictions+". ":"")+(occasionState.note?"Request: "+occasionState.note+". ":"")+invSummary+"shoppingNeeded = only missing items, max 5.",
+        maxTokens:350,
       });
       const text=typeof raw==="string"?raw:raw?.content?.[0]?.text||"";
       if(!text||!text.includes("{")) throw new Error("Empty response: "+text.slice(0,80));
