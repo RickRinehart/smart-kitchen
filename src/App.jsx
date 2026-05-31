@@ -458,6 +458,7 @@ function buildOccasionContext(occ){
   if(occ.eventType==="quick") ctx+="HARD LIMIT: meal must be completable in 30 minutes or less. ";
   if(occ.audienceType==="kids") ctx+="No alcohol pairings. Allergen flags prominent. Fun presentation encouraged. ";
   if(occ.audienceType==="adult") ctx+="Adults only (21+). Intimate dinner for 2. Suggest wine or cocktail pairing. Romantic elevated presentation. Candle-worthy plating. ";
+  if(occ.audienceType==="adults") ctx+="Adults-only group party (21+). Scale for the head count. Beer, wine, and cocktail-friendly food — finger foods, shareable dishes, and crowd-pleasing options welcome. No kids meal framing. ";
   return ctx;
 }
 // -- Proactive Feature Announcements Registry ---------------------------------
@@ -3842,6 +3843,15 @@ What can I substitute and do I have what I need?`,
                     <div>
                       <div style={{fontFamily:FM,fontSize:12,fontWeight:700,color:"#7c3aed"}}>Intimate Date Night · Adults (21+)</div>
                       <div style={{fontFamily:FM,fontSize:11,color:C.muted,marginTop:2}}>Head count set to 2. Smart Kitchen will suggest an elevated, romantic meal — wine pairings included.</div>
+                    </div>
+                  </div>
+                )}
+                {occasionState.audienceType==="adults"&&(
+                  <div style={{background:"#d97706"+"15",border:"1px solid "+"#d97706"+"44",borderRadius:10,padding:"10px 14px",marginBottom:14,display:"flex",alignItems:"center",gap:10}}>
+                    <span style={{fontSize:18}}>🍺</span>
+                    <div>
+                      <div style={{fontFamily:FM,fontSize:12,fontWeight:700,color:"#d97706"}}>Adults Party · 21+</div>
+                      <div style={{fontFamily:FM,fontSize:11,color:C.muted,marginTop:2}}>Great for BBQs, game days, holiday gatherings. Beer, wine, and cocktail-friendly food — shareable crowd-pleasers.</div>
                     </div>
                   </div>
                 )}
