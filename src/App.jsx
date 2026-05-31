@@ -1369,20 +1369,38 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     const ev=OCCASION_EVENT_TYPES.find(e=>e.key===occasionState.eventType);
     const au=OCCASION_AUDIENCE_TYPES.find(a=>a.key===occasionState.audienceType);
     try{
-      // Trim inventory to avoid token overrun — first 60 items by name only
-      const invShort=inventory.slice(0,60).map(i=>String(i.name||"")).filter(Boolean).join(", ");
+      // Proteins first — that's what drives the meal decision
+      const proteinItems=inventory.filter(i=>{
+        const cat=(i.category||"").toLowerCase();
+        const name=(i.name||"").toLowerCase();
+        return cat.includes("protein")||cat.includes("meat")||cat.includes("poultry")||
+               cat.includes("fish")||cat.includes("seafood")||cat.includes("wild harvest")||
+               name.includes("chicken")||name.includes("beef")||name.includes("pork")||
+               name.includes("steak")||name.includes("salmon")||name.includes("shrimp")||
+               name.includes("turkey")||name.includes("lamb")||name.includes("sausage")||
+               name.includes("ground")||name.includes("roast")||name.includes("chop");
+      }).map(i=>i.name).filter(Boolean);
+      // Key produce and dairy — short list
+      const otherItems=inventory.filter(i=>{
+        const cat=(i.category||"").toLowerCase();
+        return cat.includes("produce")||cat.includes("dairy")||cat.includes("home harvest");
+      }).slice(0,15).map(i=>i.name).filter(Boolean);
+      const invSummary=(proteinItems.length?"Proteins on hand: "+proteinItems.join(", ")+". ":"No proteins on hand — shopping required. ")+
+                       (otherItems.length?"Also have: "+otherItems.join(", ")+". ":"");
       const raw=await callClaude({
-        system:"Meal planning AI. Return ONLY valid JSON — no markdown, no backticks, no explanation. Start with { end with }. Keys: meal(string), description(string 2 sentences), time(string), servings(number), proteinUsed(string or null), makeAheadTips(string or null), shoppingNeeded(array of {name,qty,unit} ONLY items not in inventory), ingredients(array of strings).",
-        prompt:occCtx+"Plan ONE special occasion meal for "+headCount+" people. "+(occasionState.mode==="use"?"Maximize use of on-hand inventory.":"Create something special — budget: "+(occasionState.budget||"flexible")+". ")+(fs?"Dietary rules: "+fs+". ":"")+(occasionState.guestRestrictions?"Guest needs: "+occasionState.guestRestrictions+". ":"")+(occasionState.note?"Special request: "+occasionState.note+". ":"")+"Inventory on hand (do NOT list these in shoppingNeeded): "+invShort+".",
-        maxTokens:700,
+        system:"Meal planning AI. Return ONLY valid JSON — no markdown, no backticks. Single object with exactly these keys: meal, description, time, servings, proteinUsed, makeAheadTips, shoppingNeeded, ingredients. description is 2 sentences. makeAheadTips is a string or null. shoppingNeeded is an array of strings (item names only). ingredients is an array of strings.",
+        prompt:occCtx+"Plan ONE special occasion meal for "+headCount+" people. "+(occasionState.mode==="use"?"Use proteins and ingredients already on hand.":"Create something impressive — budget: "+(occasionState.budget||"flexible")+". ")+(fs?"Dietary rules: "+fs+". ":"")+(occasionState.guestRestrictions?"Guest needs: "+occasionState.guestRestrictions+". ":"")+(occasionState.note?"Special request: "+occasionState.note+". ":"")+invSummary+"List only items NOT on hand in shoppingNeeded.",
+        maxTokens:500,
       });
       const text=typeof raw==="string"?raw:raw?.content?.[0]?.text||"";
-      if(!text||!text.includes("{")) throw new Error("Empty response: "+text.slice(0,100));
+      if(!text||!text.includes("{")) throw new Error("Empty response: "+text.slice(0,80));
       const clean=text.replace(/```json|```/g,"").trim();
       const s=clean.indexOf("{"),e=clean.lastIndexOf("}");
-      if(s===-1||e===-1) throw new Error("No JSON object found in: "+clean.slice(0,100));
+      if(s===-1||e===-1) throw new Error("No JSON found");
       const parsed=JSON.parse(clean.slice(s,e+1));
-      if(!parsed.meal) throw new Error("Missing meal field in: "+JSON.stringify(parsed).slice(0,100));
+      if(!parsed.meal) throw new Error("Missing meal field");
+      // Normalize shoppingNeeded to array of {name,qty,unit}
+      parsed.shoppingNeeded=(parsed.shoppingNeeded||[]).map(n=>typeof n==="string"?{name:n,qty:1,unit:""}:n);
       setOccasionResult(parsed);
       setOccasionStep("result");
     }catch(err){
