@@ -561,6 +561,10 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [proactiveQuickReplies,setProactiveQuickReplies]=useState([]);
   const [showOccasionPlanner,setShowOccasionPlanner]=useState(false);
   const [occasionState,setOccasionState]=useState({eventType:"",audienceType:"family",headCount:"",mode:"use",budget:"",guestRestrictions:"",note:""});
+  const [occasionStep,setOccasionStep]=useState("form");// form | loading | result | date
+  const [occasionResult,setOccasionResult]=useState(null);
+  const [occasionDate,setOccasionDate]=useState("");
+  const [occasionLoading,setOccasionLoading]=useState(false);
   const chatEndRef=useRef(null);
   // -- Guest Email Capture State ------------------------------------------------
   const [showGuestCapture,setShowGuestCapture]=useState(false);
@@ -1344,6 +1348,93 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       summary+=" IMPORTANT: No more than 3 meals per week from the 5-star keeper list. The remaining 4+ meals must be fresh new suggestions not from the keeper list.";
       return summary;
     }catch{return "";}
+  };
+
+
+  const planOccasionMeal=async()=>{
+    if(!occasionState.eventType){
+      alert("Please select an occasion type first.");
+      return;
+    }
+    setOccasionLoading(true);
+    setOccasionStep("loading");
+    const occCtx=buildOccasionContext(occasionState);
+    const fs=familySummary();
+    const invList=inventory.map(i=>String(i.name||"")).filter(Boolean).join(", ");
+    const headCount=occasionState.headCount||activeProfiles.length||4;
+    const ev=OCCASION_EVENT_TYPES.find(e=>e.key===occasionState.eventType);
+    const au=OCCASION_AUDIENCE_TYPES.find(a=>a.key===occasionState.audienceType);
+    try{
+      const raw=await callClaude({
+        system:"Meal planning AI. Return ONLY valid JSON, no markdown, no backticks. Single object: {meal,description,time,servings,proteinUsed,makeAheadTips,shoppingNeeded,ingredients}. makeAheadTips is string or null. shoppingNeeded is array of {name,qty,unit} — ONLY items NOT in inventory.",
+        prompt:occCtx+"Plan ONE special occasion meal for "+headCount+" people. "+(occasionState.mode==="use"?"Use items already in inventory as much as possible.":"Create something special — budget: "+(occasionState.budget||"flexible")+". ")+(fs?"Dietary rules: "+fs+". ":"")+(occasionState.guestRestrictions?"Guest dietary needs: "+occasionState.guestRestrictions+". ":"")+(occasionState.note?"Special request: "+occasionState.note+". ":"")+"Full inventory on hand (do NOT put these in shoppingNeeded): "+invList+". Return JSON with meal name, a 2-sentence description, time estimate, servings count, proteinUsed, makeAheadTips (if Dinner Party or Formal, include 1-2 make-ahead tips; otherwise null), shoppingNeeded (ONLY missing items), ingredients (full list).",
+        maxTokens:800,
+      });
+      const text=typeof raw==="string"?raw:raw?.content?.[0]?.text||"";
+      const clean=text.replace(/```json|```/g,"").trim();
+      const s=clean.indexOf("{"),e=clean.lastIndexOf("}");
+      const parsed=JSON.parse(clean.slice(s,e+1));
+      setOccasionResult(parsed);
+      setOccasionStep("result");
+    }catch(err){
+      alert("Could not generate occasion meal. Please try again.");
+      setOccasionStep("form");
+    }
+    setOccasionLoading(false);
+  };
+
+  const scheduleOccasionMeal=()=>{
+    if(!occasionDate||!occasionResult) return;
+    const chosen=new Date(occasionDate+"T12:00:00");
+    const today=new Date();
+    // Find Monday of current meal plan week
+    const daysToMon=today.getDay()===0?1:8-today.getDay();
+    const monday=new Date(today);
+    monday.setDate(today.getDate()+daysToMon-7);// start of current week
+    const sunday=new Date(monday);
+    sunday.setDate(monday.getDate()+6);
+    const dayNames=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+    const chosenDay=dayNames[chosen.getDay()];
+    // Check if chosen date falls in current meal plan week
+    const inCurrentWeek=chosen>=monday&&chosen<=sunday;
+    if(inCurrentWeek&&mealPlan.length>0){
+      const dayIdx=mealPlan.findIndex(d=>d.day===chosenDay);
+      if(dayIdx>=0){
+        const newDay={
+          ...mealPlan[dayIdx],
+          meal:occasionResult.meal,
+          proteinUsed:occasionResult.proteinUsed||null,
+          ingredients:occasionResult.ingredients||[],
+          shoppingNeeded:(occasionResult.shoppingNeeded||[]).map(n=>typeof n==="string"?{qty:1,unit:"",name:n}:n),
+          needToBuy:occasionResult.shoppingNeeded||[],
+          isOccasion:true,
+          occasionLabel:OCCASION_EVENT_TYPES.find(e=>e.key===occasionState.eventType)?.label||"Occasion",
+        };
+        setMealPlan(p=>p.map((d,i)=>i===dayIdx?newDay:d));
+        alert("Meal plan updated! "+chosenDay+"'s dinner is now "+occasionResult.meal+".");
+        setShowOccasionPlanner(false);
+        setOccasionStep("form");
+        setOccasionResult(null);
+        setOccasionDate("");
+        setTab("mealplan");
+        return;
+      }
+    }
+    // Outside current week — push to Google Calendar
+    const dateStr=occasionDate.replace(/-/g,"");
+    const desc="Occasion: "+(OCCASION_EVENT_TYPES.find(e=>e.key===occasionState.eventType)?.label||"")+
+      " | Meal: "+occasionResult.meal+
+      (occasionResult.shoppingNeeded?.length>0?" | Need to buy: "+occasionResult.shoppingNeeded.map(s=>s.name||s).join(", "):"");
+    const calUrl="https://calendar.google.com/calendar/render?action=TEMPLATE"+
+      "&text="+encodeURIComponent("Special Dinner: "+occasionResult.meal)+
+      "&dates="+dateStr+"/"+dateStr+
+      "&details="+encodeURIComponent(desc);
+    window.open(calUrl,"_blank");
+    alert("Added to Google Calendar for "+chosenDay+", "+new Date(occasionDate+"T12:00:00").toLocaleDateString()+"!");
+    setShowOccasionPlanner(false);
+    setOccasionStep("form");
+    setOccasionResult(null);
+    setOccasionDate("");
   };
 
   const buildMealPlan=async()=>{
@@ -2315,6 +2406,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                       <div style={{display:"flex",flexDirection:"column",gap:8}}>
                       <div style={{flex:1,minWidth:0}}>
                         {day.quickMeal&&<span style={{fontSize:10,background:"#f59e0b22",color:"#f59e0b",padding:"2px 6px",borderRadius:4,fontFamily:FM,display:"inline-block",marginBottom:4}}>⚡ BUSY NIGHT — under 20 min</span>}
+                        {day.isOccasion&&<span style={{fontSize:10,background:C.accent+"22",color:C.accent,padding:"2px 8px",borderRadius:4,fontFamily:FM,display:"inline-block",marginBottom:4,fontWeight:600}}>{day.occasionLabel||"Occasion"}</span>}
                         {mealPhotos[day.meal]&&<div style={{marginBottom:6}}><img src={mealPhotos[day.meal]} alt={day.meal} style={{width:"100%",maxHeight:160,objectFit:"cover",borderRadius:8,border:"1px solid "+C.borderLight}} /></div>}
                         {restrictedProfiles.length>0&&(()=>{
                           const badges=restrictedProfiles.map(p=>{
@@ -3690,113 +3782,185 @@ What can I substitute and do I have what I need?`,
       )}
       {/* == MAKE THIS MODAL == */}
 
-      {/* ── Occasion Planner Modal ── */}
+      {/* -- Occasion Planner Modal -- */}
       {showOccasionPlanner&&(
-        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.78)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:600,padding:16}} onClick={()=>setShowOccasionPlanner(false)}>
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.78)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:600,padding:16}} onClick={()=>{if(!occasionLoading){setShowOccasionPlanner(false);setOccasionStep("form");setOccasionResult(null);setOccasionDate("");}}}>
           <div style={{background:C.card,border:"1px solid "+C.border,borderRadius:18,padding:24,maxWidth:460,width:"100%",maxHeight:"90vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
+
+            {/* Header */}
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-              <div style={{fontFamily:FD,fontSize:22,color:C.accent}}>🎉 Occasion Planner</div>
-              <button onClick={()=>setShowOccasionPlanner(false)} style={{background:C.surface,border:"1px solid "+C.border,borderRadius:6,color:C.text,cursor:"pointer",fontSize:16,padding:"4px 10px",fontWeight:600}}>✕</button>
-            </div>
-            <div style={{fontFamily:FM,fontSize:12,color:C.muted,marginBottom:18}}>Tell Smart Kitchen what you are cooking for and it will tailor every suggestion.</div>
-
-            {/* Event Type */}
-            <div style={{fontFamily:FM,fontSize:12,fontWeight:600,color:C.text,marginBottom:8}}>What is the occasion?</div>
-            <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16}}>
-              {OCCASION_EVENT_TYPES.map(ev=>(
-                <button key={ev.key} onClick={()=>setOccasionState(s=>({...s,eventType:s.eventType===ev.key?"":ev.key}))}
-                  style={{padding:"8px 14px",borderRadius:20,border:"1px solid "+(occasionState.eventType===ev.key?C.accent:C.border),
-                  background:occasionState.eventType===ev.key?C.accent+"22":"transparent",
-                  color:occasionState.eventType===ev.key?C.accent:C.text,fontFamily:FM,fontSize:seniorMode?15:12,cursor:"pointer",fontWeight:600}}>
-                  {ev.emoji} {ev.label}
-                  <div style={{fontSize:9,color:C.muted,fontWeight:400,marginTop:1}}>{ev.desc}</div>
-                </button>
-              ))}
-            </div>
-
-            {/* Audience Type */}
-            <div style={{fontFamily:FM,fontSize:12,fontWeight:600,color:C.text,marginBottom:8}}>Who is joining you?</div>
-            <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16}}>
-              {OCCASION_AUDIENCE_TYPES.map(au=>(
-                <button key={au.key} onClick={()=>setOccasionState(s=>({...s,audienceType:au.key}))}
-                  style={{padding:"8px 14px",borderRadius:20,border:"1px solid "+(occasionState.audienceType===au.key?C.accent:C.border),
-                  background:occasionState.audienceType===au.key?C.accent+"22":"transparent",
-                  color:occasionState.audienceType===au.key?C.accent:C.text,fontFamily:FM,fontSize:seniorMode?15:12,cursor:"pointer",fontWeight:600}}>
-                  {au.emoji} {au.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Head Count + Mode row */}
-            <div style={{display:"flex",gap:10,marginBottom:16,flexWrap:"wrap"}}>
-              <div style={{flex:1,minWidth:120}}>
-                <div style={{fontFamily:FM,fontSize:12,fontWeight:600,color:C.text,marginBottom:6}}>Head count</div>
-                <input type="number" min="1" max="50" placeholder={String(activeProfiles.length||4)}
-                  value={occasionState.headCount}
-                  onChange={e=>setOccasionState(s=>({...s,headCount:e.target.value}))}
-                  style={{width:"100%",background:C.surface,border:"1px solid "+C.border,borderRadius:8,padding:"8px 10px",color:C.text,fontFamily:FM,fontSize:13,boxSizing:"border-box"}}/>
+              <div style={{fontFamily:FD,fontSize:22,color:C.accent}}>
+                {occasionStep==="form"&&"Plan an Occasion"}
+                {occasionStep==="loading"&&"Planning your meal..."}
+                {occasionStep==="result"&&(occasionResult?.meal||"Your Occasion Meal")}
+                {occasionStep==="date"&&"When is the occasion?"}
               </div>
-              <div style={{flex:2,minWidth:160}}>
-                <div style={{fontFamily:FM,fontSize:12,fontWeight:600,color:C.text,marginBottom:6}}>Mode</div>
-                <div style={{display:"flex",gap:6}}>
-                  {[["use","Use What I Have"],["surprise","Surprise Me"]].map(([k,label])=>(
-                    <button key={k} onClick={()=>setOccasionState(s=>({...s,mode:k}))}
-                      style={{flex:1,padding:"8px 6px",borderRadius:8,border:"1px solid "+(occasionState.mode===k?C.accent:C.border),
-                      background:occasionState.mode===k?C.accent+"22":"transparent",color:occasionState.mode===k?C.accent:C.text,
-                      fontFamily:FM,fontSize:seniorMode?14:11,cursor:"pointer",fontWeight:600}}>
-                      {label}
+              {!occasionLoading&&<button onClick={()=>{setShowOccasionPlanner(false);setOccasionStep("form");setOccasionResult(null);setOccasionDate("");}} style={{background:C.surface,border:"1px solid "+C.border,borderRadius:6,color:C.text,cursor:"pointer",fontSize:16,padding:"4px 10px",fontWeight:600}}>x</button>}
+            </div>
+
+            {/* STEP: FORM */}
+            {occasionStep==="form"&&(
+              <div>
+                <div style={{fontFamily:FM,fontSize:12,color:C.muted,marginBottom:18}}>Tell Smart Kitchen what you are cooking for and it will plan the perfect meal.</div>
+                <div style={{fontFamily:FM,fontSize:12,fontWeight:600,color:C.text,marginBottom:8}}>What is the occasion?</div>
+                <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16}}>
+                  {OCCASION_EVENT_TYPES.map(ev=>(
+                    <button key={ev.key} onClick={()=>setOccasionState(s=>({...s,eventType:s.eventType===ev.key?"":ev.key}))}
+                      style={{padding:"8px 14px",borderRadius:20,border:"1px solid "+(occasionState.eventType===ev.key?C.accent:C.border),
+                      background:occasionState.eventType===ev.key?C.accent+"22":"transparent",
+                      color:occasionState.eventType===ev.key?C.accent:C.text,fontFamily:FM,fontSize:seniorMode?15:12,cursor:"pointer",fontWeight:600}}>
+                      {ev.emoji} {ev.label}
+                      <div style={{fontSize:9,color:C.muted,fontWeight:400,marginTop:1}}>{ev.desc}</div>
                     </button>
                   ))}
                 </div>
-              </div>
-            </div>
-
-            {/* Budget — only for Surprise Me */}
-            {occasionState.mode==="surprise"&&(
-              <div style={{marginBottom:16}}>
-                <div style={{fontFamily:FM,fontSize:12,fontWeight:600,color:C.text,marginBottom:8}}>Budget</div>
-                <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-                  {OCCASION_BUDGETS.map(b=>(
-                    <button key={b} onClick={()=>setOccasionState(s=>({...s,budget:s.budget===b?"":b}))}
-                      style={{padding:"6px 12px",borderRadius:16,border:"1px solid "+(occasionState.budget===b?C.accent:C.border),
-                      background:occasionState.budget===b?C.accent+"22":"transparent",
-                      color:occasionState.budget===b?C.accent:C.text,fontFamily:FM,fontSize:11,cursor:"pointer"}}>
-                      {b}
+                <div style={{fontFamily:FM,fontSize:12,fontWeight:600,color:C.text,marginBottom:8}}>Who is joining you?</div>
+                <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16}}>
+                  {OCCASION_AUDIENCE_TYPES.map(au=>(
+                    <button key={au.key} onClick={()=>setOccasionState(s=>({...s,audienceType:au.key}))}
+                      style={{padding:"8px 14px",borderRadius:20,border:"1px solid "+(occasionState.audienceType===au.key?C.accent:C.border),
+                      background:occasionState.audienceType===au.key?C.accent+"22":"transparent",
+                      color:occasionState.audienceType===au.key?C.accent:C.text,fontFamily:FM,fontSize:seniorMode?15:12,cursor:"pointer",fontWeight:600}}>
+                      {au.emoji} {au.label}
                     </button>
                   ))}
+                </div>
+                <div style={{display:"flex",gap:10,marginBottom:16,flexWrap:"wrap"}}>
+                  <div style={{flex:1,minWidth:120}}>
+                    <div style={{fontFamily:FM,fontSize:12,fontWeight:600,color:C.text,marginBottom:6}}>Head count</div>
+                    <input type="number" min="1" max="50" placeholder={String(activeProfiles.length||4)}
+                      value={occasionState.headCount}
+                      onChange={e=>setOccasionState(s=>({...s,headCount:e.target.value}))}
+                      style={{width:"100%",background:C.surface,border:"1px solid "+C.border,borderRadius:8,padding:"8px 10px",color:C.text,fontFamily:FM,fontSize:13,boxSizing:"border-box"}}/>
+                  </div>
+                  <div style={{flex:2,minWidth:160}}>
+                    <div style={{fontFamily:FM,fontSize:12,fontWeight:600,color:C.text,marginBottom:6}}>Mode</div>
+                    <div style={{display:"flex",gap:6}}>
+                      {[["use","Use What I Have"],["surprise","Surprise Me"]].map(([k,label])=>(
+                        <button key={k} onClick={()=>setOccasionState(s=>({...s,mode:k}))}
+                          style={{flex:1,padding:"8px 6px",borderRadius:8,border:"1px solid "+(occasionState.mode===k?C.accent:C.border),
+                          background:occasionState.mode===k?C.accent+"22":"transparent",color:occasionState.mode===k?C.accent:C.text,
+                          fontFamily:FM,fontSize:seniorMode?14:11,cursor:"pointer",fontWeight:600}}>
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                {occasionState.mode==="surprise"&&(
+                  <div style={{marginBottom:16}}>
+                    <div style={{fontFamily:FM,fontSize:12,fontWeight:600,color:C.text,marginBottom:8}}>Budget</div>
+                    <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                      {OCCASION_BUDGETS.map(b=>(
+                        <button key={b} onClick={()=>setOccasionState(s=>({...s,budget:s.budget===b?"":b}))}
+                          style={{padding:"6px 12px",borderRadius:16,border:"1px solid "+(occasionState.budget===b?C.accent:C.border),
+                          background:occasionState.budget===b?C.accent+"22":"transparent",
+                          color:occasionState.budget===b?C.accent:C.text,fontFamily:FM,fontSize:11,cursor:"pointer"}}>
+                          {b}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <div style={{marginBottom:16}}>
+                  <div style={{fontFamily:FM,fontSize:12,fontWeight:600,color:C.text,marginBottom:6}}>Guest dietary needs <span style={{fontWeight:400,color:C.muted}}>(optional)</span></div>
+                  <input placeholder="e.g. nut allergy, vegetarian guest"
+                    value={occasionState.guestRestrictions}
+                    onChange={e=>setOccasionState(s=>({...s,guestRestrictions:e.target.value}))}
+                    style={{width:"100%",background:C.surface,border:"1px solid "+C.border,borderRadius:8,padding:"8px 10px",color:C.text,fontFamily:FM,fontSize:13,boxSizing:"border-box"}}/>
+                </div>
+                <div style={{marginBottom:20}}>
+                  <div style={{fontFamily:FM,fontSize:12,fontWeight:600,color:C.text,marginBottom:6}}>Anything else? <span style={{fontWeight:400,color:C.muted}}>(optional)</span></div>
+                  <input placeholder='"Something impressive but not fussy"'
+                    value={occasionState.note}
+                    onChange={e=>setOccasionState(s=>({...s,note:e.target.value}))}
+                    style={{width:"100%",background:C.surface,border:"1px solid "+C.border,borderRadius:8,padding:"8px 10px",color:C.text,fontFamily:FM,fontSize:13,boxSizing:"border-box"}}/>
+                </div>
+                <div style={{display:"flex",gap:10}}>
+                  <button onClick={()=>{setOccasionState({eventType:"",audienceType:"family",headCount:"",mode:"use",budget:"",guestRestrictions:"",note:""});setShowOccasionPlanner(false);}}
+                    style={{...bBtn("ghost"),flex:1,padding:"11px"}}>Cancel</button>
+                  <button onClick={planOccasionMeal} disabled={!occasionState.eventType}
+                    style={{...bBtn("primary"),flex:2,padding:"11px",fontSize:14,opacity:occasionState.eventType?1:0.5}}>
+                    Plan Occasion
+                  </button>
                 </div>
               </div>
             )}
 
-            {/* Guest dietary restrictions */}
-            <div style={{marginBottom:16}}>
-              <div style={{fontFamily:FM,fontSize:12,fontWeight:600,color:C.text,marginBottom:6}}>Guest dietary needs <span style={{fontWeight:400,color:C.muted}}>(optional)</span></div>
-              <input placeholder="e.g. nut allergy, vegetarian guest"
-                value={occasionState.guestRestrictions}
-                onChange={e=>setOccasionState(s=>({...s,guestRestrictions:e.target.value}))}
-                style={{width:"100%",background:C.surface,border:"1px solid "+C.border,borderRadius:8,padding:"8px 10px",color:C.text,fontFamily:FM,fontSize:13,boxSizing:"border-box"}}/>
-            </div>
+            {/* STEP: LOADING */}
+            {occasionStep==="loading"&&(
+              <div style={{textAlign:"center",padding:"40px 0"}}>
+                <div style={{fontSize:40,marginBottom:16}}>
+                  {OCCASION_EVENT_TYPES.find(e=>e.key===occasionState.eventType)?.emoji||"🍽"}
+                </div>
+                <div style={{fontFamily:FM,fontSize:14,color:C.muted}}>Planning your perfect {OCCASION_EVENT_TYPES.find(e=>e.key===occasionState.eventType)?.label||"occasion"} meal...</div>
+              </div>
+            )}
 
-            {/* Special note */}
-            <div style={{marginBottom:20}}>
-              <div style={{fontFamily:FM,fontSize:12,fontWeight:600,color:C.text,marginBottom:6}}>Anything else? <span style={{fontWeight:400,color:C.muted}}>(optional)</span></div>
-              <input placeholder='e.g. "Something impressive but not fussy"'
-                value={occasionState.note}
-                onChange={e=>setOccasionState(s=>({...s,note:e.target.value}))}
-                style={{width:"100%",background:C.surface,border:"1px solid "+C.border,borderRadius:8,padding:"8px 10px",color:C.text,fontFamily:FM,fontSize:13,boxSizing:"border-box"}}/>
-            </div>
+            {/* STEP: RESULT */}
+            {occasionStep==="result"&&occasionResult&&(
+              <div>
+                <div style={{background:C.surface,borderRadius:12,padding:16,marginBottom:14,border:"1px solid "+C.border}}>
+                  <div style={{fontFamily:FD,fontSize:18,color:C.accent,marginBottom:6}}>{occasionResult.meal}</div>
+                  <div style={{fontFamily:FM,fontSize:13,color:C.muted,marginBottom:10,lineHeight:1.5}}>{occasionResult.description}</div>
+                  <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:occasionResult.makeAheadTips?10:0}}>
+                    {occasionResult.time&&<span style={bTag(C.muted)}>Time: {occasionResult.time}</span>}
+                    {occasionResult.servings&&<span style={bTag(C.blue)}>Serves {occasionResult.servings}</span>}
+                    {(occasionResult.shoppingNeeded||[]).length===0
+                      ?<span style={bTag(C.green)}>All on hand</span>
+                      :<span style={bTag(C.red)}>{occasionResult.shoppingNeeded.length} items needed</span>}
+                  </div>
+                  {occasionResult.makeAheadTips&&(
+                    <div style={{background:C.accent+"12",borderRadius:8,padding:"8px 12px",marginTop:8}}>
+                      <div style={{fontFamily:FM,fontSize:11,fontWeight:600,color:C.accent,marginBottom:3}}>Make-Ahead Tips</div>
+                      <div style={{fontFamily:FM,fontSize:12,color:C.text,lineHeight:1.5}}>{occasionResult.makeAheadTips}</div>
+                    </div>
+                  )}
+                  {(occasionResult.shoppingNeeded||[]).length>0&&(
+                    <div style={{marginTop:10}}>
+                      <div style={{fontFamily:FM,fontSize:11,fontWeight:600,color:C.muted,marginBottom:4}}>Need to buy:</div>
+                      <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                        {occasionResult.shoppingNeeded.map((s,i)=>(
+                          <span key={i} style={bTag(C.red)}>{s.name||s}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div style={{display:"flex",gap:10}}>
+                  <button onClick={()=>setOccasionStep("form")} style={{...bBtn("ghost"),flex:1,padding:"10px",fontSize:12}}>Change</button>
+                  <button onClick={()=>setOccasionStep("date")} style={{...bBtn("primary"),flex:2,padding:"10px",fontSize:14}}>When is this? Pick Date</button>
+                </div>
+              </div>
+            )}
 
-            {/* Actions */}
-            <div style={{display:"flex",gap:10}}>
-              <button onClick={()=>{setOccasionState({eventType:"",audienceType:"family",headCount:"",mode:"use",budget:"",guestRestrictions:"",note:""});setShowOccasionPlanner(false);}}
-                style={{...bBtn("ghost"),flex:1,padding:"11px"}}>Clear &amp; Close</button>
-              <button onClick={()=>setShowOccasionPlanner(false)}
-                style={{...bBtn("primary"),flex:2,padding:"11px",fontSize:14}}>
-                {occasionState.eventType?"Apply Occasion ✓":"Close"}
-              </button>
-            </div>
+            {/* STEP: DATE PICKER */}
+            {occasionStep==="date"&&occasionResult&&(
+              <div>
+                <div style={{fontFamily:FM,fontSize:13,color:C.muted,marginBottom:16,lineHeight:1.5}}>
+                  Pick the date for <strong style={{color:C.text}}>{occasionResult.meal}</strong>.
+                  If it falls within your current meal plan week, we will replace that day automatically.
+                  Otherwise it goes straight to your Google Calendar.
+                </div>
+                <input type="date"
+                  value={occasionDate}
+                  min={new Date().toISOString().split("T")[0]}
+                  onChange={e=>setOccasionDate(e.target.value)}
+                  style={{width:"100%",background:C.surface,border:"2px solid "+C.accent,borderRadius:10,padding:"12px 14px",color:C.text,fontFamily:FM,fontSize:seniorMode?18:15,boxSizing:"border-box",marginBottom:20,outline:"none"}}/>
+                <div style={{display:"flex",gap:10}}>
+                  <button onClick={()=>setOccasionStep("result")} style={{...bBtn("ghost"),flex:1,padding:"10px"}}>Back</button>
+                  <button onClick={scheduleOccasionMeal} disabled={!occasionDate}
+                    style={{...bBtn("primary"),flex:2,padding:"10px",fontSize:14,opacity:occasionDate?1:0.5}}>
+                    Schedule It
+                  </button>
+                </div>
+              </div>
+            )}
+
           </div>
         </div>
+      )}
+
       )}
 
       {makeThisModal&&(
