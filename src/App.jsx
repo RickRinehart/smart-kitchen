@@ -1369,19 +1369,25 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     const ev=OCCASION_EVENT_TYPES.find(e=>e.key===occasionState.eventType);
     const au=OCCASION_AUDIENCE_TYPES.find(a=>a.key===occasionState.audienceType);
     try{
+      // Trim inventory to avoid token overrun — first 60 items by name only
+      const invShort=inventory.slice(0,60).map(i=>String(i.name||"")).filter(Boolean).join(", ");
       const raw=await callClaude({
-        system:"Meal planning AI. Return ONLY valid JSON, no markdown, no backticks. Single object: {meal,description,time,servings,proteinUsed,makeAheadTips,shoppingNeeded,ingredients}. makeAheadTips is string or null. shoppingNeeded is array of {name,qty,unit} — ONLY items NOT in inventory.",
-        prompt:occCtx+"Plan ONE special occasion meal for "+headCount+" people. "+(occasionState.mode==="use"?"Use items already in inventory as much as possible.":"Create something special — budget: "+(occasionState.budget||"flexible")+". ")+(fs?"Dietary rules: "+fs+". ":"")+(occasionState.guestRestrictions?"Guest dietary needs: "+occasionState.guestRestrictions+". ":"")+(occasionState.note?"Special request: "+occasionState.note+". ":"")+"Full inventory on hand (do NOT put these in shoppingNeeded): "+invList+". Return JSON with meal name, a 2-sentence description, time estimate, servings count, proteinUsed, makeAheadTips (if Dinner Party or Formal, include 1-2 make-ahead tips; otherwise null), shoppingNeeded (ONLY missing items), ingredients (full list).",
-        maxTokens:800,
+        system:"Meal planning AI. Return ONLY valid JSON — no markdown, no backticks, no explanation. Start with { end with }. Keys: meal(string), description(string 2 sentences), time(string), servings(number), proteinUsed(string or null), makeAheadTips(string or null), shoppingNeeded(array of {name,qty,unit} ONLY items not in inventory), ingredients(array of strings).",
+        prompt:occCtx+"Plan ONE special occasion meal for "+headCount+" people. "+(occasionState.mode==="use"?"Maximize use of on-hand inventory.":"Create something special — budget: "+(occasionState.budget||"flexible")+". ")+(fs?"Dietary rules: "+fs+". ":"")+(occasionState.guestRestrictions?"Guest needs: "+occasionState.guestRestrictions+". ":"")+(occasionState.note?"Special request: "+occasionState.note+". ":"")+"Inventory on hand (do NOT list these in shoppingNeeded): "+invShort+".",
+        maxTokens:700,
       });
       const text=typeof raw==="string"?raw:raw?.content?.[0]?.text||"";
+      if(!text||!text.includes("{")) throw new Error("Empty response: "+text.slice(0,100));
       const clean=text.replace(/```json|```/g,"").trim();
       const s=clean.indexOf("{"),e=clean.lastIndexOf("}");
+      if(s===-1||e===-1) throw new Error("No JSON object found in: "+clean.slice(0,100));
       const parsed=JSON.parse(clean.slice(s,e+1));
+      if(!parsed.meal) throw new Error("Missing meal field in: "+JSON.stringify(parsed).slice(0,100));
       setOccasionResult(parsed);
       setOccasionStep("result");
     }catch(err){
-      alert("Could not generate occasion meal. Please try again.");
+      console.error("planOccasionMeal error:",err);
+      alert("Could not generate occasion meal: "+err.message.slice(0,80)+". Please try again.");
       setOccasionStep("form");
     }
     setOccasionLoading(false);
