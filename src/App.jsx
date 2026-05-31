@@ -562,6 +562,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [showOccasionPlanner,setShowOccasionPlanner]=useState(false);
   const [occasionState,setOccasionState]=useState({eventType:"",audienceType:"family",headCount:"",mode:"use",budget:"",guestRestrictions:"",note:""});
   const [occasionStep,setOccasionStep]=useState("form");// form | loading | result | date
+  const [occasionCustomText,setOccasionCustomText]=useState("");
   const [occasionResult,setOccasionResult]=useState(null);
   const [occasionDate,setOccasionDate]=useState("");
   const [occasionLoading,setOccasionLoading]=useState(false);
@@ -1262,7 +1263,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       const saleList=saleItems.map(i=>i.name+(i.salePrice?" ("+i.salePrice+")":"")+(i.savings?" — "+i.savings:"")).join(", ");
       const invList=inventory.map(i=>String(i.name||"")).filter(Boolean).join(", ");
       const fs=familySummary();
-      const occCtx=buildOccasionContext(occasionState);
+      const occCtx=buildOccasionContext(occasionState)+(occasionCustomText?" Special occasion name: "+occasionCustomText+".":"");
       const raw=await callClaude({
         system:"Return ONLY a JSON array of 7 dinner plan objects. No other text. Start with [ end with ]. Each: {day,meal,proteinUsed,sauteBagsUsed,sideUsed,shoppingNeeded}. day is Monday through Sunday. shoppingNeeded is array of {name,qty,unit} — ONLY items NOT in inventory.",
         prompt:"This week's Meijer sale items: "+saleList+". Proteins on hand: "+proteins+". Full inventory (do NOT list in shoppingNeeded): "+invList+". "+fs+"Build a 7-day dinner plan that PRIORITIZES sale items to maximize savings. Use sale proteins and produce first. shoppingNeeded should only list items not in inventory, and prefer sale-priced items when shopping is needed.",
@@ -1358,7 +1359,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     }
     setOccasionLoading(true);
     setOccasionStep("loading");
-    const occCtx=buildOccasionContext(occasionState);
+    const occCtx=buildOccasionContext(occasionState)+(occasionCustomText?" Special occasion name: "+occasionCustomText+".":"");
     const fs=familySummary();
     const invList=inventory.map(i=>String(i.name||"")).filter(Boolean).join(", ");
     const headCount=occasionState.headCount||activeProfiles.length||4;
@@ -2037,7 +2038,8 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
           }}>✨ Recipes</button>
           <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px",border:"1px solid "+C.accent,color:C.accent}} onClick={()=>{setMakeThisModal(true);setMakeThisInput("");setMakeThisResult(null);}}>🍽 Make This</button>
           <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px",border:"1px solid #b45309",color:"#b45309"}} onClick={()=>{setFamilyRecipesOpen(true);setFrAddMode(null);setFrEditRecipe(null);setFrViewRecipe(null);}}>📖 Family Recipes</button>
-          {(restrictedProfiles.length>0||can.medicalCompliance)&&<button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px",border:"1px solid #dc2626",color:"#dc2626",fontWeight:600}} onClick={()=>{setCanIHaveOpen(true);setCanIHaveImg(null);setCanIHaveResult(null);setCanIHaveText("");}}>⚕ Can I Have This?</button>}
+          {(restrictedProfiles.length>0||can.medicalCompliance)&&<button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px",border:"1px solid #dc2626",color:"#dc2626",fontWeight:600}} onClick={()=>{setCanIHaveOpen(true);setCanIHaveImg(null);setCanIHaveResult(null);setCanIHaveText("");}}>Can I Have This?</button>}
+          <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px",border:"1px solid "+C.accent,color:C.accent,fontWeight:600}} onClick={()=>{setShowOccasionPlanner(true);setOccasionStep("form");setOccasionResult(null);setOccasionDate("");}}>🎉 Plan Occasion</button>
         </div>
       </div>
 
@@ -2452,6 +2454,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                         <button onClick={()=>madeMeal(day)} style={{background:"#3ecf8e22",border:"1px solid #3ecf8e44",borderRadius:seniorMode?10:6,color:"#3ecf8e",cursor:"pointer",fontFamily:FM,fontSize:seniorMode?18:11,padding:seniorMode?"12px 20px":"8px 14px",flexShrink:0,fontWeight:seniorMode?700:400}} disabled={isViewer}>✅ Made It!</button>
                         <button onClick={()=>setPhotoPromptMeal(day.meal)} style={{background:"transparent",border:"1px solid "+C.border,borderRadius:seniorMode?10:6,color:C.muted,cursor:"pointer",fontFamily:FM,fontSize:seniorMode?16:12,padding:seniorMode?"10px 14px":"8px 12px",flexShrink:0}} title="Add photo" disabled={isViewer}>📸 {mealPhotos[day.meal]?"Change":"Photo"}</button>
                         <button onClick={()=>{setChangeMealModal(i);setChangeMealRequest("");}} style={{background:"transparent",border:"1px solid "+C.border,borderRadius:seniorMode?10:4,color:C.muted,fontFamily:FM,fontSize:seniorMode?18:11,padding:seniorMode?"12px 20px":"8px 14px",cursor:"pointer",flexShrink:0}} disabled={isViewer}>🔄 Change Meal</button>
+                        <button onClick={()=>{setShowOccasionPlanner(true);setOccasionStep("form");setOccasionResult(null);setOccasionDate("");}} style={{background:"transparent",border:"1px solid "+C.accent,borderRadius:seniorMode?10:4,color:C.accent,fontFamily:FM,fontSize:seniorMode?18:11,padding:seniorMode?"12px 20px":"8px 14px",cursor:"pointer",flexShrink:0}}>🎉 Occasion</button>
                         <button onClick={()=>{const today=new Date();const daysToMon=today.getDay()===0?1:8-today.getDay();const monday=new Date(today);monday.setDate(today.getDate()+daysToMon);const offsets={Monday:0,Tuesday:1,Wednesday:2,Thursday:3,Friday:4,Saturday:5,Sunday:6};const d=new Date(monday);d.setDate(monday.getDate()+(offsets[day.day]??0));const dateStr=d.toISOString().split("T")[0].replace(/-/g,"");const desc=[day.proteinUsed?"Protein: "+day.proteinUsed:"",day.sideUsed?"Side: "+day.sideUsed:"",(day.shoppingNeeded||[]).length>0?"Need: "+day.shoppingNeeded.map(s=>s.name).join(", "):"All on hand"].filter(Boolean).join(" | ");window.open("https://calendar.google.com/calendar/render?action=TEMPLATE&text="+encodeURIComponent("Dinner: "+day.meal)+"&dates="+dateStr+"/"+dateStr+"&details="+encodeURIComponent(desc),"_blank");}} style={{background:"transparent",border:"1px solid #5b9cf6",borderRadius:4,color:"#5b9cf6",fontFamily:FM,fontSize:seniorMode?14:11,padding:"8px 14px",cursor:"pointer",flexShrink:0}} disabled={isViewer}>📅 Add to Calendar</button>
                       </div>
                       </div>
@@ -3802,6 +3805,13 @@ What can I substitute and do I have what I need?`,
             {occasionStep==="form"&&(
               <div>
                 <div style={{fontFamily:FM,fontSize:12,color:C.muted,marginBottom:18}}>Tell Smart Kitchen what you are cooking for and it will plan the perfect meal.</div>
+                <div style={{marginBottom:16}}>
+                  <div style={{fontFamily:FM,fontSize:12,fontWeight:600,color:C.text,marginBottom:6}}>Name this occasion <span style={{fontWeight:400,color:C.muted}}>(optional)</span></div>
+                  <input placeholder='e.g. "Anniversary dinner", "Backyard BBQ", "Kids birthday"'
+                    value={occasionCustomText}
+                    onChange={e=>setOccasionCustomText(e.target.value)}
+                    style={{width:"100%",background:C.surface,border:"1px solid "+C.border,borderRadius:8,padding:"8px 10px",color:C.text,fontFamily:FM,fontSize:13,boxSizing:"border-box"}}/>
+                </div>
                 <div style={{fontFamily:FM,fontSize:12,fontWeight:600,color:C.text,marginBottom:8}}>What is the occasion?</div>
                 <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16}}>
                   {OCCASION_EVENT_TYPES.map(ev=>(
@@ -3877,7 +3887,7 @@ What can I substitute and do I have what I need?`,
                     style={{width:"100%",background:C.surface,border:"1px solid "+C.border,borderRadius:8,padding:"8px 10px",color:C.text,fontFamily:FM,fontSize:13,boxSizing:"border-box"}}/>
                 </div>
                 <div style={{display:"flex",gap:10}}>
-                  <button onClick={()=>{setOccasionState({eventType:"",audienceType:"family",headCount:"",mode:"use",budget:"",guestRestrictions:"",note:""});setShowOccasionPlanner(false);}}
+                  <button onClick={()=>{setOccasionState({eventType:"",audienceType:"family",headCount:"",mode:"use",budget:"",guestRestrictions:"",note:""});setOccasionCustomText("");setShowOccasionPlanner(false);}}
                     style={{...bBtn("ghost"),flex:1,padding:"11px"}}>Cancel</button>
                   <button onClick={planOccasionMeal} disabled={!occasionState.eventType}
                     style={{...bBtn("primary"),flex:2,padding:"11px",fontSize:14,opacity:occasionState.eventType?1:0.5}}>
@@ -3893,7 +3903,7 @@ What can I substitute and do I have what I need?`,
                 <div style={{fontSize:40,marginBottom:16}}>
                   {OCCASION_EVENT_TYPES.find(e=>e.key===occasionState.eventType)?.emoji||"🍽"}
                 </div>
-                <div style={{fontFamily:FM,fontSize:14,color:C.muted}}>Planning your perfect {OCCASION_EVENT_TYPES.find(e=>e.key===occasionState.eventType)?.label||"occasion"} meal...</div>
+                <div style={{fontFamily:FM,fontSize:14,color:C.muted}}>Planning your perfect {occasionCustomText||OCCASION_EVENT_TYPES.find(e=>e.key===occasionState.eventType)?.label||"occasion"} meal...</div>
               </div>
             )}
 
