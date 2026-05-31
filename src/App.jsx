@@ -426,6 +426,39 @@ function LoadingDots(){
 // =============================================================================
 const loadLocal=(k,fb)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):fb;}catch{return fb;}};
 
+
+// -- Occasion System ---------------------------------------------------------
+const OCCASION_EVENT_TYPES=[
+  {key:"quick",  label:"Quick",       emoji:"⚡", desc:"30 min or less"},
+  {key:"casual", label:"Casual",      emoji:"🍽", desc:"Weeknight comfort"},
+  {key:"formal", label:"Formal",      emoji:"✨", desc:"Elevated presentation"},
+  {key:"party",  label:"Dinner Party",emoji:"🥂", desc:"Scaled for 6-8+"},
+  {key:"popup",  label:"Pop Up",      emoji:"🎉", desc:"Spontaneous & fun"}
+];
+const OCCASION_AUDIENCE_TYPES=[
+  {key:"family",   label:"Family",        emoji:"👨\u200d👩\u200d👧\u200d👦"},
+  {key:"kids",     label:"Kids Party",    emoji:"🧒"},
+  {key:"adult",    label:"Date Night",    emoji:"💑"},
+  {key:"mixed",    label:"Mixed Crowd",   emoji:"🎊"}
+];
+const OCCASION_BUDGETS=["Under $30","$30–$60","$60–$100","No limit"];
+function buildOccasionContext(occ){
+  if(!occ||!occ.eventType) return "";
+  const ev=OCCASION_EVENT_TYPES.find(e=>e.key===occ.eventType);
+  const au=OCCASION_AUDIENCE_TYPES.find(a=>a.key===occ.audienceType);
+  let ctx="OCCASION CONTEXT: ";
+  if(ev) ctx+=ev.emoji+" "+ev.label+" ("+ev.desc+"). ";
+  if(au) ctx+="Audience: "+au.emoji+" "+au.label+". ";
+  if(occ.headCount) ctx+="Head count: "+occ.headCount+" people. ";
+  if(occ.mode==="use") ctx+="Mode: Use What I Have — maximize on-hand inventory. ";
+  else if(occ.mode==="surprise") ctx+="Mode: Surprise Me. "+(occ.budget?"Budget: "+occ.budget+". ":"");
+  if(occ.guestRestrictions) ctx+="Guest dietary notes: "+occ.guestRestrictions+". ";
+  if(occ.note) ctx+="Special request: "+occ.note+". ";
+  if(occ.eventType==="party") ctx+="Include make-ahead tips and scale ingredients. Separate occasion items on shopping list. ";
+  if(occ.eventType==="quick") ctx+="HARD LIMIT: meal must be completable in 30 minutes or less. ";
+  if(occ.audienceType==="kids") ctx+="No alcohol pairings. Allergen flags prominent. Fun presentation encouraged. ";
+  return ctx;
+}
 // -- Proactive Feature Announcements Registry ---------------------------------
 const FEATURE_ANNOUNCEMENTS=[
   {
@@ -526,6 +559,8 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [tourChoice,setTourChoice]=useState(()=>{try{return localStorage.getItem("sk_tourChoice")||null;}catch{return null;}});
   const [tourStep,setTourStep]=useState(()=>{try{return parseInt(localStorage.getItem("sk_tourStep")||"0");}catch{return 0;}});
   const [proactiveQuickReplies,setProactiveQuickReplies]=useState([]);
+  const [showOccasionPlanner,setShowOccasionPlanner]=useState(false);
+  const [occasionState,setOccasionState]=useState({eventType:"",audienceType:"family",headCount:"",mode:"use",budget:"",guestRestrictions:"",note:""});
   const chatEndRef=useRef(null);
   // -- Guest Email Capture State ------------------------------------------------
   const [showGuestCapture,setShowGuestCapture]=useState(false);
@@ -1223,6 +1258,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       const saleList=saleItems.map(i=>i.name+(i.salePrice?" ("+i.salePrice+")":"")+(i.savings?" — "+i.savings:"")).join(", ");
       const invList=inventory.map(i=>String(i.name||"")).filter(Boolean).join(", ");
       const fs=familySummary();
+      const occCtx=buildOccasionContext(occasionState);
       const raw=await callClaude({
         system:"Return ONLY a JSON array of 7 dinner plan objects. No other text. Start with [ end with ]. Each: {day,meal,proteinUsed,sauteBagsUsed,sideUsed,shoppingNeeded}. day is Monday through Sunday. shoppingNeeded is array of {name,qty,unit} — ONLY items NOT in inventory.",
         prompt:"This week's Meijer sale items: "+saleList+". Proteins on hand: "+proteins+". Full inventory (do NOT list in shoppingNeeded): "+invList+". "+fs+"Build a 7-day dinner plan that PRIORITIZES sale items to maximize savings. Use sale proteins and produce first. shoppingNeeded should only list items not in inventory, and prefer sale-priced items when shopping is needed.",
@@ -1321,7 +1357,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       const fs=familySummary();
       const raw=await callClaude({
         system:"Return ONLY a JSON array of 7 dinner plan objects. No other text. Start with [ end with ]. Each: {day,meal,proteinUsed,sauteBagsUsed,sideUsed,shoppingNeeded}. day is Monday through Sunday. proteinUsed is string or null. sauteBagsUsed is number. sideUsed is string or null. shoppingNeeded is array of {name,qty,unit} — ONLY items NOT in the inventory list.",
-        prompt:(()=>{const wh=inventory.filter(i=>i.category==="Wild Harvest").map(i=>i.name+" ("+i.qty+" "+i.unit+")").join(", ");const hh=inventory.filter(i=>i.category==="Home Harvest").map(i=>i.name+" ("+i.qty+" "+i.unit+")").join(", ");const lv=inventory.filter(i=>i.isLeftover&&i.qty>0).map(i=>i.name+" "+i.qty+" servings (use by "+i.useBy+")").join(", ");const prefS=buildPreferenceSummary();return"Proteins available: "+proteins+". Saute blend: "+(blendItem?.qty||0)+" bags."+(wh?" Wild Harvest inventory (treat as premium proteins, species-aware cooking): "+wh+".":"")+(hh?" Home Harvest produce/eggs/livestock: "+hh+" — prioritize fresh produce nearing end of shelf life.":"")+(lv?" LEFTOVER MEALS AVAILABLE (prioritize for Busy Nights, use before expiry): "+lv+".":"")+" Full inventory on hand (DO NOT put these in shoppingNeeded): "+inventory.map(i=>String(i.name||"")).filter(Boolean).join(", ")+". "+fs+(()=>{if(!can.medicalCompliance)return "";const strictMembers=activeProfiles.filter(p=>p.enforcement==="strict"&&((p.medications||[]).length>0||(p.medicalAllergies||[]).length>0||p.medicalPlan));if(!strictMembers.length)return "";return "STRICT MEDICAL ENFORCEMENT: "+strictMembers.map(p=>{const parts=[];const allAllergies=[...(p.medicalAllergies||[])];if(p.medicalAllergiesCustom)allAllergies.push(p.medicalAllergiesCustom);if(allAllergies.length)parts.push("NEVER include "+allAllergies.join(", ")+" for "+p.name);if(p.medications?.some(m=>["warfarin","coumadin"].some(d=>m.name?.toLowerCase().includes(d))))parts.push("NO grapefruit, minimize high-vitamin-K greens for "+(p.name||"member"));if(p.medications?.some(m=>["rosuvastatin","atorvastatin","lovastatin","simvastatin"].some(d=>m.name?.toLowerCase().includes(d))))parts.push("NO grapefruit for "+(p.name||"member"));return parts.join("; ");}).filter(Boolean).join(" | ")+" — these are HARD STOPS, do not suggest any meal containing these items. ";})()+(()=>{if(!can.medicalCompliance)return "";const warnMembers=activeProfiles.filter(p=>p.enforcement==="warn"&&(p.medicalAllergies||[]).length>0);if(!warnMembers.length)return "";return "WARN members have preferences but may include flagged items — AI should still try to avoid known conflict ingredients where possible. ";})()+prefS+"Plan 7 dinners Mon-Sun using proteins and inventory above. Max 3 chicken meals. At least 1 beef. At least 1 pork or kielbasa. No same protein two days in a row. CRITICAL ROTATION RULE: Maximum 3 meals may come from the 5-star keeper list — the other 4 or more meals MUST be creative new suggestions the family has not had recently. Variety and discovery are essential. If Wild Harvest proteins are present, include at least 1 wild game or fish meal. If Home Harvest produce is present, feature it prominently. If leftovers are available, schedule at least 1 leftover meal as a Busy Night option. shoppingNeeded must ONLY list items not found in the inventory list above."+(()=>{const now=new Date();const month=now.getMonth();const season=month>=2&&month<=4?"Spring":month>=5&&month<=7?"Summer":month>=8&&month<=10?"Fall":"Winter";const holiday=month===11?"Christmas":month===10?"Thanksgiving":month===3?"Easter":month===6?"Fourth of July":null;const eligible=familyRecipes.filter(r=>r.rotation&&(r.frequency==="weekly"||(r.frequency==="4week")||(r.frequency==="seasonal"&&((r.seasons||[]).includes("\u2744 Winter")&&season==="Winter"||(r.seasons||[]).includes("\u2600 Summer")&&season==="Summer"||(r.seasons||[]).includes("\ud83c\udf38 Spring")&&season==="Spring"||(r.seasons||[]).includes("\ud83c\udf42 Fall")&&season==="Fall"||(holiday&&(r.seasons||[]).some(s=>s.includes(holiday)))))));return eligible.length>0?" FAMILY RECIPES available for rotation (include 1-2 if ingredients are on hand): "+eligible.map(r=>r.name+(r.ingredients&&r.ingredients.length>0?" (needs: "+r.ingredients.slice(0,4).join(", ")+")":"")).join("; ")+".":"";})();})(),
+        prompt:(()=>{const wh=inventory.filter(i=>i.category==="Wild Harvest").map(i=>i.name+" ("+i.qty+" "+i.unit+")").join(", ");const hh=inventory.filter(i=>i.category==="Home Harvest").map(i=>i.name+" ("+i.qty+" "+i.unit+")").join(", ");const lv=inventory.filter(i=>i.isLeftover&&i.qty>0).map(i=>i.name+" "+i.qty+" servings (use by "+i.useBy+")").join(", ");const prefS=buildPreferenceSummary();return"Proteins available: "+proteins+". Saute blend: "+(blendItem?.qty||0)+" bags."+(wh?" Wild Harvest inventory (treat as premium proteins, species-aware cooking): "+wh+".":"")+(hh?" Home Harvest produce/eggs/livestock: "+hh+" — prioritize fresh produce nearing end of shelf life.":"")+(lv?" LEFTOVER MEALS AVAILABLE (prioritize for Busy Nights, use before expiry): "+lv+".":"")+" Full inventory on hand (DO NOT put these in shoppingNeeded): "+inventory.map(i=>String(i.name||"")).filter(Boolean).join(", ")+". "+fs+(()=>{if(!can.medicalCompliance)return "";const strictMembers=activeProfiles.filter(p=>p.enforcement==="strict"&&((p.medications||[]).length>0||(p.medicalAllergies||[]).length>0||p.medicalPlan));if(!strictMembers.length)return "";return "STRICT MEDICAL ENFORCEMENT: "+strictMembers.map(p=>{const parts=[];const allAllergies=[...(p.medicalAllergies||[])];if(p.medicalAllergiesCustom)allAllergies.push(p.medicalAllergiesCustom);if(allAllergies.length)parts.push("NEVER include "+allAllergies.join(", ")+" for "+p.name);if(p.medications?.some(m=>["warfarin","coumadin"].some(d=>m.name?.toLowerCase().includes(d))))parts.push("NO grapefruit, minimize high-vitamin-K greens for "+(p.name||"member"));if(p.medications?.some(m=>["rosuvastatin","atorvastatin","lovastatin","simvastatin"].some(d=>m.name?.toLowerCase().includes(d))))parts.push("NO grapefruit for "+(p.name||"member"));return parts.join("; ");}).filter(Boolean).join(" | ")+" — these are HARD STOPS, do not suggest any meal containing these items. ";})()+(()=>{if(!can.medicalCompliance)return "";const warnMembers=activeProfiles.filter(p=>p.enforcement==="warn"&&(p.medicalAllergies||[]).length>0);if(!warnMembers.length)return "";return "WARN members have preferences but may include flagged items — AI should still try to avoid known conflict ingredients where possible. ";})()+prefS+"+occCtx+"Plan 7 dinners Mon-Sun using proteins and inventory above. Max 3 chicken meals. At least 1 beef. At least 1 pork or kielbasa. No same protein two days in a row. CRITICAL ROTATION RULE: Maximum 3 meals may come from the 5-star keeper list — the other 4 or more meals MUST be creative new suggestions the family has not had recently. Variety and discovery are essential. If Wild Harvest proteins are present, include at least 1 wild game or fish meal. If Home Harvest produce is present, feature it prominently. If leftovers are available, schedule at least 1 leftover meal as a Busy Night option. shoppingNeeded must ONLY list items not found in the inventory list above."+(()=>{const now=new Date();const month=now.getMonth();const season=month>=2&&month<=4?"Spring":month>=5&&month<=7?"Summer":month>=8&&month<=10?"Fall":"Winter";const holiday=month===11?"Christmas":month===10?"Thanksgiving":month===3?"Easter":month===6?"Fourth of July":null;const eligible=familyRecipes.filter(r=>r.rotation&&(r.frequency==="weekly"||(r.frequency==="4week")||(r.frequency==="seasonal"&&((r.seasons||[]).includes("\u2744 Winter")&&season==="Winter"||(r.seasons||[]).includes("\u2600 Summer")&&season==="Summer"||(r.seasons||[]).includes("\ud83c\udf38 Spring")&&season==="Spring"||(r.seasons||[]).includes("\ud83c\udf42 Fall")&&season==="Fall"||(holiday&&(r.seasons||[]).some(s=>s.includes(holiday)))))));return eligible.length>0?" FAMILY RECIPES available for rotation (include 1-2 if ingredients are on hand): "+eligible.map(r=>r.name+(r.ingredients&&r.ingredients.length>0?" (needs: "+r.ingredients.slice(0,4).join(", ")+")":"")).join("; ")+".":"";})();})(),
         maxTokens:3000,
       });
       const s=raw.indexOf("["),e=raw.lastIndexOf("]");
@@ -2063,9 +2099,12 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
               </div>
             ):(
               <div>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:8}}>
                   <div style={{fontFamily:FD,fontSize:22}}>Recipe Suggestions</div>
-                  <button style={bBtn("ghost")} onClick={fetchRecipes}>🔄 Refresh</button>
+                  <div style={{display:"flex",gap:8}}>
+                    <button style={{...bBtn("ghost"),border:"1px solid "+C.accent,color:C.accent}} onClick={()=>setShowOccasionPlanner(true)}>🎉 Occasion</button>
+                    <button style={bBtn("ghost")} onClick={fetchRecipes}>🔄 Refresh</button>
+                  </div>
                 </div>
                 <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(340px,1fr))",gap:14}}>
                   {recipes.filter(r=>(recipeRatings[r.name]||0)!==1||(recipeRatings[r.name]||0)===1).map(r=>{
@@ -2236,10 +2275,16 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                 </div>
               </div>
             )}
+            {occasionState.eventType&&<div style={{background:C.accent+"18",border:"1px solid "+C.accent+"44",borderRadius:10,padding:"8px 14px",marginBottom:10,display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+              <span style={{fontSize:16}}>{OCCASION_EVENT_TYPES.find(e=>e.key===occasionState.eventType)?.emoji||""}</span>
+              <span style={{fontFamily:FM,fontSize:12,color:C.accent,fontWeight:600}}>{OCCASION_EVENT_TYPES.find(e=>e.key===occasionState.eventType)?.label} · {OCCASION_AUDIENCE_TYPES.find(a=>a.key===occasionState.audienceType)?.label}{occasionState.headCount?" · "+occasionState.headCount+" people":""}</span>
+              <button onClick={()=>setOccasionState({eventType:"",audienceType:"family",headCount:"",mode:"use",budget:"",guestRestrictions:"",note:""})} style={{background:"transparent",border:"none",color:C.muted,cursor:"pointer",fontSize:12,marginLeft:"auto"}}>✕ Clear</button>
+            </div>}
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18,flexWrap:"wrap",gap:10}}>
               <div style={{fontFamily:FD,fontSize:24}}>7-Day Dinner Plan <span style={{fontSize:13,color:C.muted,fontFamily:FB}}>· {activeProfiles.length} people</span></div>
               <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                 <button style={bBtn("ghost")} onClick={buildMealPlan} disabled={isViewer}>🔄 Regenerate</button>
+                <button style={{...bBtn("ghost"),border:"1px solid "+C.accent,color:C.accent}} onClick={()=>setShowOccasionPlanner(true)}>🎉 Plan Occasion</button>
                 {mealPlan.length>0&&<><button style={bBtn("ghost")} onClick={printMealPlan}>🖨 Print</button><button style={bBtn("ghost")} onClick={pushToCalendar}>📅 Calendar</button><button style={bBtn("primary")} onClick={genShopping}>🛒 Shopping List</button></>}
               </div>
             </div>
@@ -2291,7 +2336,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                           }).filter(Boolean);
                           return badges.length>0?<div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:4}}>{badges}</div>:null;
                         })()}
-                        {(()=>{const warns=getMedicalWarnings(day.meal);if(!warns.length)return null;const strictBlocks=warns.filter(w=>w.enforcement==="strict");const warnFlags=warns.filter(w=>w.enforcement==="warn");return(<div style={{display:"flex",flexDirection:"column",gap:3,marginBottom:4}}>{strictBlocks.map((w,i)=>(<span key={"s"+i} style={{fontSize:10,background:"#dc2626",color:"#fff",padding:"3px 8px",borderRadius:4,fontFamily:FM,display:"flex",alignItems:"center",gap:4,border:"1px solid #991b1b"}}>🚫 <strong>{w.member}:</strong> {w.msg}</span>))}{warnFlags.map((w,i)=>(<span key={"w"+i} style={{fontSize:10,background:"#d97706",color:"#fff",padding:"3px 8px",borderRadius:4,fontFamily:FM,display:"flex",alignItems:"center",gap:4,border:"1px solid #b45309"}}>⚠️ <strong>{w.member}:</strong> {w.msg}</span>))}</div>);})()}
+                        {(()=>{const warns=getMedicalWarnings(day.meal);if(!warns.length)return null;const strictBlocks=warns.filter(w=>w.enforcement==="strict");const warnFlags=warns.filter(w=>w.enforcement==="warn");return(<div style={{display:"flex",flexDirection:"column",gap:3,marginBottom:4}}>{strictBlocks.map((w,i)=>(<span key={"s"+i} style={{fontSize:10,background:"#dc2626",color:"#fff",padding:"3px 8px",borderRadius:4,fontFamily:FM,display:"flex",alignItems:"center",gap:4,border:"1px solid #991b1b"}}>🚫 <strong>{w.member}:</strong> {w.msg}</span>))}{warnFlags.map((w,i)=>(<span key={"w"+i} style={{fontSize:10,background:"#d97706",color:"#fff",padding:"3px 8px",borderRadius:4,fontFamily:FM,display:"flex",alignItems:"center",gap:4,border:"1px solid #b45309"}}>⚠ <strong>{w.member}:</strong> {w.msg}</span>))}</div>);})()}
                         <div><div onClick={()=>openMealPlanRecipe(day)} style={{fontFamily:FD,fontSize:seniorMode?26:19,marginBottom:4,color:C.accent,cursor:"pointer",lineHeight:1.4}}>🔍 {day.meal}</div>
                         {/* Star rating on meal plan card */}
                         <div style={{display:"flex",gap:3,marginBottom:6}} onClick={e=>e.stopPropagation()}>
@@ -2326,7 +2371,10 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
           </div>
         )}
 
-        {changeMealModal!==null&&<div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.7)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setChangeMealModal(null)}><div style={{background:C.card,borderRadius:12,padding:24,width:360,maxWidth:"90vw"}} onClick={e=>e.stopPropagation()}><div style={{fontFamily:FD,fontSize:18,fontWeight:700,color:C.text,marginBottom:16}}>🔄 Change {mealPlan[changeMealModal]?.day} Meal</div><div style={{marginBottom:16}}><button onClick={async()=>{setChangeMealLoading(true);try{const h=JSON.parse(localStorage.getItem("sk_changeMealHistory")||"[]");const d=mealPlan[changeMealModal];if(d){h.push({meal:d.meal,protein:d.proteinUsed||null,day:d.day,ts:Date.now()});localStorage.setItem("sk_changeMealHistory",JSON.stringify(h.slice(-100)));}}catch{} const day=mealPlan[changeMealModal];const prompt=`Suggest a different dinner meal for ${day.day}. Current meal was: ${day.meal}. INVENTORY (items already owned — do NOT put these in needToBuy): ${inventory.map(i=>String(i.name||"")).filter(Boolean).join(", ")}. STRICT RULE: needToBuy must contain ONLY ingredients required for this meal that are NOT in the inventory list above. If an ingredient appears in inventory, it must NOT appear in needToBuy. Cross-check every needToBuy item against inventory before returning. Return JSON: {meal,ingredients:[],needToBuy:[],proteinUsed:"",sauteBagsUsed:0,quickMeal:false}.`;const res=await callClaude({system:"Meal planning AI. Return ONLY valid JSON, no markdown.",prompt,maxTokens:600});try{console.log("changeMeal res:",JSON.stringify(res));const resText=typeof res==="string"?res:Array.isArray(res)?res.map(r=>r.text||"").join(""):res?.content?.[0]?.text||res?.[0]?.text||"";const raw=resText.replace(/```json|```/g,"").trim();console.log("raw:",raw);const s=raw.indexOf("{"),e=raw.lastIndexOf("}");const parsed=JSON.parse(raw.slice(s,e+1));setMealPlan(p=>p.map((d,i)=>i===changeMealModal?{...d,...parsed,needToBuy:parsed.needToBuy||[],shoppingNeeded:(parsed.needToBuy||[]).map(n=>typeof n==="string"?{qty:1,unit:"",name:n}:n),ingredients:parsed.ingredients||[]}:d));setChangeMealModal(null);}catch(err){console.error("Parse error:",err);alert("Could not parse meal suggestion");}setChangeMealLoading(false);}} style={{width:"100%",padding:"10px",background:C.accent,border:"none",borderRadius:8,color:"#000",fontFamily:FM,fontSize:13,fontWeight:600,cursor:"pointer",marginBottom:10}}>✨ {changeMealLoading?"Thinking...":"Surprise Me"}</button><div style={{fontFamily:FM,fontSize:12,color:C.muted,marginBottom:8}}>— or request a specific meal —</div><input style={{width:"100%",padding:"8px",background:C.surface,border:"1px solid "+C.border,borderRadius:6,color:C.text,fontFamily:FM,fontSize:13,boxSizing:"border-box",marginBottom:10}} placeholder='e.g. "Goulash"' value={changeMealRequest} onChange={e=>setChangeMealRequest(e.target.value)} onClick={e=>e.stopPropagation()} onFocus={e=>e.stopPropagation()} /><button onClick={async()=>{if(!changeMealRequest.trim())return;setChangeMealLoading(true);try{const h=JSON.parse(localStorage.getItem("sk_changeMealHistory")||"[]");const d=mealPlan[changeMealModal];if(d){h.push({meal:d.meal,protein:d.proteinUsed||null,day:d.day,ts:Date.now()});localStorage.setItem("sk_changeMealHistory",JSON.stringify(h.slice(-100)));}}catch{} const day=mealPlan[changeMealModal];const prompt=`Create a dinner meal for ${day.day} using "${changeMealRequest}". INVENTORY (items already owned — do NOT put these in needToBuy): ${inventory.map(i=>String(i.name||"")).filter(Boolean).join(", ")}. STRICT RULE: needToBuy must contain ONLY ingredients required for this meal that are NOT in the inventory list above. If an ingredient appears in inventory, it must NOT appear in needToBuy. Cross-check every needToBuy item against inventory before returning. Return JSON: {meal,ingredients:[],needToBuy:[],proteinUsed:"",sauteBagsUsed:0,quickMeal:false}.`;const res=await callClaude({system:"Meal planning AI. Return ONLY valid JSON, no markdown.",prompt,maxTokens:600});try{const resText3=typeof res==="string"?res:Array.isArray(res)?res.map(r=>r.text||"").join(""):res?.content?.[0]?.text||res?.[0]?.text||"";const raw=resText3;const s=raw.indexOf("{"),e=raw.lastIndexOf("}");const parsed=JSON.parse(raw.slice(s,e+1));setMealPlan(p=>p.map((d,i)=>i===changeMealModal?{...d,...parsed,needToBuy:parsed.needToBuy||[],shoppingNeeded:(parsed.needToBuy||[]).map(n=>typeof n==="string"?{qty:1,unit:"",name:n}:n),ingredients:parsed.ingredients||[]}:d));setChangeMealModal(null);}catch(e){alert("Could not parse meal suggestion");}setChangeMealLoading(false);}} style={{width:"100%",padding:"10px",background:"transparent",border:"1px solid "+C.accent,borderRadius:8,color:C.accent,fontFamily:FM,fontSize:13,cursor:"pointer"}}>🍽 {changeMealLoading?"Thinking...":"Make This Meal"}</button></div><button onClick={()=>setChangeMealModal(null)} style={{width:"100%",padding:"8px",background:"transparent",border:"none",color:C.muted,fontFamily:FM,fontSize:12,cursor:"pointer"}}>Cancel</button></div></div>}
+        {changeMealModal!==null&&<div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.7)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setChangeMealModal(null)}><div style={{background:C.card,borderRadius:12,padding:24,width:360,maxWidth:"90vw"}} onClick={e=>e.stopPropagation()}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+          <div style={{fontFamily:FD,fontSize:18,fontWeight:700,color:C.text}}>🔄 Change {mealPlan[changeMealModal]?.day} Meal</div>
+          <button onClick={()=>setShowOccasionPlanner(true)} style={{background:"transparent",border:"1px solid "+C.accent,borderRadius:16,color:C.accent,fontFamily:FM,fontSize:11,cursor:"pointer",padding:"5px 10px"}}>🎉 {occasionState.eventType?OCCASION_EVENT_TYPES.find(e=>e.key===occasionState.eventType)?.label:"Occasion"}</button>
+        </div><div style={{marginBottom:16}}><button onClick={async()=>{setChangeMealLoading(true);try{const h=JSON.parse(localStorage.getItem("sk_changeMealHistory")||"[]");const d=mealPlan[changeMealModal];if(d){h.push({meal:d.meal,protein:d.proteinUsed||null,day:d.day,ts:Date.now()});localStorage.setItem("sk_changeMealHistory",JSON.stringify(h.slice(-100)));}}catch{} const day=mealPlan[changeMealModal];const prompt=`${buildOccasionContext(occasionState)}Suggest a different dinner meal for ${day.day}. Current meal was: ${day.meal}. INVENTORY (items already owned — do NOT put these in needToBuy): ${inventory.map(i=>String(i.name||"")).filter(Boolean).join(", ")}. STRICT RULE: needToBuy must contain ONLY ingredients required for this meal that are NOT in the inventory list above. If an ingredient appears in inventory, it must NOT appear in needToBuy. Cross-check every needToBuy item against inventory before returning. Return JSON: {meal,ingredients:[],needToBuy:[],proteinUsed:"",sauteBagsUsed:0,quickMeal:false}.`;const res=await callClaude({system:"Meal planning AI. Return ONLY valid JSON, no markdown.",prompt,maxTokens:600});try{console.log("changeMeal res:",JSON.stringify(res));const resText=typeof res==="string"?res:Array.isArray(res)?res.map(r=>r.text||"").join(""):res?.content?.[0]?.text||res?.[0]?.text||"";const raw=resText.replace(/```json|```/g,"").trim();console.log("raw:",raw);const s=raw.indexOf("{"),e=raw.lastIndexOf("}");const parsed=JSON.parse(raw.slice(s,e+1));setMealPlan(p=>p.map((d,i)=>i===changeMealModal?{...d,...parsed,needToBuy:parsed.needToBuy||[],shoppingNeeded:(parsed.needToBuy||[]).map(n=>typeof n==="string"?{qty:1,unit:"",name:n}:n),ingredients:parsed.ingredients||[]}:d));setChangeMealModal(null);}catch(err){console.error("Parse error:",err);alert("Could not parse meal suggestion");}setChangeMealLoading(false);}} style={{width:"100%",padding:"10px",background:C.accent,border:"none",borderRadius:8,color:"#000",fontFamily:FM,fontSize:13,fontWeight:600,cursor:"pointer",marginBottom:10}}>✨ {changeMealLoading?"Thinking...":"Surprise Me"}</button><div style={{fontFamily:FM,fontSize:12,color:C.muted,marginBottom:8}}>— or request a specific meal —</div><input style={{width:"100%",padding:"8px",background:C.surface,border:"1px solid "+C.border,borderRadius:6,color:C.text,fontFamily:FM,fontSize:13,boxSizing:"border-box",marginBottom:10}} placeholder='e.g. "Goulash"' value={changeMealRequest} onChange={e=>setChangeMealRequest(e.target.value)} onClick={e=>e.stopPropagation()} onFocus={e=>e.stopPropagation()} /><button onClick={async()=>{if(!changeMealRequest.trim())return;setChangeMealLoading(true);try{const h=JSON.parse(localStorage.getItem("sk_changeMealHistory")||"[]");const d=mealPlan[changeMealModal];if(d){h.push({meal:d.meal,protein:d.proteinUsed||null,day:d.day,ts:Date.now()});localStorage.setItem("sk_changeMealHistory",JSON.stringify(h.slice(-100)));}}catch{} const day=mealPlan[changeMealModal];const prompt=`Create a dinner meal for ${day.day} using "${changeMealRequest}". INVENTORY (items already owned — do NOT put these in needToBuy): ${inventory.map(i=>String(i.name||"")).filter(Boolean).join(", ")}. STRICT RULE: needToBuy must contain ONLY ingredients required for this meal that are NOT in the inventory list above. If an ingredient appears in inventory, it must NOT appear in needToBuy. Cross-check every needToBuy item against inventory before returning. Return JSON: {meal,ingredients:[],needToBuy:[],proteinUsed:"",sauteBagsUsed:0,quickMeal:false}.`;const res=await callClaude({system:"Meal planning AI. Return ONLY valid JSON, no markdown.",prompt,maxTokens:600});try{const resText3=typeof res==="string"?res:Array.isArray(res)?res.map(r=>r.text||"").join(""):res?.content?.[0]?.text||res?.[0]?.text||"";const raw=resText3;const s=raw.indexOf("{"),e=raw.lastIndexOf("}");const parsed=JSON.parse(raw.slice(s,e+1));setMealPlan(p=>p.map((d,i)=>i===changeMealModal?{...d,...parsed,needToBuy:parsed.needToBuy||[],shoppingNeeded:(parsed.needToBuy||[]).map(n=>typeof n==="string"?{qty:1,unit:"",name:n}:n),ingredients:parsed.ingredients||[]}:d));setChangeMealModal(null);}catch(e){alert("Could not parse meal suggestion");}setChangeMealLoading(false);}} style={{width:"100%",padding:"10px",background:"transparent",border:"1px solid "+C.accent,borderRadius:8,color:C.accent,fontFamily:FM,fontSize:13,cursor:"pointer"}}>🍽 {changeMealLoading?"Thinking...":"Make This Meal"}</button></div><button onClick={()=>setChangeMealModal(null)} style={{width:"100%",padding:"8px",background:"transparent",border:"none",color:C.muted,fontFamily:FM,fontSize:12,cursor:"pointer"}}>Cancel</button></div></div>}
 {/* == SHOPPING == */}
         {!loading&&tab==="shopping"&&(
           <div>
@@ -3103,7 +3151,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
             <div>
               {/* Overall verdict banner */}
               <div style={{background:canIHaveResult.overall==="YES"?"#14532d":canIHaveResult.overall==="LIMITED"?"#d97706":"#dc2626",borderRadius:10,padding:"14px 16px",marginBottom:10,display:"flex",alignItems:"center",gap:12}}>
-                <div style={{fontSize:36,lineHeight:1}}>{canIHaveResult.overall==="YES"?"✅":canIHaveResult.overall==="LIMITED"?"⚠️":"❌"}</div>
+                <div style={{fontSize:36,lineHeight:1}}>{canIHaveResult.overall==="YES"?"✅":canIHaveResult.overall==="LIMITED"?"⚠":"❌"}</div>
                 <div>
                   <div style={{fontSize:18,fontWeight:700,color:"#fff",fontFamily:FD}}>{canIHaveResult.overall==="YES"?"Safe to Eat":canIHaveResult.overall==="LIMITED"?"Use Caution":"Not Recommended"}</div>
                   <div style={{fontSize:12,color:"rgba(255,255,255,0.85)",marginTop:2}}>{canIHaveResult.summary}</div>
@@ -3116,7 +3164,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                   <div style={{fontSize:10,fontFamily:FM,color:C.muted,marginBottom:6}}>PER MEMBER</div>
                   {canIHaveResult.members.map((m,i)=>(
                     <div key={i} style={{display:"flex",alignItems:"flex-start",gap:10,padding:"8px 10px",borderRadius:8,marginBottom:4,background:m.verdict==="YES"?C.green+"11":m.verdict==="LIMITED"?"#d9770611":"#dc262611",border:"1px solid "+(m.verdict==="YES"?C.green+"33":m.verdict==="LIMITED"?"#d9770633":"#dc262633")}}>
-                      <span style={{fontSize:16,lineHeight:1.4}}>{m.verdict==="YES"?"✅":m.verdict==="LIMITED"?"⚠️":"❌"}</span>
+                      <span style={{fontSize:16,lineHeight:1.4}}>{m.verdict==="YES"?"✅":m.verdict==="LIMITED"?"⚠":"❌"}</span>
                       <div>
                         <div style={{fontSize:12,fontWeight:700,color:C.text,fontFamily:FM}}>{m.name}</div>
                         <div style={{fontSize:11,color:C.muted,marginTop:1}}>{m.reason}</div>
@@ -3142,7 +3190,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
               <div style={{fontFamily:FD,fontSize:24,lineHeight:1.3,flex:1}}>{activeRecipe.name}</div>
               <button onClick={()=>setActiveRecipe(null)} style={{background:"transparent",border:"none",color:C.muted,cursor:"pointer",fontSize:20}}>✕</button>
             </div>
-            {(()=>{const warns=getMedicalWarnings(activeRecipe.name);if(!warns.length)return null;return(<div style={{display:"flex",flexDirection:"column",gap:3,marginBottom:10}}>{warns.filter(w=>w.enforcement==="strict").map((w,i)=>(<div key={"rs"+i} style={{fontSize:11,background:"#dc2626",color:"#fff",padding:"5px 10px",borderRadius:6,fontFamily:FM,display:"flex",alignItems:"center",gap:6,border:"1px solid #991b1b"}}>🚫 <span><strong>{w.member}</strong> — {w.msg}</span></div>))}{warns.filter(w=>w.enforcement==="warn").map((w,i)=>(<div key={"rw"+i} style={{fontSize:11,background:"#d97706",color:"#fff",padding:"5px 10px",borderRadius:6,fontFamily:FM,display:"flex",alignItems:"center",gap:6,border:"1px solid #b45309"}}>⚠️ <span><strong>{w.member}</strong> — {w.msg}</span></div>))}</div>);})()}
+            {(()=>{const warns=getMedicalWarnings(activeRecipe.name);if(!warns.length)return null;return(<div style={{display:"flex",flexDirection:"column",gap:3,marginBottom:10}}>{warns.filter(w=>w.enforcement==="strict").map((w,i)=>(<div key={"rs"+i} style={{fontSize:11,background:"#dc2626",color:"#fff",padding:"5px 10px",borderRadius:6,fontFamily:FM,display:"flex",alignItems:"center",gap:6,border:"1px solid #991b1b"}}>🚫 <span><strong>{w.member}</strong> — {w.msg}</span></div>))}{warns.filter(w=>w.enforcement==="warn").map((w,i)=>(<div key={"rw"+i} style={{fontSize:11,background:"#d97706",color:"#fff",padding:"5px 10px",borderRadius:6,fontFamily:FM,display:"flex",alignItems:"center",gap:6,border:"1px solid #b45309"}}>⚠ <span><strong>{w.member}</strong> — {w.msg}</span></div>))}</div>);})()}
             {mealPhotos[activeRecipe.name]&&<div style={{marginBottom:12}}><img src={mealPhotos[activeRecipe.name]} alt={activeRecipe.name} style={{width:"100%",maxHeight:200,objectFit:"cover",borderRadius:10,border:"1px solid "+C.borderLight}} /></div>}
             <div style={{color:C.muted,fontSize:13,marginBottom:14,lineHeight:1.6}}>{activeRecipe.description}</div>
             <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap"}}>
@@ -3641,6 +3689,116 @@ What can I substitute and do I have what I need?`,
         </div>
       )}
       {/* == MAKE THIS MODAL == */}
+
+      {/* ── Occasion Planner Modal ── */}
+      {showOccasionPlanner&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.78)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:600,padding:16}} onClick={()=>setShowOccasionPlanner(false)}>
+          <div style={{background:C.card,border:"1px solid "+C.border,borderRadius:18,padding:24,maxWidth:460,width:"100%",maxHeight:"90vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+              <div style={{fontFamily:FD,fontSize:22,color:C.accent}}>🎉 Occasion Planner</div>
+              <button onClick={()=>setShowOccasionPlanner(false)} style={{background:C.surface,border:"1px solid "+C.border,borderRadius:6,color:C.text,cursor:"pointer",fontSize:16,padding:"4px 10px",fontWeight:600}}>✕</button>
+            </div>
+            <div style={{fontFamily:FM,fontSize:12,color:C.muted,marginBottom:18}}>Tell Smart Kitchen what you are cooking for and it will tailor every suggestion.</div>
+
+            {/* Event Type */}
+            <div style={{fontFamily:FM,fontSize:12,fontWeight:600,color:C.text,marginBottom:8}}>What is the occasion?</div>
+            <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16}}>
+              {OCCASION_EVENT_TYPES.map(ev=>(
+                <button key={ev.key} onClick={()=>setOccasionState(s=>({...s,eventType:s.eventType===ev.key?"":ev.key}))}
+                  style={{padding:"8px 14px",borderRadius:20,border:"1px solid "+(occasionState.eventType===ev.key?C.accent:C.border),
+                  background:occasionState.eventType===ev.key?C.accent+"22":"transparent",
+                  color:occasionState.eventType===ev.key?C.accent:C.text,fontFamily:FM,fontSize:seniorMode?15:12,cursor:"pointer",fontWeight:600}}>
+                  {ev.emoji} {ev.label}
+                  <div style={{fontSize:9,color:C.muted,fontWeight:400,marginTop:1}}>{ev.desc}</div>
+                </button>
+              ))}
+            </div>
+
+            {/* Audience Type */}
+            <div style={{fontFamily:FM,fontSize:12,fontWeight:600,color:C.text,marginBottom:8}}>Who is joining you?</div>
+            <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16}}>
+              {OCCASION_AUDIENCE_TYPES.map(au=>(
+                <button key={au.key} onClick={()=>setOccasionState(s=>({...s,audienceType:au.key}))}
+                  style={{padding:"8px 14px",borderRadius:20,border:"1px solid "+(occasionState.audienceType===au.key?C.accent:C.border),
+                  background:occasionState.audienceType===au.key?C.accent+"22":"transparent",
+                  color:occasionState.audienceType===au.key?C.accent:C.text,fontFamily:FM,fontSize:seniorMode?15:12,cursor:"pointer",fontWeight:600}}>
+                  {au.emoji} {au.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Head Count + Mode row */}
+            <div style={{display:"flex",gap:10,marginBottom:16,flexWrap:"wrap"}}>
+              <div style={{flex:1,minWidth:120}}>
+                <div style={{fontFamily:FM,fontSize:12,fontWeight:600,color:C.text,marginBottom:6}}>Head count</div>
+                <input type="number" min="1" max="50" placeholder={String(activeProfiles.length||4)}
+                  value={occasionState.headCount}
+                  onChange={e=>setOccasionState(s=>({...s,headCount:e.target.value}))}
+                  style={{width:"100%",background:C.surface,border:"1px solid "+C.border,borderRadius:8,padding:"8px 10px",color:C.text,fontFamily:FM,fontSize:13,boxSizing:"border-box"}}/>
+              </div>
+              <div style={{flex:2,minWidth:160}}>
+                <div style={{fontFamily:FM,fontSize:12,fontWeight:600,color:C.text,marginBottom:6}}>Mode</div>
+                <div style={{display:"flex",gap:6}}>
+                  {[["use","Use What I Have"],["surprise","Surprise Me"]].map(([k,label])=>(
+                    <button key={k} onClick={()=>setOccasionState(s=>({...s,mode:k}))}
+                      style={{flex:1,padding:"8px 6px",borderRadius:8,border:"1px solid "+(occasionState.mode===k?C.accent:C.border),
+                      background:occasionState.mode===k?C.accent+"22":"transparent",color:occasionState.mode===k?C.accent:C.text,
+                      fontFamily:FM,fontSize:seniorMode?14:11,cursor:"pointer",fontWeight:600}}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Budget — only for Surprise Me */}
+            {occasionState.mode==="surprise"&&(
+              <div style={{marginBottom:16}}>
+                <div style={{fontFamily:FM,fontSize:12,fontWeight:600,color:C.text,marginBottom:8}}>Budget</div>
+                <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                  {OCCASION_BUDGETS.map(b=>(
+                    <button key={b} onClick={()=>setOccasionState(s=>({...s,budget:s.budget===b?"":b}))}
+                      style={{padding:"6px 12px",borderRadius:16,border:"1px solid "+(occasionState.budget===b?C.accent:C.border),
+                      background:occasionState.budget===b?C.accent+"22":"transparent",
+                      color:occasionState.budget===b?C.accent:C.text,fontFamily:FM,fontSize:11,cursor:"pointer"}}>
+                      {b}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Guest dietary restrictions */}
+            <div style={{marginBottom:16}}>
+              <div style={{fontFamily:FM,fontSize:12,fontWeight:600,color:C.text,marginBottom:6}}>Guest dietary needs <span style={{fontWeight:400,color:C.muted}}>(optional)</span></div>
+              <input placeholder="e.g. nut allergy, vegetarian guest"
+                value={occasionState.guestRestrictions}
+                onChange={e=>setOccasionState(s=>({...s,guestRestrictions:e.target.value}))}
+                style={{width:"100%",background:C.surface,border:"1px solid "+C.border,borderRadius:8,padding:"8px 10px",color:C.text,fontFamily:FM,fontSize:13,boxSizing:"border-box"}}/>
+            </div>
+
+            {/* Special note */}
+            <div style={{marginBottom:20}}>
+              <div style={{fontFamily:FM,fontSize:12,fontWeight:600,color:C.text,marginBottom:6}}>Anything else? <span style={{fontWeight:400,color:C.muted}}>(optional)</span></div>
+              <input placeholder='e.g. "Something impressive but not fussy"'
+                value={occasionState.note}
+                onChange={e=>setOccasionState(s=>({...s,note:e.target.value}))}
+                style={{width:"100%",background:C.surface,border:"1px solid "+C.border,borderRadius:8,padding:"8px 10px",color:C.text,fontFamily:FM,fontSize:13,boxSizing:"border-box"}}/>
+            </div>
+
+            {/* Actions */}
+            <div style={{display:"flex",gap:10}}>
+              <button onClick={()=>{setOccasionState({eventType:"",audienceType:"family",headCount:"",mode:"use",budget:"",guestRestrictions:"",note:""});setShowOccasionPlanner(false);}}
+                style={{...bBtn("ghost"),flex:1,padding:"11px"}}>Clear &amp; Close</button>
+              <button onClick={()=>setShowOccasionPlanner(false)}
+                style={{...bBtn("primary"),flex:2,padding:"11px",fontSize:14}}>
+                {occasionState.eventType?"Apply Occasion ✓":"Close"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {makeThisModal&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:400,padding:16}} onClick={()=>{if(!makeThisLoading){setMakeThisModal(false);}}}>
           <div style={{background:C.card,border:"1px solid "+C.border,borderRadius:18,padding:28,maxWidth:480,width:"100%"}} onClick={e=>e.stopPropagation()}>
