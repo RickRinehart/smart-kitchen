@@ -885,6 +885,26 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
         return (p.name||r?.label||"Person")+": "+parts.join(", ");
       }).join("; ")+". ";
     }
+    // Age-aware context
+    const today=new Date();
+    const profilesWithDob=activeProfiles.filter(p=>p.dob);
+    if(profilesWithDob.length>0){
+      const ageNotes=profilesWithDob.map(p=>{
+        const age=Math.floor((today-new Date(p.dob+"T12:00:00"))/(1000*60*60*24*365.25));
+        const bday=new Date(p.dob+"T12:00:00");
+        const nextBday=new Date(today.getFullYear(),bday.getMonth(),bday.getDate());
+        if(nextBday<today) nextBday.setFullYear(today.getFullYear()+1);
+        const daysUntil=Math.ceil((nextBday-today)/(1000*60*60*24));
+        let note=(p.name||"Person")+" is "+age+" years old";
+        if(age<3) note+=" (toddler — soft foods, no choking hazards, very small portions)";
+        else if(age<12) note+=" (child — kid-friendly portions and flavors)";
+        else if(age<18) note+=" (teen)";
+        else if(age>=70) note+=" (senior — soft easy-to-chew options appreciated)";
+        if(daysUntil<=7) note+=" — BIRTHDAY IN "+daysUntil+" DAYS: suggest a special birthday dinner or dessert this week!";
+        return note;
+      });
+      s+="AGES: "+ageNotes.join("; ")+". ";
+    }
     const athletes=activeProfiles.filter(p=>p.restriction==="athlete");
     if(athletes.length>0) s+=athletes.length+" teen athlete(s) need larger portions. ";
     // Medical+ profiles injection
@@ -2398,6 +2418,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                 </div>
               </div>
             )}
+            {(()=>{const tod=new Date();return activeProfiles.filter(p=>p.dob).find(p=>{const b=new Date(p.dob+"T12:00:00");const nb=new Date(tod.getFullYear(),b.getMonth(),b.getDate());if(nb<tod) nb.setFullYear(tod.getFullYear()+1);return Math.ceil((nb-tod)/(1000*60*60*24))<=7;});})()&&(()=>{const tod=new Date();const bPerson=activeProfiles.filter(p=>p.dob).find(p=>{const b=new Date(p.dob+"T12:00:00");const nb=new Date(tod.getFullYear(),b.getMonth(),b.getDate());if(nb<tod) nb.setFullYear(tod.getFullYear()+1);return Math.ceil((nb-tod)/(1000*60*60*24))<=7;});const b2=new Date(bPerson.dob+"T12:00:00");const nb2=new Date(tod.getFullYear(),b2.getMonth(),b2.getDate());if(nb2<tod) nb2.setFullYear(tod.getFullYear()+1);const days=Math.ceil((nb2-tod)/(1000*60*60*24));return <div style={{background:"#f59e0b22",border:"1px solid #f59e0b44",borderRadius:10,padding:"10px 14px",marginBottom:10,display:"flex",alignItems:"center",gap:10,cursor:"pointer"}} onClick={()=>{setShowOccasionPlanner(true);setOccasionState(s=>({...s,eventType:"party",audienceType:"family"}));setOccasionStep("form");}}><span style={{fontSize:20}}>🎂</span><div><div style={{fontFamily:FM,fontSize:12,fontWeight:700,color:"#d97706"}}>{bPerson.name||"Someone"} has a birthday in {days} day{days===1?"":"s"}!</div><div style={{fontFamily:FM,fontSize:11,color:C.muted}}>Tap to plan a birthday dinner.</div></div></div>;})()}
             {occasionState.eventType&&<div style={{background:C.accent+"18",border:"1px solid "+C.accent+"44",borderRadius:10,padding:"8px 14px",marginBottom:10,display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
               <span style={{fontSize:16}}>{OCCASION_EVENT_TYPES.find(e=>e.key===occasionState.eventType)?.emoji||""}</span>
               <span style={{fontFamily:FM,fontSize:12,color:C.accent,fontWeight:600}}>{OCCASION_EVENT_TYPES.find(e=>e.key===occasionState.eventType)?.label} · {OCCASION_AUDIENCE_TYPES.find(a=>a.key===occasionState.audienceType)?.label}{occasionState.headCount?" · "+occasionState.headCount+" people":""}</span>
@@ -2675,7 +2696,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                     </div>
                     {isEditing&&(
                       <div style={{display:"flex",flexDirection:"column",gap:10}}>
-                        <div><Label>NAME</Label><input style={bInp} placeholder={"Family member "+(idx+1)} value={profile.name} onChange={e=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,name:e.target.value}:pr))}/></div>
+                        <div><Label>NAME</Label><input style={bInp} placeholder={"Family member "+(idx+1)} value={profile.name} onChange={e=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,name:e.target.value}:pr))}/></div><div style={{marginTop:10}}><Label>DATE OF BIRTH <span style={{fontWeight:400,color:C.muted,fontSize:9}}>(optional)</span></Label><input type="date" style={{...bInp,colorScheme:darkMode?"dark":"light"}} value={profile.dob||""} max={new Date().toISOString().split("T")[0]} onChange={e=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,dob:e.target.value}:pr))}/>{profile.dob&&(()=>{const age=Math.floor((new Date()-new Date(profile.dob+"T12:00:00"))/(1000*60*60*24*365.25));const today=new Date();const bday=new Date(profile.dob+"T12:00:00");const nextBday=new Date(today.getFullYear(),bday.getMonth(),bday.getDate());if(nextBday<today) nextBday.setFullYear(today.getFullYear()+1);const daysUntil=Math.ceil((nextBday-today)/(1000*60*60*24));return <div style={{fontFamily:FM,fontSize:11,color:C.muted,marginTop:4,display:"flex",gap:10,flexWrap:"wrap"}}><span style={{color:C.text,fontWeight:600}}>Age {age}</span>{daysUntil<=30&&<span style={{color:C.accent,fontWeight:600}}>🎂 Birthday in {daysUntil} day{daysUntil===1?"":"s"}!</span>}{daysUntil>30&&daysUntil<=365&&<span>🎂 Birthday in {daysUntil} days</span>}</div>;})()}</div>
                         <div>
                           <Label>ROLE</Label>
                           <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
