@@ -614,6 +614,15 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [frServings,setFrServings]=useState(4);
   const [frDraft,setFrDraft]=useState({name:"",kitchenOf:"",notes:"",servings:4,ingredients:[],steps:[],rotation:false,frequency:"4week",seasons:[],photo:null});
   const [canIHaveOpen,setCanIHaveOpen]=useState(false);
+  const [showScaleModal,setShowScaleModal]=useState(false);
+  const [scaleDevice,setScaleDevice]=useState(null);
+  const [scaleWeight,setScaleWeight]=useState(null);
+  const [scaleUnit,setScaleUnit]=useState("g");
+  const [scaleConnecting,setScaleConnecting]=useState(false);
+  const [scaleFoodName,setScaleFoodName]=useState("");
+  const [scaleCalcResult,setScaleCalcResult]=useState(null);
+  const [scaleCalcLoading,setScaleCalcLoading]=useState(false);
+  const [scaleError,setScaleError]=useState("");
   const [canIHaveText,setCanIHaveText]=useState("");
   const [canIHaveImg,setCanIHaveImg]=useState(null);
   const [canIHaveLoading,setCanIHaveLoading]=useState(false);
@@ -2089,6 +2098,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
           <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px",border:"1px solid "+C.accent,color:C.accent}} onClick={()=>{setMakeThisModal(true);setMakeThisInput("");setMakeThisResult(null);}}>🍽 Make This</button>
           <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px",border:"1px solid #b45309",color:"#b45309"}} onClick={()=>{setFamilyRecipesOpen(true);setFrAddMode(null);setFrEditRecipe(null);setFrViewRecipe(null);}}>📖 Family Recipes</button>
           {(restrictedProfiles.length>0||can.medicalCompliance)&&<button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px",border:"1px solid #dc2626",color:"#dc2626",fontWeight:600}} onClick={()=>{setCanIHaveOpen(true);setCanIHaveImg(null);setCanIHaveResult(null);setCanIHaveText("");}}>Can I Have This?</button>}
+          {can.medicalCompliance&&<button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px",border:"1px solid #3b82f6",color:"#3b82f6",fontWeight:600}} onClick={()=>{setShowScaleModal(true);setScaleError("");setScaleCalcResult(null);}}>⚖ Scale</button>}
           <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px",border:"1px solid "+C.accent,color:C.accent,fontWeight:600}} onClick={()=>{setShowOccasionPlanner(true);setOccasionStep("form");setOccasionResult(null);setOccasionDate("");}}>🎉 Plan Occasion</button>
         </div>
       </div>
@@ -3836,6 +3846,119 @@ What can I substitute and do I have what I need?`,
       )}
       {/* == MAKE THIS MODAL == */}
 
+
+
+      {/* -- Bluetooth Scale Modal (Medical+) -- */}
+      {showScaleModal&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.82)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:650,padding:16}} onClick={()=>{setShowScaleModal(false);disconnectScale();}}>
+          <div style={{background:C.card,border:"1px solid "+C.border,borderRadius:18,padding:24,maxWidth:400,width:"100%",maxHeight:"90vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
+
+            {/* Header */}
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+              <div style={{fontFamily:FD,fontSize:20,color:"#3b82f6"}}>⚖ Portion Scale</div>
+              <button onClick={()=>{setShowScaleModal(false);disconnectScale();}} style={{background:C.surface,border:"1px solid "+C.border,borderRadius:6,color:C.text,cursor:"pointer",fontSize:15,padding:"3px 9px"}}>x</button>
+            </div>
+
+            {/* Browser check */}
+            {!navigator.bluetooth&&(
+              <div style={{background:"#dc262612",border:"1px solid #dc262644",borderRadius:10,padding:12,marginBottom:16}}>
+                <div style={{fontFamily:FM,fontSize:12,fontWeight:700,color:"#dc2626",marginBottom:4}}>Browser Not Supported</div>
+                <div style={{fontFamily:FM,fontSize:11,color:C.muted,lineHeight:1.5}}>Web Bluetooth requires Chrome or Edge on Android, Windows, or Mac. It does not work on iOS Safari or Firefox.</div>
+              </div>
+            )}
+
+            {/* Connect / Status */}
+            {!scaleDevice?(
+              <div style={{textAlign:"center",padding:"20px 0"}}>
+                <div style={{fontSize:48,marginBottom:12}}>⚖</div>
+                <div style={{fontFamily:FM,fontSize:13,color:C.muted,marginBottom:16,lineHeight:1.5}}>
+                  Connect your Bluetooth kitchen scale to weigh portions and get instant calorie estimates.
+                </div>
+                <div style={{fontFamily:FM,fontSize:11,color:C.muted,marginBottom:16}}>
+                  Compatible: <strong style={{color:C.text}}>Etekcity ESN00</strong> · Renpho ES-SNG01 (coming soon)
+                </div>
+                <button onClick={connectScale} disabled={scaleConnecting||!navigator.bluetooth}
+                  style={{...bBtn("primary"),padding:"12px 24px",fontSize:14,opacity:(!navigator.bluetooth)?0.5:1}}>
+                  {scaleConnecting?"Searching...":"Connect Scale"}
+                </button>
+                {scaleError&&<div style={{fontFamily:FM,fontSize:11,color:"#dc2626",marginTop:12,lineHeight:1.5}}>{scaleError}</div>}
+                <div style={{fontFamily:FM,fontSize:10,color:C.muted,marginTop:12}}>Make sure your scale is powered on and nearby.</div>
+              </div>
+            ):(
+              <div>
+                {/* Live weight display */}
+                <div style={{background:C.surface,borderRadius:14,padding:20,textAlign:"center",marginBottom:16,border:"2px solid #3b82f644"}}>
+                  <div style={{fontFamily:FM,fontSize:11,color:"#3b82f6",fontWeight:600,marginBottom:4}}>CONNECTED · LIVE READING</div>
+                  <div style={{fontFamily:FD,fontSize:seniorMode?52:42,color:C.text,lineHeight:1}}>
+                    {scaleWeight!==null?scaleWeight.toFixed(1):"---"}
+                  </div>
+                  <div style={{fontFamily:FM,fontSize:16,color:C.muted}}>grams</div>
+                  {scaleWeight>0&&<div style={{fontFamily:FM,fontSize:11,color:C.muted,marginTop:4}}>{(scaleWeight/28.35).toFixed(2)} oz · {(scaleWeight/453.6).toFixed(3)} lb</div>}
+                </div>
+
+                {/* Food name input */}
+                <div style={{marginBottom:12}}>
+                  <div style={{fontFamily:FM,fontSize:12,fontWeight:600,color:C.text,marginBottom:6}}>What are you weighing?</div>
+                  <input placeholder='e.g. "Chicken breast" or "Brown rice cooked"'
+                    value={scaleFoodName}
+                    onChange={e=>setScaleFoodName(e.target.value)}
+                    onKeyDown={e=>e.key==="Enter"&&calcScaleNutrition()}
+                    style={{...bInp,fontSize:13}}/>
+                </div>
+
+                {/* Estimate button */}
+                <button onClick={calcScaleNutrition}
+                  disabled={!scaleFoodName.trim()||!scaleWeight||scaleCalcLoading}
+                  style={{...bBtn("primary"),width:"100%",padding:"11px",fontSize:13,marginBottom:12,
+                  opacity:(!scaleFoodName.trim()||!scaleWeight)?0.5:1}}>
+                  {scaleCalcLoading?"Calculating...":"Estimate Nutrition"}
+                </button>
+
+                {/* Nutrition result */}
+                {scaleCalcResult&&(
+                  <div style={{background:C.surface,borderRadius:12,padding:16,marginBottom:12}}>
+                    <div style={{fontFamily:FM,fontSize:12,fontWeight:700,color:C.text,marginBottom:10}}>
+                      {scaleFoodName} · {scaleWeight?.toFixed(1)}g
+                    </div>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                      {[
+                        ["Calories","cal",scaleCalcResult.calories,"#f59e0b"],
+                        ["Protein","g",scaleCalcResult.protein_g,"#3b82f6"],
+                        ["Carbs","g",scaleCalcResult.carbs_g,"#22c55e"],
+                        ["Fat","g",scaleCalcResult.fat_g,"#ef4444"],
+                        ["Fiber","g",scaleCalcResult.fiber_g,"#8b5cf6"],
+                        ["Sodium","mg",scaleCalcResult.sodium_mg,"#64748b"],
+                      ].map(([label,unit,val,color])=>(
+                        <div key={label} style={{background:C.card,borderRadius:8,padding:"10px 12px",border:"1px solid "+C.border}}>
+                          <div style={{fontFamily:FM,fontSize:10,color:C.muted,marginBottom:2}}>{label}</div>
+                          <div style={{fontFamily:FD,fontSize:seniorMode?20:16,color:color}}>{val??"-"}<span style={{fontSize:10,color:C.muted}}> {unit}</span></div>
+                        </div>
+                      ))}
+                    </div>
+                    {scaleCalcResult.notes&&<div style={{fontFamily:FM,fontSize:11,color:C.muted,marginTop:8,lineHeight:1.5}}>{scaleCalcResult.notes}</div>}
+                  </div>
+                )}
+
+                {scaleError&&<div style={{fontFamily:FM,fontSize:11,color:"#dc2626",marginBottom:8}}>{scaleError}</div>}
+
+                <button onClick={disconnectScale} style={{...bBtn("ghost"),width:"100%",padding:"9px",fontSize:12,color:"#dc2626",border:"1px solid #dc262644"}}>
+                  Disconnect Scale
+                </button>
+              </div>
+            )}
+
+            {/* Setup instructions */}
+            <div style={{background:C.surface,borderRadius:10,padding:12,marginTop:14}}>
+              <div style={{fontFamily:FM,fontSize:11,fontWeight:700,color:C.text,marginBottom:4}}>Recommended Scale</div>
+              <div style={{fontFamily:FM,fontSize:11,color:C.muted,lineHeight:1.5}}>
+                <strong style={{color:C.text}}>Etekcity ESN00</strong> — ~$25 on Amazon. Fully compatible, open protocol.<br/>
+                Search "Etekcity ESN00 Smart Nutrition Scale" on Amazon.
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
 
       {/* -- Twilio SMS Setup Help Modal -- */}
       {showSmsHelp&&(
