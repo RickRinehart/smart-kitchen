@@ -6,8 +6,8 @@ export default async function handler(req, res) {
 
   // No API key — return search fallback URL
   if (!apiKey) {
-    const terms = items.slice(0, 10).map(i => encodeURIComponent(i.name || i)).join('+');
-    const fallbackUrl = `https://www.instacart.com/store/search_v3/term?term=${terms}`;
+    const terms = items.slice(0, 10).map(i => encodeURIComponent((i.name || i).trim())).filter(Boolean).join('+').replace(/%20/g,'+');
+    const fallbackUrl = `https://www.instacart.com/products/search?q=${terms}`;
     return res.status(200).json({ success: false, fallback: true, url: fallbackUrl });
   }
 
@@ -46,19 +46,19 @@ export default async function handler(req, res) {
 
     // API returned error — fall back to search
     console.error('Instacart API error:', JSON.stringify(data));
-    const terms = items.slice(0, 10).map(i => encodeURIComponent(i.name || i)).join('+');
+    const terms = items.slice(0, 10).map(i => encodeURIComponent((i.name || i).trim())).filter(Boolean).join('+').replace(/%20/g,'+');
     return res.status(200).json({
       success: false, fallback: true,
-      url: `https://www.instacart.com/store/search_v3/term?term=${terms}`,
+      url: `https://www.instacart.com/products/search?q=${terms}`,
       error: data.message || 'Instacart API error'
     });
 
   } catch (e) {
     console.error('Instacart fetch error:', e.message);
-    const terms = items.slice(0, 10).map(i => encodeURIComponent(i.name || i)).join('+');
+    const terms = items.slice(0, 10).map(i => encodeURIComponent((i.name || i).trim())).filter(Boolean).join('+').replace(/%20/g,'+');
     return res.status(200).json({
       success: false, fallback: true,
-      url: `https://www.instacart.com/store/search_v3/term?term=${terms}`
+      url: `https://www.instacart.com/products/search?q=${terms}`
     });
   }
 }
