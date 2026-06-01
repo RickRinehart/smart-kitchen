@@ -2135,7 +2135,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
             </div>
           </div>
           <button onClick={()=>setShowSettings(true)} title="Settings"
-            style={{background:"transparent",border:"1px solid "+C.border,borderRadius:8,color:C.muted,cursor:"pointer",fontSize:seniorMode?22:16,padding:seniorMode?"8px 12px":"5px 9px",marginTop:2,lineHeight:1,transition:"all 0.15s"}}
+            style={{background:"transparent",border:"2px solid "+C.accent+"66",borderRadius:8,color:C.accent,cursor:"pointer",fontSize:seniorMode?26:22,padding:seniorMode?"8px 12px":"6px 10px",marginTop:2,lineHeight:1,transition:"all 0.15s"}}
             onMouseOver={e=>e.currentTarget.style.color=C.accent}
             onMouseOut={e=>e.currentTarget.style.color=C.muted}>
             ⚙
