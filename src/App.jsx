@@ -1599,6 +1599,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
   };
 
   const buildMealPlan=async()=>{
+    const occCtx=buildOccasionContext(occasionState)+(occasionCustomText?" Special occasion name: "+occasionCustomText+"":"");
     if(!can.sevenDayPlan){
       setUpgradeModal({feature:"7-Day Meal Planning",desc:"Get a personalized 7-day dinner plan built around your proteins and pantry.",icon:"📅"});
       return;
