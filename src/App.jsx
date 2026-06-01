@@ -513,6 +513,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [shopPartnerEmail,setShopPartnerEmail]=useState(()=>localStorage.getItem("sk_shopPartnerEmail")||"");
   const [shopPhone,setShopPhone]=useState(()=>localStorage.getItem("sk_shopPhone")||"");
   const [instacartApiKey,setInstacartApiKey]=useState(()=>localStorage.getItem("sk_instacartKey")||"");
+  const [expandedIngDay,setExpandedIngDay]=useState(null);
   const [instacartStore,setInstacartStore]=useState(()=>localStorage.getItem("sk_instacartStore")||"meijer");
   const [deliveryService,setDeliveryService]=useState(()=>localStorage.getItem("sk_deliveryService")||"instacart");
   const [instacartLoading,setInstacartLoading]=useState(false);
