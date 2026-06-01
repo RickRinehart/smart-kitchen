@@ -487,6 +487,8 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [leftoversOpen,setLeftoversOpen]=useState(false);
   const [leftoversPreview,setLeftoversPreview]=useState(null);
   const [leftoversB64,setLeftoversB64]=useState(null);
+  const [leftoversUnknown,setLeftoversUnknown]=useState(false);
+  const [leftoversManualName,setLeftoversManualName]=useState("");
   const [leftoversMime,setLeftoversMime]=useState("image/jpeg");
   const [leftoversResult,setLeftoversResult]=useState(null);
   const [leftoversLoading,setLeftoversLoading]=useState(false);
@@ -3557,7 +3559,17 @@ useDays is days from today the food is safe to eat (cooked food: 3-4 days typica
                     if(!jsonMatch){setLeftoversError("Smart Kitchen couldn’t read the response — try again.");setLeftoversLoading(false);return;}
                     const parsed=JSON.parse(jsonMatch[0]);
                     if(!parsed.dish){setLeftoversError("Dish name missing from response — try a clearer photo.");setLeftoversLoading(false);return;}
-                    setLeftoversResult(parsed);
+                    // Detect unrecognized dish — low confidence or generic name
+                    const unknownNames=["unknown","unidentified","unclear","can't tell","cannot tell","not sure","food","dish","leftovers","meal","container"];
+                    const isUnknown=parsed.confidence==="low"||unknownNames.some(u=>parsed.dish.toLowerCase().includes(u));
+                    if(isUnknown){
+                      setLeftoversUnknown(true);
+                      setLeftoversManualName("");
+                      // Still store partial result for servings/useDays
+                      setLeftoversResult({...parsed,dish:""});
+                    } else {
+                      setLeftoversResult(parsed);
+                    }
                   }catch(e){
                     const msg=e.message&&e.message.toLowerCase().includes("timeout")
                       ?"Connection timed out — try again with a stronger WiFi or cellular signal, or add this leftover manually."
@@ -3571,10 +3583,47 @@ useDays is days from today the food is safe to eat (cooked food: 3-4 days typica
               )}
 
               {leftoversError&&<div style={{color:"#f66",fontSize:12,marginTop:8}}>{leftoversError}</div>}
+
+              {/* Unknown dish — ask user */}
+              {leftoversUnknown&&(
+                <div style={{background:"#f59e0b11",border:"2px solid #f59e0b44",borderRadius:12,padding:16,marginTop:12}}>
+                  <div style={{fontFamily:FM,fontSize:seniorMode?16:13,fontWeight:700,color:"#d97706",marginBottom:8}}>🤔 I'm not sure what this is</div>
+                  <div style={{fontFamily:FM,fontSize:seniorMode?14:12,color:C.muted,marginBottom:12,lineHeight:1.5}}>I can see food in the container but I'm not confident what dish it is. What did you make?</div>
+                  <input
+                    autoFocus
+                    placeholder='e.g. "Orzo Salad", "Chicken Stir Fry", "Sue's Pasta"'
+                    value={leftoversManualName}
+                    onChange={e=>setLeftoversManualName(e.target.value)}
+                    onKeyDown={e=>{
+                      if(e.key==="Enter"&&leftoversManualName.trim()){
+                        setLeftoversResult(r=>({...r,dish:leftoversManualName.trim()}));
+                        setLeftoversUnknown(false);
+                      }
+                    }}
+                    style={{width:"100%",background:C.surface,border:"2px solid #f59e0b",borderRadius:8,
+                      padding:"10px 12px",color:C.text,fontFamily:FM,fontSize:seniorMode?16:13,
+                      boxSizing:"border-box",marginBottom:10,outline:"none"}}/>
+                  <div style={{display:"flex",gap:8}}>
+                    <button
+                      onClick={()=>{setLeftoversUnknown(false);setLeftoversResult(null);setLeftoversB64(null);setLeftoversPreview(null);}}
+                      style={{...bBtn("ghost"),flex:1,padding:"9px",fontSize:12}}>Try Again</button>
+                    <button
+                      disabled={!leftoversManualName.trim()}
+                      onClick={()=>{
+                        setLeftoversResult(r=>({...r,dish:leftoversManualName.trim()}));
+                        setLeftoversUnknown(false);
+                      }}
+                      style={{...bBtn("primary"),flex:2,padding:"9px",fontSize:13,
+                        opacity:leftoversManualName.trim()?1:0.5}}>
+                      That's What It Is ✓
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
-          {leftoversResult&&(
+          {leftoversResult&&leftoversResult.dish&&(
             <div style={{background:C.card,border:"2px solid "+C.accent,borderRadius:12,padding:16,marginBottom:16}}>
               <div style={{fontSize:14,fontWeight:700,color:C.accent,marginBottom:12}}>✅ Leftover Identified</div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
