@@ -3591,7 +3591,7 @@ useDays is days from today the food is safe to eat (cooked food: 3-4 days typica
                   <div style={{fontFamily:FM,fontSize:seniorMode?14:12,color:C.muted,marginBottom:12,lineHeight:1.5}}>I can see food in the container but I'm not confident what dish it is. What did you make?</div>
                   <input
                     autoFocus
-                    placeholder='e.g. "Orzo Salad", "Chicken Stir Fry", "Sue's Pasta"'
+                    placeholder="e.g. Orzo Salad, Chicken Stir Fry, What did you make?"
                     value={leftoversManualName}
                     onChange={e=>setLeftoversManualName(e.target.value)}
                     onKeyDown={e=>{
