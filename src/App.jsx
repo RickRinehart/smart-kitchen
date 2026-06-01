@@ -2186,7 +2186,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
         </div>
         <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
           <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px"}} onClick={()=>setProfileModalOpen(true)}>👨‍👩‍👧 Family</button>
-          <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px",border:"1px solid "+(seniorMode?C.blue:C.border),color:seniorMode?C.blue:C.muted}} onClick={()=>setSeniorMode(m=>!m)}>{seniorMode?"🔤 On":"🔤 Senior"}</button>
+          <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px",border:"1px solid "+(seniorMode?C.blue:C.border),color:seniorMode?C.blue:C.muted}} onClick={()=>setSeniorMode(m=>!m)}>{seniorMode?"Aa On":"Aa Off"}</button>
           <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px"}} onClick={()=>openRepack("veg")}>🫕 Prep Veg</button>
           <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px"}} onClick={()=>openRepack("protein")} disabled={isViewer}>🥩 Repackage</button>
           <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px"}} onClick={()=>{setScanOpen(true);setScanStage("upload");setScanResults(null);setScanPreview(null);setScanB64(null);setScanMode("shelf");}} disabled={isViewer}>📷 Scan</button>       <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px"}} onClick={()=>{
@@ -2410,7 +2410,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
               <div style={{fontFamily:FD,fontSize:22,color:C.text}}>⭐ Saved Recipes</div>
               <div style={{display:"flex",gap:6}}>
                 {[["all","All"],["keepers","🏆 Keepers"],["good","👍 3+"]].map(([f,lb])=>(
-                  <button key={f} onClick={()=>setSavedRecipesFilter(f)} style={{...bBtn(savedRecipesFilter===f?"primary":"ghost"),fontSize:11,padding:"5px 10px"}}>{lb}</button>
+                  <button key={f} onClick={()=>setSavedRecipesFilter(f)} style={{...bBtn(savedRecipesFilter===f?"primary":"ghost"),fontSize:seniorMode?15:11,padding:seniorMode?"10px 16px":"5px 10px"}}>{lb}</button>
                 ))}
               </div>
             </div>
@@ -2457,12 +2457,12 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                       {(r.usesFromInventory||[]).length>0&&<span style={{...bTag(C.green),fontSize:seniorMode?14:undefined}}>✅ {r.usesFromInventory.length} on hand</span>}
                       {(r.missingIngredients||[]).length>0&&<span style={{...bTag(C.red),fontSize:seniorMode?14:undefined}}>🛒 {r.missingIngredients.length} needed</span>}
                     </div>
-                    <div style={{fontSize:seniorMode?17:11,color:C.accent,fontFamily:FM,fontWeight:seniorMode?700:400,marginBottom:10}}>TAP FOR FULL RECIPE →</div>
+                    <div style={{fontSize:seniorMode?19:11,color:C.accent,fontFamily:FM,fontWeight:700,marginBottom:10,letterSpacing:seniorMode?0.5:0}}>TAP FOR FULL RECIPE →</div>
                     <div style={{display:"flex",gap:8,marginBottom:8}}>
-                      <button onClick={e=>{e.stopPropagation();const today=new Date();const dateStr=today.toISOString().split("T")[0].replace(/-/g,"");window.open("https://calendar.google.com/calendar/render?action=TEMPLATE&text="+encodeURIComponent("Dinner: "+name)+"&dates="+dateStr+"/"+dateStr,"_blank");}} style={{flex:1,padding:"8px",borderRadius:8,border:"1px solid #5b9cf6",background:"transparent",color:"#5b9cf6",fontFamily:FM,fontSize:11,cursor:"pointer"}} disabled={isViewer}>📅 Add to Calendar</button>
+                      <button onClick={e=>{e.stopPropagation();const today=new Date();const dateStr=today.toISOString().split("T")[0].replace(/-/g,"");window.open("https://calendar.google.com/calendar/render?action=TEMPLATE&text="+encodeURIComponent("Dinner: "+name)+"&dates="+dateStr+"/"+dateStr,"_blank");}} style={{flex:1,padding:seniorMode?"14px":"8px",borderRadius:8,border:"1px solid #5b9cf6",background:"transparent",color:"#5b9cf6",fontFamily:FM,fontSize:seniorMode?16:11,cursor:"pointer"}} disabled={isViewer}>📅 Add to Calendar</button>
                     </div>
                     <div style={{display:"flex",gap:8}}>
-                      <button onClick={e=>{e.stopPropagation();if(isDesert){setDessertRatings(prev=>{const next={...prev};delete next[name];return next;});}else{setRecipeRatings(prev=>{const next={...prev};delete next[name];return next;});}}} style={{flex:1,padding:"8px",borderRadius:8,border:"1px solid "+C.red,background:"transparent",color:C.red,fontFamily:FM,fontSize:11,cursor:"pointer"}}>🗑 Remove</button>
+                      <button onClick={e=>{e.stopPropagation();if(isDesert){setDessertRatings(prev=>{const next={...prev};delete next[name];return next;});}else{setRecipeRatings(prev=>{const next={...prev};delete next[name];return next;});}}} style={{flex:1,padding:seniorMode?"14px":"8px",borderRadius:8,border:"1px solid "+C.red,background:"transparent",color:C.red,fontFamily:FM,fontSize:seniorMode?16:11,cursor:"pointer"}}>🗑 Remove</button>
                       <button onClick={e=>{e.stopPropagation();setPhotoPromptMeal(name);}} style={{padding:"8px 14px",borderRadius:8,border:"1px solid "+C.border,background:"transparent",color:C.muted,fontFamily:FM,fontSize:seniorMode?16:12,cursor:"pointer"}} title="Add or change photo" disabled={isViewer}>📸 {mealPhotos[name]?"Change Photo":"Add Photo"}</button>
                     </div>
                   </div>
