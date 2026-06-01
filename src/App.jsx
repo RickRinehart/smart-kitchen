@@ -1483,7 +1483,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     }catch(e){
       // Direct fallback
       const terms=shopping.slice(0,8).map(i=>encodeURIComponent(i.name||"")).filter(Boolean).join("+");
-      window.open("https://www.instacart.com/store/"+instacartStore+"/search_v3?q="+terms,"_blank");
+      window.open("https://www.instacart.com/store/"+instacartStore+"/search?q="+terms,"_blank");
     }
     setInstacartLoading(false);
   };
