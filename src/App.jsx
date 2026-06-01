@@ -514,6 +514,17 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [shopPhone,setShopPhone]=useState(()=>localStorage.getItem("sk_shopPhone")||"");
   const [instacartApiKey,setInstacartApiKey]=useState(()=>localStorage.getItem("sk_instacartKey")||"");
   const [expandedIngDay,setExpandedIngDay]=useState(null);
+  const [shareSelected,setShareSelected]=useState({});// {recipeKey: recipeObj}
+  const [shareMode,setShareMode]=useState(false);
+  const [showShareModal,setShowShareModal]=useState(false);
+  const [shareTitle,setShareTitle]=useState("");
+  const [shareResult,setShareResult]=useState(null);
+  const [shareLoading,setShareLoading]=useState(false);
+  const [showImportModal,setShowImportModal]=useState(false);
+  const [importCode,setImportCode]=useState("");
+  const [importResult,setImportResult]=useState(null);
+  const [importLoading,setImportLoading]=useState(false);
+  const [shareCopied,setShareCopied]=useState(false);
   const [instacartStore,setInstacartStore]=useState(()=>localStorage.getItem("sk_instacartStore")||"meijer");
   const [deliveryService,setDeliveryService]=useState(()=>localStorage.getItem("sk_deliveryService")||"instacart");
   const [instacartLoading,setInstacartLoading]=useState(false);
@@ -1487,6 +1498,83 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       window.open("https://www.instacart.com/store/"+instacartStore+"/search?q="+terms,"_blank");
     }
     setInstacartLoading(false);
+  };
+
+
+  // -- Recipe Share System ------------------------------------------------
+  const shareRecipes=async()=>{
+    const recipes=Object.values(shareSelected);
+    if(!recipes.length){alert("Select at least one recipe to share.");return;}
+    setShareLoading(true);
+    try{
+      const r=await fetch("/api/share-recipes",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+          recipes,
+          title:shareTitle||"My Recipe Collection",
+          ownerName:familyProfiles[0]?.name||"Smart Kitchen",
+          ownerUserId:user?.id||null,
+        })
+      });
+      const d=await r.json();
+      if(d.success){
+        setShareResult(d);
+      } else {
+        alert("Could not create share link: "+(d.error||"Please try again."));
+      }
+    }catch(e){
+      alert("Could not share recipes: "+e.message);
+    }
+    setShareLoading(false);
+  };
+
+  const importSharedRecipes=async()=>{
+    const code=importCode.trim().toUpperCase().replace(/[^A-Z0-9]/g,"");
+    if(code.length<6){alert("Please enter a valid share code.");return;}
+    setImportLoading(true);
+    setImportResult(null);
+    try{
+      const r=await fetch("/api/share-recipes?code="+code);
+      const d=await r.json();
+      if(d.success){
+        setImportResult(d);
+      } else {
+        alert(d.error||"Recipe collection not found.");
+      }
+    }catch(e){
+      alert("Could not fetch recipes: "+e.message);
+    }
+    setImportLoading(false);
+  };
+
+  const confirmImport=(recipes)=>{
+    // Add to saved recipes (recipeRatings) and family recipes
+    const savedToAdd=recipes.filter(r=>!r.isFamilyRecipe);
+    const familyToAdd=recipes.filter(r=>r.isFamilyRecipe);
+    if(savedToAdd.length){
+      setRecipeRatings(prev=>{
+        const next={...prev};
+        savedToAdd.forEach(r=>{
+          if(!next[r.name]) next[r.name]={rating:r.rating||3,recipe:r};
+        });
+        return next;
+      });
+    }
+    if(familyToAdd.length){
+      setFamilyRecipes(prev=>{
+        const next=[...prev];
+        familyToAdd.forEach(r=>{
+          if(!next.find(fr=>fr.name===r.name)) next.push({...r,id:Date.now()+Math.random()});
+        });
+        return next;
+      });
+    }
+    const total=recipes.length;
+    setShowImportModal(false);
+    setImportCode("");
+    setImportResult(null);
+    alert(total+" recipe"+(total>1?"s":"")+" added to your Smart Kitchen!");
   };
 
   const planOccasionMeal=async()=>{
@@ -3997,6 +4085,172 @@ What can I substitute and do I have what I need?`,
       {/* == MAKE THIS MODAL == */}
 
 
+
+
+      {/* -- Share Recipe Modal -- */}
+      {showShareModal&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.82)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:700,padding:16}} onClick={()=>{if(!shareLoading){setShowShareModal(false);if(!shareResult){setShareSelected({});setShareMode(false);}}}}>
+          <div style={{background:C.card,border:"1px solid "+C.border,borderRadius:18,padding:24,maxWidth:420,width:"100%",maxHeight:"90vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
+
+            {!shareResult?(
+              <div>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+                  <div style={{fontFamily:FD,fontSize:20,color:C.accent}}>📤 Share Recipes</div>
+                  <button onClick={()=>setShowShareModal(false)} style={{background:C.surface,border:"1px solid "+C.border,borderRadius:6,color:C.text,cursor:"pointer",fontSize:15,padding:"3px 9px"}}>x</button>
+                </div>
+
+                {/* Recipe list preview */}
+                <div style={{background:C.surface,borderRadius:10,padding:12,marginBottom:16}}>
+                  <div style={{fontFamily:FM,fontSize:11,fontWeight:700,color:C.muted,marginBottom:8}}>
+                    SHARING {Object.keys(shareSelected).length} RECIPE{Object.keys(shareSelected).length>1?"S":""}
+                  </div>
+                  {Object.values(shareSelected).map((r,i)=>(
+                    <div key={i} style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+                      <span style={{fontSize:14}}>{r.isFamilyRecipe?"📖":"⭐"}</span>
+                      <span style={{fontFamily:FM,fontSize:13,color:C.text}}>{r.name}</span>
+                      <button onClick={()=>setShareSelected(prev=>{const next={...prev};delete next[r.name];return next;})}
+                        style={{background:"transparent",border:"none",color:C.muted,cursor:"pointer",fontSize:12,marginLeft:"auto"}}>✕</button>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Collection title */}
+                <div style={{marginBottom:16}}>
+                  <div style={{fontFamily:FM,fontSize:12,fontWeight:600,color:C.text,marginBottom:6}}>
+                    Collection name <span style={{fontWeight:400,color:C.muted}}>(optional)</span>
+                  </div>
+                  <input
+                    placeholder={(familyProfiles[0]?.name||"My")+"'s Recipe Collection"}
+                    value={shareTitle}
+                    onChange={e=>setShareTitle(e.target.value)}
+                    style={{width:"100%",background:C.surface,border:"1px solid "+C.border,borderRadius:8,
+                      padding:"8px 10px",color:C.text,fontFamily:FM,fontSize:13,boxSizing:"border-box"}}/>
+                </div>
+
+                <div style={{fontFamily:FM,fontSize:11,color:C.muted,marginBottom:16,lineHeight:1.5}}>
+                  Creates a shareable link valid for 90 days. Anyone with the link can view your recipes.
+                  Smart Kitchen users can import them in one tap.
+                </div>
+
+                <div style={{display:"flex",gap:10}}>
+                  <button onClick={()=>setShowShareModal(false)} style={{...bBtn("ghost"),flex:1,padding:"10px"}}>Cancel</button>
+                  <button onClick={shareRecipes} disabled={shareLoading||!Object.keys(shareSelected).length}
+                    style={{...bBtn("primary"),flex:2,padding:"10px",fontSize:14,opacity:shareLoading?0.7:1}}>
+                    {shareLoading?"Creating link...":"Create Share Link"}
+                  </button>
+                </div>
+              </div>
+            ):(
+              <div>
+                <div style={{textAlign:"center",marginBottom:16}}>
+                  <div style={{fontSize:40,marginBottom:8}}>🎉</div>
+                  <div style={{fontFamily:FD,fontSize:20,color:C.accent,marginBottom:4}}>Link Created!</div>
+                  <div style={{fontFamily:FM,fontSize:13,color:C.muted}}>
+                    {Object.keys(shareSelected).length} recipe{Object.keys(shareSelected).length>1?"s":""} ready to share
+                  </div>
+                </div>
+
+                {/* Share code */}
+                <div style={{background:C.surface,borderRadius:12,padding:16,marginBottom:14,textAlign:"center"}}>
+                  <div style={{fontFamily:FM,fontSize:11,color:C.muted,marginBottom:6}}>SHARE CODE</div>
+                  <div style={{fontFamily:FD,fontSize:28,color:C.accent,letterSpacing:4,marginBottom:8}}>
+                    {shareResult.shareCode}
+                  </div>
+                  <div style={{fontFamily:FM,fontSize:11,color:C.muted}}>Valid for 90 days</div>
+                </div>
+
+                {/* Action buttons */}
+                <div style={{display:"flex",gap:8,marginBottom:10}}>
+                  <button onClick={()=>{navigator.clipboard.writeText(shareResult.shareUrl);setShareCopied(true);setTimeout(()=>setShareCopied(false),3000);}}
+                    style={{...bBtn(shareCopied?"ghost":"primary"),flex:1,padding:"10px",fontSize:13}}>
+                    {shareCopied?"✓ Copied!":"📋 Copy Link"}
+                  </button>
+                  <button onClick={()=>{const text="I shared "+Object.keys(shareSelected).length+" recipes with you on Smart Kitchen! Use code "+shareResult.shareCode+" or tap: "+shareResult.shareUrl;if(navigator.share){navigator.share({title:"Smart Kitchen Recipes",text});}else{window.open("sms:?body="+encodeURIComponent(text));}}}
+                    style={{...bBtn("ghost"),flex:1,padding:"10px",fontSize:13,border:"1px solid #22c55e",color:"#22c55e"}}>
+                    📱 Text Link
+                  </button>
+                </div>
+                <button onClick={()=>{const body="Hey! I shared some recipes with you on Smart Kitchen. Use code "+shareResult.shareCode+" or tap this link: "+shareResult.shareUrl;window.location.href="mailto:?subject=Smart Kitchen Recipes&body="+encodeURIComponent(body);}}
+                  style={{...bBtn("ghost"),width:"100%",padding:"10px",fontSize:13,marginBottom:12}}>
+                  ✉ Email Link
+                </button>
+
+                <button onClick={()=>{setShowShareModal(false);setShareResult(null);setShareSelected({});setShareMode(false);setShareTitle("");}}
+                  style={{...bBtn("ghost"),width:"100%",padding:"9px",fontSize:12}}>Done</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* -- Import Recipe Modal -- */}
+      {showImportModal&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.82)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:700,padding:16}} onClick={()=>{if(!importLoading){setShowImportModal(false);setImportResult(null);setImportCode("");}}}>
+          <div style={{background:C.card,border:"1px solid "+C.border,borderRadius:18,padding:24,maxWidth:420,width:"100%",maxHeight:"90vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
+
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+              <div style={{fontFamily:FD,fontSize:20,color:"#8b5cf6"}}>📥 Import Recipes</div>
+              <button onClick={()=>{setShowImportModal(false);setImportResult(null);setImportCode("");}}
+                style={{background:C.surface,border:"1px solid "+C.border,borderRadius:6,color:C.text,cursor:"pointer",fontSize:15,padding:"3px 9px"}}>x</button>
+            </div>
+
+            {!importResult?(
+              <div>
+                <div style={{fontFamily:FM,fontSize:12,color:C.muted,marginBottom:16,lineHeight:1.5}}>
+                  Got a recipe share code from a friend or family member? Enter it below to preview and import their recipes.
+                </div>
+                <input
+                  placeholder="Enter share code (e.g. BKQX-7M3P)"
+                  value={importCode}
+                  onChange={e=>setImportCode(e.target.value.toUpperCase())}
+                  onKeyDown={e=>e.key==="Enter"&&importSharedRecipes()}
+                  style={{width:"100%",background:C.surface,border:"2px solid #8b5cf6",borderRadius:8,
+                    padding:"12px 14px",color:C.text,fontFamily:FD,fontSize:seniorMode?18:15,
+                    boxSizing:"border-box",marginBottom:12,letterSpacing:2,textAlign:"center",outline:"none"}}/>
+                <div style={{display:"flex",gap:10}}>
+                  <button onClick={()=>{setShowImportModal(false);setImportCode("");}} style={{...bBtn("ghost"),flex:1,padding:"10px"}}>Cancel</button>
+                  <button onClick={importSharedRecipes} disabled={importLoading||importCode.replace(/[^A-Z0-9]/g,"").length<6}
+                    style={{...bBtn("primary"),flex:2,padding:"10px",fontSize:14,
+                      background:"#8b5cf6",opacity:importLoading?0.7:1}}>
+                    {importLoading?"Looking up...":"Find Recipes"}
+                  </button>
+                </div>
+              </div>
+            ):(
+              <div>
+                <div style={{background:C.surface,borderRadius:12,padding:14,marginBottom:14}}>
+                  <div style={{fontFamily:FD,fontSize:17,color:"#8b5cf6",marginBottom:4}}>{importResult.title}</div>
+                  <div style={{fontFamily:FM,fontSize:12,color:C.muted,marginBottom:10}}>
+                    Shared by {importResult.ownerName} · {importResult.recipeCount} recipe{importResult.recipeCount>1?"s":""}
+                  </div>
+                  <div style={{maxHeight:200,overflowY:"auto"}}>
+                    {importResult.recipes.map((r,i)=>(
+                      <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",
+                        borderBottom:"1px solid "+C.border}}>
+                        <span style={{fontSize:14}}>{r.isFamilyRecipe?"📖":"⭐"}</span>
+                        <div>
+                          <div style={{fontFamily:FM,fontSize:13,color:C.text,fontWeight:600}}>{r.name}</div>
+                          {r.time&&<div style={{fontFamily:FM,fontSize:11,color:C.muted}}>{r.time}</div>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div style={{fontFamily:FM,fontSize:11,color:C.muted,marginBottom:14,lineHeight:1.5}}>
+                  These will be added to your Saved Recipes. You can remove them anytime.
+                </div>
+                <div style={{display:"flex",gap:10}}>
+                  <button onClick={()=>setImportResult(null)} style={{...bBtn("ghost"),flex:1,padding:"10px"}}>Back</button>
+                  <button onClick={()=>confirmImport(importResult.recipes)}
+                    style={{...bBtn("primary"),flex:2,padding:"10px",fontSize:14,background:"#8b5cf6"}}>
+                    Add All to My Kitchen ✓
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* -- Bluetooth Scale Modal (Medical+) -- */}
       {showScaleModal&&(
