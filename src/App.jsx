@@ -4411,7 +4411,7 @@ What can I substitute and do I have what I need?`,
                 <div style={{background:C.surface,borderRadius:12,padding:20,marginBottom:16}}>
                   <div style={{fontFamily:FM,fontSize:11,color:C.muted,marginBottom:6}}>SHARE CODE</div>
                   <div style={{fontFamily:FD,fontSize:42,color:C.accent,letterSpacing:6,marginBottom:10}}>{shareResult.code}</div>
-                  <div style={{fontFamily:FM,fontSize:11,color:C.muted}}>Valid for 90 days · {shareSelected.length||"Selected"} recipes</div>
+                  <div style={{fontFamily:FM,fontSize:11,color:C.muted}}>Valid for 90 days · {Object.keys(shareSelected).length||"Selected"} recipes</div>
                 </div>
                 <div style={{display:"flex",gap:8,marginBottom:16}}>
                   <button onClick={()=>{navigator.clipboard?.writeText(shareResult.code);alert("Code copied!");}}
@@ -4458,15 +4458,15 @@ What can I substitute and do I have what I need?`,
                       <div style={{marginBottom:12}}>
                         <div style={{fontFamily:FM,fontSize:11,fontWeight:700,color:C.muted,marginBottom:6}}>⭐ SAVED RECIPES (3+ stars)</div>
                         {Object.entries(recipeRatings).filter(([,v])=>v?.rating>=3).map(([name,v])=>(
-                          <div key={name} onClick={()=>setShareSelected(p=>p.includes(name)?p.filter(n=>n!==name):[...p,name])}
+                          <div key={name} onClick={()=>setShareSelected(p=>{const n={...p};if(n[name])delete n[name];else n[name]={name,isFamilyRecipe:false};return n;})}
                             style={{display:"flex",alignItems:"center",gap:10,padding:"8px 10px",borderRadius:8,
-                            background:shareSelected.includes(name)?C.accent+"18":"transparent",
-                            border:"1px solid "+(shareSelected.includes(name)?C.accent:C.border),
+                            background:name in shareSelected?C.accent+"18":"transparent",
+                            border:"1px solid "+(name in shareSelected?C.accent:C.border),
                             marginBottom:4,cursor:"pointer"}}>
-                            <div style={{width:20,height:20,borderRadius:4,border:"2px solid "+(shareSelected.includes(name)?C.accent:C.border),
-                              background:shareSelected.includes(name)?C.accent:"transparent",display:"flex",alignItems:"center",
+                            <div style={{width:20,height:20,borderRadius:4,border:"2px solid "+(name in shareSelected?C.accent:C.border),
+                              background:name in shareSelected?C.accent:"transparent",display:"flex",alignItems:"center",
                               justifyContent:"center",fontSize:12,flexShrink:0}}>
-                              {shareSelected.includes(name)&&"✓"}
+                              {name in shareSelected&&"✓"}
                             </div>
                             <div style={{flex:1}}>
                               <div style={{fontFamily:FM,fontSize:13,color:C.text,fontWeight:600}}>{name}</div>
@@ -4482,15 +4482,15 @@ What can I substitute and do I have what I need?`,
                       <div style={{marginBottom:16}}>
                         <div style={{fontFamily:FM,fontSize:11,fontWeight:700,color:C.muted,marginBottom:6}}>📖 FAMILY RECIPES</div>
                         {familyRecipes.map(r=>(
-                          <div key={r.id} onClick={()=>setShareSelected(p=>p.includes(r.name)?p.filter(n=>n!==r.name):[...p,r.name])}
+                          <div key={r.id} onClick={()=>setShareSelected(p=>{const n={...p};if(n[r.name])delete n[r.name];else n[r.name]={...r,isFamilyRecipe:true};return n;})}
                             style={{display:"flex",alignItems:"center",gap:10,padding:"8px 10px",borderRadius:8,
-                            background:shareSelected.includes(r.name)?C.accent+"18":"transparent",
-                            border:"1px solid "+(shareSelected.includes(r.name)?C.accent:C.border),
+                            background:r.name in shareSelected?C.accent+"18":"transparent",
+                            border:"1px solid "+(r.name in shareSelected?C.accent:C.border),
                             marginBottom:4,cursor:"pointer"}}>
-                            <div style={{width:20,height:20,borderRadius:4,border:"2px solid "+(shareSelected.includes(r.name)?C.accent:C.border),
-                              background:shareSelected.includes(r.name)?C.accent:"transparent",display:"flex",alignItems:"center",
+                            <div style={{width:20,height:20,borderRadius:4,border:"2px solid "+(r.name in shareSelected?C.accent:C.border),
+                              background:r.name in shareSelected?C.accent:"transparent",display:"flex",alignItems:"center",
                               justifyContent:"center",fontSize:12,flexShrink:0}}>
-                              {shareSelected.includes(r.name)&&"✓"}
+                              {r.name in shareSelected&&"✓"}
                             </div>
                             <div style={{flex:1}}>
                               <div style={{fontFamily:FM,fontSize:13,color:C.text,fontWeight:600}}>{r.name}</div>
@@ -4501,15 +4501,15 @@ What can I substitute and do I have what I need?`,
                       </div>
                     )}
 
-                    {shareSelected.length>0&&(
+                    {Object.keys(shareSelected).length>0&&(
                       <div style={{background:C.accent+"12",borderRadius:8,padding:"8px 12px",marginBottom:12,fontFamily:FM,fontSize:12,color:C.accent}}>
-                        {shareSelected.length} recipe{shareSelected.length!==1?"s":""} selected
+                        {Object.keys(shareSelected).length} recipe{Object.keys(shareSelected).length!==1?"s":""} selected
                       </div>
                     )}
 
-                    <button onClick={shareRecipes} disabled={!shareSelected.length||shareLoading}
+                    <button onClick={shareRecipes} disabled={!Object.keys(shareSelected).length||shareLoading}
                       style={{...bBtn("primary"),width:"100%",padding:"12px",fontSize:14,
-                      opacity:shareSelected.length?1:0.4}}>
+                      opacity:Object.keys(shareSelected).length?1:0.4}}>
                       {shareLoading?"Creating share link...":"Create Share Link — "+shareSelected.length+" Recipe"+(shareSelected.length!==1?"s":"")}
                     </button>
                   </div>
