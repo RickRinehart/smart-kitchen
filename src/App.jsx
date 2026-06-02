@@ -2605,6 +2605,13 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                     <div style={{display:"flex",gap:8}}>
                       <button onClick={e=>{e.stopPropagation();if(isDesert){setDessertRatings(prev=>{const next={...prev};delete next[name];return next;});}else{setRecipeRatings(prev=>{const next={...prev};delete next[name];return next;});}}} style={{flex:1,padding:seniorMode?"14px":"8px",borderRadius:8,border:"1px solid "+C.red,background:"transparent",color:C.red,fontFamily:FM,fontSize:seniorMode?16:11,cursor:"pointer"}}>🗑 Remove</button>
                       <button onClick={e=>{e.stopPropagation();setPhotoPromptMeal(name);}} style={{padding:"8px 14px",borderRadius:8,border:"1px solid "+C.border,background:"transparent",color:C.muted,fontFamily:FM,fontSize:seniorMode?16:12,cursor:"pointer"}} title="Add or change photo" disabled={isViewer}>📸 {mealPhotos[name]?"Change Photo":"Add Photo"}</button>
+                      {!isViewer&&<button onClick={e=>{e.stopPropagation();
+                        if(!familyRecipes.find(r=>r.name===name)){
+                          const rData=recipeRatings[name];
+                          setFamilyRecipes(p=>[...p,{id:Date.now()+Math.random(),name,...(rData?.recipe||{}),isFamilyRecipe:true}]);
+                          alert(name+" moved to Family Recipes!");
+                        } else { alert(name+" is already in Family Recipes."); }
+                      }} style={{padding:"8px 14px",borderRadius:8,border:"1px solid #b45309",background:"transparent",color:"#b45309",fontFamily:FM,fontSize:seniorMode?16:12,cursor:"pointer"}}>📖 Add to Family</button>}
                     </div>
                   </div>
                 )})}
@@ -5084,6 +5091,12 @@ What can I substitute and do I have what I need?`,
                   setShareMode(true);
                   setShowShareModal(true);
                 }} style={{background:"transparent",border:"2px solid #c8963e",borderRadius:10,padding:"10px 16px",color:"#c8963e",fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,cursor:"pointer",fontWeight:600}}>📤 Share</button>
+                <button onClick={()=>{
+                  if(!recipeRatings[frViewRecipe.name]){
+                    setRecipeRatings(p=>({...p,[frViewRecipe.name]:{rating:4,recipe:{...frViewRecipe,isFamilyRecipe:false}}}));
+                    alert(frViewRecipe.name+" added to Saved Recipes!");
+                  } else { alert(frViewRecipe.name+" is already in Saved Recipes."); }
+                }} style={{background:"transparent",border:"2px solid #5b9cf6",borderRadius:10,padding:"10px 16px",color:"#5b9cf6",fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,cursor:"pointer"}}>⭐ Add to Saved</button>
                 <button onClick={()=>{setFrEditRecipe({...frViewRecipe});setFrServings(frViewRecipe.servings||4);}} style={{background:"transparent",border:"2px solid #c8963e",borderRadius:10,padding:"10px 16px",color:"#5c3317",fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,cursor:"pointer"}}>✏ Edit</button>
                 <button onClick={()=>{if(window.confirm("Delete "+frViewRecipe.name+"?")){const updated=familyRecipes.filter(r=>r.id!==frViewRecipe.id);setFamilyRecipes(updated);try{localStorage.setItem("sk_familyRecipes",JSON.stringify(updated));}catch{}setFrViewRecipe(null);}}} style={{background:"transparent",border:"2px solid #dc2626",borderRadius:10,padding:"10px 16px",color:"#dc2626",fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,cursor:"pointer"}}>🗑 Delete</button>
               </div>
