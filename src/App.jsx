@@ -1552,8 +1552,16 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     try{
       const r=await fetch("/api/get-shared-recipes?code="+code);
       const d=await r.json();
-      if(d.success){
-        setImportResult(d);
+      if(d.success&&d.share){
+        // Normalize to match modal property names
+        setImportResult({
+          title: d.share.title||"Shared Recipes",
+          ownerName: d.share.owner_name||"A Smart Kitchen user",
+          recipeCount: d.share.recipe_count||0,
+          recipes: Array.isArray(d.share.recipes)?d.share.recipes:[],
+          owner_name: d.share.owner_name,
+          recipe_count: d.share.recipe_count,
+        });
       } else {
         alert(d.error||"Recipe collection not found.");
       }
@@ -4264,10 +4272,10 @@ What can I substitute and do I have what I need?`,
                 <div style={{background:C.surface,borderRadius:12,padding:14,marginBottom:14}}>
                   <div style={{fontFamily:FD,fontSize:17,color:"#8b5cf6",marginBottom:4}}>{importResult.title}</div>
                   <div style={{fontFamily:FM,fontSize:12,color:C.muted,marginBottom:10}}>
-                    Shared by {importResult.ownerName} · {importResult.recipeCount} recipe{importResult.recipeCount>1?"s":""}
+                    Shared by {importResult.ownerName} · {importResult.recipeCount} recipe{(importResult.recipeCount||0)>1?"s":""}
                   </div>
                   <div style={{maxHeight:200,overflowY:"auto"}}>
-                    {importResult.recipes.map((r,i)=>(
+                    {(importResult.recipes||[]).map((r,i)=>(
                       <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",
                         borderBottom:"1px solid "+C.border}}>
                         <span style={{fontSize:14}}>{r.isFamilyRecipe?"📖":"⭐"}</span>
