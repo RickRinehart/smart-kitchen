@@ -1529,7 +1529,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       });
       const d=await r.json();
       if(d.success){
-        setShareResult(d);
+        setShareResult({...d,shareCode:d.code,shareUrl:d.url});
       } else {
         alert("Could not create share link: "+(d.error||"Please try again."));
       }
