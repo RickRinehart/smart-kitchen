@@ -1550,7 +1550,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     setImportLoading(true);
     setImportResult(null);
     try{
-      const r=await fetch("/api/share-recipes?code="+code);
+      const r=await fetch("/api/get-shared-recipes?code="+code);
       const d=await r.json();
       if(d.success){
         setImportResult(d);
