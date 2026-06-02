@@ -4431,9 +4431,9 @@ What can I substitute and do I have what I need?`,
                 <div style={{display:"flex",gap:6,marginBottom:20}}>
                   {[["share","📤 Share My Recipes"],["import","📥 Import Recipes"]].map(([k,label])=>(
                     <button key={k} onClick={()=>{setShareSelectMode(k==="share");if(k==="import"){setShareSelected([]);}}}
-                      style={{flex:1,padding:"10px",borderRadius:10,border:"1px solid "+(shareSelectMode&&k==="share"||!shareSelectMode&&k==="import"?C.accent:C.border),
-                      background:(shareSelectMode&&k==="share"||!shareSelectMode&&k==="import")?C.accent+"22":"transparent",
-                      color:(shareSelectMode&&k==="share"||!shareSelectMode&&k==="import")?C.accent:C.text,
+                      style={{flex:1,padding:"10px",borderRadius:10,border:"1px solid "+(shareMode&&k==="share"||!shareMode&&k==="import"?C.accent:C.border),
+                      background:(shareMode&&k==="share"||!shareMode&&k==="import")?C.accent+"22":"transparent",
+                      color:(shareMode&&k==="share"||!shareMode&&k==="import")?C.accent:C.text,
                       fontFamily:FM,fontSize:seniorMode?15:12,cursor:"pointer",fontWeight:600}}>
                       {label}
                     </button>
@@ -4441,7 +4441,7 @@ What can I substitute and do I have what I need?`,
                 </div>
 
                 {/* SHARE TAB */}
-                {shareSelectMode&&(
+                {shareMode&&(
                   <div>
                     <div style={{fontFamily:FM,fontSize:12,color:C.muted,marginBottom:12,lineHeight:1.5}}>
                       Select recipes to share. Recipients get a 6-character code to import them into their Smart Kitchen.
@@ -4516,7 +4516,7 @@ What can I substitute and do I have what I need?`,
                 )}
 
                 {/* IMPORT TAB */}
-                {!shareSelectMode&&(
+                {!shareMode&&(
                   <div>
                     <div style={{fontFamily:FM,fontSize:12,color:C.muted,marginBottom:16,lineHeight:1.5}}>
                       Enter a 6-character share code from a friend or family member to import their recipes into your Smart Kitchen.
@@ -5053,8 +5053,9 @@ What can I substitute and do I have what I need?`,
                   }
                 }} style={{flex:1,background:"#5c3317",border:"none",borderRadius:10,padding:"12px",color:"#fdf6ec",fontFamily:"Georgia,serif",fontSize:seniorMode?16:13,cursor:"pointer",fontWeight:700}}>🛒 Add Missing to Shopping List</button>
                 <button onClick={()=>{
-                  setShareSelected([frViewRecipe.name]);
+                  setShareSelected({[frViewRecipe.name]:{...frViewRecipe,isFamilyRecipe:true}});
                   setShareTitle(frViewRecipe.name+(frViewRecipe.kitchenOf?" — From the kitchen of "+frViewRecipe.kitchenOf:""));
+                  setShareMode(true);
                   setShowShareModal(true);
                 }} style={{background:"transparent",border:"2px solid #c8963e",borderRadius:10,padding:"10px 16px",color:"#c8963e",fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,cursor:"pointer",fontWeight:600}}>📤 Share</button>
                 <button onClick={()=>{setFrEditRecipe({...frViewRecipe});setFrServings(frViewRecipe.servings||4);}} style={{background:"transparent",border:"2px solid #c8963e",borderRadius:10,padding:"10px 16px",color:"#5c3317",fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,cursor:"pointer"}}>✏ Edit</button>
@@ -5261,7 +5262,7 @@ What can I substitute and do I have what I need?`,
             {!frAddMode&&!frEditRecipe&&!frViewRecipe&&(<div>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:8}}>
                 <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?26:20,color:"#5c3317",fontWeight:700}}>📖 Family Recipes</div>
-                <button onClick={()=>{setShareSelected(familyRecipes.map(r=>r.name));setShareTitle("Family Recipes"+(familyProfiles[0]?.name?" from "+familyProfiles[0].name:""));setShowShareModal(true);}} style={{background:"transparent",border:"2px solid #c8963e",borderRadius:10,padding:seniorMode?"10px 16px":"7px 12px",color:"#c8963e",fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,cursor:"pointer",fontWeight:600}}>📤 Share All
+                <button onClick={()=>{const frObj={};familyRecipes.forEach(r=>{frObj[r.name]={...r,isFamilyRecipe:true};});setShareSelected(frObj);setShareTitle("Family Recipes"+(familyProfiles[0]?.name?" from "+familyProfiles[0].name:""));setShareMode(true);setShowShareModal(true);}} style={{background:"transparent",border:"2px solid #c8963e",borderRadius:10,padding:seniorMode?"10px 16px":"7px 12px",color:"#c8963e",fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,cursor:"pointer",fontWeight:600}}>📤 Share All
                 </button>
                 <button onClick={()=>setFamilyRecipesOpen(false)} style={{background:"transparent",border:"none",fontSize:20,cursor:"pointer",color:"#8b6340"}}>✕</button>
               </div>
