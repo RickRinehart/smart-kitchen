@@ -5,8 +5,8 @@ export default async function handler(req, res) {
     const { code } = req.query;
     if (!code) return res.status(400).json({ error: 'No share code provided' });
 
-    const supabaseUrl = process.env.VITE_SUPABASE_URL;
-    const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY;
+    const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
     const response = await fetch(
       `${supabaseUrl}/rest/v1/shared_recipes?share_code=eq.${code.toUpperCase()}&expires_at=gt.${new Date().toISOString()}&select=*`,
