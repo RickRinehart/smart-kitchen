@@ -514,15 +514,6 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [shopPhone,setShopPhone]=useState(()=>localStorage.getItem("sk_shopPhone")||"");
   const [instacartApiKey,setInstacartApiKey]=useState(()=>localStorage.getItem("sk_instacartKey")||"");
   const [expandedIngDay,setExpandedIngDay]=useState(null);
-  const [shareSelectMode,setShareSelectMode]=useState(false);
-  const [shareSelected,setShareSelected]=useState([]);
-  const [shareTitle,setShareTitle]=useState("");
-  const [shareLoading,setShareLoading]=useState(false);
-  const [shareResult,setShareResult]=useState(null);
-  const [showShareModal,setShowShareModal]=useState(false);
-  const [importCode,setImportCode]=useState("");
-  const [importLoading,setImportLoading]=useState(false);
-  const [importResult,setImportResult]=useState(null);
   const [shareSelected,setShareSelected]=useState({});// {recipeKey: recipeObj}
   const [shareMode,setShareMode]=useState(false);
   const [showShareModal,setShowShareModal]=useState(false);
