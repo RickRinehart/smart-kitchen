@@ -5259,8 +5259,10 @@ What can I substitute and do I have what I need?`,
 
             {/* ── RECIPE LIST (home screen) ── */}
             {!frAddMode&&!frEditRecipe&&!frViewRecipe&&(<div>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:8}}>
                 <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?26:20,color:"#5c3317",fontWeight:700}}>📖 Family Recipes</div>
+                <button onClick={()=>{setShareSelected(familyRecipes.map(r=>r.name));setShareTitle("Family Recipes"+(familyProfiles[0]?.name?" from "+familyProfiles[0].name:""));setShowShareModal(true);}} style={{background:"transparent",border:"2px solid #c8963e",borderRadius:10,padding:seniorMode?"10px 16px":"7px 12px",color:"#c8963e",fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,cursor:"pointer",fontWeight:600}}>📤 Share All
+                </button>
                 <button onClick={()=>setFamilyRecipesOpen(false)} style={{background:"transparent",border:"none",fontSize:20,cursor:"pointer",color:"#8b6340"}}>✕</button>
               </div>
               {familyRecipes.length===0&&<div style={{textAlign:"center",padding:"30px 0"}}>
