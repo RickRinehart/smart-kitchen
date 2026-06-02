@@ -1103,7 +1103,17 @@ USER CONTEXT:
 - ${mealSummary}
 - Senior Mode: ${seniorMode?"ON":"OFF"}
 
-APP KNOWLEDGE: Smart Kitchen has these features: Inventory (scan receipts or add manually), Meal Plan (7-day AI dinner plan), Recipes (AI suggestions), Shopping List, Desserts, Leftovers scanner, Substitute ingredient tool, Busy Night flag (⚡, quick meals under 20 min), Family profiles with dietary restrictions, Google Calendar push, Senior Mode (larger text), Receipt scanner (camera).
+APP KNOWLEDGE: Smart Kitchen has these features:
+- Inventory: scan receipts or add manually. Wild Harvest and Home Harvest categories with label printing.
+- Meal Plan: 7-day AI dinner plan. Regenerate or Change individual meals. Occasion Planner (🎉 Plan Occasion button) for special events — Dinner Party, Date Night, Birthday Dinner, BBQ, Kids Party — generates one occasion meal, picks a date, slots into meal plan or pushes to Google Calendar.
+- Recipes & Saved: AI recipe suggestions. Star-rate meals. 5-star = Keeper on rotation.
+- RECIPE SHARING (📤 Share / 📥 Import buttons on Saved tab): Select saved recipes and family recipes, tap Share to get a 6-character code. Share that code with anyone — they enter it on the Import tab to add your recipes to their Smart Kitchen. Codes valid 90 days.
+- Shopping List: auto-builds from meal plan. Email, SMS (Text to... button — add phone in Settings), and Send to Instacart delivery.
+- Family Profiles: per-member dietary restrictions, Date of Birth (shows birthday countdown, triggers birthday dinner suggestions), Medical+ for medication/allergy compliance.
+- Bluetooth Scale (⚖ Scale, Medical+ only): connect Etekcity ESN00, weigh portions, get instant calorie/nutrition estimates.
+- Leftovers scanner, Substitute tool, Weekly Ad scanner, Desserts, Busy Night flag (⚡ quick meals under 20 min).
+- Senior Mode (Aa Off/On button): larger text, bigger tap targets.
+- Support chat, Google Calendar, Receipt scanner, Family Recipes.
 
 ESCALATION: If the user reports a bug, scanner problem, dietary concern, frustration, or upgrade objection — acknowledge it warmly and let them know the team has been notified and will follow up. If they give positive feedback — celebrate it genuinely.
 
