@@ -752,7 +752,12 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
         localStorage.setItem("sk_familyRecipes",JSON.stringify(slim));
       }catch{}
     }
-  },[familyRecipes]);
+    // Cloud sync — save family recipes to Supabase on every change
+    if(user?.id){
+      const cloudCopy=familyRecipes.map(r=>{const{photo,...rest}=r;return rest;});
+      import("./supabaseClient").then(m=>m.saveCloudField(user.id,"family_recipes",cloudCopy)).catch(()=>{});
+    }
+  },[familyRecipes,user]);
   useEffect(()=>{
     const person1=familyProfiles[0];
     if(person1?.restriction==="senior"&&!seniorMode&&!seniorPromptDismissed){
