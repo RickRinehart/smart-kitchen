@@ -1,5 +1,5 @@
 export default async function handler(req, res) {
-  if (req.method !== 'GET') return res.status(405).end();
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
     const { code } = req.query;
@@ -11,33 +11,68 @@ export default async function handler(req, res) {
                         process.env.SUPABASE_ANON_KEY ||
                         process.env.SUPABASE_KEY;
 
-    const response = await fetch(
-      `${supabaseUrl}/rest/v1/shared_recipes?share_code=eq.${code.toUpperCase()}&expires_at=gt.${new Date().toISOString()}&select=*`,
-      {
-        headers: {
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`,
-        }
+    if (!supabaseKey) {
+      console.error('Missing Supabase key');
+      return res.status(500).json({ error: 'Server configuration error' });
+    }
+
+    const cleanCode = code.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    console.log('Looking up share code:', cleanCode);
+
+    // Query WITHOUT expires_at filter first to debug
+    const url = `${supabaseUrl}/rest/v1/shared_recipes?share_code=eq.${cleanCode}&select=*`;
+    console.log('Fetching:', url);
+
+    const response = await fetch(url, {
+      headers: {
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`,
+        'Accept': 'application/json',
       }
-    );
+    });
 
-    if (!response.ok) return res.status(404).json({ error: 'Share not found' });
+    const responseText = await response.text();
+    console.log('Supabase response status:', response.status);
+    console.log('Supabase response text:', responseText.slice(0, 200));
 
-    const data = await response.json();
-    if (!data?.length) return res.status(404).json({ error: 'Share link not found or expired' });
+    if (!response.ok) {
+      return res.status(404).json({ error: 'Could not query database: ' + responseText.slice(0, 100) });
+    }
 
-    // Increment views async
-    fetch(`${supabaseUrl}/rest/v1/shared_recipes?share_code=eq.${code.toUpperCase()}`, {
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch(e) {
+      console.error('JSON parse error:', e.message, 'Response was:', responseText.slice(0, 100));
+      return res.status(500).json({ error: 'Invalid database response' });
+    }
+
+    if (!data || !data.length) {
+      return res.status(404).json({ error: 'Share code not found or expired. Please check and try again.' });
+    }
+
+    const record = data[0];
+
+    // Check expiry
+    if (record.expires_at && new Date(record.expires_at) < new Date()) {
+      return res.status(404).json({ error: 'This share link has expired.' });
+    }
+
+    // Increment views async (fire and forget)
+    fetch(`${supabaseUrl}/rest/v1/shared_recipes?share_code=eq.${cleanCode}`, {
       method: 'PATCH',
-      headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}`,
-                 'Content-Type': 'application/json' },
-      body: JSON.stringify({ views: (data[0].views || 0) + 1 })
+      headers: {
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ views: (record.views || 0) + 1 })
     }).catch(() => {});
 
-    return res.status(200).json({ success: true, share: data[0] });
+    return res.status(200).json({ success: true, share: record });
 
   } catch (e) {
-    console.error('get-shared-recipes error:', e.message);
-    return res.status(500).json({ error: e.message });
+    console.error('get-shared-recipes error:', e.message, e.stack);
+    return res.status(500).json({ error: 'Server error: ' + e.message });
   }
 }
