@@ -3,16 +3,20 @@ export default async function handler(req, res) {
 
   try {
     const { recipes, title, ownerName, ownerUid } = req.body;
-    if (!recipes || !Object.keys(recipes).length) {
+    if (!recipes || (Array.isArray(recipes) ? !recipes.length : !Object.keys(recipes).length)) {
       return res.status(400).json({ error: 'No recipes provided' });
     }
 
-    const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+    // Try all possible env var names Vercel might expose
+    const supabaseUrl = 'https://wnlqvmedocpgjawmwivd.supabase.co';
+    const supabaseKey = process.env.VITE_SUPABASE_KEY ||
+                        process.env.VITE_SUPABASE_ANON_KEY ||
+                        process.env.SUPABASE_ANON_KEY ||
+                        process.env.SUPABASE_KEY;
 
-    if (!supabaseUrl || !supabaseKey) {
-      console.error('Missing Supabase env vars');
-      return res.status(500).json({ error: 'Server configuration error' });
+    if (!supabaseKey) {
+      console.error('No Supabase key found in env vars');
+      return res.status(500).json({ error: 'Server configuration error — missing key' });
     }
 
     // Generate 6-char share code
@@ -21,9 +25,7 @@ export default async function handler(req, res) {
     for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
 
     // Normalize recipes — handle both array and object formats
-    const recipeArray = Array.isArray(recipes)
-      ? recipes
-      : Object.values(recipes);
+    const recipeArray = Array.isArray(recipes) ? recipes : Object.values(recipes);
 
     const cleanRecipes = recipeArray.map(r => ({
       id: String(r.id || Date.now() + Math.random()),
@@ -64,19 +66,15 @@ export default async function handler(req, res) {
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error('Supabase error:', response.status, errText);
-      return res.status(500).json({ error: 'Could not save share — ' + errText.slice(0, 100) });
+      console.error('Supabase error:', response.status, errText.slice(0, 200));
+      return res.status(500).json({ error: 'Could not save — ' + errText.slice(0, 80) });
     }
 
     const data = await response.json();
     const record = Array.isArray(data) ? data[0] : data;
     const shareUrl = `https://smart-kitchen-opal.vercel.app?import=${record.share_code}`;
 
-    return res.status(200).json({
-      success: true,
-      code: record.share_code,
-      url: shareUrl
-    });
+    return res.status(200).json({ success: true, code: record.share_code, url: shareUrl });
 
   } catch (e) {
     console.error('share-recipes error:', e.message);
