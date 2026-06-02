@@ -1702,6 +1702,19 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     setOccasionDate("");
   };
 
+  // Deep link: ?import=CODE auto-opens recipe import modal
+  useEffect(()=>{
+    const _p=new URLSearchParams(window.location.search);
+    const _c=_p.get("import");
+    if(_c&&_c.length>=4){
+      setTimeout(()=>{
+        setImportCode(_c.toUpperCase().replace(/[^A-Z0-9]/g,""));
+        setShowImportModal(true);
+        window.history.replaceState({},"",window.location.pathname);
+      },700);
+    }
+  },[]);
+
   const buildMealPlan=async()=>{
     const occCtx=buildOccasionContext(occasionState)+(occasionCustomText?" Special occasion name: "+occasionCustomText+"":"");
     if(!can.sevenDayPlan){
