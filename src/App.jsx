@@ -514,6 +514,15 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [shopPhone,setShopPhone]=useState(()=>localStorage.getItem("sk_shopPhone")||"");
   const [instacartApiKey,setInstacartApiKey]=useState(()=>localStorage.getItem("sk_instacartKey")||"");
   const [expandedIngDay,setExpandedIngDay]=useState(null);
+  const [shareSelectMode,setShareSelectMode]=useState(false);
+  const [shareSelected,setShareSelected]=useState([]);
+  const [shareTitle,setShareTitle]=useState("");
+  const [shareLoading,setShareLoading]=useState(false);
+  const [shareResult,setShareResult]=useState(null);
+  const [showShareModal,setShowShareModal]=useState(false);
+  const [importCode,setImportCode]=useState("");
+  const [importLoading,setImportLoading]=useState(false);
+  const [importResult,setImportResult]=useState(null);
   const [shareSelected,setShareSelected]=useState({});// {recipeKey: recipeObj}
   const [shareMode,setShareMode]=useState(false);
   const [showShareModal,setShowShareModal]=useState(false);
@@ -2496,14 +2505,22 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
         {/* == SAVED RECIPES == */}
         {tab==="saved"&&(
           <div style={{padding:20,maxWidth:940,margin:"0 auto"}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10,flexWrap:"wrap",gap:8}}>
               <div style={{fontFamily:FD,fontSize:22,color:C.text}}>⭐ Saved Recipes</div>
-              <div style={{display:"flex",gap:6}}>
+              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
                 {[["all","All"],["keepers","🏆 Keepers"],["good","👍 3+"]].map(([f,lb])=>(
                   <button key={f} onClick={()=>setSavedRecipesFilter(f)} style={{...bBtn(savedRecipesFilter===f?"primary":"ghost"),fontSize:seniorMode?15:11,padding:seniorMode?"10px 16px":"5px 10px"}}>{lb}</button>
                 ))}
+                <button onClick={()=>setShowImportModal(true)} style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 14px":"5px 10px",border:"1px solid #8b5cf6",color:"#8b5cf6"}}>📥 Import</button>
+                <button onClick={()=>{setShareMode(m=>!m);setShareSelected({});}} style={{...bBtn(shareMode?"primary":"ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 14px":"5px 10px",border:"1px solid "+C.accent,color:shareMode?"#0c0e14":C.accent}}>{shareMode?"✕ Cancel":"📤 Share"}</button>
               </div>
             </div>
+            {shareMode&&Object.keys(shareSelected).length>0&&(
+              <div style={{background:C.accent+"18",border:"1px solid "+C.accent+"44",borderRadius:10,padding:"10px 14px",marginBottom:10,display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
+                <span style={{fontFamily:FM,fontSize:12,color:C.accent,fontWeight:600}}>{Object.keys(shareSelected).length} recipe{Object.keys(shareSelected).length>1?"s":""} selected</span>
+                <button onClick={()=>setShowShareModal(true)} style={{...bBtn("primary"),fontSize:12,padding:"7px 16px"}}>📤 Share These</button>
+              </div>
+            )}
             {(Object.keys(recipeRatings).filter(name=>recipeRatings[name]?.rating>=3).length+Object.keys({...loadLocal("sk_dessertRatings",{}),...dessertRatings}).filter(name=>({...loadLocal("sk_dessertRatings",{}),...dessertRatings})[name]?.rating>=3).length)===0?(
               <div style={{textAlign:"center",padding:60}}>
                 <div style={{fontSize:48,marginBottom:16}}>⭐</div>
@@ -2521,8 +2538,15 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                     const r=v?.recipe||{name,description:"",time:"",difficulty:"Easy",usesFromInventory:[],missingIngredients:[]};
                     const isDesert=type==="dessert";
                     return(
-                  <div key={type+"-"+name} style={{background:C.card,border:"2px solid "+(rating===5?"#f59e0b":C.border),borderRadius:14,padding:18,cursor:"pointer",transition:"all 0.15s"}}
-                    onClick={()=>setActiveRecipe(r)}
+                  <div key={type+"-"+name} style={{background:C.card,border:"2px solid "+(shareMode&&shareSelected[name]?"#8b5cf6":rating===5?"#f59e0b":C.border),borderRadius:14,padding:18,cursor:"pointer",transition:"all 0.15s",position:"relative"}}
+                    onClick={()=>{
+                      if(shareMode){setShareSelected(prev=>{const next={...prev};
+                        if(next[name])delete next[name];
+                        else next[name]={name,description:r.description||"",ingredients:r.ingredients||[],
+                          time:r.time||"",difficulty:r.difficulty||"Easy",servings:r.servings||"",
+                          isFamilyRecipe:false,rating};
+                        return next;});return;}
+                      setActiveRecipe(r);}}
                     onMouseEnter={e=>{e.currentTarget.style.background=C.cardHover;}}
                     onMouseLeave={e=>{e.currentTarget.style.background=C.card;}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
@@ -4360,6 +4384,187 @@ What can I substitute and do I have what I need?`,
               </div>
             </div>
 
+          </div>
+        </div>
+      )}
+
+
+      {/* -- Recipe Share / Import Modal -- */}
+      {showShareModal&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:650,padding:16}} onClick={()=>{setShowShareModal(false);setShareResult(null);}}>
+          <div style={{background:C.card,border:"1px solid "+C.border,borderRadius:18,padding:24,maxWidth:460,width:"100%",maxHeight:"90vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
+
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+              <div style={{fontFamily:FD,fontSize:20,color:C.accent}}>📤 Recipe Sharing</div>
+              <button onClick={()=>{setShowShareModal(false);setShareResult(null);}} style={{background:C.surface,border:"1px solid "+C.border,borderRadius:6,color:C.text,cursor:"pointer",fontSize:15,padding:"3px 9px"}}>x</button>
+            </div>
+
+            {/* SUCCESS STATE */}
+            {shareResult&&(
+              <div style={{textAlign:"center"}}>
+                <div style={{fontSize:48,marginBottom:12}}>🎉</div>
+                <div style={{fontFamily:FD,fontSize:20,color:C.accent,marginBottom:8}}>Your recipes are ready to share!</div>
+                <div style={{fontFamily:FM,fontSize:13,color:C.muted,marginBottom:16,lineHeight:1.5}}>
+                  Share this code with anyone. They can enter it in Smart Kitchen to import your recipes into their account.
+                </div>
+                <div style={{background:C.surface,borderRadius:12,padding:20,marginBottom:16}}>
+                  <div style={{fontFamily:FM,fontSize:11,color:C.muted,marginBottom:6}}>SHARE CODE</div>
+                  <div style={{fontFamily:FD,fontSize:42,color:C.accent,letterSpacing:6,marginBottom:10}}>{shareResult.code}</div>
+                  <div style={{fontFamily:FM,fontSize:11,color:C.muted}}>Valid for 90 days · {shareSelected.length||"Selected"} recipes</div>
+                </div>
+                <div style={{display:"flex",gap:8,marginBottom:16}}>
+                  <button onClick={()=>{navigator.clipboard?.writeText(shareResult.code);alert("Code copied!");}}
+                    style={{...bBtn("ghost"),flex:1,padding:"10px",fontSize:13}}>📋 Copy Code</button>
+                  <button onClick={()=>{navigator.clipboard?.writeText(shareResult.url);alert("Link copied!");}}
+                    style={{...bBtn("primary"),flex:2,padding:"10px",fontSize:13}}>🔗 Copy Link</button>
+                </div>
+                {navigator.share&&<button onClick={()=>navigator.share({title:"Smart Kitchen Recipes",text:"Here are my recipes! Use code "+shareResult.code+" in Smart Kitchen to import them.",url:shareResult.url})}
+                  style={{...bBtn("ghost"),width:"100%",padding:"10px",fontSize:13,marginBottom:8}}>📱 Share via Messages / Email</button>}
+                <button onClick={()=>setShareResult(null)} style={{...bBtn("ghost"),width:"100%",padding:"9px",fontSize:12,color:C.muted}}>Share More Recipes</button>
+              </div>
+            )}
+
+            {/* TABS: SHARE vs IMPORT */}
+            {!shareResult&&(
+              <div>
+                <div style={{display:"flex",gap:6,marginBottom:20}}>
+                  {[["share","📤 Share My Recipes"],["import","📥 Import Recipes"]].map(([k,label])=>(
+                    <button key={k} onClick={()=>{setShareSelectMode(k==="share");if(k==="import"){setShareSelected([]);}}}
+                      style={{flex:1,padding:"10px",borderRadius:10,border:"1px solid "+(shareSelectMode&&k==="share"||!shareSelectMode&&k==="import"?C.accent:C.border),
+                      background:(shareSelectMode&&k==="share"||!shareSelectMode&&k==="import")?C.accent+"22":"transparent",
+                      color:(shareSelectMode&&k==="share"||!shareSelectMode&&k==="import")?C.accent:C.text,
+                      fontFamily:FM,fontSize:seniorMode?15:12,cursor:"pointer",fontWeight:600}}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* SHARE TAB */}
+                {shareSelectMode&&(
+                  <div>
+                    <div style={{fontFamily:FM,fontSize:12,color:C.muted,marginBottom:12,lineHeight:1.5}}>
+                      Select recipes to share. Recipients get a 6-character code to import them into their Smart Kitchen.
+                    </div>
+                    <div style={{marginBottom:10}}>
+                      <input placeholder='Give this collection a name (e.g. "Rick’s Favorites")'
+                        value={shareTitle} onChange={e=>setShareTitle(e.target.value)}
+                        style={{width:"100%",background:C.surface,border:"1px solid "+C.border,borderRadius:8,
+                        padding:"8px 10px",color:C.text,fontFamily:FM,fontSize:13,boxSizing:"border-box"}}/>
+                    </div>
+
+                    {/* 5-Star Saved Recipes */}
+                    {Object.entries(recipeRatings).filter(([,v])=>v?.rating>=3).length>0&&(
+                      <div style={{marginBottom:12}}>
+                        <div style={{fontFamily:FM,fontSize:11,fontWeight:700,color:C.muted,marginBottom:6}}>⭐ SAVED RECIPES (3+ stars)</div>
+                        {Object.entries(recipeRatings).filter(([,v])=>v?.rating>=3).map(([name,v])=>(
+                          <div key={name} onClick={()=>setShareSelected(p=>p.includes(name)?p.filter(n=>n!==name):[...p,name])}
+                            style={{display:"flex",alignItems:"center",gap:10,padding:"8px 10px",borderRadius:8,
+                            background:shareSelected.includes(name)?C.accent+"18":"transparent",
+                            border:"1px solid "+(shareSelected.includes(name)?C.accent:C.border),
+                            marginBottom:4,cursor:"pointer"}}>
+                            <div style={{width:20,height:20,borderRadius:4,border:"2px solid "+(shareSelected.includes(name)?C.accent:C.border),
+                              background:shareSelected.includes(name)?C.accent:"transparent",display:"flex",alignItems:"center",
+                              justifyContent:"center",fontSize:12,flexShrink:0}}>
+                              {shareSelected.includes(name)&&"✓"}
+                            </div>
+                            <div style={{flex:1}}>
+                              <div style={{fontFamily:FM,fontSize:13,color:C.text,fontWeight:600}}>{name}</div>
+                              <div style={{fontFamily:FM,fontSize:11,color:C.muted}}>{"★".repeat(v.rating)}{"☆".repeat(5-v.rating)} · Saved</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Family Recipes */}
+                    {familyRecipes.length>0&&(
+                      <div style={{marginBottom:16}}>
+                        <div style={{fontFamily:FM,fontSize:11,fontWeight:700,color:C.muted,marginBottom:6}}>📖 FAMILY RECIPES</div>
+                        {familyRecipes.map(r=>(
+                          <div key={r.id} onClick={()=>setShareSelected(p=>p.includes(r.name)?p.filter(n=>n!==r.name):[...p,r.name])}
+                            style={{display:"flex",alignItems:"center",gap:10,padding:"8px 10px",borderRadius:8,
+                            background:shareSelected.includes(r.name)?C.accent+"18":"transparent",
+                            border:"1px solid "+(shareSelected.includes(r.name)?C.accent:C.border),
+                            marginBottom:4,cursor:"pointer"}}>
+                            <div style={{width:20,height:20,borderRadius:4,border:"2px solid "+(shareSelected.includes(r.name)?C.accent:C.border),
+                              background:shareSelected.includes(r.name)?C.accent:"transparent",display:"flex",alignItems:"center",
+                              justifyContent:"center",fontSize:12,flexShrink:0}}>
+                              {shareSelected.includes(r.name)&&"✓"}
+                            </div>
+                            <div style={{flex:1}}>
+                              <div style={{fontFamily:FM,fontSize:13,color:C.text,fontWeight:600}}>{r.name}</div>
+                              <div style={{fontFamily:FM,fontSize:11,color:C.muted}}>📖 Family Recipe{r.notes?" · "+r.notes.slice(0,30):""}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {shareSelected.length>0&&(
+                      <div style={{background:C.accent+"12",borderRadius:8,padding:"8px 12px",marginBottom:12,fontFamily:FM,fontSize:12,color:C.accent}}>
+                        {shareSelected.length} recipe{shareSelected.length!==1?"s":""} selected
+                      </div>
+                    )}
+
+                    <button onClick={shareRecipes} disabled={!shareSelected.length||shareLoading}
+                      style={{...bBtn("primary"),width:"100%",padding:"12px",fontSize:14,
+                      opacity:shareSelected.length?1:0.4}}>
+                      {shareLoading?"Creating share link...":"Create Share Link — "+shareSelected.length+" Recipe"+(shareSelected.length!==1?"s":"")}
+                    </button>
+                  </div>
+                )}
+
+                {/* IMPORT TAB */}
+                {!shareSelectMode&&(
+                  <div>
+                    <div style={{fontFamily:FM,fontSize:12,color:C.muted,marginBottom:16,lineHeight:1.5}}>
+                      Enter a 6-character share code from a friend or family member to import their recipes into your Smart Kitchen.
+                    </div>
+                    <div style={{marginBottom:12}}>
+                      <input placeholder="Enter share code (e.g. ABC123)"
+                        value={importCode}
+                        onChange={e=>setImportCode(e.target.value.toUpperCase().slice(0,6))}
+                        onKeyDown={e=>e.key==="Enter"&&importSharedRecipes()}
+                        style={{width:"100%",background:C.surface,border:"2px solid "+C.accent,borderRadius:10,
+                        padding:"12px 14px",color:C.text,fontFamily:FD,fontSize:seniorMode?22:18,
+                        boxSizing:"border-box",letterSpacing:4,textAlign:"center",outline:"none"}}/>
+                    </div>
+                    <button onClick={importSharedRecipes} disabled={importCode.length<4||importLoading}
+                      style={{...bBtn("primary"),width:"100%",padding:"12px",fontSize:14,marginBottom:16,
+                      opacity:importCode.length>=4?1:0.4}}>
+                      {importLoading?"Looking up recipes...":"Find Recipes"}
+                    </button>
+
+                    {importResult&&(
+                      <div style={{background:C.surface,borderRadius:12,padding:16,border:"1px solid "+C.border}}>
+                        <div style={{fontFamily:FD,fontSize:18,color:C.accent,marginBottom:4}}>{importResult.title}</div>
+                        <div style={{fontFamily:FM,fontSize:12,color:C.muted,marginBottom:12}}>
+                          Shared by {importResult.owner_name} · {importResult.recipe_count} recipe{importResult.recipe_count!==1?"s":""}
+                        </div>
+                        <div style={{marginBottom:12,maxHeight:200,overflowY:"auto"}}>
+                          {(importResult.recipes||[]).map((r,i)=>(
+                            <div key={i} style={{fontFamily:FM,fontSize:13,color:C.text,padding:"6px 0",
+                              borderBottom:"1px solid "+C.border,display:"flex",alignItems:"center",gap:8}}>
+                              <span>{r.isFamilyRecipe?"📖":"⭐"}</span>
+                              <span style={{flex:1}}>{r.name}</span>
+                              {r.rating>0&&<span style={{color:"#f59e0b",fontSize:11}}>{"★".repeat(r.rating)}</span>}
+                            </div>
+                          ))}
+                        </div>
+                        <div style={{display:"flex",gap:8}}>
+                          <button onClick={()=>{setImportResult(null);setImportCode("");}}
+                            style={{...bBtn("ghost"),flex:1,padding:"10px"}}>Cancel</button>
+                          <button onClick={()=>addImportedRecipes(importResult.recipes||[])}
+                            style={{...bBtn("primary"),flex:2,padding:"10px",fontSize:13}}>
+                            Add All to My Smart Kitchen
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
