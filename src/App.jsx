@@ -4510,7 +4510,7 @@ What can I substitute and do I have what I need?`,
                     <button onClick={shareRecipes} disabled={!Object.keys(shareSelected).length||shareLoading}
                       style={{...bBtn("primary"),width:"100%",padding:"12px",fontSize:14,
                       opacity:Object.keys(shareSelected).length?1:0.4}}>
-                      {shareLoading?"Creating share link...":"Create Share Link — "+shareSelected.length+" Recipe"+(shareSelected.length!==1?"s":"")}
+                      {shareLoading?"Creating share link...":"Create Share Link — "+Object.keys(shareSelected).length+" Recipe"+(Object.keys(shareSelected).length!==1?"s":"")}
                     </button>
                   </div>
                 )}
