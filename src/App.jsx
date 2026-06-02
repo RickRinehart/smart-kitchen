@@ -1112,13 +1112,15 @@ APP KNOWLEDGE: Smart Kitchen has these features:
 - Inventory: scan receipts or add manually. Wild Harvest and Home Harvest categories with label printing.
 - Meal Plan: 7-day AI dinner plan. Regenerate or Change individual meals. Occasion Planner (🎉 Plan Occasion button) for special events — Dinner Party, Date Night, Birthday Dinner, BBQ, Kids Party — generates one occasion meal, picks a date, slots into meal plan or pushes to Google Calendar.
 - Recipes & Saved: AI recipe suggestions. Star-rate meals. 5-star = Keeper on rotation.
-- RECIPE SHARING (📤 Share / 📥 Import buttons on Saved tab): Select saved recipes and family recipes, tap Share to get a 6-character code. Share that code with anyone — they enter it on the Import tab to add your recipes to their Smart Kitchen. Codes valid 90 days.
-- Shopping List: auto-builds from meal plan. Email, SMS (Text to... button — add phone in Settings), and Send to Instacart delivery.
-- Family Profiles: per-member dietary restrictions, Date of Birth (shows birthday countdown, triggers birthday dinner suggestions), Medical+ for medication/allergy compliance.
-- Bluetooth Scale (⚖ Scale, Medical+ only): connect Etekcity ESN00, weigh portions, get instant calorie/nutrition estimates.
-- Leftovers scanner, Substitute tool, Weekly Ad scanner, Desserts, Busy Night flag (⚡ quick meals under 20 min).
-- Senior Mode (Aa Off/On button): larger text, bigger tap targets.
-- Support chat, Google Calendar, Receipt scanner, Family Recipes.
+- RECIPE SHARING: Share button on Saved tab and Family Recipes modal. Select any recipes, tap Share, get a 6-character code. Text or email the code to anyone. They tap Import on their Saved tab, enter the code, see a preview, and tap "Add All to My Kitchen." Family Recipes import directly to Family Recipes; Saved recipes go to Saved. Codes valid 90 days. Deep link also works — tapping the link auto-opens the import modal with the code pre-filled.
+- MOVING RECIPES: On any Saved recipe card, tap "📖 Add to Family" to move it to Family Recipes. Inside a Family Recipe view, tap "⭐ Add to Saved" to copy it to Saved Recipes.
+- Shopping List: auto-builds from meal plan. Email, SMS (Text to... button — add phone in Settings), and Send to Instacart (opens Meijer/ALDI/Kroger/etc with items ready to shop — set preferred store in Settings).
+- Family Profiles: per-member dietary restrictions, Date of Birth (birthday countdown, 🎂 banner on meal plan week, age-aware AI meals), Medical+ for medication/allergy compliance.
+- Bluetooth Scale (⚖ Scale, Medical+ only): connect Etekcity ESN00 (~$25 Amazon), weigh portions, get instant calorie/nutrition estimates.
+- Leftovers scanner (photo identifies dish, estimates servings, sets use-by date — if unrecognized shows "I'm not sure what this is" prompt), Substitute tool, Weekly Ad scanner, Desserts, Busy Night flag (⚡).
+- Senior Mode (Aa Off/On button): larger text, bigger tap targets, larger checkboxes on shopping list.
+- Family Recipes: tap Family Recipes button in top bar. Add, edit, delete, share individual recipes. Share All shares every family recipe at once. Cross-device sync — recipes available on all your devices.
+- Support chat, Google Calendar, Receipt scanner.
 
 ESCALATION: If the user reports a bug, scanner problem, dietary concern, frustration, or upgrade objection — acknowledge it warmly and let them know the team has been notified and will follow up. If they give positive feedback — celebrate it genuinely.
 
