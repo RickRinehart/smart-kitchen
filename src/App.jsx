@@ -2092,7 +2092,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
 }}>🔄 Refresh Family Data</button>}
 </div>
 <button style={{...bBtn("ghost"),width:"100%",marginTop:8,border:"1px solid #7c3aed",color:"#4a1d96"}} onClick={()=>{setShowSettings(false);setShowJoinViewer(true);}}>&#128065; Join as Viewer (enter family code)</button>
-<button style={{...bBtn("ghost"),width:"100%",marginTop:8}} onClick={()=>setShowSettings(false)}>Close</button></div></div>}
+</div><button style={{...bBtn("ghost"),width:"100%",marginTop:8}} onClick={()=>setShowSettings(false)}>Close</button></div></div>}
     {showWizard&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
           <div style={{background:C.surface,borderRadius:16,padding:28,maxWidth:440,width:"100%",border:"1px solid "+C.border,maxHeight:"90vh",overflowY:"auto"}}>
