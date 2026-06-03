@@ -1007,7 +1007,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
     return null;
   };
   const tourJustStartedRef=useRef(false);
-  const sendChatMessage=async(overrideMsg)=>{
+  const sendChatMessage=async(overrideMsg,voiceMode=false)=>{
     const text=(overrideMsg||chatInput).trim();
     if(!text||chatLoading) return;
     setChatInput("");
@@ -1153,6 +1153,12 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       const data=await res.json();
       const reply=data?.content?.[0]?.text||"I'm having a little trouble right now — please try again in a moment.";
       addChatMsg("assistant",reply);
+      if(voiceMode){
+        // Strip markdown for voice (remove **, *, #, bullet chars)
+        const spokenReply=reply.replace(/\*\*|\*|#{1,3} |^[\u2022\-] /gm,"").replace(/\n+/g," ").trim();
+        speak(spokenReply);
+        setShowVoicePanel(true);
+      }
     }catch(e){
       addChatMsg("assistant","Something went wrong on my end. Please try again — and if this keeps happening, the team will want to know about it!");
     }
@@ -1910,14 +1916,10 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       speak("Done! Added "+mealName+" to "+dayNames[di]+".");
       return;
     }
-    try{
-      const invSummary=inventory.slice(0,15).map(i=>i.quantity+" "+i.name).join(", ");
-      const planSummary=mealDays.map(d=>d.day+": "+d.meal).join(", ");
-      const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:150,system:"You are "+assistantName()+", a Smart Kitchen voice assistant. Answer in 1-2 short sentences for speaking aloud. Inventory: "+invSummary+". Meal plan: "+planSummary,messages:[{role:"user",content:transcript}]})});
-      const d=await res.json();
-      speak(d.content&&d.content[0]?d.content[0].text:"I'm not sure about that. Try asking about your dinner, inventory, or shopping list.");
-    }catch(e){speak("I didn't catch that. Try asking about dinner, your inventory, or your shopping list.");}
-  };
+    // Route everything else through the unified chat assistant
+    setChatOpen(true);
+    await sendChatMessage(transcript,true);
+    setVoiceState("idle");  };
   const startListening=()=>{
     const SpeechRec=window.SpeechRecognition||window.webkitSpeechRecognition;
     if(!SpeechRec){alert("Voice input requires Chrome on Android or desktop.");return;}
@@ -5774,6 +5776,7 @@ What can I substitute and do I have what I need?`,
             placeholder="Type a message…"
             style={{flex:1,background:C.surface,border:"1px solid "+C.border,borderRadius:10,padding:"10px 14px",color:C.text,fontFamily:FM,fontSize:seniorMode?17:13,outline:"none"}}
           />
+          <button onClick={()=>{if(voiceState==="listening"){stopListening();}else{startListening();}}} title={"Voice input — Hey "+assistantName()} style={{background:voiceState==="listening"?"#ef4444":"transparent",border:"1px solid "+(voiceState==="listening"?"#ef4444":"#C8963E"),borderRadius:10,padding:"10px 12px",color:voiceState==="listening"?"#fff":"#C8963E",cursor:"pointer",fontSize:seniorMode?18:15,flexShrink:0}}>{voiceState==="listening"?"⏹":"🎙"}</button>
           <button onClick={()=>sendChatMessage()} disabled={chatLoading||!chatInput.trim()} style={{background:"#C8963E",border:"none",borderRadius:10,padding:"10px 16px",color:"#0c0e14",fontWeight:700,cursor:"pointer",fontFamily:FM,fontSize:seniorMode?17:13,opacity:chatLoading||!chatInput.trim()?0.5:1}}>
             Send
           </button>
