@@ -1798,8 +1798,8 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     checkRole();
   },[user]);
 
-  // VOICE PICKER COMPONENT
-  const VoicePicker=()=>{
+  // VOICE PICKER COMPONENT — memoized to prevent flicker on re-render
+  const VoicePicker=React.memo(()=>{
     const [availVoices,setAvailVoices]=React.useState([]);
     const [selVoice,setSelVoice]=React.useState(()=>{try{return localStorage.getItem("sk_voiceName")||"";}catch{return "";}});
     const [gender,setGender]=React.useState(()=>{try{return localStorage.getItem("sk_voiceGender")||"female";}catch{return "female";}});
@@ -1837,7 +1837,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
         ))}
       </div>
     </div>);
-  };
+  });
 
   // VOICE ENGINE START
   const speak=(text)=>{
