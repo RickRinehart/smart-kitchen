@@ -5504,7 +5504,11 @@ What can I substitute and do I have what I need?`,
                   setFrPhotos(prev=>[...prev,{preview,b64}]);
                 };
                 reader.readAsDataURL(file);
-                e.target.value="";
+                // Reset input fully so camera reopens on next tap (not gallery)
+                setTimeout(()=>{
+                  const inp=document.getElementById("fr-photo-camera");
+                  if(inp){inp.value="";inp.setAttribute("capture","environment");}
+                },300);
               }}/>
               <input id="fr-photo-gallery" type="file" accept="image/*" multiple style={{display:"none"}} onChange={e=>{
                 const files=Array.from(e.target.files);
@@ -5521,7 +5525,11 @@ What can I substitute and do I have what I need?`,
                 e.target.value="";
               }}/>
               {frPhotos.length>0&&<div style={{display:"flex",gap:8,marginTop:4}}>
-                <button onClick={()=>document.getElementById("fr-photo-gallery").click()} style={{flex:1,background:"transparent",border:"2px solid #c8963e",borderRadius:10,padding:"11px",color:"#5c3317",fontFamily:"Georgia,serif",fontSize:seniorMode?15:13,cursor:"pointer",fontWeight:700}}>+ Add Another Photo</button>
+                <button onClick={()=>{
+  const inp=document.getElementById("fr-photo-camera");
+  if(inp){inp.setAttribute("capture","environment");inp.value="";inp.click();}
+}} style={{flex:1,background:"transparent",border:"2px solid #c8963e",borderRadius:10,padding:"11px",color:"#5c3317",fontFamily:"Georgia,serif",fontSize:seniorMode?15:13,cursor:"pointer",fontWeight:700}}>📷 Take Another Photo</button>
+<button onClick={()=>document.getElementById("fr-photo-gallery").click()} style={{flex:1,background:"transparent",border:"2px solid #8b6340",borderRadius:10,padding:"11px",color:"#8b6340",fontFamily:"Georgia,serif",fontSize:seniorMode?15:13,cursor:"pointer"}}>🖼 Gallery</button>
                 <button onClick={async()=>{
                   setFrLoading(true);
                   try{
