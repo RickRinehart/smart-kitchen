@@ -1132,7 +1132,7 @@ APP KNOWLEDGE: Smart Kitchen has these features:
 - MOVING RECIPES: On any Saved recipe card, tap "📖 Add to Family" to move it to Family Recipes. Inside a Family Recipe view, tap "⭐ Add to Saved" to copy it to Saved Recipes.
 - Shopping List: auto-builds from meal plan. Email, SMS (Text to... button — add phone in Settings), and Send to Instacart (opens Meijer/ALDI/Kroger/etc with items ready to shop — set preferred store in Settings).
 - Family Profiles: per-member dietary restrictions, Date of Birth (birthday countdown, 🎂 banner on meal plan week, age-aware AI meals), Medical+ for medication/allergy compliance.
-- Bluetooth Scale (⚖ Scale, Medical+ only): connect Etekcity ESN00 (~$25 Amazon), weigh portions, get instant calorie/nutrition estimates.
+- Bluetooth Scale (⚖ Scale, Medical+ only): connect Etekcity Nutrition Scale, weigh portions, get instant calorie/nutrition estimates.
 - Leftovers scanner (photo identifies dish, estimates servings, sets use-by date — if unrecognized shows "I'm not sure what this is" prompt), Substitute tool, Weekly Ad scanner, Desserts, Busy Night flag (⚡).
 - Senior Mode (Aa Off/On button): larger text, bigger tap targets, larger checkboxes on shopping list.
 - Family Recipes: tap Family Recipes button in top bar. Add, edit, delete, share individual recipes. Share All shares every family recipe at once. Cross-device sync — recipes available on all your devices.
@@ -4633,7 +4633,7 @@ What can I substitute and do I have what I need?`,
                   Connect your Bluetooth kitchen scale to weigh portions and get instant calorie estimates.
                 </div>
                 <div style={{fontFamily:FM,fontSize:11,color:C.muted,marginBottom:16}}>
-                  Compatible: <strong style={{color:C.text}}>Etekcity Nutrition Scale</strong> (ESN00) · Service 0xFFF0
+                  Compatible: <strong style={{color:C.text}}>Etekcity Nutrition Scale</strong> (ENS-L221S) · Service 0xFFF0
                 </div>
                 <button onClick={connectScale} disabled={scaleConnecting||!navigator.bluetooth}
                   style={{...bBtn("primary"),padding:"12px 24px",fontSize:14,opacity:(!navigator.bluetooth)?0.5:1}}>
@@ -4722,8 +4722,8 @@ What can I substitute and do I have what I need?`,
             <div style={{background:C.surface,borderRadius:10,padding:12,marginTop:14}}>
               <div style={{fontFamily:FM,fontSize:11,fontWeight:700,color:C.text,marginBottom:4}}>Recommended Scale</div>
               <div style={{fontFamily:FM,fontSize:11,color:C.muted,lineHeight:1.5}}>
-                <strong style={{color:C.text}}>Etekcity ESN00</strong> — ~$25 on Amazon. Fully compatible, open protocol.<br/>
-                Search "Etekcity ESN00 Smart Nutrition Scale" on Amazon.
+                <strong style={{color:C.text}}>Etekcity Nutrition Scale</strong> — confirmed compatible (BLE FFF0/FFF1/FFF2).<br/>
+                Search “Etekcity Nutrition Scale ENS-L221S” on Amazon.
               </div>
             </div>
 
