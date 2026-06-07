@@ -4660,6 +4660,7 @@ What can I substitute and do I have what I need?`,
                   </div>
                   <div style={{fontFamily:FM,fontSize:16,color:C.muted}}>{scaleUnit}</div>
                   {scaleWeight>0&&<div style={{fontFamily:FM,fontSize:11,color:C.muted,marginTop:4}}>{scaleUnit==="g"?((scaleWeight/28.35).toFixed(2)+" oz · "+(scaleWeight/453.6).toFixed(3)+" lb"):scaleUnit==="oz"?(scaleWeight+" oz · "+(scaleWeightGrams).toFixed(1)+" g"):(scaleWeight+" lb · "+scaleWeightGrams.toFixed(1)+" g")}</div>}
+                  {scaleRawBytes&&<div style={{fontFamily:"monospace",fontSize:9,color:"#f59e0b",marginTop:4,userSelect:"all"}}>unit byte: {scaleRawBytes.split(" ")[14]||"?"}</div>}
                 </div>
 
                 {/* Food name input */}
