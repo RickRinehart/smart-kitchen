@@ -479,56 +479,6 @@ const FEATURE_ANNOUNCEMENTS=[
     tab:"shopping"
   }
 ];
-// VoicePicker: defined outside App to prevent remount on parent re-render
-// Module-level cache — loaded once, never re-triggers renders
-let _cachedVoices=[];
-let _voicesLoaded=false;
-function getCachedVoices(){
-  if(_voicesLoaded) return _cachedVoices;
-  if(!window.speechSynthesis) return [];
-  const v=window.speechSynthesis.getVoices();
-  if(v&&v.length>0){
-    _cachedVoices=v.filter(x=>x.lang&&x.lang.startsWith("en"));
-    _voicesLoaded=true;
-    if(!localStorage.getItem("sk_voiceName")&&_cachedVoices.length>0){
-      const us=_cachedVoices.find(x=>x.lang==="en-US")||_cachedVoices[0];
-      if(us) localStorage.setItem("sk_voiceName",us.name);
-    }
-  }
-  return _cachedVoices;
-}
-// Load voices early on page load
-if(typeof window!=="undefined"&&window.speechSynthesis){
-  const _earlyV=window.speechSynthesis.getVoices();
-  if(_earlyV&&_earlyV.length>0){getCachedVoices();}
-  else{window.speechSynthesis.onvoiceschanged=()=>{getCachedVoices();window.speechSynthesis.onvoiceschanged=null;};}
-}
-
-const VoicePicker=({textColor,mutedColor,fontMono})=>{
-  const [selVoice,setSelVoice]=React.useState(()=>{try{return localStorage.getItem("sk_voiceName")||"";}catch{return "";}});
-  const [gender,setGender]=React.useState(()=>{try{return localStorage.getItem("sk_voiceGender")||"female";}catch{return "female";}});
-  const voices=getCachedVoices();
-  const muted=mutedColor||"#888";
-  const prettyName=(v)=>{
-    const n=v.name.replace("Google ","").replace("Microsoft ","");
-    const loc={"en-US":"🇺🇸 US","en-GB":"🇬🇧 UK","en-AU":"🇦🇺 AU","en-IN":"🇮🇳 IN","en-NG":"🇳🇬 NG"};
-    return (loc[v.lang]||v.lang)+" "+n;
-  };
-  if(voices.length===0) return null;
-  return(<div style={{marginBottom:10}}>
-    {voices.length>1&&(<div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:8}}>
-      {voices.map(v=>(<button key={v.name} onClick={()=>{setSelVoice(v.name);localStorage.setItem("sk_voiceName",v.name);}} style={{padding:"6px 10px",borderRadius:8,border:"1px solid "+(selVoice===v.name?"#C8963E":"#555"),background:selVoice===v.name?"#fff7ed":"transparent",color:selVoice===v.name?"#C8963E":muted,fontFamily:fontMono||"monospace",fontSize:11,cursor:"pointer",fontWeight:selVoice===v.name?700:400}}>{prettyName(v)}</button>))}
-    </div>)}
-    <div style={{fontSize:11,color:muted,fontFamily:fontMono||"monospace",marginBottom:6}}>Tone</div>
-    <div style={{display:"flex",gap:6,marginBottom:8}}>
-      {[["female","👩 Higher pitch"],["male","👨 Deeper pitch"]].map(([g,label])=>(
-        <button key={g} onClick={()=>{setGender(g);localStorage.setItem("sk_voiceGender",g);}} style={{flex:1,padding:"7px",borderRadius:8,border:"1px solid "+(gender===g?"#C8963E":"#555"),background:gender===g?"#fff7ed":"transparent",color:gender===g?"#C8963E":muted,fontFamily:fontMono||"monospace",fontSize:11,cursor:"pointer",fontWeight:gender===g?700:400}}>{label}</button>
-      ))}
-    </div>
-  </div>);
-};
-
-
 export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, user=null, viewerRole=null, onShowGuestViewer=null }){
   // -- State ------------------------------------------------------------------
   const isViewer = !!viewerRole; // true = read-only viewer of another account
@@ -1496,14 +1446,33 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
 
 
   // -- Bluetooth Scale (Medical+) -------------------------------------------
-  const SCALE_SVC="00001910-0000-1000-8000-00805f9b34fb";
-  const SCALE_CHR_ETK="00002c12-0000-1000-8000-00805f9b34fb";
-  const SCALE_CHR_RNP="00002b10-0000-1000-8000-00805f9b34fb";
+  // Etekcity Nutrition Scale — confirmed UUIDs from nRF Connect (MAC: 9A:A9:0A:04:0F:6B)
+  const SCALE_SVC="0000fff0-0000-1000-8000-00805f9b34fb";  // Service: 0xFFF0
+  const SCALE_CHR_NOTIFY="0000fff1-0000-1000-8000-00805f9b34fb";  // Notify (weight in): 0xFFF1
+  const SCALE_CHR_WRITE="0000fff2-0000-1000-8000-00805f9b34fb";   // Write (tare cmd out): 0xFFF2
   function decodeScaleWt(value){
+    // Etekcity FFF1 notify packet — log raw bytes to console for protocol discovery
     const bytes=new Uint8Array(value.buffer);
-    if(bytes.length<6||bytes[0]!==0xFD) return null;
-    const grams=((bytes[3]<<8)|bytes[4])/10;
-    const unit=bytes[5]===0x02?"oz":bytes[5]===0x03?"lb":"g";
+    console.log("Scale raw bytes:",Array.from(bytes).map(b=>"0x"+b.toString(16).padStart(2,"0")).join(" "));
+    if(bytes.length<4) return null;
+    // Try common weight packet formats:
+    // Format A: [header, weight_high, weight_low, unit, ...]
+    // Format B: [header, header, weight_high, weight_low, unit, ...]
+    // Parse grams from most likely position — will refine once we see real packets
+    let grams=0;
+    if(bytes.length>=6){
+      // Try 2-byte weight at offset 1
+      const raw1=((bytes[1]<<8)|bytes[2]);
+      // Try 2-byte weight at offset 3
+      const raw2=((bytes[3]<<8)|bytes[4]);
+      // Use whichever gives a plausible gram reading (0-5000g)
+      if(raw1>0&&raw1<=50000) grams=raw1/10;
+      else if(raw2>0&&raw2<=50000) grams=raw2/10;
+    } else if(bytes.length>=3){
+      grams=((bytes[1]<<8)|bytes[2])/10;
+    }
+    const unitByte=bytes[bytes.length-2]||0;
+    const unit=unitByte===0x02?"oz":unitByte===0x03?"lb":"g";
     return {grams,unit};
   }
   const connectScale=async()=>{
@@ -1511,22 +1480,30 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     setScaleConnecting(true);setScaleError("");
     try{
       const dev=await navigator.bluetooth.requestDevice({
-        filters:[{services:[SCALE_SVC]}],optionalServices:[SCALE_SVC]
+        filters:[
+          {name:"Etekcity Nutrition Scale"},
+          {services:[SCALE_SVC]},
+        ],
+        optionalServices:[SCALE_SVC]
       });
       setScaleDevice(dev);
       dev.addEventListener("gattserverdisconnected",()=>{setScaleDevice(null);setScaleWeight(null);setScaleError("Scale disconnected.");});
       const server=await dev.gatt.connect();
       const svc=await server.getPrimaryService(SCALE_SVC);
-      let chr;
-      try{chr=await svc.getCharacteristic(SCALE_CHR_ETK);}
-      catch{chr=await svc.getCharacteristic(SCALE_CHR_RNP);}
-      await chr.startNotifications();
-      chr.addEventListener("characteristicvaluechanged",(e)=>{
+      // Subscribe to weight notifications on FFF1
+      const notifyChr=await svc.getCharacteristic(SCALE_CHR_NOTIFY);
+      await notifyChr.startNotifications();
+      notifyChr.addEventListener("characteristicvaluechanged",(e)=>{
         const d=decodeScaleWt(e.target.value);
-        if(d&&d.grams>0){setScaleWeight(d.grams);setScaleUnit(d.unit||"g");}
+        if(d&&d.grams>=0){setScaleWeight(d.grams);setScaleUnit(d.unit||"g");}
       });
+      // Store write characteristic for tare command
+      try{
+        const writeChr=await svc.getCharacteristic(SCALE_CHR_WRITE);
+        dev._writeChr=writeChr;
+      }catch(e){console.log("Write chr not available:",e.message);}
     }catch(err){
-      if(err.name==="NotFoundError") setScaleError("No scale found. Make sure your scale is on and nearby.");
+      if(err.name==="NotFoundError") setScaleError("No scale found. Make sure the Etekcity scale is on and nearby.");
       else setScaleError("Could not connect: "+err.message);
     }
     setScaleConnecting(false);
@@ -1847,6 +1824,47 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     };
     checkRole();
   },[user]);
+
+  // VOICE PICKER COMPONENT — memoized to prevent flicker on re-render
+  const VoicePicker=React.memo(()=>{
+    const [availVoices,setAvailVoices]=React.useState([]);
+    const [selVoice,setSelVoice]=React.useState(()=>{try{return localStorage.getItem("sk_voiceName")||"";}catch{return "";}});
+    const [gender,setGender]=React.useState(()=>{try{return localStorage.getItem("sk_voiceGender")||"female";}catch{return "female";}});
+    React.useEffect(()=>{
+      const load=()=>{
+        const v=window.speechSynthesis.getVoices();
+        if(v&&v.length>0){
+          const en=v.filter(x=>x.lang&&x.lang.startsWith("en"));
+          setAvailVoices(en);
+          if(!localStorage.getItem("sk_voiceName")&&en.length>0){
+            const us=en.find(x=>x.lang==="en-US")||en[0];
+            if(us){setSelVoice(us.name);localStorage.setItem("sk_voiceName",us.name);}
+          }
+        }
+      };
+      load();
+      window.speechSynthesis.onvoiceschanged=load;
+      return()=>{window.speechSynthesis.onvoiceschanged=null;};
+    },[]);
+    const prettyName=(v)=>{
+      const n=v.name.replace("Google ","").replace("Microsoft ","");
+      const loc={en_US:"🇺🇸 US",en_GB:"🇬🇧 UK","en-US":"🇺🇸 US","en-GB":"🇬🇧 UK","en-AU":"🇦🇺 AU","en-IN":"🇮🇳 IN","en-NG":"🇳🇬 NG"};
+      const flag=loc[v.lang.replace("_","-")]||v.lang;
+      return flag+" "+n;
+    };
+    if(availVoices.length===0) return null;
+    return(<div style={{marginBottom:10}}>
+      {availVoices.length>1&&(<div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:8}}>
+        {availVoices.map(v=>(<button key={v.name} onClick={()=>{setSelVoice(v.name);localStorage.setItem("sk_voiceName",v.name);}} style={{padding:"6px 10px",borderRadius:8,border:"1px solid "+(selVoice===v.name?"#C8963E":"#555"),background:selVoice===v.name?"#fff7ed":"transparent",color:selVoice===v.name?"#C8963E":C.muted,fontFamily:FM,fontSize:11,cursor:"pointer",fontWeight:selVoice===v.name?700:400}}>{prettyName(v)}</button>))}
+      </div>)}
+      <div style={{fontSize:11,color:C.muted,fontFamily:FM,marginBottom:8}}>Tone</div>
+      <div style={{display:"flex",gap:6,marginBottom:8}}>
+        {[["female","👩 Higher pitch"],["male","👨 Deeper pitch"]].map(([g,label])=>(
+          <button key={g} onClick={()=>{setGender(g);localStorage.setItem("sk_voiceGender",g);}} style={{flex:1,padding:"7px",borderRadius:8,border:"1px solid "+(gender===g?"#C8963E":"#555"),background:gender===g?"#fff7ed":"transparent",color:gender===g?"#C8963E":C.muted,fontFamily:FM,fontSize:11,cursor:"pointer",fontWeight:gender===g?700:400}}>{label}</button>
+        ))}
+      </div>
+    </div>);
+  });
 
   // VOICE ENGINE START
   const speak=(text)=>{
@@ -2261,7 +2279,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
 
   
       {showJoinViewer&&user&&(<JoinAsViewerModal user={user} onClose={()=>setShowJoinViewer(false)} onJoined={()=>{setShowJoinViewer(false);window.location.reload();}}/>)}
-{showSettings&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setShowSettings(false)}><div style={{background:C.card,borderRadius:16,padding:28,width:340,maxWidth:"90vw",maxHeight:"90vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}><div style={{fontFamily:FD,fontSize:20,fontWeight:700,color:C.text,marginBottom:4}}>Settings</div><div style={{fontSize:11,color:C.muted,fontFamily:FM,marginBottom:20}}>Smart Kitchen v1.5</div><div style={{marginTop:12,background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:"#1A2344",marginBottom:8}}>🎙 Voice Assistant Name</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:6}}>What should your assistant be called? (default: Cathy)</div><input placeholder="e.g. Cathy, Alex, Rosie..." defaultValue={localStorage.getItem("sk_assistantName")||"Cathy"} onChange={e=>localStorage.setItem("sk_assistantName",e.target.value||"Cathy")} style={{width:"100%",background:C.card,border:"1px solid "+C.border,borderRadius:6,padding:"6px 10px",color:C.text,fontFamily:FM,fontSize:12,marginBottom:6,boxSizing:"border-box"}}/><div style={{fontSize:11,color:C.muted,fontFamily:FM,marginBottom:10}}>Tap the 🎙 Hey [Name] button in the menu to activate voice.</div><div style={{fontFamily:FD,fontSize:13,fontWeight:600,color:C.text,marginBottom:6}}>Assistant Voice</div><VoicePicker mutedColor={C.muted} fontMono={FM}/><button onClick={()=>{if(!window.speechSynthesis)return;window.speechSynthesis.cancel();const utt=new SpeechSynthesisUtterance("Hi, I'm "+(localStorage.getItem("sk_assistantName")||"Cathy")+". I'm your Smart Kitchen assistant. What's for dinner tonight?");utt.rate=0.95;utt.pitch=1.05;const gender=localStorage.getItem("sk_voiceGender")||"female";const femaleNames=["Samantha","Karen","Victoria","Moira","Fiona","Tessa","Veena","Zira","Google US English Female","Microsoft Zira"];const maleNames=["Tom","Daniel","Alex","Fred","Google US English Male","Microsoft David","Microsoft Mark"];if(gender==="male"){utt.pitch=0.7;utt.rate=0.88;}else{utt.pitch=1.15;utt.rate=0.95;}const doSpeak=()=>{const voices=window.speechSynthesis.getVoices();const enVoices=voices.filter(v=>v.lang&&v.lang.startsWith("en"));const femaleN=["Samantha","Karen","Victoria","Moira","Fiona","Tessa","Veena","Zira","Google US English Female","Microsoft Zira"];const maleN=["Tom","Daniel","Alex","Fred","Google US English Male","Microsoft David","Microsoft Mark"];const namedMatch=enVoices.find(v=>gender==="female"?femaleN.some(n=>v.name.toLowerCase().includes(n.toLowerCase())):maleN.some(n=>v.name.toLowerCase().includes(n.toLowerCase())));const picked=namedMatch||enVoices.find(v=>v.localService)||enVoices[0]||voices[0];if(picked)utt.voice=picked;window.speechSynthesis.speak(utt);};const pVoices=window.speechSynthesis.getVoices();if(pVoices&&pVoices.length>0){doSpeak();}else{window.speechSynthesis.onvoiceschanged=()=>{window.speechSynthesis.onvoiceschanged=null;doSpeak();};}}} style={{...bBtn("ghost"),width:"100%",fontSize:11,border:"1px solid "+C.border,color:C.muted,marginBottom:8}}>🔊 Preview Voice</button><button onClick={()=>{const loadAndShow=()=>{const v=window.speechSynthesis.getVoices();if(!v||v.length===0){alert("No voices loaded yet. Try again in a moment.");return;}const list=v.filter(x=>x.lang.startsWith("en")).map(x=>x.name+" ("+x.lang+(x.localService?" local":" remote")+")").join("\n");alert("Available English voices ("+v.filter(x=>x.lang.startsWith("en")).length+" of "+v.length+" total):\n\n"+list);};const v=window.speechSynthesis.getVoices();if(v&&v.length>0){loadAndShow();}else{window.speechSynthesis.onvoiceschanged=()=>{window.speechSynthesis.onvoiceschanged=null;loadAndShow();};}}} style={{...bBtn("ghost"),width:"100%",fontSize:11,border:"1px solid "+C.border,color:C.muted,marginBottom:16}}>🔍 Show Available Voices</button><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:8}}>Shopping Partner</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:6}}>Who gets the emailed shopping list?</div><input placeholder="Name (e.g. Lisa)" value={shopPartnerName} onChange={e=>{setShopPartnerName(e.target.value);localStorage.setItem("sk_shopPartnerName",e.target.value);}} style={{width:"100%",background:C.card,border:"1px solid "+C.border,borderRadius:6,padding:"6px 10px",color:C.text,fontFamily:FM,fontSize:12,marginBottom:6,boxSizing:"border-box"}}/><input placeholder="Email address" value={shopPartnerEmail} onChange={e=>{setShopPartnerEmail(e.target.value);localStorage.setItem("sk_shopPartnerEmail",e.target.value);}} style={{width:"100%",background:C.card,border:"1px solid "+C.border,borderRadius:6,padding:"6px 10px",color:C.text,fontFamily:FM,fontSize:12,boxSizing:"border-box"}}/><div style={{fontSize:11,color:C.muted,fontFamily:FM,margin:"10px 0 4px"}}>Phone for SMS shopping list</div><input placeholder="e.g. 616-555-1234" type="tel" value={shopPhone} onChange={e=>{setShopPhone(e.target.value);localStorage.setItem("sk_shopPhone",e.target.value);}} style={{width:"100%",background:C.card,border:"1px solid "+C.border,borderRadius:6,padding:"6px 10px",color:C.text,fontFamily:FM,fontSize:12,boxSizing:"border-box"}}/><div style={{fontSize:10,color:C.muted,fontFamily:FM,marginTop:3}}>US numbers only.</div><div style={{background:"#22c55e"+"12",border:"1px solid "+"#22c55e"+"33",borderRadius:8,padding:"10px 12px",marginTop:8}}><div style={{fontFamily:FM,fontSize:11,fontWeight:700,color:"#16a34a",marginBottom:4}}>📱 On mobile — works instantly</div><div style={{fontFamily:FM,fontSize:11,color:C.muted,lineHeight:1.5}}>Tap "Text to..." and your shopping list opens in your Messages app, ready to send.</div></div><div style={{background:C.surface,border:"1px solid "+C.border,borderRadius:8,padding:"10px 12px",marginTop:6}}><div style={{fontFamily:FM,fontSize:11,fontWeight:700,color:C.text,marginBottom:4}}>🖥 On desktop — two options</div><div style={{fontFamily:FM,fontSize:11,color:C.muted,lineHeight:1.5,marginBottom:6}}><strong style={{color:C.text}}>Option 1 (free):</strong> Tap "Text to..." and choose your messaging app from the picker — the list is pre-filled.</div><div style={{fontFamily:FM,fontSize:11,color:C.muted,lineHeight:1.5,marginBottom:8}}><strong style={{color:C.text}}>Option 2 (background send):</strong> Connect Twilio to send SMS silently without any app picker.</div><button onClick={()=>setShowSmsHelp(true)} style={{background:"transparent",border:"1px solid "+C.accent,borderRadius:6,color:C.accent,fontFamily:FM,fontSize:11,cursor:"pointer",padding:"5px 10px",fontWeight:600}}>Set Up Twilio (background SMS)</button></div></div><div style={{display:"flex",flexDirection:"column",gap:12}}><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>{darkMode?"🌙 Dark Mode":"☀ Light Mode"}</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Switch between dark and light display themes.</div><button style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.border,color:C.text}} onClick={()=>setDarkMode(m=>!m)}>{darkMode?"Switch to Light Mode ☀":"Switch to Dark Mode 🌙"}</button></div><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>Recipe Search Site</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Where to search for recipes when you tap a meal name.</div><div style={{display:"flex",flexDirection:"column",gap:6}}>{[["google","🔍 Google Recipes"],["allrecipes","🍳 AllRecipes"],["pinterest","📌 Pinterest"],["foodnetwork","📺 Food Network"]].map(([key,label])=>(<button key={key} onClick={()=>{setRecipeSite(key);localStorage.setItem("sk_recipeSite",key);}} style={{padding:"8px 12px",borderRadius:8,border:"1px solid "+(recipeSite===key?C.accent:C.border),background:recipeSite===key?C.accent+"22":"transparent",color:recipeSite===key?C.accent:C.text,fontFamily:FM,fontSize:12,cursor:"pointer",textAlign:"left"}}>{label}{recipeSite===key?" ✓":""}</button>))}</div></div><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:8}}>Grocery Delivery</div><div style={{fontSize:11,color:C.muted,fontFamily:FM,marginBottom:10}}>Send your shopping list to a delivery service.</div><div style={{display:"flex",gap:6,marginBottom:10}}>{[["instacart","Instacart"],["shipt","Shipt"]].map(([k,label])=>(<button key={k} onClick={()=>{setDeliveryService(k);localStorage.setItem("sk_deliveryService",k);}} style={{flex:1,padding:"7px",borderRadius:8,border:"1px solid "+(deliveryService===k?"#00873A":C.border),background:deliveryService===k?"#00873A22":"transparent",color:deliveryService===k?"#00873A":C.text,fontFamily:FM,fontSize:11,cursor:"pointer",fontWeight:600}}>{label}{deliveryService===k?" ✓":""}</button>))}</div>{deliveryService==="instacart"&&(<div><div style={{fontFamily:FM,fontSize:11,fontWeight:600,color:C.text,marginBottom:6}}>Preferred Store</div><div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>{[["meijer","Meijer"],["aldi","ALDI"],["kroger","Kroger"],["costco","Costco"],["walmart","Walmart"],["target","Target"]].map(([k,label])=>(<button key={k} onClick={()=>{setInstacartStore(k);localStorage.setItem("sk_instacartStore",k);}} style={{padding:"5px 10px",borderRadius:16,border:"1px solid "+(instacartStore===k?"#00873A":C.border),background:instacartStore===k?"#00873A22":"transparent",color:instacartStore===k?"#00873A":C.text,fontFamily:FM,fontSize:11,cursor:"pointer"}}>{label}{instacartStore===k?" ✓":""}</button>))}</div><div style={{background:"#f0fdf4",border:"1px solid #86efac",borderRadius:8,padding:"10px 12px"}}><div style={{fontFamily:FM,fontSize:11,fontWeight:700,color:"#16a34a",marginBottom:3}}>Works now — no setup needed</div><div style={{fontFamily:FM,fontSize:11,color:C.muted,lineHeight:1.5}}>Tap Send to Instacart and your items open in Instacart ready to shop. One-tap pre-built cart coming when Instacart reopens their developer program.</div></div></div>)}</div><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>Reset Inventory</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Clears all inventory items. Keeps profiles, meal plan, and preferences.</div><button style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.red,color:C.red}} onClick={()=>{if(window.confirm("Clear all inventory? Cannot be undone.")){localStorage.removeItem("sk_inventory");localStorage.removeItem("sk_portionFixV2");setInventory([]);setShowSettings(false);alert("Inventory cleared.");}}}>Clear Inventory</button></div><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>Reset All Data</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Wipes everything and restarts the Setup Wizard. Use for demo resets.</div><button style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.red,color:C.red}} onClick={()=>{if(window.confirm("Reset ALL data? Cannot be undone.")){["sk_inventory","sk_familyProfiles","sk_familySize","sk_mealPlan","sk_sportsNights","sk_recipeSite","sk_seniorMode","sk_setupDone","sk_portionFixV2","sk_installDismissed","sk_reminderDismissed","sk_saleItems","sk_tempProfiles","sk_activeTab","sk_chatWelcomeDone","sk_tourChoice","sk_tourStep","sk_guestCaptured","sk_darkMode","sk_recipes","sk_recipeRatings","sk_desserts","sk_dessertRatings","sk_seenFeature_occasionSystem","sk_seenFeature_smsShoppingList"].forEach(k=>localStorage.removeItem(k));window.location.reload();}}}>Reset All Data</button></div></div><div style={{background:"#f5f3ff",borderRadius:10,padding:16,marginTop:12}}>
+{showSettings&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setShowSettings(false)}><div style={{background:C.card,borderRadius:16,padding:28,width:340,maxWidth:"90vw",maxHeight:"90vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}><div style={{fontFamily:FD,fontSize:20,fontWeight:700,color:C.text,marginBottom:4}}>Settings</div><div style={{fontSize:11,color:C.muted,fontFamily:FM,marginBottom:20}}>Smart Kitchen v1.5</div><div style={{marginTop:12,background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:"#1A2344",marginBottom:8}}>🎙 Voice Assistant Name</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:6}}>What should your assistant be called? (default: Cathy)</div><input placeholder="e.g. Cathy, Alex, Rosie..." defaultValue={localStorage.getItem("sk_assistantName")||"Cathy"} onChange={e=>localStorage.setItem("sk_assistantName",e.target.value||"Cathy")} style={{width:"100%",background:C.card,border:"1px solid "+C.border,borderRadius:6,padding:"6px 10px",color:C.text,fontFamily:FM,fontSize:12,marginBottom:6,boxSizing:"border-box"}}/><div style={{fontSize:11,color:C.muted,fontFamily:FM,marginBottom:10}}>Tap the 🎙 Hey [Name] button in the menu to activate voice.</div><div style={{fontFamily:FD,fontSize:13,fontWeight:600,color:C.text,marginBottom:6}}>Assistant Voice</div><VoicePicker/><button onClick={()=>{if(!window.speechSynthesis)return;window.speechSynthesis.cancel();const utt=new SpeechSynthesisUtterance("Hi, I'm "+(localStorage.getItem("sk_assistantName")||"Cathy")+". I'm your Smart Kitchen assistant. What's for dinner tonight?");utt.rate=0.95;utt.pitch=1.05;const gender=localStorage.getItem("sk_voiceGender")||"female";const femaleNames=["Samantha","Karen","Victoria","Moira","Fiona","Tessa","Veena","Zira","Google US English Female","Microsoft Zira"];const maleNames=["Tom","Daniel","Alex","Fred","Google US English Male","Microsoft David","Microsoft Mark"];if(gender==="male"){utt.pitch=0.7;utt.rate=0.88;}else{utt.pitch=1.15;utt.rate=0.95;}const doSpeak=()=>{const voices=window.speechSynthesis.getVoices();const enVoices=voices.filter(v=>v.lang&&v.lang.startsWith("en"));const femaleN=["Samantha","Karen","Victoria","Moira","Fiona","Tessa","Veena","Zira","Google US English Female","Microsoft Zira"];const maleN=["Tom","Daniel","Alex","Fred","Google US English Male","Microsoft David","Microsoft Mark"];const namedMatch=enVoices.find(v=>gender==="female"?femaleN.some(n=>v.name.toLowerCase().includes(n.toLowerCase())):maleN.some(n=>v.name.toLowerCase().includes(n.toLowerCase())));const picked=namedMatch||enVoices.find(v=>v.localService)||enVoices[0]||voices[0];if(picked)utt.voice=picked;window.speechSynthesis.speak(utt);};const pVoices=window.speechSynthesis.getVoices();if(pVoices&&pVoices.length>0){doSpeak();}else{window.speechSynthesis.onvoiceschanged=()=>{window.speechSynthesis.onvoiceschanged=null;doSpeak();};}}} style={{...bBtn("ghost"),width:"100%",fontSize:11,border:"1px solid "+C.border,color:C.muted,marginBottom:8}}>🔊 Preview Voice</button><button onClick={()=>{const loadAndShow=()=>{const v=window.speechSynthesis.getVoices();if(!v||v.length===0){alert("No voices loaded yet. Try again in a moment.");return;}const list=v.filter(x=>x.lang.startsWith("en")).map(x=>x.name+" ("+x.lang+(x.localService?" local":" remote")+")").join("\n");alert("Available English voices ("+v.filter(x=>x.lang.startsWith("en")).length+" of "+v.length+" total):\n\n"+list);};const v=window.speechSynthesis.getVoices();if(v&&v.length>0){loadAndShow();}else{window.speechSynthesis.onvoiceschanged=()=>{window.speechSynthesis.onvoiceschanged=null;loadAndShow();};}}} style={{...bBtn("ghost"),width:"100%",fontSize:11,border:"1px solid "+C.border,color:C.muted,marginBottom:16}}>🔍 Show Available Voices</button><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:8}}>Shopping Partner</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:6}}>Who gets the emailed shopping list?</div><input placeholder="Name (e.g. Lisa)" value={shopPartnerName} onChange={e=>{setShopPartnerName(e.target.value);localStorage.setItem("sk_shopPartnerName",e.target.value);}} style={{width:"100%",background:C.card,border:"1px solid "+C.border,borderRadius:6,padding:"6px 10px",color:C.text,fontFamily:FM,fontSize:12,marginBottom:6,boxSizing:"border-box"}}/><input placeholder="Email address" value={shopPartnerEmail} onChange={e=>{setShopPartnerEmail(e.target.value);localStorage.setItem("sk_shopPartnerEmail",e.target.value);}} style={{width:"100%",background:C.card,border:"1px solid "+C.border,borderRadius:6,padding:"6px 10px",color:C.text,fontFamily:FM,fontSize:12,boxSizing:"border-box"}}/><div style={{fontSize:11,color:C.muted,fontFamily:FM,margin:"10px 0 4px"}}>Phone for SMS shopping list</div><input placeholder="e.g. 616-555-1234" type="tel" value={shopPhone} onChange={e=>{setShopPhone(e.target.value);localStorage.setItem("sk_shopPhone",e.target.value);}} style={{width:"100%",background:C.card,border:"1px solid "+C.border,borderRadius:6,padding:"6px 10px",color:C.text,fontFamily:FM,fontSize:12,boxSizing:"border-box"}}/><div style={{fontSize:10,color:C.muted,fontFamily:FM,marginTop:3}}>US numbers only.</div><div style={{background:"#22c55e"+"12",border:"1px solid "+"#22c55e"+"33",borderRadius:8,padding:"10px 12px",marginTop:8}}><div style={{fontFamily:FM,fontSize:11,fontWeight:700,color:"#16a34a",marginBottom:4}}>📱 On mobile — works instantly</div><div style={{fontFamily:FM,fontSize:11,color:C.muted,lineHeight:1.5}}>Tap "Text to..." and your shopping list opens in your Messages app, ready to send.</div></div><div style={{background:C.surface,border:"1px solid "+C.border,borderRadius:8,padding:"10px 12px",marginTop:6}}><div style={{fontFamily:FM,fontSize:11,fontWeight:700,color:C.text,marginBottom:4}}>🖥 On desktop — two options</div><div style={{fontFamily:FM,fontSize:11,color:C.muted,lineHeight:1.5,marginBottom:6}}><strong style={{color:C.text}}>Option 1 (free):</strong> Tap "Text to..." and choose your messaging app from the picker — the list is pre-filled.</div><div style={{fontFamily:FM,fontSize:11,color:C.muted,lineHeight:1.5,marginBottom:8}}><strong style={{color:C.text}}>Option 2 (background send):</strong> Connect Twilio to send SMS silently without any app picker.</div><button onClick={()=>setShowSmsHelp(true)} style={{background:"transparent",border:"1px solid "+C.accent,borderRadius:6,color:C.accent,fontFamily:FM,fontSize:11,cursor:"pointer",padding:"5px 10px",fontWeight:600}}>Set Up Twilio (background SMS)</button></div></div><div style={{display:"flex",flexDirection:"column",gap:12}}><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>{darkMode?"🌙 Dark Mode":"☀ Light Mode"}</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Switch between dark and light display themes.</div><button style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.border,color:C.text}} onClick={()=>setDarkMode(m=>!m)}>{darkMode?"Switch to Light Mode ☀":"Switch to Dark Mode 🌙"}</button></div><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>Recipe Search Site</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Where to search for recipes when you tap a meal name.</div><div style={{display:"flex",flexDirection:"column",gap:6}}>{[["google","🔍 Google Recipes"],["allrecipes","🍳 AllRecipes"],["pinterest","📌 Pinterest"],["foodnetwork","📺 Food Network"]].map(([key,label])=>(<button key={key} onClick={()=>{setRecipeSite(key);localStorage.setItem("sk_recipeSite",key);}} style={{padding:"8px 12px",borderRadius:8,border:"1px solid "+(recipeSite===key?C.accent:C.border),background:recipeSite===key?C.accent+"22":"transparent",color:recipeSite===key?C.accent:C.text,fontFamily:FM,fontSize:12,cursor:"pointer",textAlign:"left"}}>{label}{recipeSite===key?" ✓":""}</button>))}</div></div><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:8}}>Grocery Delivery</div><div style={{fontSize:11,color:C.muted,fontFamily:FM,marginBottom:10}}>Send your shopping list to a delivery service.</div><div style={{display:"flex",gap:6,marginBottom:10}}>{[["instacart","Instacart"],["shipt","Shipt"]].map(([k,label])=>(<button key={k} onClick={()=>{setDeliveryService(k);localStorage.setItem("sk_deliveryService",k);}} style={{flex:1,padding:"7px",borderRadius:8,border:"1px solid "+(deliveryService===k?"#00873A":C.border),background:deliveryService===k?"#00873A22":"transparent",color:deliveryService===k?"#00873A":C.text,fontFamily:FM,fontSize:11,cursor:"pointer",fontWeight:600}}>{label}{deliveryService===k?" ✓":""}</button>))}</div>{deliveryService==="instacart"&&(<div><div style={{fontFamily:FM,fontSize:11,fontWeight:600,color:C.text,marginBottom:6}}>Preferred Store</div><div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>{[["meijer","Meijer"],["aldi","ALDI"],["kroger","Kroger"],["costco","Costco"],["walmart","Walmart"],["target","Target"]].map(([k,label])=>(<button key={k} onClick={()=>{setInstacartStore(k);localStorage.setItem("sk_instacartStore",k);}} style={{padding:"5px 10px",borderRadius:16,border:"1px solid "+(instacartStore===k?"#00873A":C.border),background:instacartStore===k?"#00873A22":"transparent",color:instacartStore===k?"#00873A":C.text,fontFamily:FM,fontSize:11,cursor:"pointer"}}>{label}{instacartStore===k?" ✓":""}</button>))}</div><div style={{background:"#f0fdf4",border:"1px solid #86efac",borderRadius:8,padding:"10px 12px"}}><div style={{fontFamily:FM,fontSize:11,fontWeight:700,color:"#16a34a",marginBottom:3}}>Works now — no setup needed</div><div style={{fontFamily:FM,fontSize:11,color:C.muted,lineHeight:1.5}}>Tap Send to Instacart and your items open in Instacart ready to shop. One-tap pre-built cart coming when Instacart reopens their developer program.</div></div></div>)}</div><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>Reset Inventory</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Clears all inventory items. Keeps profiles, meal plan, and preferences.</div><button style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.red,color:C.red}} onClick={()=>{if(window.confirm("Clear all inventory? Cannot be undone.")){localStorage.removeItem("sk_inventory");localStorage.removeItem("sk_portionFixV2");setInventory([]);setShowSettings(false);alert("Inventory cleared.");}}}>Clear Inventory</button></div><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>Reset All Data</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Wipes everything and restarts the Setup Wizard. Use for demo resets.</div><button style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.red,color:C.red}} onClick={()=>{if(window.confirm("Reset ALL data? Cannot be undone.")){["sk_inventory","sk_familyProfiles","sk_familySize","sk_mealPlan","sk_sportsNights","sk_recipeSite","sk_seniorMode","sk_setupDone","sk_portionFixV2","sk_installDismissed","sk_reminderDismissed","sk_saleItems","sk_tempProfiles","sk_activeTab","sk_chatWelcomeDone","sk_tourChoice","sk_tourStep","sk_guestCaptured","sk_darkMode","sk_recipes","sk_recipeRatings","sk_desserts","sk_dessertRatings","sk_seenFeature_occasionSystem","sk_seenFeature_smsShoppingList"].forEach(k=>localStorage.removeItem(k));window.location.reload();}}}>Reset All Data</button></div></div><div style={{background:"#f5f3ff",borderRadius:10,padding:16,marginTop:12}}>
 <div style={{fontFamily:FD,fontSize:16,fontWeight:700,color:"#065f46",marginBottom:8}}>Household Members</div>{!isViewer&&!isManager&&user&&(<div style={{marginBottom:12}}><div style={{fontSize:12,color:"#444",fontFamily:FM,marginBottom:10,lineHeight:1.5}}>Invite a caregiver or family member to help manage this account, or share view-only access.</div>{!showInviteManager?(<div style={{display:"flex",flexDirection:"column",gap:6}}><button style={{...bBtn("ghost"),width:"100%",border:"1px solid #059669",color:"#065f46",fontWeight:600}} onClick={()=>setShowInviteManager(true)}>+ Invite Someone</button></div>):(<div style={{background:"#f0fdf4",borderRadius:10,padding:14,border:"1px solid #86efac"}}><div style={{fontFamily:FD,fontSize:13,fontWeight:600,color:"#065f46",marginBottom:10}}>Send an Invitation</div><div style={{fontSize:12,color:"#444",fontFamily:FM,marginBottom:6}}>Their email address</div><input placeholder="caregiver@email.com" value={inviteEmail} onChange={e=>setInviteEmail(e.target.value)} style={{width:"100%",background:"#fff",border:"1px solid #86efac",borderRadius:6,padding:"8px 10px",color:"#1a2344",fontFamily:FM,fontSize:13,marginBottom:10,boxSizing:"border-box"}}/><div style={{fontSize:12,color:"#444",fontFamily:FM,marginBottom:6}}>Their role</div><div style={{display:"flex",gap:6,marginBottom:10}}><button onClick={()=>setInviteRole("viewer")} style={{flex:1,padding:"8px",borderRadius:8,border:"1px solid "+(inviteRole==="viewer"?"#4a1d96":"#ccc"),background:inviteRole==="viewer"?"#f5f3ff":"#fff",color:inviteRole==="viewer"?"#4a1d96":"#444",fontFamily:FM,fontSize:11,cursor:"pointer",fontWeight:inviteRole==="viewer"?700:400}}>👁 Viewer<br/><span style={{fontSize:10,fontWeight:400}}>Read-only — any plan</span></button><button onClick={()=>setInviteRole("manager")} style={{flex:1,padding:"8px",borderRadius:8,border:"1px solid "+(inviteRole==="manager"?"#059669":"#ccc"),background:inviteRole==="manager"?"#f0fdf4":"#fff",color:inviteRole==="manager"?"#065f46":"#444",fontFamily:FM,fontSize:11,cursor:"pointer",fontWeight:inviteRole==="manager"?700:400}}>🩺 Manager<br/><span style={{fontSize:10,fontWeight:400}}>Edit meals — inventory</span></button></div>{inviteRole==="manager"&&can.tier!=="medical"&&(<div style={{background:"#fff7ed",border:"1px solid #fed7aa",borderRadius:8,padding:"10px 12px",marginBottom:10}}><div style={{fontSize:12,color:"#c2410c",fontFamily:FM,lineHeight:1.5}}>🔒 Manager access requires Medical+. <button onClick={()=>{setShowInviteManager(false);setShowSettings(false);onUpgrade();}} style={{background:"none",border:"none",color:"#c2410c",fontFamily:FM,fontSize:12,cursor:"pointer",textDecoration:"underline",padding:0}}>Upgrade now</button></div></div>)}{inviteSuccess?(<div style={{background:"#f0fdf4",border:"1px solid #86efac",borderRadius:8,padding:"10px 12px",marginBottom:8}}><div style={{fontSize:12,color:"#065f46",fontFamily:FM}}>{inviteSuccess}</div></div>):null}<div style={{display:"flex",gap:8}}><button style={{...bBtn("ghost"),flex:1,border:"1px solid #ccc",color:"#444"}} onClick={()=>{setShowInviteManager(false);setInviteEmail("");setInviteSuccess("");}}>Cancel</button><button style={{...bBtn("primary"),flex:1}} disabled={inviteSending||!inviteEmail||inviteEmail.indexOf("@")<0||(inviteRole==="manager"&&can.tier!=="medical")} onClick={async()=>{setInviteSending(true);setInviteSuccess("");try{const res=await fetch("/api/manage-invite",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"send",owner_uid:user.id,owner_name:user.user_metadata?.full_name||user.email,owner_email:user.email,invitee_email:inviteEmail,role:inviteRole})});const d=await res.json();if(d.success){setInviteSuccess("Invitation sent to "+inviteEmail+"! They have 7 days to accept.");setInviteEmail("");}else{setInviteSuccess("Error: "+(d.error||"Could not send invite"));}}catch(e){setInviteSuccess("Error sending invitation. Please try again.");}setInviteSending(false);}}>{inviteSending?"Sending...":"Send Invite"}</button></div></div>)}</div>)}{(isViewer||isManager)&&user&&(<div style={{marginBottom:12}}><div style={{background:"#f0fdf4",border:"1px solid #86efac",borderRadius:8,padding:"10px 12px"}}><div style={{fontSize:12,color:"#065f46",fontFamily:FM,fontWeight:600,marginBottom:4}}>🩺 You have caregiver access to this account</div><div style={{fontSize:11,color:"#444",fontFamily:FM,lineHeight:1.5}}>{isManager?"You can edit the meal plan and inventory to help manage their diet.":"You have read-only access to view the meal plan and inventory."}</div></div></div>)}<div style={{borderTop:"1px solid #e5e7eb",marginBottom:12,paddingTop:12}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:"#4a1d96",marginBottom:4}}>👁 Family Viewer Access</div>
 <div style={{fontSize:12,color:"#888",fontFamily:FM,marginBottom:10}}>Set a custom code so family members can view your meal plan and inventory in read-only mode on their own device.</div>
 <ViewerCodeManager user={user} isViewer={isViewer} viewerRole={viewerRole}/>
@@ -4612,7 +4630,7 @@ What can I substitute and do I have what I need?`,
                   Connect your Bluetooth kitchen scale to weigh portions and get instant calorie estimates.
                 </div>
                 <div style={{fontFamily:FM,fontSize:11,color:C.muted,marginBottom:16}}>
-                  Compatible: <strong style={{color:C.text}}>Etekcity ESN00</strong> · Renpho ES-SNG01 (coming soon)
+                  Compatible: <strong style={{color:C.text}}>Etekcity Nutrition Scale</strong> (ESN00) · Service 0xFFF0
                 </div>
                 <button onClick={connectScale} disabled={scaleConnecting||!navigator.bluetooth}
                   style={{...bBtn("primary"),padding:"12px 24px",fontSize:14,opacity:(!navigator.bluetooth)?0.5:1}}>
@@ -4678,9 +4696,22 @@ What can I substitute and do I have what I need?`,
 
                 {scaleError&&<div style={{fontFamily:FM,fontSize:11,color:"#dc2626",marginBottom:8}}>{scaleError}</div>}
 
-                <button onClick={disconnectScale} style={{...bBtn("ghost"),width:"100%",padding:"9px",fontSize:12,color:"#dc2626",border:"1px solid #dc262644"}}>
-                  Disconnect Scale
-                </button>
+                <div style={{display:"flex",gap:8,marginBottom:8}}>
+                  <button onClick={()=>{
+                    // Send tare command on FFF2
+                    if(scaleDevice?._writeChr){
+                      scaleDevice._writeChr.writeValue(new Uint8Array([0x52])).catch(()=>{});
+                    }
+                    setScaleWeight(0);
+                  }} style={{...bBtn("ghost"),flex:1,padding:"9px",fontSize:12,
+                    border:"1px solid "+C.border}}>
+                    ⚖ Tare / Zero
+                  </button>
+                  <button onClick={disconnectScale} style={{...bBtn("ghost"),flex:1,padding:"9px",
+                    fontSize:12,color:"#dc2626",border:"1px solid #dc262644"}}>
+                    Disconnect
+                  </button>
+                </div>
               </div>
             )}
 
@@ -5504,11 +5535,7 @@ What can I substitute and do I have what I need?`,
                   setFrPhotos(prev=>[...prev,{preview,b64}]);
                 };
                 reader.readAsDataURL(file);
-                // Reset input fully so camera reopens on next tap (not gallery)
-                setTimeout(()=>{
-                  const inp=document.getElementById("fr-photo-camera");
-                  if(inp){inp.value="";inp.setAttribute("capture","environment");}
-                },300);
+                e.target.value="";
               }}/>
               <input id="fr-photo-gallery" type="file" accept="image/*" multiple style={{display:"none"}} onChange={e=>{
                 const files=Array.from(e.target.files);
@@ -5525,11 +5552,7 @@ What can I substitute and do I have what I need?`,
                 e.target.value="";
               }}/>
               {frPhotos.length>0&&<div style={{display:"flex",gap:8,marginTop:4}}>
-                <button onClick={()=>{
-  const inp=document.getElementById("fr-photo-camera");
-  if(inp){inp.setAttribute("capture","environment");inp.value="";inp.click();}
-}} style={{flex:1,background:"transparent",border:"2px solid #c8963e",borderRadius:10,padding:"11px",color:"#5c3317",fontFamily:"Georgia,serif",fontSize:seniorMode?15:13,cursor:"pointer",fontWeight:700}}>📷 Take Another Photo</button>
-<button onClick={()=>document.getElementById("fr-photo-gallery").click()} style={{flex:1,background:"transparent",border:"2px solid #8b6340",borderRadius:10,padding:"11px",color:"#8b6340",fontFamily:"Georgia,serif",fontSize:seniorMode?15:13,cursor:"pointer"}}>🖼 Gallery</button>
+                <button onClick={()=>document.getElementById("fr-photo-gallery").click()} style={{flex:1,background:"transparent",border:"2px solid #c8963e",borderRadius:10,padding:"11px",color:"#5c3317",fontFamily:"Georgia,serif",fontSize:seniorMode?15:13,cursor:"pointer",fontWeight:700}}>+ Add Another Photo</button>
                 <button onClick={async()=>{
                   setFrLoading(true);
                   try{
