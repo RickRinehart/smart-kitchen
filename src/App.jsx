@@ -2618,6 +2618,10 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
               {restrictedProfiles.length>0&&<span style={{...bTag("#f472b6"),marginLeft:8,fontSize:9}}>⚕ dietary restrictions active</span>}
             </div>
           </div>
+          <button onClick={()=>{const n=!darkMode;setDarkMode(n);try{localStorage.setItem("sk_darkMode",n?"1":"0");}catch{}}} title={darkMode?"Switch to Light Mode":"Switch to Dark Mode"}
+            style={{background:"transparent",border:"2px solid "+C.accent+"66",borderRadius:8,color:C.accent,cursor:"pointer",fontSize:seniorMode?26:22,padding:seniorMode?"8px 12px":"6px 10px",marginTop:2,lineHeight:1,transition:"all 0.15s"}}>
+            {darkMode?"🌙":"☀️"}
+          </button>
           <button onClick={()=>setShowSettings(true)} title="Settings"
             style={{background:"transparent",border:"2px solid "+C.accent+"66",borderRadius:8,color:C.accent,cursor:"pointer",fontSize:seniorMode?26:22,padding:seniorMode?"8px 12px":"6px 10px",marginTop:2,lineHeight:1,transition:"all 0.15s"}}
             onMouseOver={e=>e.currentTarget.style.color=C.accent}
