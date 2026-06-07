@@ -1464,17 +1464,27 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     const unitByte=bytes[14];
     let displayVal, unit, grams;
     if(unitByte===0x00){
-      // oz: raw/100 (confirmed: 0x00=oz)
+      // oz: raw/100 (confirmed)
       displayVal=rawVal/100;
       unit="oz";
       grams=displayVal*28.3495;
     } else if(unitByte===0x01){
-      // lb: raw/1000 (confirmed: 0x01=lb)
+      // lb: raw/1000 (confirmed)
       displayVal=rawVal/1000;
       unit="lb";
       grams=displayVal*453.592;
+    } else if(unitByte===0x03){
+      // ml: raw/10 (1ml water = 1g)
+      displayVal=rawVal/10;
+      unit="ml";
+      grams=displayVal;
+    } else if(unitByte===0x04){
+      // fl.oz: raw/100
+      displayVal=rawVal/100;
+      unit="fl.oz";
+      grams=displayVal*29.5735;
     } else {
-      // grams (0x02): raw/10 (confirmed: 0x02=g)
+      // grams (0x02): raw/10 (confirmed)
       displayVal=rawVal/10;
       unit="g";
       grams=displayVal;
@@ -1530,7 +1540,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     try{
       const raw=await callClaude({
         system:"Nutrition AI. Return ONLY valid JSON: {calories,protein_g,carbs_g,fat_g,fiber_g,sodium_mg,notes}. Numbers only.",
-        prompt:"Estimate nutrition for "+scaleWeight+scaleUnit+" of "+scaleFoodName.trim()+". Return JSON only.",
+        prompt:"Estimate nutrition for "+(scaleUnit==="ml"||scaleUnit==="fl.oz"?scaleWeightGrams.toFixed(1)+"g ("+scaleWeight+scaleUnit+")":scaleWeight+scaleUnit)+" of "+scaleFoodName.trim()+". Return JSON only.",
         maxTokens:200,
       });
       const text=typeof raw==="string"?raw:raw?.content?.[0]?.text||"";
@@ -4659,7 +4669,7 @@ What can I substitute and do I have what I need?`,
                     {scaleWeight!==null?scaleWeight.toFixed(1):"---"}
                   </div>
                   <div style={{fontFamily:FM,fontSize:16,color:C.muted}}>{scaleUnit}</div>
-                  {scaleWeight>0&&<div style={{fontFamily:FM,fontSize:11,color:C.muted,marginTop:4}}>{scaleUnit==="g"?((scaleWeight/28.35).toFixed(2)+" oz · "+(scaleWeight/453.6).toFixed(3)+" lb"):scaleUnit==="oz"?(scaleWeight+" oz · "+(scaleWeightGrams).toFixed(1)+" g"):(scaleWeight+" lb · "+scaleWeightGrams.toFixed(1)+" g")}</div>}
+                  {scaleWeight>0&&<div style={{fontFamily:FM,fontSize:11,color:C.muted,marginTop:4}}>{scaleUnit==="g"?((scaleWeight/28.35).toFixed(2)+" oz · "+(scaleWeight/453.6).toFixed(3)+" lb"):scaleUnit==="oz"?((scaleWeight).toFixed(2)+" oz · "+scaleWeightGrams.toFixed(1)+" g"):scaleUnit==="lb"?((scaleWeight).toFixed(3)+" lb · "+scaleWeightGrams.toFixed(1)+" g"):scaleUnit==="ml"?((scaleWeight).toFixed(1)+" ml · "+(scaleWeight/29.5735).toFixed(2)+" fl.oz"):scaleUnit==="fl.oz"?((scaleWeight).toFixed(2)+" fl.oz · "+(scaleWeight*29.5735).toFixed(1)+" ml"):""}</div>}
                 </div>
 
                 {/* Food name input */}
