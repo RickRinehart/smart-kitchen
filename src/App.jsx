@@ -1482,9 +1482,12 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       const dev=await navigator.bluetooth.requestDevice({
         filters:[
           {name:"Etekcity Nutrition Scale"},
-          {services:[SCALE_SVC]},
+          {namePrefix:"Etekcity"},
+          {namePrefix:"ETC"},
         ],
-        optionalServices:[SCALE_SVC]
+        optionalServices:[SCALE_SVC,"0000fff0-0000-1000-8000-00805f9b34fb",
+          "0000fff1-0000-1000-8000-00805f9b34fb",
+          "0000fff2-0000-1000-8000-00805f9b34fb"]
       });
       setScaleDevice(dev);
       dev.addEventListener("gattserverdisconnected",()=>{setScaleDevice(null);setScaleWeight(null);setScaleError("Scale disconnected.");});
