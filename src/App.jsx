@@ -1455,33 +1455,32 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     const bytes=new Uint8Array(value.buffer);
     const hex=Array.from(bytes).map(b=>"0x"+b.toString(16).padStart(2,"0")).join(" ");
     console.log("Scale raw bytes ["+bytes.length+"]:",hex);
-    if(bytes.length<4) return null;
-    // Etekcity FFF0/FFF1/FFF2 protocol (confirmed MAC 9A:A9:0A:04:0F:6B)
-    // Typical Etekcity notify packet: [0x??, unit, weight_hi, weight_lo, stable_flag, ...]
-    // unit byte: 0x00=g, 0x01=oz, 0x02=lb, 0x03=ml, 0x04=fl.oz
-    // weight = (bytes[2]<<8 | bytes[3]) / 10  (grams*10, or oz*100)
-    const unitByte=bytes[1];
-    const rawVal=((bytes[2]<<8)|bytes[3]);
+    if(bytes.length<3) return null;
+    // Etekcity ENS-L221S confirmed packet format (calibrated June 2026):
+    // [weight_hi, weight_lo, unit, stable_flag, ...]
+    // No header byte - weight starts at byte 0
+    // unit byte: 0x00=g, 0x01=oz, 0x02=lb
+    // grams: raw/10 (e.g. 6290 -> 629.0g)
+    // oz:    raw/100 (e.g. 2219 -> 22.19oz)
+    // lb:    raw/1000 (e.g. 1388 -> 1.388lb)
+    const rawVal=((bytes[0]<<8)|bytes[1]);
+    const unitByte=bytes[2];
     let displayVal, unit, grams;
     if(unitByte===0x01){
-      // ounces: raw = oz * 10
-      displayVal=rawVal/10;
+      displayVal=rawVal/100;
       unit="oz";
       grams=displayVal*28.3495;
     } else if(unitByte===0x02){
-      // pounds: raw = lb * 100
-      displayVal=rawVal/100;
+      displayVal=rawVal/1000;
       unit="lb";
       grams=displayVal*453.592;
     } else {
-      // grams: raw = g * 10
       displayVal=rawVal/10;
       unit="g";
       grams=displayVal;
     }
-    // Sanity check - reject implausible values
     if(grams<0||grams>30000) return null;
-    console.log("Decoded:",displayVal,unit,"(",grams.toFixed(1),"g)","unitByte:0x"+unitByte.toString(16));
+    console.log("Decoded:",displayVal,unit,"("+grams.toFixed(1)+"g) rawVal:"+rawVal+" unitByte:0x"+unitByte.toString(16));
     return {displayVal,unit,grams};
   }
   const connectScale=async()=>{
