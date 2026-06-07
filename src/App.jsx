@@ -479,6 +479,47 @@ const FEATURE_ANNOUNCEMENTS=[
     tab:"shopping"
   }
 ];
+// VOICE PICKER COMPONENT — memoized to prevent flicker on re-render
+const VoicePicker=React.memo(()=>{
+  const [availVoices,setAvailVoices]=React.useState([]);
+  const [selVoice,setSelVoice]=React.useState(()=>{try{return localStorage.getItem("sk_voiceName")||"";}catch{return "";}});
+  const [gender,setGender]=React.useState(()=>{try{return localStorage.getItem("sk_voiceGender")||"female";}catch{return "female";}});
+  React.useEffect(()=>{
+    const load=()=>{
+      const v=window.speechSynthesis.getVoices();
+      if(v&&v.length>0){
+        const en=v.filter(x=>x.lang&&x.lang.startsWith("en"));
+        setAvailVoices(en);
+        if(!localStorage.getItem("sk_voiceName")&&en.length>0){
+          const us=en.find(x=>x.lang==="en-US")||en[0];
+          if(us){setSelVoice(us.name);localStorage.setItem("sk_voiceName",us.name);}
+        }
+      }
+    };
+    load();
+    window.speechSynthesis.onvoiceschanged=load;
+    return()=>{window.speechSynthesis.onvoiceschanged=null;};
+  },[]);
+  const prettyName=(v)=>{
+    const n=v.name.replace("Google ","").replace("Microsoft ","");
+    const loc={en_US:"🇺🇸 US",en_GB:"🇬🇧 UK","en-US":"🇺🇸 US","en-GB":"🇬🇧 UK","en-AU":"🇦🇺 AU","en-IN":"🇮🇳 IN","en-NG":"🇳🇬 NG"};
+    const flag=loc[v.lang.replace("_","-")]||v.lang;
+    return flag+" "+n;
+  };
+  if(availVoices.length===0) return null;
+  return(<div style={{marginBottom:10}}>
+    {availVoices.length>1&&(<div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:8}}>
+      {availVoices.map(v=>(<button key={v.name} onClick={()=>{setSelVoice(v.name);localStorage.setItem("sk_voiceName",v.name);}} style={{padding:"6px 10px",borderRadius:8,border:"1px solid "+(selVoice===v.name?"#C8963E":"#555"),background:selVoice===v.name?"#fff7ed":"transparent",color:selVoice===v.name?"#C8963E":C.muted,fontFamily:FM,fontSize:11,cursor:"pointer",fontWeight:selVoice===v.name?700:400}}>{prettyName(v)}</button>))}
+    </div>)}
+    <div style={{fontSize:11,color:C.muted,fontFamily:FM,marginBottom:8}}>Tone</div>
+    <div style={{display:"flex",gap:6,marginBottom:8}}>
+      {[["female","👩 Higher pitch"],["male","👨 Deeper pitch"]].map(([g,label])=>(
+        <button key={g} onClick={()=>{setGender(g);localStorage.setItem("sk_voiceGender",g);}} style={{flex:1,padding:"7px",borderRadius:8,border:"1px solid "+(gender===g?"#C8963E":"#555"),background:gender===g?"#fff7ed":"transparent",color:gender===g?"#C8963E":C.muted,fontFamily:FM,fontSize:11,cursor:"pointer",fontWeight:gender===g?700:400}}>{label}</button>
+      ))}
+    </div>
+  </div>);
+});
+
 export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, user=null, viewerRole=null, onShowGuestViewer=null }){
   // -- State ------------------------------------------------------------------
   const isViewer = !!viewerRole; // true = read-only viewer of another account
@@ -1846,46 +1887,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     checkRole();
   },[user]);
 
-  // VOICE PICKER COMPONENT — memoized to prevent flicker on re-render
-  const VoicePicker=React.memo(()=>{
-    const [availVoices,setAvailVoices]=React.useState([]);
-    const [selVoice,setSelVoice]=React.useState(()=>{try{return localStorage.getItem("sk_voiceName")||"";}catch{return "";}});
-    const [gender,setGender]=React.useState(()=>{try{return localStorage.getItem("sk_voiceGender")||"female";}catch{return "female";}});
-    React.useEffect(()=>{
-      const load=()=>{
-        const v=window.speechSynthesis.getVoices();
-        if(v&&v.length>0){
-          const en=v.filter(x=>x.lang&&x.lang.startsWith("en"));
-          setAvailVoices(en);
-          if(!localStorage.getItem("sk_voiceName")&&en.length>0){
-            const us=en.find(x=>x.lang==="en-US")||en[0];
-            if(us){setSelVoice(us.name);localStorage.setItem("sk_voiceName",us.name);}
-          }
-        }
-      };
-      load();
-      window.speechSynthesis.onvoiceschanged=load;
-      return()=>{window.speechSynthesis.onvoiceschanged=null;};
-    },[]);
-    const prettyName=(v)=>{
-      const n=v.name.replace("Google ","").replace("Microsoft ","");
-      const loc={en_US:"🇺🇸 US",en_GB:"🇬🇧 UK","en-US":"🇺🇸 US","en-GB":"🇬🇧 UK","en-AU":"🇦🇺 AU","en-IN":"🇮🇳 IN","en-NG":"🇳🇬 NG"};
-      const flag=loc[v.lang.replace("_","-")]||v.lang;
-      return flag+" "+n;
-    };
-    if(availVoices.length===0) return null;
-    return(<div style={{marginBottom:10}}>
-      {availVoices.length>1&&(<div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:8}}>
-        {availVoices.map(v=>(<button key={v.name} onClick={()=>{setSelVoice(v.name);localStorage.setItem("sk_voiceName",v.name);}} style={{padding:"6px 10px",borderRadius:8,border:"1px solid "+(selVoice===v.name?"#C8963E":"#555"),background:selVoice===v.name?"#fff7ed":"transparent",color:selVoice===v.name?"#C8963E":C.muted,fontFamily:FM,fontSize:11,cursor:"pointer",fontWeight:selVoice===v.name?700:400}}>{prettyName(v)}</button>))}
-      </div>)}
-      <div style={{fontSize:11,color:C.muted,fontFamily:FM,marginBottom:8}}>Tone</div>
-      <div style={{display:"flex",gap:6,marginBottom:8}}>
-        {[["female","👩 Higher pitch"],["male","👨 Deeper pitch"]].map(([g,label])=>(
-          <button key={g} onClick={()=>{setGender(g);localStorage.setItem("sk_voiceGender",g);}} style={{flex:1,padding:"7px",borderRadius:8,border:"1px solid "+(gender===g?"#C8963E":"#555"),background:gender===g?"#fff7ed":"transparent",color:gender===g?"#C8963E":C.muted,fontFamily:FM,fontSize:11,cursor:"pointer",fontWeight:gender===g?700:400}}>{label}</button>
-        ))}
-      </div>
-    </div>);
-  });
+
 
   // VOICE ENGINE START
   const speak=(text)=>{
