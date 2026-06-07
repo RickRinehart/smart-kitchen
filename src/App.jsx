@@ -653,6 +653,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [scaleWeight,setScaleWeight]=useState(null);
   const [scaleUnit,setScaleUnit]=useState("g");
   const [scaleWeightGrams,setScaleWeightGrams]=useState(0);
+  const [scaleRawBytes,setScaleRawBytes]=useState("");
   const [scaleConnecting,setScaleConnecting]=useState(false);
   const [scaleFoodName,setScaleFoodName]=useState("");
   const [scaleCalcResult,setScaleCalcResult]=useState(null);
@@ -1463,6 +1464,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     // grams: raw/10 (e.g. 6290 -> 629.0g)
     // oz:    raw/100 (e.g. 2219 -> 22.19oz)
     // lb:    raw/1000 (e.g. 1388 -> 1.388lb)
+    const rawHex=Array.from(bytes).map(b=>"0x"+b.toString(16).padStart(2,"0")).join(" ");
     const rawVal=((bytes[0]<<8)|bytes[1]);
     const unitByte=bytes[2];
     let displayVal, unit, grams;
@@ -1481,7 +1483,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     }
     if(grams<0||grams>30000) return null;
     console.log("Decoded:",displayVal,unit,"("+grams.toFixed(1)+"g) rawVal:"+rawVal+" unitByte:0x"+unitByte.toString(16));
-    return {displayVal,unit,grams};
+    return {displayVal,unit,grams,rawHex};
   }
   const connectScale=async()=>{
     if(!navigator.bluetooth){setScaleError("Web Bluetooth requires Chrome or Edge on Android, Windows, or Mac.");return;}
@@ -1506,7 +1508,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       await notifyChr.startNotifications();
       notifyChr.addEventListener("characteristicvaluechanged",(e)=>{
         const d=decodeScaleWt(e.target.value);
-        if(d&&d.grams>=0){setScaleWeight(d.displayVal);setScaleUnit(d.unit||"g");setScaleWeightGrams(d.grams);}
+        if(d){setScaleRawBytes(d.rawHex||"");if(d.grams>=0){setScaleWeight(d.displayVal);setScaleUnit(d.unit||"g");setScaleWeightGrams(d.grams);}}
       });
       // Store write characteristic for tare command
       try{
@@ -4660,6 +4662,7 @@ What can I substitute and do I have what I need?`,
                   </div>
                   <div style={{fontFamily:FM,fontSize:16,color:C.muted}}>{scaleUnit}</div>
                   {scaleWeight>0&&<div style={{fontFamily:FM,fontSize:11,color:C.muted,marginTop:4}}>{scaleUnit==="g"?((scaleWeight/28.35).toFixed(2)+" oz · "+(scaleWeight/453.6).toFixed(3)+" lb"):scaleUnit==="oz"?(scaleWeight+" oz · "+(scaleWeightGrams).toFixed(1)+" g"):(scaleWeight+" lb · "+scaleWeightGrams.toFixed(1)+" g")}</div>}
+                  {scaleRawBytes&&<div style={{fontFamily:"monospace",fontSize:9,color:"#f59e0b",marginTop:6,padding:"4px 6px",background:"#1a1a2e",borderRadius:4,wordBreak:"break-all",userSelect:"all"}}>RAW: {scaleRawBytes}</div>}
                 </div>
 
                 {/* Food name input */}
