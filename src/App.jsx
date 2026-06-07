@@ -652,6 +652,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [scaleDevice,setScaleDevice]=useState(null);
   const [scaleWeight,setScaleWeight]=useState(null);
   const [scaleUnit,setScaleUnit]=useState("g");
+  const [scaleWeightGrams,setScaleWeightGrams]=useState(0);
   const [scaleConnecting,setScaleConnecting]=useState(false);
   const [scaleFoodName,setScaleFoodName]=useState("");
   const [scaleCalcResult,setScaleCalcResult]=useState(null);
@@ -1451,29 +1452,37 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
   const SCALE_CHR_NOTIFY="0000fff1-0000-1000-8000-00805f9b34fb";  // Notify (weight in): 0xFFF1
   const SCALE_CHR_WRITE="0000fff2-0000-1000-8000-00805f9b34fb";   // Write (tare cmd out): 0xFFF2
   function decodeScaleWt(value){
-    // Etekcity FFF1 notify packet — log raw bytes to console for protocol discovery
     const bytes=new Uint8Array(value.buffer);
-    console.log("Scale raw bytes:",Array.from(bytes).map(b=>"0x"+b.toString(16).padStart(2,"0")).join(" "));
+    const hex=Array.from(bytes).map(b=>"0x"+b.toString(16).padStart(2,"0")).join(" ");
+    console.log("Scale raw bytes ["+bytes.length+"]:",hex);
     if(bytes.length<4) return null;
-    // Try common weight packet formats:
-    // Format A: [header, weight_high, weight_low, unit, ...]
-    // Format B: [header, header, weight_high, weight_low, unit, ...]
-    // Parse grams from most likely position — will refine once we see real packets
-    let grams=0;
-    if(bytes.length>=6){
-      // Try 2-byte weight at offset 1
-      const raw1=((bytes[1]<<8)|bytes[2]);
-      // Try 2-byte weight at offset 3
-      const raw2=((bytes[3]<<8)|bytes[4]);
-      // Use whichever gives a plausible gram reading (0-5000g)
-      if(raw1>0&&raw1<=50000) grams=raw1/10;
-      else if(raw2>0&&raw2<=50000) grams=raw2/10;
-    } else if(bytes.length>=3){
-      grams=((bytes[1]<<8)|bytes[2])/10;
+    // Etekcity FFF0/FFF1/FFF2 protocol (confirmed MAC 9A:A9:0A:04:0F:6B)
+    // Typical Etekcity notify packet: [0x??, unit, weight_hi, weight_lo, stable_flag, ...]
+    // unit byte: 0x00=g, 0x01=oz, 0x02=lb, 0x03=ml, 0x04=fl.oz
+    // weight = (bytes[2]<<8 | bytes[3]) / 10  (grams*10, or oz*100)
+    const unitByte=bytes[1];
+    const rawVal=((bytes[2]<<8)|bytes[3]);
+    let displayVal, unit, grams;
+    if(unitByte===0x01){
+      // ounces: raw = oz * 10
+      displayVal=rawVal/10;
+      unit="oz";
+      grams=displayVal*28.3495;
+    } else if(unitByte===0x02){
+      // pounds: raw = lb * 100
+      displayVal=rawVal/100;
+      unit="lb";
+      grams=displayVal*453.592;
+    } else {
+      // grams: raw = g * 10
+      displayVal=rawVal/10;
+      unit="g";
+      grams=displayVal;
     }
-    const unitByte=bytes[bytes.length-2]||0;
-    const unit=unitByte===0x02?"oz":unitByte===0x03?"lb":"g";
-    return {grams,unit};
+    // Sanity check - reject implausible values
+    if(grams<0||grams>30000) return null;
+    console.log("Decoded:",displayVal,unit,"(",grams.toFixed(1),"g)","unitByte:0x"+unitByte.toString(16));
+    return {displayVal,unit,grams};
   }
   const connectScale=async()=>{
     if(!navigator.bluetooth){setScaleError("Web Bluetooth requires Chrome or Edge on Android, Windows, or Mac.");return;}
@@ -1498,7 +1507,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       await notifyChr.startNotifications();
       notifyChr.addEventListener("characteristicvaluechanged",(e)=>{
         const d=decodeScaleWt(e.target.value);
-        if(d&&d.grams>=0){setScaleWeight(d.grams);setScaleUnit(d.unit||"g");}
+        if(d&&d.grams>=0){setScaleWeight(d.displayVal);setScaleUnit(d.unit||"g");setScaleWeightGrams(d.grams);}
       });
       // Store write characteristic for tare command
       try{
@@ -1522,7 +1531,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     try{
       const raw=await callClaude({
         system:"Nutrition AI. Return ONLY valid JSON: {calories,protein_g,carbs_g,fat_g,fiber_g,sodium_mg,notes}. Numbers only.",
-        prompt:"Estimate nutrition for "+scaleWeight+"g of "+scaleFoodName.trim()+". Return JSON only.",
+        prompt:"Estimate nutrition for "+scaleWeight+scaleUnit+" of "+scaleFoodName.trim()+". Return JSON only.",
         maxTokens:200,
       });
       const text=typeof raw==="string"?raw:raw?.content?.[0]?.text||"";
@@ -4650,8 +4659,8 @@ What can I substitute and do I have what I need?`,
                   <div style={{fontFamily:FD,fontSize:seniorMode?52:42,color:C.text,lineHeight:1}}>
                     {scaleWeight!==null?scaleWeight.toFixed(1):"---"}
                   </div>
-                  <div style={{fontFamily:FM,fontSize:16,color:C.muted}}>grams</div>
-                  {scaleWeight>0&&<div style={{fontFamily:FM,fontSize:11,color:C.muted,marginTop:4}}>{(scaleWeight/28.35).toFixed(2)} oz · {(scaleWeight/453.6).toFixed(3)} lb</div>}
+                  <div style={{fontFamily:FM,fontSize:16,color:C.muted}}>{scaleUnit}</div>
+                  {scaleWeight>0&&<div style={{fontFamily:FM,fontSize:11,color:C.muted,marginTop:4}}>{scaleUnit==="g"?((scaleWeight/28.35).toFixed(2)+" oz · "+(scaleWeight/453.6).toFixed(3)+" lb"):scaleUnit==="oz"?(scaleWeight+" oz · "+(scaleWeightGrams).toFixed(1)+" g"):(scaleWeight+" lb · "+scaleWeightGrams.toFixed(1)+" g")}</div>}
                 </div>
 
                 {/* Food name input */}
@@ -4676,7 +4685,7 @@ What can I substitute and do I have what I need?`,
                 {scaleCalcResult&&(
                   <div style={{background:C.surface,borderRadius:12,padding:16,marginBottom:12}}>
                     <div style={{fontFamily:FM,fontSize:12,fontWeight:700,color:C.text,marginBottom:10}}>
-                      {scaleFoodName} · {scaleWeight?.toFixed(1)}g
+                      {scaleFoodName} · {scaleWeight?.toFixed(scaleUnit==="lb"?3:1)}{scaleUnit}
                     </div>
                     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
                       {[
