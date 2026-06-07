@@ -1463,18 +1463,18 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     const rawVal=(bytes[11])|(bytes[12]<<8);
     const unitByte=bytes[14];
     let displayVal, unit, grams;
-    if(unitByte===0x01){
-      // oz: raw/100
+    if(unitByte===0x00){
+      // oz: raw/100 (confirmed: 0x00=oz)
       displayVal=rawVal/100;
       unit="oz";
       grams=displayVal*28.3495;
-    } else if(unitByte===0x00){
-      // lb: raw/1000
+    } else if(unitByte===0x01){
+      // lb: raw/1000 (confirmed: 0x01=lb)
       displayVal=rawVal/1000;
       unit="lb";
       grams=displayVal*453.592;
     } else {
-      // grams (0x02): raw/10
+      // grams (0x02): raw/10 (confirmed: 0x02=g)
       displayVal=rawVal/10;
       unit="g";
       grams=displayVal;
@@ -4660,7 +4660,6 @@ What can I substitute and do I have what I need?`,
                   </div>
                   <div style={{fontFamily:FM,fontSize:16,color:C.muted}}>{scaleUnit}</div>
                   {scaleWeight>0&&<div style={{fontFamily:FM,fontSize:11,color:C.muted,marginTop:4}}>{scaleUnit==="g"?((scaleWeight/28.35).toFixed(2)+" oz · "+(scaleWeight/453.6).toFixed(3)+" lb"):scaleUnit==="oz"?(scaleWeight+" oz · "+(scaleWeightGrams).toFixed(1)+" g"):(scaleWeight+" lb · "+scaleWeightGrams.toFixed(1)+" g")}</div>}
-                  {scaleRawBytes&&<div style={{fontFamily:"monospace",fontSize:9,color:"#f59e0b",marginTop:4,userSelect:"all"}}>unit byte: {scaleRawBytes.split(" ")[14]||"?"}</div>}
                 </div>
 
                 {/* Food name input */}
