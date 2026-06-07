@@ -1454,35 +1454,33 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
   const SCALE_CHR_WRITE="0000fff2-0000-1000-8000-00805f9b34fb";   // Write (tare cmd out): 0xFFF2
   function decodeScaleWt(value){
     const bytes=new Uint8Array(value.buffer);
-    const hex=Array.from(bytes).map(b=>"0x"+b.toString(16).padStart(2,"0")).join(" ");
-    console.log("Scale raw bytes ["+bytes.length+"]:",hex);
-    if(bytes.length<3) return null;
-    // Etekcity ENS-L221S confirmed packet format (calibrated June 2026):
-    // [weight_hi, weight_lo, unit, stable_flag, ...]
-    // No header byte - weight starts at byte 0
-    // unit byte: 0x00=g, 0x01=oz, 0x02=lb
-    // grams: raw/10 (e.g. 6290 -> 629.0g)
-    // oz:    raw/100 (e.g. 2219 -> 22.19oz)
-    // lb:    raw/1000 (e.g. 1388 -> 1.388lb)
     const rawHex=Array.from(bytes).map(b=>"0x"+b.toString(16).padStart(2,"0")).join(" ");
-    const rawVal=((bytes[0]<<8)|bytes[1]);
-    const unitByte=bytes[2];
+    console.log("Scale raw bytes ["+bytes.length+"]:",rawHex);
+    if(bytes.length<15) return null;
+    // Etekcity ENS-L221S confirmed packet format (17 bytes, calibrated June 2026):
+    // weight = bytes[11] | (bytes[12]<<8)  little-endian, /10 for grams
+    // unit   = bytes[14]: 0x02=g, 0x01=oz, 0x00=lb
+    const rawVal=(bytes[11])|(bytes[12]<<8);
+    const unitByte=bytes[14];
     let displayVal, unit, grams;
     if(unitByte===0x01){
+      // oz: raw/100
       displayVal=rawVal/100;
       unit="oz";
       grams=displayVal*28.3495;
-    } else if(unitByte===0x02){
+    } else if(unitByte===0x00){
+      // lb: raw/1000
       displayVal=rawVal/1000;
       unit="lb";
       grams=displayVal*453.592;
     } else {
+      // grams (0x02): raw/10
       displayVal=rawVal/10;
       unit="g";
       grams=displayVal;
     }
     if(grams<0||grams>30000) return null;
-    console.log("Decoded:",displayVal,unit,"("+grams.toFixed(1)+"g) rawVal:"+rawVal+" unitByte:0x"+unitByte.toString(16));
+    console.log("Decoded:",displayVal,unit,"("+grams.toFixed(1)+"g) raw:"+rawVal+" unitByte:0x"+unitByte.toString(16));
     return {displayVal,unit,grams,rawHex};
   }
   const connectScale=async()=>{
