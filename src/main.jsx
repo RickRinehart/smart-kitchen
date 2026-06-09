@@ -400,14 +400,15 @@ function Root() {
     <>
       {/* Auth / trial bar */}
       <div style={{
-        position: "fixed", top: seniorBannerActive ? 54 : 0, right: "max(12px, calc((100vw - 1140px) / 2))", zIndex: 999,
-        display: "flex", alignItems: "center", gap: "8px", padding: "6px 12px",
+        position: "fixed", top: seniorBannerActive ? 54 : 0, right: 0, zIndex: 999,
+        display: "flex", alignItems: "center", gap: "6px", padding: "6px 8px",
+        maxWidth: "calc(100vw - 120px)",
       }}>
         {user ? (
           <>
             <span style={{
-              fontSize: "11px", color: "#888",
-              background: document.body.classList.contains("sk-dark") ? "#1e1e2e" : "#f0f0f0", padding: "3px 8px",
+              fontSize: "10px", color: "#888", whiteSpace: "nowrap", overflow: "hidden", maxWidth: "80px", textOverflow: "ellipsis",
+              background: document.body.classList.contains("sk-dark") ? "#1e1e2e" : "#f0f0f0", padding: "3px 6px",
               borderRadius: "10px", border: document.body.classList.contains("sk-dark") ? "1px solid #333" : "1px solid #ccc"
             }}>
               {tierLabel}
