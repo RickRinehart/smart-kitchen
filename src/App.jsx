@@ -710,7 +710,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [scanPreview,setScanPreview]=useState(null);
   const [scanB64,setScanB64]=useState(null);
   const [scanMime,setScanMime]=useState("image/jpeg");
-  const [scanResults,setScanResults]=useState(null);const [changeMealModal,setChangeMealModal]=useState(null);const [pairDrinkMeal,setPairDrinkMeal]=useState(null);const [pairDrinkResult,setPairDrinkResult]=useState(null);const [pairDrinkLoading,setPairDrinkLoading]=useState(false);const [expandedDay,setExpandedDay]=useState(null);const [changeMealRequest,setChangeMealRequest]=useState("");const [changeMealLoading,setChangeMealLoading]=useState(false);
+  const [scanResults,setScanResults]=useState(null);const [changeMealModal,setChangeMealModal]=useState(null);const [pairDrinkMeal,setPairDrinkMeal]=useState(null);const [pairDrinkResult,setPairDrinkResult]=useState(null);const [pairDrinkLoading,setPairDrinkLoading]=useState(false);const [pairDrinkCellar,setPairDrinkCellar]=useState(null);const [pairDrinkCellarLoading,setPairDrinkCellarLoading]=useState(false);const [expandedDay,setExpandedDay]=useState(null);const [changeMealRequest,setChangeMealRequest]=useState("");const [changeMealLoading,setChangeMealLoading]=useState(false);
   const [scanStage,setScanStage]=useState("upload");
   const [scanMode,setScanMode]=useState("shelf");
   const [saleItems,setSaleItems]=useState(()=>{try{return JSON.parse(localStorage.getItem("sk_saleItems")||"[]");}catch{return [];}});
@@ -3097,7 +3097,71 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
           </div>
         )}
 
-        {pairDrinkMeal&&<div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.7)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}><div style={{background:C.card,borderRadius:16,padding:24,maxWidth:520,width:"100%",maxHeight:"85vh",overflowY:"auto",boxShadow:"0 20px 60px rgba(0,0,0,0.5)"}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}}><div><div style={{fontFamily:FD,fontSize:22,color:"#7c3aed",fontWeight:700,marginBottom:4}}>🍷 Pair a Drink</div><div style={{fontFamily:FM,fontSize:12,color:C.muted}}>{pairDrinkMeal.meal}</div></div><button onClick={()=>{setPairDrinkMeal(null);setPairDrinkResult(null);setPairDrinkLoading(false);}} style={{background:"transparent",border:"none",color:C.muted,fontSize:22,cursor:"pointer",lineHeight:1}}>X</button></div><div style={{marginBottom:14}}><div style={{fontFamily:FM,fontSize:12,fontWeight:600,color:C.text,marginBottom:6}}>Your Smart Cellar Inventory (paste from Smart Cellar)</div><textarea id="pairDrinkInventory" placeholder={"e.g.\n2023 Jordan Cabernet Sauvignon, Napa Valley\n2021 Kim Crawford Sauvignon Blanc\nWoodford Reserve Bourbon\nTanqueray Gin"} style={{width:"100%",minHeight:120,background:C.surface,border:"1px solid #7c3aed66",borderRadius:8,padding:"10px 12px",color:C.text,fontFamily:FM,fontSize:12,resize:"vertical",boxSizing:"border-box"}} /></div><div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16}}><div style={{fontFamily:FM,fontSize:11,color:C.muted,width:"100%",marginBottom:2}}>Preference (optional)</div>{["Wine","Beer","Spirits","Non-Alcoholic"].map(p=><button key={p} id={"pref-"+p} onClick={()=>{document.querySelectorAll("[id^=pref-]").forEach(b=>b.style.background="transparent");document.getElementById("pref-"+p).style.background="#7c3aed22";}} style={{background:"transparent",border:"1px solid #7c3aed44",borderRadius:20,color:"#7c3aed",fontFamily:FM,fontSize:11,padding:"5px 12px",cursor:"pointer"}}>{p}</button>)}</div><button onClick={async()=>{const inv=document.getElementById("pairDrinkInventory").value.trim();const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElementById("pref-"+p)?.style.background.includes("7c3aed22"))||"";setPairDrinkLoading(true);setPairDrinkResult(null);try{const resp=await callAI({system:"You are a sommelier and beverage pairing expert. The user will give you a meal name, optional cellar/bar inventory, and an optional preference. Recommend the best pairing from their inventory if provided, or suggest a type if inventory is empty. Be specific, warm, and brief. Format: lead with the specific bottle or drink name in bold, then 2-3 sentences on why it works with this meal. If inventory is provided, always pick from it. If nothing in inventory fits well, say so and suggest what to look for.",prompt:"Meal: "+pairDrinkMeal.meal+(pairDrinkMeal.proteinUsed?". Protein: "+pairDrinkMeal.proteinUsed:"")+(pairDrinkMeal.sideUsed?". Side: "+pairDrinkMeal.sideUsed:"")+(inv?"\n\nCellar inventory:\n"+inv:"\n\nNo inventory provided — suggest a style.")+(pref?"\n\nPreference: "+pref:""),maxTokens:300});setPairDrinkResult(typeof resp==="string"?resp:resp?.content?.[0]?.text||"No recommendation returned.");}catch(e){setPairDrinkResult("Unable to get recommendation. Please try again.");}finally{setPairDrinkLoading(false);}}} disabled={pairDrinkLoading} style={{width:"100%",background:pairDrinkLoading?"#7c3aed44":"#7c3aed",border:"none",borderRadius:10,color:"#fff",fontFamily:FM,fontWeight:700,fontSize:seniorMode?16:13,padding:seniorMode?"14px":"11px 16px",cursor:pairDrinkLoading?"not-allowed":"pointer",marginBottom:14}}>{pairDrinkLoading?"⏳ Finding your pairing...":"🍷 Get Pairing Recommendation"}</button>{pairDrinkResult&&<div style={{background:"#7c3aed11",border:"1px solid #7c3aed33",borderRadius:10,padding:16,fontFamily:FM,fontSize:seniorMode?15:13,color:C.text,lineHeight:1.6,whiteSpace:"pre-wrap"}}>{pairDrinkResult}</div>}</div></div>}
+        {pairDrinkMeal&&<div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.7)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}><div style={{background:C.card,borderRadius:16,padding:24,maxWidth:520,width:"100%",maxHeight:"85vh",overflowY:"auto",boxShadow:"0 20px 60px rgba(0,0,0,0.5)"}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}}><div><div style={{fontFamily:FD,fontSize:22,color:"#7c3aed",fontWeight:700,marginBottom:4}}>🍷 Pair a Drink</div><div style={{fontFamily:FM,fontSize:12,color:C.muted}}>{pairDrinkMeal.meal}</div></div><button onClick={()=>{setPairDrinkMeal(null);setPairDrinkResult(null);setPairDrinkLoading(false);setPairDrinkCellar(null);setPairDrinkCellarLoading(false);}} style={{background:"transparent",border:"none",color:C.muted,fontSize:22,cursor:"pointer",lineHeight:1}}>X</button></div>{/* Smart Cellar live inventory pull */}
+<div style={{marginBottom:14}}>
+  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+    <div style={{fontFamily:FM,fontSize:12,fontWeight:600,color:C.text}}>
+      🍾 Smart Cellar Inventory
+    </div>
+    <button
+      onClick={async()=>{
+        if(!user){setPairDrinkCellar({error:"Sign in to sync your Smart Cellar inventory."});return;}
+        setPairDrinkCellarLoading(true);
+        try{
+          const {data}=await supabase.from("profiles").select("sc_cloud_data").eq("id",user.id).single();
+          if(data?.sc_cloud_data){
+            const parsed=typeof data.sc_cloud_data==="string"?JSON.parse(data.sc_cloud_data):data.sc_cloud_data;
+            const bottles=(parsed.cellar||[]).filter(b=>(b.remaining_pct??100)>5);
+            setPairDrinkCellar(bottles);
+          }else{
+            setPairDrinkCellar([]);
+          }
+        }catch(e){
+          setPairDrinkCellar({error:"Could not load cellar. Make sure you are signed in to Smart Cellar."});
+        }
+        setPairDrinkCellarLoading(false);
+      }}
+      style={{background:"#7c3aed22",border:"1px solid #7c3aed66",borderRadius:8,color:"#7c3aed",fontFamily:FM,fontSize:11,fontWeight:700,padding:"5px 12px",cursor:"pointer"}}>
+      {pairDrinkCellarLoading?"Loading…":"⟳ Pull from Smart Cellar"}
+    </button>
+  </div>
+  {/* Not loaded yet */}
+  {!pairDrinkCellar&&(
+    <div style={{background:C.surface,border:"1px dashed #7c3aed44",borderRadius:8,padding:"14px 12px",fontFamily:FM,fontSize:11,color:C.muted,lineHeight:1.6,textAlign:"center"}}>
+      <div style={{fontSize:22,marginBottom:6}}>🍷</div>
+      Tap <strong style={{color:"#7c3aed"}}>Pull from Smart Cellar</strong> to load your bottle inventory,<br/>or skip to get a general style recommendation.
+    </div>
+  )}
+  {/* Error */}
+  {pairDrinkCellar?.error&&(
+    <div style={{background:"#dc262612",border:"1px solid #dc262644",borderRadius:8,padding:"10px 12px",fontFamily:FM,fontSize:11,color:"#dc2626"}}>
+      {pairDrinkCellar.error}
+    </div>
+  )}
+  {/* Empty cellar */}
+  {Array.isArray(pairDrinkCellar)&&pairDrinkCellar.length===0&&(
+    <div style={{background:C.surface,border:"1px solid #7c3aed44",borderRadius:8,padding:"10px 12px",fontFamily:FM,fontSize:11,color:C.muted}}>
+      Your Smart Cellar is empty. Add bottles at <a href="https://smart-cellar-rho.vercel.app" target="_blank" rel="noopener noreferrer" style={{color:"#7c3aed"}}>smart-cellar-rho.vercel.app</a>
+    </div>
+  )}
+  {/* Loaded bottles */}
+  {Array.isArray(pairDrinkCellar)&&pairDrinkCellar.length>0&&(
+    <div style={{background:C.surface,border:"1px solid #7c3aed44",borderRadius:8,padding:"10px 12px",maxHeight:140,overflowY:"auto"}}>
+      <div style={{fontFamily:FM,fontSize:10,color:"#7c3aed",fontWeight:700,marginBottom:6}}>
+        {pairDrinkCellar.length} BOTTLE{pairDrinkCellar.length!==1?"S":""} IN CELLAR
+      </div>
+      {pairDrinkCellar.map((b,i)=>(
+        <div key={i} style={{fontFamily:FM,fontSize:11,color:C.text,padding:"3px 0",borderBottom:i<pairDrinkCellar.length-1?"1px solid "+C.border:"none",display:"flex",justifyContent:"space-between",gap:8}}>
+          <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{b.name}</span>
+          <span style={{color:C.muted,flexShrink:0,fontSize:10}}>{b.category}</span>
+        </div>
+      ))}
+    </div>
+  )}
+</div><div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16}}><div style={{fontFamily:FM,fontSize:11,color:C.muted,width:"100%",marginBottom:2}}>Preference (optional)</div>{["Wine","Beer","Spirits","Non-Alcoholic"].map(p=><button key={p} id={"pref-"+p} onClick={()=>{document.querySelectorAll("[id^=pref-]").forEach(b=>b.style.background="transparent");document.getElementById("pref-"+p).style.background="#7c3aed22";}} style={{background:"transparent",border:"1px solid #7c3aed44",borderRadius:20,color:"#7c3aed",fontFamily:FM,fontSize:11,padding:"5px 12px",cursor:"pointer"}}>{p}</button>)}</div><button onClick={async()=>{const inv=Array.isArray(pairDrinkCellar)&&pairDrinkCellar.length>0
+  ?pairDrinkCellar.map(b=>`${b.name} (${b.category}${b.remaining_pct?", "+Math.round(b.remaining_pct)+"% remaining":""}${b.sweetness?", "+b.sweetness:""}${b.vintage?", "+b.vintage:""})`).join("\n")
+  :"";
+const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElementById("pref-"+p)?.style.background.includes("7c3aed22"))||"";setPairDrinkLoading(true);setPairDrinkResult(null);try{const resp=await callAI({system:"You are a sommelier and beverage pairing expert. The user will give you a meal name, optional cellar/bar inventory, and an optional preference. Recommend the best pairing from their inventory if provided, or suggest a type if inventory is empty. Be specific, warm, and brief. Format: lead with the specific bottle or drink name in bold, then 2-3 sentences on why it works with this meal. If inventory is provided, always pick from it. If nothing in inventory fits well, say so and suggest what to look for.",prompt:"Meal: "+pairDrinkMeal.meal+(pairDrinkMeal.proteinUsed?". Protein: "+pairDrinkMeal.proteinUsed:"")+(pairDrinkMeal.sideUsed?". Side: "+pairDrinkMeal.sideUsed:"")+(inv?"\n\nCellar inventory:\n"+inv:"\n\nNo inventory provided — suggest a style.")+(pref?"\n\nPreference: "+pref:""),maxTokens:300});setPairDrinkResult(typeof resp==="string"?resp:resp?.content?.[0]?.text||"No recommendation returned.");}catch(e){setPairDrinkResult("Unable to get recommendation. Please try again.");}finally{setPairDrinkLoading(false);}}} disabled={pairDrinkLoading} style={{width:"100%",background:pairDrinkLoading?"#7c3aed44":"#7c3aed",border:"none",borderRadius:10,color:"#fff",fontFamily:FM,fontWeight:700,fontSize:seniorMode?16:13,padding:seniorMode?"14px":"11px 16px",cursor:pairDrinkLoading?"not-allowed":"pointer",marginBottom:14}}>{pairDrinkLoading?"⏳ Finding your pairing...":"🍷 Get Pairing Recommendation"}</button>{pairDrinkResult&&<div style={{background:"#7c3aed11",border:"1px solid #7c3aed33",borderRadius:10,padding:16,fontFamily:FM,fontSize:seniorMode?15:13,color:C.text,lineHeight:1.6,whiteSpace:"pre-wrap"}}>{pairDrinkResult}</div>}</div></div>}
 
         {changeMealModal!==null&&<div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.7)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setChangeMealModal(null)}><div style={{background:C.card,borderRadius:12,padding:24,width:360,maxWidth:"90vw"}} onClick={e=>e.stopPropagation()}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
           <div style={{fontFamily:FD,fontSize:18,fontWeight:700,color:C.text}}>🔄 Change {mealPlan[changeMealModal]?.day} Meal</div>
