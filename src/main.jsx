@@ -401,13 +401,13 @@ function Root() {
       {/* Auth / trial bar */}
       <div style={{
         position: "fixed", top: seniorBannerActive ? 54 : 0, right: 0, zIndex: 999,
-        display: "flex", alignItems: "center", gap: "6px", padding: "6px 8px",
-        maxWidth: "calc(100vw - 120px)",
+        display: "flex", alignItems: "center", gap: "4px", padding: "4px 6px",
+        maxWidth: "200px", flexWrap: "nowrap", overflow: "hidden",
       }}>
         {user ? (
           <>
             <span style={{
-              fontSize: "10px", color: "#888", whiteSpace: "nowrap", overflow: "hidden", maxWidth: "80px", textOverflow: "ellipsis",
+              fontSize: "9px", color: "#888", whiteSpace: "nowrap", overflow: "hidden", maxWidth: "60px", textOverflow: "ellipsis", display: "none",
               background: document.body.classList.contains("sk-dark") ? "#1e1e2e" : "#f0f0f0", padding: "3px 6px",
               borderRadius: "10px", border: document.body.classList.contains("sk-dark") ? "1px solid #333" : "1px solid #ccc"
             }}>
