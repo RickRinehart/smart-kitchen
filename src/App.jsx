@@ -520,6 +520,99 @@ const VoicePicker=React.memo(()=>{
   </div>);
 });
 
+// -- Nutrition Dashboard Component ------------------------------------------
+function NutritionDashboard({familyProfiles,user,supabase,seniorMode,C,FM,FD}){
+  const [todayLog,setTodayLog]=React.useState([]);
+  const [loading,setLoading]=React.useState(true);
+  const [expanded,setExpanded]=React.useState(false);
+  React.useEffect(()=>{
+    if(!user?.id) return;
+    const today=new Date();today.setHours(0,0,0,0);
+    supabase.from("nutrition_log")
+      .select("*")
+      .eq("user_id",user.id)
+      .gte("logged_at",today.toISOString())
+      .then(({data})=>{
+        setTodayLog(data||[]);
+        setLoading(false);
+      });
+  },[user?.id]);
+  const totals=todayLog.reduce((acc,r)=>{
+    acc.calories+=(r.calories||0);
+    acc.protein_g+=(r.protein_g||0);
+    acc.carbs_g+=(r.carbs_g||0);
+    acc.sat_fat_g+=(r.sat_fat_g||0);
+    acc.fiber_g+=(r.fiber_g||0);
+    acc.ww_points+=(r.ww_points||0);
+    return acc;
+  },{calories:0,protein_g:0,carbs_g:0,sat_fat_g:0,fiber_g:0,ww_points:0});
+  const activeP=familyProfiles.find(p=>p.guidedPlateMode)||familyProfiles.find(p=>p.medicalPlan)||familyProfiles[0];
+  const targets={
+    protein_g:activeP?.proteinTargetG||75,
+    calories:1800,
+    carbs_g:130,
+    sat_fat_g:20,
+    fiber_g:25,
+    ww_points:activeP?.wwPointsBudget||null,
+  };
+  const bar=(val,target,color)=>{
+    const pct=Math.min(100,Math.round((val/target)*100));
+    const over=val>target;
+    return(
+      <div style={{background:C.surface,borderRadius:4,height:8,overflow:"hidden",flex:1}}>
+        <div style={{width:pct+"%",height:"100%",background:over?"#dc2626":pct>85?"#f59e0b":color,borderRadius:4,transition:"width 0.4s"}}/>
+      </div>
+    );
+  };
+  const rows=[
+    {label:"Protein",key:"protein_g",unit:"g",color:"#3b82f6",target:targets.protein_g},
+    {label:"Calories",key:"calories",unit:"cal",color:"#f59e0b",target:targets.calories},
+    {label:"Carbs",key:"carbs_g",unit:"g",color:"#22c55e",target:targets.carbs_g},
+    {label:"Sat. Fat",key:"sat_fat_g",unit:"g",color:"#ef4444",target:targets.sat_fat_g},
+    {label:"Fiber",key:"fiber_g",unit:"g",color:"#8b5cf6",target:targets.fiber_g},
+  ];
+  if(targets.ww_points) rows.push({label:"WW Points",key:"ww_points",unit:"pts",color:"#7c3aed",target:targets.ww_points});
+  if(loading) return null;
+  return(
+    <div style={{background:C.card,borderRadius:14,padding:16,marginBottom:18,border:"1px solid #3b82f644"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:expanded?14:0,cursor:"pointer"}} onClick={()=>setExpanded(e=>!e)}>
+        <div>
+          <div style={{fontFamily:FD,fontSize:seniorMode?18:14,color:"#3b82f6",fontWeight:700}}>
+            📊 Today's Nutrition{activeP?.name?" — "+activeP.name:""}
+          </div>
+          <div style={{fontFamily:FM,fontSize:10,color:C.muted,marginTop:2}}>{todayLog.length} items logged today • tap to {expanded?"collapse":"expand"}</div>
+        </div>
+        <div style={{fontFamily:FD,fontSize:22,color:totals.protein_g>=targets.protein_g*0.9?"#22c55e":"#f59e0b"}}>
+          {Math.round(totals.protein_g)}g
+        </div>
+      </div>
+      {expanded&&(
+        <div>
+          {rows.map(r=>(
+            <div key={r.key} style={{marginBottom:10}}>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                <div style={{fontFamily:FM,fontSize:seniorMode?14:11,color:C.muted}}>{r.label}</div>
+                <div style={{fontFamily:FM,fontSize:seniorMode?14:11,color:totals[r.key]>r.target?"#dc2626":r.color,fontWeight:700}}>
+                  {Math.round(totals[r.key])}{r.unit} / {r.target}{r.unit}
+                </div>
+              </div>
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                {bar(totals[r.key],r.target,r.color)}
+                <div style={{fontFamily:FM,fontSize:10,color:C.muted,minWidth:32,textAlign:"right"}}>
+                  {Math.min(100,Math.round((totals[r.key]/r.target)*100))}%
+                </div>
+              </div>
+            </div>
+          ))}
+          <div style={{fontFamily:FM,fontSize:10,color:C.muted,marginTop:8,borderTop:"1px solid "+C.border,paddingTop:8}}>
+            For guidance only. Consult your healthcare provider for specific dietary recommendations.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, user=null, viewerRole=null, onShowGuestViewer=null }){
   // -- State ------------------------------------------------------------------
   const isViewer = !!viewerRole; // true = read-only viewer of another account
@@ -1587,9 +1680,33 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       const text=typeof raw==="string"?raw:raw?.content?.[0]?.text||"";
       const clean=text.replace(/```json|```/g,"").trim();
       const s=clean.indexOf("{"),e=clean.lastIndexOf("}");
-      setScaleCalcResult(JSON.parse(clean.slice(s,e+1)));
+      const parsed=JSON.parse(clean.slice(s,e+1));setScaleCalcResult(parsed);const activeP=familyProfiles.find(p=>p.guidedPlateMode)||familyProfiles[0];const wwBudget=activeP?.wwPointsBudget;const wwPts=wwBudget?Math.max(0,Math.round(((parsed.calories||0)*0.0305)+((parsed.sat_fat_g||0)*0.275)+((parsed.sugar_g||0)*0.12)-((parsed.protein_g||0)*0.098))):null;logNutrition({memberName:activeP?.name||null,itemName:scaleFoodName.trim(),weightG:scaleWeightGrams,calories:parsed.calories,protein_g:parsed.protein_g,carbs_g:parsed.carbs_g,fat_g:parsed.fat_g,sat_fat_g:parsed.sat_fat_g,sugar_g:parsed.sugar_g,fiber_g:parsed.fiber_g,sodium_mg:parsed.sodium_mg,wwPoints:wwPts,source:"scale",});
     }catch(err){setScaleError("Could not estimate nutrition.");}
     setScaleCalcLoading(false);
+  };
+
+  // -- Nutrition Log Helper --------------------------------------------------
+  const logNutrition=async(entry)=>{
+    if(!user?.id) return;
+    try{
+      await supabase.from("nutrition_log").insert([{
+        user_id:user.id,
+        member_name:entry.memberName||null,
+        item_name:entry.itemName,
+        weight_g:entry.weightG||null,
+        calories:entry.calories||null,
+        protein_g:entry.protein_g||null,
+        carbs_g:entry.carbs_g||null,
+        fat_g:entry.fat_g||null,
+        sat_fat_g:entry.sat_fat_g||null,
+        sugar_g:entry.sugar_g||null,
+        fiber_g:entry.fiber_g||null,
+        sodium_mg:entry.sodium_mg||null,
+        ww_points:entry.wwPoints||null,
+        source:entry.source||"scale",
+        session_id:entry.sessionId||null,
+      }]);
+    }catch(e){console.warn("Nutrition log write failed:",e);}
   };
 
   // -- Grocery Delivery (Instacart / Shipt) ---------------------------------
@@ -2126,7 +2243,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
   };
 
   const getRecipeUrl=(meal)=>{const q=encodeURIComponent(meal+" recipe");const sites={google:"https://www.google.com/search?q=",allrecipes:"https://www.allrecipes.com/search?q=",pinterest:"https://www.pinterest.com/search/pins/?q=",foodnetwork:"https://www.foodnetwork.com/search/"+encodeURIComponent(meal)};if(recipeSite==="foodnetwork")return sites.foodnetwork;return(sites[recipeSite]||sites.google)+q;};
-  const madeMeal=(day)=>{if(!day)return;try{const h=JSON.parse(localStorage.getItem("sk_madeItHistory")||"[]");h.push({meal:day.meal,protein:day.proteinUsed||null,day:day.day,isLeftover:day.isLeftover||false,isBusyNight:day.busyNight||false,ts:Date.now()});localStorage.setItem("sk_madeItHistory",JSON.stringify(h.slice(-100)));}catch{}setInventory(prev=>prev.map(item=>{if(day.proteinUsed&&item.name.toLowerCase().includes(day.proteinUsed.toLowerCase())&&item.isBulkProtein)return{...item,qty:Math.max(0,item.qty-1)};if((day.sauteBagsUsed||0)>0&&item.vegType==="sauteBlend")return{...item,qty:Math.max(0,item.qty-(day.sauteBagsUsed||0))};if(day.sideUsed&&item.name.toLowerCase().includes(day.sideUsed.toLowerCase()))return{...item,qty:Math.max(0,item.qty-1)};return item;}));alert("Meal logged! Inventory updated.");};
+  const madeMeal=(day)=>{if(!day)return;try{const h=JSON.parse(localStorage.getItem("sk_madeItHistory")||"[]");h.push({meal:day.meal,protein:day.proteinUsed||null,day:day.day,isLeftover:day.isLeftover||false,isBusyNight:day.busyNight||false,ts:Date.now()});localStorage.setItem("sk_madeItHistory",JSON.stringify(h.slice(-100)));}catch{}setInventory(prev=>prev.map(item=>{if(day.proteinUsed&&item.name.toLowerCase().includes(day.proteinUsed.toLowerCase())&&item.isBulkProtein)return{...item,qty:Math.max(0,item.qty-1)};if((day.sauteBagsUsed||0)>0&&item.vegType==="sauteBlend")return{...item,qty:Math.max(0,item.qty-(day.sauteBagsUsed||0))};if(day.sideUsed&&item.name.toLowerCase().includes(day.sideUsed.toLowerCase()))return{...item,qty:Math.max(0,item.qty-1)};return item;}));if(user?.id&&day.meal){const activeP=familyProfiles.find(p=>p.guidedPlateMode)||familyProfiles[0];logNutrition({memberName:activeP?.name||null,itemName:day.meal,weightG:null,calories:null,protein_g:null,carbs_g:null,fat_g:null,sat_fat_g:null,sugar_g:null,fiber_g:null,sodium_mg:null,wwPoints:null,source:"made_it",sessionId:Date.now().toString(),});}alert("Meal logged! Inventory updated.");};
   const completeWizard=(includePantry=false,openScan=false)=>{
     if(openScan){try{localStorage.setItem("sk_setupDone","1");}catch{} setShowWizard(false);setTimeout(()=>setScanOpen(true),300);return;}
     const proteins=wizardProteins.map((p,i)=>({id:900+i,name:p.name,qty:parseInt(p.qty)||0,unit:"portions",category:"Protein",location:"Freezer",isBulkProtein:true,portionOz:parseInt(p.oz)||6}));
@@ -3004,7 +3121,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
               <span style={{fontFamily:FM,fontSize:12,color:C.accent,fontWeight:600}}>{OCCASION_EVENT_TYPES.find(e=>e.key===occasionState.eventType)?.label} · {OCCASION_AUDIENCE_TYPES.find(a=>a.key===occasionState.audienceType)?.label}{occasionState.headCount?" · "+occasionState.headCount+" people":""}</span>
               <button onClick={()=>setOccasionState({eventType:"",audienceType:"family",headCount:"",mode:"use",budget:"",guestRestrictions:"",note:""})} style={{background:"transparent",border:"none",color:C.muted,cursor:"pointer",fontSize:12,marginLeft:"auto"}}>✕ Clear</button>
             </div>}
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18,flexWrap:"wrap",gap:10}}>
+            {can.medicalCompliance&&user?.id&&(<NutritionDashboard familyProfiles={familyProfiles} user={user} supabase={supabase} seniorMode={seniorMode} C={C} FM={FM} FD={FD}/>)}<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18,flexWrap:"wrap",gap:10}}>
               <div style={{fontFamily:FD,fontSize:24}}>7-Day Dinner Plan <span style={{fontSize:13,color:C.muted,fontFamily:FB}}>· {activeProfiles.length} people</span></div>
               <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                 <button style={bBtn("ghost")} onClick={buildMealPlan} disabled={isViewer}>🔄 Regenerate</button>
