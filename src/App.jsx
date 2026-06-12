@@ -546,7 +546,8 @@ function NutritionDashboard({familyProfiles,user,supabase,seniorMode,C,FM,FD}){
     acc.ww_points+=(r.ww_points||0);
     return acc;
   },{calories:0,protein_g:0,carbs_g:0,sat_fat_g:0,fiber_g:0,ww_points:0});
-  const activeP=familyProfiles.find(p=>p.guidedPlateMode)||familyProfiles.find(p=>p.medicalPlan)||familyProfiles[0];
+  const allQualifying=familyProfiles.filter(p=>p.guidedPlateMode||p.medicalPlan);
+  const activeP=allQualifying.length>0?allQualifying[0]:(familyProfiles[0]||null);
   const targets={
     protein_g:activeP?.proteinTargetG||75,
     calories:1800,
@@ -577,10 +578,7 @@ function NutritionDashboard({familyProfiles,user,supabase,seniorMode,C,FM,FD}){
     <div style={{background:C.card,borderRadius:14,padding:16,marginBottom:18,border:"1px solid #3b82f644"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:expanded?14:0,cursor:"pointer"}} onClick={()=>setExpanded(e=>!e)}>
         <div>
-          <div style={{fontFamily:FD,fontSize:seniorMode?18:14,color:"#3b82f6",fontWeight:700}}>
-            📊 Today's Nutrition{activeP?.name?" — "+activeP.name:""}
-          </div>
-          <div style={{fontFamily:FM,fontSize:10,color:C.muted,marginTop:2}}>{todayLog.length} items logged today • tap to {expanded?"collapse":"expand"}</div>
+          <div style={{fontFamily:FD,fontSize:seniorMode?18:14,color:"#3b82f6",fontWeight:700}}>📊 Today's Nutrition{allQualifying.length>1?(" — "+allQualifying.map(p=>p.name||"Member").join(" & ")):(activeP?.name?" — "+activeP.name:"")}</div>{allQualifying.length>1&&(<div style={{display:"flex",flexWrap:"wrap",gap:4,marginTop:4}}>{allQualifying.map(p=>(<span key={p.id||p.name} style={{fontFamily:FM,fontSize:10,background:"#3b82f622",border:"1px solid #3b82f644",borderRadius:12,padding:"2px 8px",color:"#3b82f6"}}>{p.name||"Member"}{p.medicalPlan?" � "+p.medicalPlan:(p.guidedPlateMode?" � Guided":"")}</span>))}</div>)}          <div style={{fontFamily:FM,fontSize:10,color:C.muted,marginTop:2}}>{todayLog.length} items logged today{allQualifying.length>1?" • "+allQualifying.length+" members tracked":""} • tap to {expanded?"collapse":"expand"}</div>
         </div>
         <div style={{fontFamily:FD,fontSize:22,color:totals.protein_g>=targets.protein_g*0.9?"#22c55e":"#f59e0b"}}>
           {Math.round(totals.protein_g)}g
@@ -607,6 +605,7 @@ function NutritionDashboard({familyProfiles,user,supabase,seniorMode,C,FM,FD}){
           <div style={{fontFamily:FM,fontSize:10,color:C.muted,marginTop:8,borderTop:"1px solid "+C.border,paddingTop:8}}>
             For guidance only. Consult your healthcare provider for specific dietary recommendations.
           </div>
+          {allQualifying.length>1&&(<div style={{marginTop:12,borderTop:"1px solid "+C.border,paddingTop:10}}><div style={{fontFamily:FM,fontSize:10,color:C.muted,marginBottom:6,letterSpacing:0.8}}>PLATE ASSIST ACTIVE</div><div style={{display:"flex",flexWrap:"wrap",gap:6}}>{allQualifying.map(p=>{const pTarget=p.proteinTargetG||75;const pLogged=todayLog.filter(r=>r.member_name===p.name).reduce((a,r)=>a+(r.protein_g||0),0);const pMet=pLogged>=pTarget*0.9;return(<div key={p.id||p.name} style={{background:pMet?"#22c55e18":"#f59e0b18",border:"1px solid "+(pMet?"#22c55e44":"#f59e0b44"),borderRadius:10,padding:"6px 10px",minWidth:120}}><div style={{fontFamily:FM,fontSize:11,color:pMet?"#22c55e":"#f59e0b",fontWeight:700}}>{p.name||"Member"}</div><div style={{fontFamily:FM,fontSize:10,color:C.muted,marginTop:2}}>{Math.round(pLogged)}g / {pTarget}g protein{p.medicalPlan?" � "+p.medicalPlan:""}</div></div>);})}</div></div>)}
         </div>
       )}
     </div>
