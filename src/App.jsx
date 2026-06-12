@@ -1723,22 +1723,52 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     }
     // Layer 2: parse from day object fields
     const components=[];
-    if(day.proteinUsed) components.push({name:day.proteinUsed,category:"protein",suggestedOz:null,editable:true});
+    const mealLower=(day.meal||"").toLowerCase();
+    const proteinLower=(day.proteinUsed||"").toLowerCase();
+    // Detect if the meal name implies the protein is cooked INTO a sauce/dish
+    // e.g. "Spaghetti with Meat Sauce" - Ground Beef is IN the sauce, not a standalone component
+    const mealAbsorbsProtein=
+      /\b(sauce|stew|soup|chili|curry|casserole|stir.?fry|hash|bowl|burger|meatball|meatloaf|taco|burrito|sandwich|wrap|stuffed|bake|pie|skillet|one.?pot)\b/.test(mealLower)||
+      (proteinLower&&mealLower.includes(proteinLower));
+    // Only add protein as standalone if it is not absorbed into the dish
+    if(day.proteinUsed&&!mealAbsorbsProtein){
+      components.push({name:day.proteinUsed,category:"protein",suggestedOz:null,editable:true});
+    }
     if(day.ingredients&&day.ingredients.length>0){
       day.ingredients.forEach(ing=>{
         const ingLower=(ing||"").toLowerCase();
-        const isProtein=day.proteinUsed&&ingLower.includes(day.proteinUsed.toLowerCase());
-        if(isProtein) return;
-        const isStarch=/\b(pasta|rice|potato|bread|noodle|spaghetti|penne|linguine|fettuccine|macaroni|quinoa|couscous|barley|tortilla|roll|bun)\b/.test(ingLower);
-        const isVeg=/\b(broccoli|carrot|bean|pea|spinach|kale|salad|lettuce|tomato|pepper|onion|zucchini|asparagus|corn|celery|cucumber|mushroom|cauliflower|vegetable|veg)\b/.test(ingLower);
-        const isSauce=/\b(sauce|gravy|dressing|soup|broth|cream|butter|oil)\b/.test(ingLower);
-        if(isStarch) components.splice(1,0,{name:ing,category:"starch",suggestedOz:null,editable:true});
-        else if(isVeg) components.push({name:ing,category:"vegetable",suggestedOz:null,editable:true});
-        else if(isSauce) components.splice(components.length>1?1:components.length,0,{name:ing,category:"sauce",suggestedOz:null,editable:true});
+        // Skip raw protein ingredient if it is already represented in the meal name or a sauce
+        const ingIsRawProtein=proteinLower&&(
+          ingLower.includes(proteinLower)||
+          proteinLower.includes(ingLower.split(" ")[0])
+        );
+        if(ingIsRawProtein&&mealAbsorbsProtein) return;
+        if(ingIsRawProtein&&!mealAbsorbsProtein) return;// already added above
+        const isStarch=/\b(pasta|rice|potato|bread|noodle|spaghetti|penne|linguine|fettuccine|angel.?hair|macaroni|quinoa|couscous|barley|tortilla|roll|bun|orzo|ramen|udon)\b/.test(ingLower);
+        const isVeg=/\b(broccoli|carrot|bean|pea|spinach|kale|salad|lettuce|tomato|pepper|onion|zucchini|asparagus|corn|celery|cucumber|mushroom|cauliflower|vegetable|veg|green.?bean|brussels)\b/.test(ingLower);
+        const isSauce=/\b(sauce|gravy|dressing|soup|broth|cream|butter|oil|ragout|ragu|curry|salsa|pesto|marinara|alfredo|hollandaise)\b/.test(ingLower);
+        const isSauceWithProtein=isSauce&&proteinLower&&(
+          ingLower.includes("meat")||ingLower.includes("beef")||ingLower.includes("chicken")||
+          ingLower.includes("pork")||ingLower.includes("turkey")||ingLower.includes("lamb")||
+          ingLower.includes(proteinLower.split(" ")[0])
+        );
+        // A sauce-with-protein IS the protein component - add as protein category
+        if(isSauceWithProtein){
+          components.unshift({name:ing,category:"protein",suggestedOz:null,editable:true});
+        } else if(isStarch){
+          const starchPos=components.findIndex(c=>c.category==="protein")+1||1;
+          components.splice(starchPos,0,{name:ing,category:"starch",suggestedOz:null,editable:true});
+        } else if(isVeg){
+          components.push({name:ing,category:"vegetable",suggestedOz:null,editable:true});
+        } else if(isSauce){
+          const saucePos=components.findIndex(c=>c.category==="starch")+1||components.length;
+          components.splice(saucePos,0,{name:ing,category:"sauce",suggestedOz:null,editable:true});
+        }
       });
     }
     if(day.sideUsed&&!components.find(c=>c.name.toLowerCase().includes(day.sideUsed.toLowerCase()))){
-      components.splice(1,0,{name:day.sideUsed,category:"starch",suggestedOz:null,editable:true});
+      const starchPos=components.findIndex(c=>c.category==="protein")+1||1;
+      components.splice(starchPos,0,{name:day.sideUsed,category:"starch",suggestedOz:null,editable:true});
     }
     // Layer 3: if we have a decent list return it, else ask Claude
     if(components.length>=2) return components;
