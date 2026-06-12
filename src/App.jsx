@@ -19,7 +19,7 @@ const FM="'JetBrains Mono', monospace";
 
 // -- Constants -----------------------------------------------------------------
 const LOCATIONS=["Pantry","Fridge","Freezer"];
-const LOC_ICONS={Pantry:"ðŸ—„",Fridge:"â„",Freezer:"ðŸ§Š"};
+const LOC_ICONS={Pantry:"🗄",Fridge:"❄",Freezer:"🧊"};
 const LOC_COLORS={Pantry:C.accent,Fridge:C.blue,Freezer:C.purple};
 const CATEGORIES=["Protein","Produce","Dairy","Pantry","Grains","Spices","Frozen","Condiments","Snacks","Beverages","Wild Harvest","Home Harvest","Household","Cleaning","Personal Care","Pet","Other"];
 const CAT_COLORS={Protein:C.red,Produce:C.green,Dairy:C.blue,Pantry:C.accent,Grains:"#c9a96e",Spices:C.purple,Frozen:"#6be3f0",Condiments:"#94a3b8",Snacks:"#f59e0b",Beverages:"#06b6d4",Household:"#84cc16",Cleaning:"#22d3ee",["Personal Care"]:"#e879f9",Pet:"#fb923c",Other:C.muted,"Wild Harvest":"#5a8a2e","Home Harvest":"#2e8a5a"};
@@ -109,15 +109,15 @@ const PROTEIN_TAG_COLOR=(name)=>{
 
 // -- Dietary restriction presets -----------------------------------------------
 const RESTRICTION_PRESETS={
-  none:         {label:"No Restrictions",   color:C.green,   icon:"âœ…", flags:[]},
-  standard:     {label:"Standard Adult",    color:C.muted,   icon:"ðŸ‘¤", flags:[]},
-  athlete:      {label:"Teen Athlete",      color:C.green,   icon:"ðŸƒ", flags:["high-protein","high-calorie"]},
-  senior:       {label:"Senior Adult",      color:C.teal,    icon:"ðŸ‘´", flags:["low-sodium","soft-textures","simple-prep","familiar-foods","small-portions"]},
-  diabetic:     {label:"Diabetic (Strict)", color:C.blue,    icon:"ðŸ’‰", flags:["zero-sugar","no-white-rice","no-regular-pasta","whole-wheat-only","brown-rice-only","low-carb"]},
-  renal:        {label:"Renal/Kidney",      color:C.purple,  icon:"ðŸ«˜", flags:["low-potassium","low-phosphorus","low-sodium","limit-protein"]},
-  diabeticRenal:{label:"Diabetic+Renal",    color:"#f472b6", icon:"âš•", flags:["zero-sugar","no-white-rice","no-regular-pasta","whole-wheat-only","brown-rice-only","low-carb","low-potassium","low-phosphorus","low-sodium","limit-protein"]},
-  heartHealthy: {label:"Heart-Healthy",     color:C.red,     icon:"â¤", flags:["low-sodium","low-saturated-fat"]},
-  lowSodium:    {label:"Low Sodium",        color:C.orange,  icon:"ðŸ§‚", flags:["low-sodium"]},
+  none:         {label:"No Restrictions",   color:C.green,   icon:"✅", flags:[]},
+  standard:     {label:"Standard Adult",    color:C.muted,   icon:"👤", flags:[]},
+  athlete:      {label:"Teen Athlete",      color:C.green,   icon:"🏃", flags:["high-protein","high-calorie"]},
+  senior:       {label:"Senior Adult",      color:C.teal,    icon:"👴", flags:["low-sodium","soft-textures","simple-prep","familiar-foods","small-portions"]},
+  diabetic:     {label:"Diabetic (Strict)", color:C.blue,    icon:"💉", flags:["zero-sugar","no-white-rice","no-regular-pasta","whole-wheat-only","brown-rice-only","low-carb"]},
+  renal:        {label:"Renal/Kidney",      color:C.purple,  icon:"🫘", flags:["low-potassium","low-phosphorus","low-sodium","limit-protein"]},
+  diabeticRenal:{label:"Diabetic+Renal",    color:"#f472b6", icon:"⚕", flags:["zero-sugar","no-white-rice","no-regular-pasta","whole-wheat-only","brown-rice-only","low-carb","low-potassium","low-phosphorus","low-sodium","limit-protein"]},
+  heartHealthy: {label:"Heart-Healthy",     color:C.red,     icon:"❤", flags:["low-sodium","low-saturated-fat"]},
+  lowSodium:    {label:"Low Sodium",        color:C.orange,  icon:"🧂", flags:["low-sodium"]},
 };
 
 const ROLE_LABELS={adult:"Adult","teen-athlete":"Teen Athlete",child:"Child",senior:"Senior"};
@@ -146,7 +146,7 @@ const YOUR_INVENTORY=[
   {id:57,name:"Pork Spareribs",  qty:1, unit:"rack",    category:"Protein",location:"Freezer"},
   {id:58,name:"Bacon",           qty:1, unit:"1.5lb pkg",category:"Protein",location:"Freezer"},
   // Freezer - prepped veg
-  {id:4, name:"Mixed SautÃ© Blend",qty:9,unit:"2-cup bags",category:"Produce",location:"Freezer",isDicedVeg:true,vegType:"sauteBlend",cupsPerBag:2,blendNote:"Diced onion + celery + bell pepper"},
+  {id:4, name:"Mixed Sauté Blend",qty:9,unit:"2-cup bags",category:"Produce",location:"Freezer",isDicedVeg:true,vegType:"sauteBlend",cupsPerBag:2,blendNote:"Diced onion + celery + bell pepper"},
   // Freezer - commercial
   {id:5, name:"Frozen Corn",     qty:1, unit:"16oz bag", category:"Frozen",location:"Freezer"},
   {id:6, name:"Frozen Peas",     qty:1, unit:"16oz bag", category:"Frozen",location:"Freezer"},
@@ -429,20 +429,20 @@ const loadLocal=(k,fb)=>{try{const v=localStorage.getItem(k);return v?JSON.parse
 
 // -- Occasion System ---------------------------------------------------------
 const OCCASION_EVENT_TYPES=[
-  {key:"quick",  label:"Quick",       emoji:"âš¡", desc:"30 min or less"},
-  {key:"casual", label:"Casual",      emoji:"ðŸ½", desc:"Weeknight comfort"},
-  {key:"formal", label:"Formal",      emoji:"âœ¨", desc:"Elevated presentation"},
-  {key:"party",  label:"Dinner Party",emoji:"ðŸ¥‚", desc:"Scaled for 6-8+"},
-  {key:"popup",  label:"Pop Up",      emoji:"ðŸŽ‰", desc:"Spontaneous & fun"}
+  {key:"quick",  label:"Quick",       emoji:"⚡", desc:"30 min or less"},
+  {key:"casual", label:"Casual",      emoji:"🍽", desc:"Weeknight comfort"},
+  {key:"formal", label:"Formal",      emoji:"✨", desc:"Elevated presentation"},
+  {key:"party",  label:"Dinner Party",emoji:"🥂", desc:"Scaled for 6-8+"},
+  {key:"popup",  label:"Pop Up",      emoji:"🎉", desc:"Spontaneous & fun"}
 ];
 const OCCASION_AUDIENCE_TYPES=[
-  {key:"family",   label:"Family",        emoji:"ðŸ‘¨\u200dðŸ‘©\u200dðŸ‘§\u200dðŸ‘¦"},
-  {key:"kids",     label:"Kids Party",    emoji:"ðŸ§’"},
-  {key:"adult",    label:"Date Night",    emoji:"ðŸ’‘"},
-  {key:"mixed",    label:"Mixed Crowd",   emoji:"ðŸŽŠ"},
-  {key:"adults",   label:"Adults Party",  emoji:"ðŸ»"}
+  {key:"family",   label:"Family",        emoji:"👨\u200d👩\u200d👧\u200d👦"},
+  {key:"kids",     label:"Kids Party",    emoji:"🧒"},
+  {key:"adult",    label:"Date Night",    emoji:"💑"},
+  {key:"mixed",    label:"Mixed Crowd",   emoji:"🎊"},
+  {key:"adults",   label:"Adults Party",  emoji:"🍻"}
 ];
-const OCCASION_BUDGETS=["Under $30","$30â€“$60","$60â€“$100","No limit"];
+const OCCASION_BUDGETS=["Under $30","$30–$60","$60–$100","No limit"];
 function buildOccasionContext(occ){
   if(!occ||!occ.eventType) return "";
   const ev=OCCASION_EVENT_TYPES.find(e=>e.key===occ.eventType);
@@ -467,15 +467,15 @@ const FEATURE_ANNOUNCEMENTS=[
   {
     key:"occasionSystem",
     title:"New: Occasion Planner",
-    intro:(name)=>`Hi ${name}! âœ¨ I have something exciting to show you.\n\nWe just added the **Occasion Planner** — now you can plan meals for Dinner Parties, Date Nights, Kids Parties, Quick Weeknights, and more. Just pick your event type and audience and Smart Kitchen handles the rest.\n\nWant me to walk you through it?`,
+    intro:(name)=>`Hi ${name}! ✨ I have something exciting to show you.\n\nWe just added the **Occasion Planner** — now you can plan meals for Dinner Parties, Date Nights, Kids Parties, Quick Weeknights, and more. Just pick your event type and audience and Smart Kitchen handles the rest.\n\nWant me to walk you through it?`,
     quickReplies:["Show me!","How does it work?","Maybe later"],
     tab:"mealPlan"
   },
   {
     key:"smsShoppingList",
     title:"New: Text Your Shopping List",
-    intro:(name)=>`Hey ${name}! ðŸ’¬ Quick heads up — you can now text your shopping list directly to your phone or your spouseâ€™s phone with one tap.\n\nNo email app needed. Just add a phone number in Settings and youâ€™re all set.\n\nWant me to show you where?`,
-    quickReplies:["Yes, show me","Iâ€™ll find it","Not right now"],
+    intro:(name)=>`Hey ${name}! 💬 Quick heads up — you can now text your shopping list directly to your phone or your spouse’s phone with one tap.\n\nNo email app needed. Just add a phone number in Settings and you’re all set.\n\nWant me to show you where?`,
+    quickReplies:["Yes, show me","I’ll find it","Not right now"],
     tab:"shopping"
   }
 ];
@@ -502,7 +502,7 @@ const VoicePicker=React.memo(()=>{
   },[]);
   const prettyName=(v)=>{
     const n=v.name.replace("Google ","").replace("Microsoft ","");
-    const loc={en_US:"ðŸ‡ºðŸ‡¸ US",en_GB:"ðŸ‡¬ðŸ‡§ UK","en-US":"ðŸ‡ºðŸ‡¸ US","en-GB":"ðŸ‡¬ðŸ‡§ UK","en-AU":"ðŸ‡¦ðŸ‡º AU","en-IN":"ðŸ‡®ðŸ‡³ IN","en-NG":"ðŸ‡³ðŸ‡¬ NG"};
+    const loc={en_US:"🇺🇸 US",en_GB:"🇬🇧 UK","en-US":"🇺🇸 US","en-GB":"🇬🇧 UK","en-AU":"🇦🇺 AU","en-IN":"🇮🇳 IN","en-NG":"🇳🇬 NG"};
     const flag=loc[v.lang.replace("_","-")]||v.lang;
     return flag+" "+n;
   };
@@ -513,7 +513,7 @@ const VoicePicker=React.memo(()=>{
     </div>)}
     <div style={{fontSize:11,color:C.muted,fontFamily:FM,marginBottom:8}}>Tone</div>
     <div style={{display:"flex",gap:6,marginBottom:8}}>
-      {[["female","ðŸ‘© Higher pitch"],["male","ðŸ‘¨ Deeper pitch"]].map(([g,label])=>(
+      {[["female","👩 Higher pitch"],["male","👨 Deeper pitch"]].map(([g,label])=>(
         <button key={g} onClick={()=>{setGender(g);localStorage.setItem("sk_voiceGender",g);}} style={{flex:1,padding:"7px",borderRadius:8,border:"1px solid "+(gender===g?"#C8963E":"#555"),background:gender===g?"#fff7ed":"transparent",color:gender===g?"#C8963E":C.muted,fontFamily:FM,fontSize:11,cursor:"pointer",fontWeight:gender===g?700:400}}>{label}</button>
       ))}
     </div>
@@ -824,7 +824,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [rpPLbs,setRpPLbs]=useState("");
   const [rpPOz,setRpPOz]=useState(6);
   const [rpPPreview,setRpPPreview]=useState(null);
-  const [rpVSessions,setRpVSessions]=useState([{id:1,preset:{name:"Mixed SautÃ© Blend",cupsPerUnit:3,bagCups:2,color:C.orange},count:"",bags:null}]);
+  const [rpVSessions,setRpVSessions]=useState([{id:1,preset:{name:"Mixed Sauté Blend",cupsPerUnit:3,bagCups:2,color:C.orange},count:"",bags:null}]);
   const fileRef=useRef();
   const galleryRef=useRef();
   // Migration: promote Protein items + fix corrupted portion counts > 50
@@ -958,7 +958,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
           setChatWelcomeDone(true);
           try{localStorage.setItem("sk_chatWelcomeDone","1");}catch{}
         }
-        const greeting=`Hi ${userName}! ðŸ‘‹ Welcome to Smart Kitchen — I'm so glad you're here.\n\nI'm your kitchen assistant. I can help you get set up, answer questions, and I genuinely want to hear what you think — good, bad, or anything in between.\n\nWould you like a quick guided tour to get started? I'll walk you through everything one step at a time, and you're in control the whole way. Just say **yes** or **no** — no pressure either way! ðŸ˜Š`;
+        const greeting=`Hi ${userName}! 👋 Welcome to Smart Kitchen — I'm so glad you're here.\n\nI'm your kitchen assistant. I can help you get set up, answer questions, and I genuinely want to hear what you think — good, bad, or anything in between.\n\nWould you like a quick guided tour to get started? I'll walk you through everything one step at a time, and you're in control the whole way. Just say **yes** or **no** — no pressure either way! 😊`;
         setTimeout(()=>addChatMsg("assistant",greeting),400);
       },1000);
       return ()=>clearTimeout(t);
@@ -1124,13 +1124,13 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   // -- Support Chat -----------------------------------------------------------
   const userName=user?.user_metadata?.full_name||user?.email?.split("@")[0]||"there";
   const TOUR_STEPS=[
-    {msg:"First things first — let's get you signed in so everything is saved to your account. See the **Sign In** button in the top right corner? Tap that when you're ready — it only takes a minute and there's no credit card required. I'll be right here waiting! ðŸ˜Š", tab:null, action:null, autoOpen:false, waitForDone:true, donePrompt:"Take your time! Once you're signed in or have created your account, just say **done** and we'll move to the next step. ðŸ˜Š"},
-    {msg:"Great! Let's start with your **family profile** — this tells Smart Kitchen who it's cooking for and any dietary needs. I'm opening that for you now!", tab:"family", action:"profileModalOpen", autoOpen:true, waitForDone:true, donePrompt:"Take your time setting up your family. When you're ready, just say **done** or **next** and we'll move on! And if you have any questions, just ask — I'm right here. ðŸ˜Š"},
-    {msg:"Perfect. Now let's build your **inventory** — I'm taking you there now! You can scan a grocery receipt with your camera, or add items manually.", tab:"inventory", autoOpen:true, waitForDone:true, donePrompt:"Go ahead and add a few items — scan a receipt or type them in. Say **done** or **next** when you're ready to continue! And if you have any questions along the way, just ask — I'm right here. ðŸ˜Š"},
-    {msg:"Now for the fun part — I'm opening your **Meal Plan** now! Hit **Build Meal Plan** to build your first 7-day dinner plan based on your inventory and family needs.", tab:"mealplan", autoOpen:true, waitForDone:true, donePrompt:"Hit **Build Meal Plan** to generate your first week of dinners. Say **done** or **next** when you've had a look! Any questions, just ask. ðŸ˜Š"},
+    {msg:"First things first — let's get you signed in so everything is saved to your account. See the **Sign In** button in the top right corner? Tap that when you're ready — it only takes a minute and there's no credit card required. I'll be right here waiting! 😊", tab:null, action:null, autoOpen:false, waitForDone:true, donePrompt:"Take your time! Once you're signed in or have created your account, just say **done** and we'll move to the next step. 😊"},
+    {msg:"Great! Let's start with your **family profile** — this tells Smart Kitchen who it's cooking for and any dietary needs. I'm opening that for you now!", tab:"family", action:"profileModalOpen", autoOpen:true, waitForDone:true, donePrompt:"Take your time setting up your family. When you're ready, just say **done** or **next** and we'll move on! And if you have any questions, just ask — I'm right here. 😊"},
+    {msg:"Perfect. Now let's build your **inventory** — I'm taking you there now! You can scan a grocery receipt with your camera, or add items manually.", tab:"inventory", autoOpen:true, waitForDone:true, donePrompt:"Go ahead and add a few items — scan a receipt or type them in. Say **done** or **next** when you're ready to continue! And if you have any questions along the way, just ask — I'm right here. 😊"},
+    {msg:"Now for the fun part — I'm opening your **Meal Plan** now! Hit **Build Meal Plan** to build your first 7-day dinner plan based on your inventory and family needs.", tab:"mealplan", autoOpen:true, waitForDone:true, donePrompt:"Hit **Build Meal Plan** to generate your first week of dinners. Say **done** or **next** when you've had a look! Any questions, just ask. 😊"},
     {msg:"Your meal plan is ready! You can push it straight to **Google Calendar** with one tap — just hit the Calendar button. Once you've done that (or if you'd like to skip), let me know!", tab:null},
-    {msg:"One more thing — see the **âš¡ Busy?** button on each day? Tap it on a hectic evening and Smart Kitchen will swap in a quick meal under 20 minutes. Really handy for sports nights! Shall I show you anything else?", tab:"mealplan"},
-    {msg:"You're all set! ðŸŽ‰ Smart Kitchen is ready to help your family eat well every week. I'll be right here if you ever have questions, run into anything, or just want to tell us what you think — good, bad, or anything in between. You're never alone in this kitchen! ðŸ’›", tab:null, done:true},
+    {msg:"One more thing — see the **⚡ Busy?** button on each day? Tap it on a hectic evening and Smart Kitchen will swap in a quick meal under 20 minutes. Really handy for sports nights! Shall I show you anything else?", tab:"mealplan"},
+    {msg:"You're all set! 🎉 Smart Kitchen is ready to help your family eat well every week. I'll be right here if you ever have questions, run into anything, or just want to tell us what you think — good, bad, or anything in between. You're never alone in this kitchen! 💛", tab:null, done:true},
   ];
   const addChatMsg=(role,text)=>setChatMessages(prev=>[...prev,{role,text,id:Date.now()}]);
   const escalateToSupport=(userMsg,tag)=>{
@@ -1246,7 +1246,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
         },700);
         if(next.done){try{localStorage.setItem("sk_tourChoice","done");}catch{} setTourChoice("done");}
       } else {
-        setTimeout(()=>{addChatMsg("assistant","You're all set! I'm always here if you need anything. ðŸ’›");setChatLoading(false);},700);
+        setTimeout(()=>{addChatMsg("assistant","You're all set! I'm always here if you need anything. 💛");setChatLoading(false);},700);
       }
       return;
     }
@@ -1271,14 +1271,14 @@ USER CONTEXT:
 
 APP KNOWLEDGE: Smart Kitchen has these features:
 - Inventory: scan receipts or add manually. Wild Harvest and Home Harvest categories with label printing.
-- Meal Plan: 7-day AI dinner plan. Regenerate or Change individual meals. Occasion Planner (ðŸŽ‰ Plan Occasion button) for special events — Dinner Party, Date Night, Birthday Dinner, BBQ, Kids Party — generates one occasion meal, picks a date, slots into meal plan or pushes to Google Calendar.
+- Meal Plan: 7-day AI dinner plan. Regenerate or Change individual meals. Occasion Planner (🎉 Plan Occasion button) for special events — Dinner Party, Date Night, Birthday Dinner, BBQ, Kids Party — generates one occasion meal, picks a date, slots into meal plan or pushes to Google Calendar.
 - Recipes & Saved: AI recipe suggestions. Star-rate meals. 5-star = Keeper on rotation.
 - RECIPE SHARING: Share button on Saved tab and Family Recipes modal. Select any recipes, tap Share, get a 6-character code. Text or email the code to anyone. They tap Import on their Saved tab, enter the code, see a preview, and tap "Add All to My Kitchen." Family Recipes import directly to Family Recipes; Saved recipes go to Saved. Codes valid 90 days. Deep link also works — tapping the link auto-opens the import modal with the code pre-filled.
-- MOVING RECIPES: On any Saved recipe card, tap "ðŸ“– Add to Family" to move it to Family Recipes. Inside a Family Recipe view, tap "â­ Add to Saved" to copy it to Saved Recipes.
+- MOVING RECIPES: On any Saved recipe card, tap "📖 Add to Family" to move it to Family Recipes. Inside a Family Recipe view, tap "⭐ Add to Saved" to copy it to Saved Recipes.
 - Shopping List: auto-builds from meal plan. Email, SMS (Text to... button — add phone in Settings), and Send to Instacart (opens Meijer/ALDI/Kroger/etc with items ready to shop — set preferred store in Settings).
-- Family Profiles: per-member dietary restrictions, Date of Birth (birthday countdown, ðŸŽ‚ banner on meal plan week, age-aware AI meals), Medical+ for medication/allergy compliance.
-- Bluetooth Scale (âš– Scale, Medical+ only): connect Etekcity Nutrition Scale, weigh portions, get instant calorie/nutrition estimates.
-- Leftovers scanner (photo identifies dish, estimates servings, sets use-by date — if unrecognized shows "I'm not sure what this is" prompt), Substitute tool, Weekly Ad scanner, Desserts, Busy Night flag (âš¡).
+- Family Profiles: per-member dietary restrictions, Date of Birth (birthday countdown, 🎂 banner on meal plan week, age-aware AI meals), Medical+ for medication/allergy compliance.
+- Bluetooth Scale (⚖ Scale, Medical+ only): connect Etekcity Nutrition Scale, weigh portions, get instant calorie/nutrition estimates.
+- Leftovers scanner (photo identifies dish, estimates servings, sets use-by date — if unrecognized shows "I'm not sure what this is" prompt), Substitute tool, Weekly Ad scanner, Desserts, Busy Night flag (⚡).
 - Senior Mode (Aa Off/On button): larger text, bigger tap targets, larger checkboxes on shopping list.
 - Family Recipes: tap Family Recipes button in top bar. Add, edit, delete, share individual recipes. Share All shares every family recipe at once. Cross-device sync — recipes available on all your devices.
 - Support chat, Google Calendar, Receipt scanner.
@@ -1314,10 +1314,10 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     if(!chatWelcomeDone){
       setChatWelcomeDone(true);
       try{localStorage.setItem("sk_chatWelcomeDone","1");}catch{}
-      const greeting=`Hi ${userName}! ðŸ‘‹ Welcome to Smart Kitchen — I'm so glad you're here.\n\nI'm your kitchen assistant. I can help you get set up, answer questions, and I genuinely want to hear what you think — good, bad, or anything in between.\n\nWould you like a quick guided tour to get started? I'll walk you through everything one step at a time, and you're in control the whole way. Just say **yes** or **no** — no pressure either way! ðŸ˜Š`;
+      const greeting=`Hi ${userName}! 👋 Welcome to Smart Kitchen — I'm so glad you're here.\n\nI'm your kitchen assistant. I can help you get set up, answer questions, and I genuinely want to hear what you think — good, bad, or anything in between.\n\nWould you like a quick guided tour to get started? I'll walk you through everything one step at a time, and you're in control the whole way. Just say **yes** or **no** — no pressure either way! 😊`;
       setTimeout(()=>addChatMsg("assistant",greeting),400);
     } else if(chatMessages.length===0){
-      setTimeout(()=>addChatMsg("assistant",`Welcome back, ${userName}! ðŸ˜Š What can I help you with today? And if anything's on your mind — about the app or anything else — I'm all ears.`),400);
+      setTimeout(()=>addChatMsg("assistant",`Welcome back, ${userName}! 😊 What can I help you with today? And if anything's on your mind — about the app or anything else — I'm all ears.`),400);
     }
   };
   useEffect(()=>{
@@ -1344,7 +1344,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       valid.forEach(s=>{
         const idx=u.findIndex(i=>i.vegType==="sauteBlend");
         if(idx>=0){u[idx]={...u[idx],qty:u[idx].qty+s.bags};}
-        else{u.push({id:Date.now(),name:"Mixed SautÃ© Blend",qty:s.bags,unit:"2-cup bags",category:"Produce",location:"Freezer",isDicedVeg:true,vegType:"sauteBlend",cupsPerBag:2,blendNote:"Diced onion + celery + bell pepper"});}
+        else{u.push({id:Date.now(),name:"Mixed Sauté Blend",qty:s.bags,unit:"2-cup bags",category:"Produce",location:"Freezer",isDicedVeg:true,vegType:"sauteBlend",cupsPerBag:2,blendNote:"Diced onion + celery + bell pepper"});}
       });
       return u;
     });
@@ -1393,10 +1393,10 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
   const analyzeReceipt=async()=>{
     if(!scanB64) return;
     setScanStage("analyzing");
-    setLoading(true); setLoadMsg("Reading receiptâ€¦");
+    setLoading(true); setLoadMsg("Reading receipt…");
     try{
       const raw=await callClaude({
-        system:"You are a grocery receipt parser specialized in Meijer store receipts. Analyze this receipt image and extract every food/grocery item purchased. Return ONLY a valid JSON array. No markdown, no preamble.\n\nRULES:\n1. DUPLICATE HANDLING: If the EXACT same product appears multiple times (same name, same price), combine into one object with summed qty. However if similar items appear with DIFFERENT SKUs or flavors (e.g. two different ice cream flavors), keep them SEPARATE but flag confidence as medium. If an item has quantity printed (e.g. '2 @ $1.99'), use that quantity.\n2. UNIT RULES: Bananas/grapesâ†’bunch. Milkâ†’gallon. Eggsâ†’dozen. Breadâ†’loaf. Meat/fish by weightâ†’lb. Ice cream/frozen noveltyâ†’container. Produce bags (onions/potatoes)â†’bag. Canned goodsâ†’can. Bottlesâ†’bottle. Multi-packsâ†’count. Defaultâ†’each.\n3. LOCATION RULES (MUST follow exactly): Protein/Meat/Seafood/Poultry/Pork/Beef/Fish/Ice cream/Frozenâ†’Freezer. Dairy/Eggs/Deli/Juice/Condiments/Dressingsâ†’Fridge. Fresh produce (bananas/apples/oranges/tomatoes/peppers)â†’Fridge. Bagged produce (onions/potatoes/carrots)â†’Pantry. Canned/Dry/Spices/Grains/Baking/Snacks/Beveragesâ†’Pantry.\n4. MEIJER SPECIFICS: Ignore PLU numbers, barcodes, discount lines (SAVE, MPERKS, COUPON, MFR), tax lines, subtotals and totals. Clean brand names (MEIJER ORGâ†’Organic [Item], WBâ†’Wright Brand).\n5. CONFIDENCE: high=clearly readable name+price. medium=similar items or slightly unclear. low=guessed from partial text.\n\nEach object: {name, qty(number), unit, category(Protein|Produce|Dairy|Pantry|Baking|Grains|Spices|Frozen|Condiments|Other), location(Freezer|Fridge|Pantry), isProtein(boolean), price(string), confidence(high|medium|low), expiryDays(number|null, estimated days until expiry: fresh meat=2, ground beef=2, pork=3, chicken=2, fish=1, milk=7, eggs=21, cheese=14, yogurt=10, fresh produce=5, bananas=5, bread=5, deli meat=5, frozen=180, canned=730, dry goods=365, condiments=180, null for pantry staples with very long shelf life)}. Skip non-food items.",
+        system:"You are a grocery receipt parser specialized in Meijer store receipts. Analyze this receipt image and extract every food/grocery item purchased. Return ONLY a valid JSON array. No markdown, no preamble.\n\nRULES:\n1. DUPLICATE HANDLING: If the EXACT same product appears multiple times (same name, same price), combine into one object with summed qty. However if similar items appear with DIFFERENT SKUs or flavors (e.g. two different ice cream flavors), keep them SEPARATE but flag confidence as medium. If an item has quantity printed (e.g. '2 @ $1.99'), use that quantity.\n2. UNIT RULES: Bananas/grapes→bunch. Milk→gallon. Eggs→dozen. Bread→loaf. Meat/fish by weight→lb. Ice cream/frozen novelty→container. Produce bags (onions/potatoes)→bag. Canned goods→can. Bottles→bottle. Multi-packs→count. Default→each.\n3. LOCATION RULES (MUST follow exactly): Protein/Meat/Seafood/Poultry/Pork/Beef/Fish/Ice cream/Frozen→Freezer. Dairy/Eggs/Deli/Juice/Condiments/Dressings→Fridge. Fresh produce (bananas/apples/oranges/tomatoes/peppers)→Fridge. Bagged produce (onions/potatoes/carrots)→Pantry. Canned/Dry/Spices/Grains/Baking/Snacks/Beverages→Pantry.\n4. MEIJER SPECIFICS: Ignore PLU numbers, barcodes, discount lines (SAVE, MPERKS, COUPON, MFR), tax lines, subtotals and totals. Clean brand names (MEIJER ORG→Organic [Item], WB→Wright Brand).\n5. CONFIDENCE: high=clearly readable name+price. medium=similar items or slightly unclear. low=guessed from partial text.\n\nEach object: {name, qty(number), unit, category(Protein|Produce|Dairy|Pantry|Baking|Grains|Spices|Frozen|Condiments|Other), location(Freezer|Fridge|Pantry), isProtein(boolean), price(string), confidence(high|medium|low), expiryDays(number|null, estimated days until expiry: fresh meat=2, ground beef=2, pork=3, chicken=2, fish=1, milk=7, eggs=21, cheese=14, yogurt=10, fresh produce=5, bananas=5, bread=5, deli meat=5, frozen=180, canned=730, dry goods=365, condiments=180, null for pantry staples with very long shelf life)}. Skip non-food items.",
         prompt:"Parse this grocery receipt. Extract every food item purchased with quantity and category.",
         imageBase64:scanB64,imageType:scanMime,
       });
@@ -1414,7 +1414,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
   const analyzePhoto=async()=>{
     if(!scanB64) return;
     setScanStage("analyzing");
-    setLoading(true); setLoadMsg("Scanning shelf photoâ€¦");
+    setLoading(true); setLoadMsg("Scanning shelf photo…");
     try{
       const raw=await callClaude({
         system:"Kitchen inventory AI. Analyze the photo. Return ONLY valid JSON array. Each item: {name,qty,unit,category,location,confidence,expiryDays}. category rules (STRICT): Protein = ONLY actual meat, poultry, seafood, fish, eggs as protein source. Produce = fresh fruits and vegetables. Dairy = milk, cheese, yogurt, butter, cream. Baking = flour, sugar, baking soda, baking powder, chocolate chips, extracts, shortening, oils used for baking. Grains = rice, pasta, bread, oats, cereals. Spices = spices, herbs, seasoning blends, salt, pepper. Condiments = sauces, dressings, ketchup, mustard, mayo, relish, vinegar, soy sauce. Frozen = frozen packaged foods. Pantry = canned goods, beverages, snacks, cleaning products, detergents, paper goods, health products, bug spray, household items, or ANYTHING that does not clearly fit another category. Other = non-food items you are unsure about. DEFAULT to Pantry when uncertain - NEVER default to Protein. location rules (MUST follow): Protein/Meat/Seafood/Poultry/Pork/Beef/Fish = Freezer. Dairy/Eggs/Fresh Produce/Deli meats/Condiments/Dressings = Fridge. Canned goods/Dry goods/Spices/Grains/Baking/Snacks/Beverages/Household = Pantry. Frozen packaged foods = Freezer. confidence is high, medium, or low. expiryDays is estimated days until expiry once opened or from purchase: fresh meat/poultry=2, pork=3, fish=1, ground beef=2, milk=7, eggs=21, cheese=14, yogurt=10, fresh produce=5, bananas=5, bread=5, deli meat=5, frozen=180, canned=730, dry goods=365, condiments=180, null for very long shelf life staples.",
@@ -1433,7 +1433,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
   const analyzeWeeklyAd=async()=>{
     if(!scanB64) return;
     setScanStage("analyzing");
-    setLoading(true); setLoadMsg("Reading weekly adâ€¦");
+    setLoading(true); setLoadMsg("Reading weekly ad…");
     try{
       const raw=await callClaude({
         system:"You are a grocery store weekly ad parser. Analyze this store ad image and extract food/grocery sale items. Return ONLY a valid JSON array. Each object: {name(string, clean product name), salePrice(string, e.g. '$2.99'), regularPrice(string or null), unit(string, e.g. 'lb' 'each' 'pkg'), category(Protein|Produce|Dairy|Pantry|Grains|Frozen|Condiments|Other), savings(string, e.g. 'Save $1.00' or 'BOGO' or '2 for $5')}. Focus on food items only. Skip non-food deals.",
@@ -1475,7 +1475,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
 
   // -- AI functions -----------------------------------------------------------
   const fetchRecipes=async()=>{
-    setLoading(true); setLoadMsg("Analyzing your kitchenâ€¦"); setRecipeError(""); setTab("recipes");
+    setLoading(true); setLoadMsg("Analyzing your kitchen…"); setRecipeError(""); setTab("recipes");
     try{
       const proteins=proteinItems.map(i=>i.name+" "+i.qty).join(", ");
       const veg=(blendItem?.qty||0)+" saute blend bags";
@@ -1494,7 +1494,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
 
   const buildSaleMealPlan=async()=>{
     if(saleItems.length===0){alert("No sale items loaded. Scan a weekly ad first.");return;}
-    setLoading(true); setLoadMsg("Building sale meal planâ€¦"); setTab("mealplan");
+    setLoading(true); setLoadMsg("Building sale meal plan…"); setTab("mealplan");
     try{
       const proteins=proteinItems.map(i=>i.name+" "+i.qty+" portions").join(", ");
       const saleList=saleItems.map(i=>i.name+(i.salePrice?" ("+i.salePrice+")":"")+(i.savings?" — "+i.savings:"")).join(", ");
@@ -2165,10 +2165,10 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
   const buildMealPlan=async()=>{
     const occCtx=buildOccasionContext(occasionState)+(occasionCustomText?" Special occasion name: "+occasionCustomText+"":"");
     if(!can.sevenDayPlan){
-      setUpgradeModal({feature:"7-Day Meal Planning",desc:"Get a personalized 7-day dinner plan built around your proteins and pantry.",icon:"ðŸ“…"});
+      setUpgradeModal({feature:"7-Day Meal Planning",desc:"Get a personalized 7-day dinner plan built around your proteins and pantry.",icon:"📅"});
       return;
     }
-    setLoading(true); setLoadMsg("Building meal planâ€¦"); setTab("mealplan");
+    setLoading(true); setLoadMsg("Building meal plan…"); setTab("mealplan");
     try{
       const proteins=proteinItems.map(i=>i.name+" "+i.qty+" portions").join(", ");
       const fs=familySummary();
@@ -2186,7 +2186,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
 
   const quickMealForDay=async(dayIdx)=>{
     if(!can.busyNightFlag){
-      setUpgradeModal({feature:"Busy Night Flag",desc:"Tap âš¡ Busy? on any night and get a quick dinner under 20 minutes — perfect for sports nights and hectic evenings.",icon:"âš¡"});
+      setUpgradeModal({feature:"Busy Night Flag",desc:"Tap ⚡ Busy? on any night and get a quick dinner under 20 minutes — perfect for sports nights and hectic evenings.",icon:"⚡"});
       return;
     }
     const day=mealPlan[dayIdx];
@@ -2266,7 +2266,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
   };
   const genShopping=async()=>{
     if(!mealPlan.length) return;
-    setLoading(true); setLoadMsg("Building shopping listâ€¦");
+    setLoading(true); setLoadMsg("Building shopping list…");
     try{
       const needed=mealPlan.flatMap(d=>d.shoppingNeeded||[]);
       const raw=await callClaude({
@@ -2305,7 +2305,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       return {...i,qty:Math.max(0,+(i.qty-1).toFixed(1))};
     }));
     setActiveRecipe(null);
-    alert("âœ… \""+r.name+"\" cooked! Inventory updated.");
+    alert("✅ \""+r.name+"\" cooked! Inventory updated.");
   };
 
   const openMealPlanRecipe=async(day)=>{
@@ -2402,19 +2402,19 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
           if(window.confirm("Dinner 1 of "+urls.length+" opened in Google Calendar.\n\nClick OK to open the next dinner, or Cancel to stop.")){
             let i=1;
             const openNext=()=>{
-              if(i>=urls.length){alert("âœ… All "+urls.length+" dinners sent to Google Calendar!");return;}
+              if(i>=urls.length){alert("✅ All "+urls.length+" dinners sent to Google Calendar!");return;}
               window.open(urls[i],"_blank");
               i++;
               if(i<urls.length) setTimeout(()=>{
                 if(window.confirm("Dinner "+i+" of "+urls.length+" opened.\n\nClick OK to continue.")){openNext();}
               },800);
-              else setTimeout(()=>alert("âœ… All "+urls.length+" dinners sent to Google Calendar!"),800);
+              else setTimeout(()=>alert("✅ All "+urls.length+" dinners sent to Google Calendar!"),800);
             };
             openNext();
           }
         },1500);
       } else {
-        setTimeout(()=>alert("âœ… Dinner added to Google Calendar!"),800);
+        setTimeout(()=>alert("✅ Dinner added to Google Calendar!"),800);
       }
     } catch(e){ alert("Calendar push failed: "+e.message); }
   };
@@ -2428,28 +2428,28 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
 
   
       {showJoinViewer&&user&&(<JoinAsViewerModal user={user} onClose={()=>setShowJoinViewer(false)} onJoined={()=>{setShowJoinViewer(false);window.location.reload();}}/>)}
-{showSettings&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setShowSettings(false)}><div style={{background:C.card,borderRadius:16,padding:28,width:340,maxWidth:"90vw",maxHeight:"90vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}><div style={{fontFamily:FD,fontSize:20,fontWeight:700,color:C.text,marginBottom:4}}>Settings</div><div style={{fontSize:11,color:C.muted,fontFamily:FM,marginBottom:20}}>Smart Kitchen v1.5</div><div style={{marginTop:12,background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:"#1A2344",marginBottom:8}}>ðŸŽ™ Voice Assistant Name</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:6}}>What should your assistant be called? (default: Cathy)</div><input placeholder="e.g. Cathy, Alex, Rosie..." defaultValue={localStorage.getItem("sk_assistantName")||"Cathy"} onChange={e=>localStorage.setItem("sk_assistantName",e.target.value||"Cathy")} style={{width:"100%",background:C.card,border:"1px solid "+C.border,borderRadius:6,padding:"6px 10px",color:C.text,fontFamily:FM,fontSize:12,marginBottom:6,boxSizing:"border-box"}}/><div style={{fontSize:11,color:C.muted,fontFamily:FM,marginBottom:10}}>Tap the ðŸŽ™ Hey [Name] button in the menu to activate voice.</div><div style={{fontFamily:FD,fontSize:13,fontWeight:600,color:C.text,marginBottom:6}}>Assistant Voice</div><VoicePicker/><button onClick={()=>{if(!window.speechSynthesis)return;window.speechSynthesis.cancel();const utt=new SpeechSynthesisUtterance("Hi, I'm "+(localStorage.getItem("sk_assistantName")||"Cathy")+". I'm your Smart Kitchen assistant. What's for dinner tonight?");utt.rate=0.95;utt.pitch=1.05;const gender=localStorage.getItem("sk_voiceGender")||"female";const femaleNames=["Samantha","Karen","Victoria","Moira","Fiona","Tessa","Veena","Zira","Google US English Female","Microsoft Zira"];const maleNames=["Tom","Daniel","Alex","Fred","Google US English Male","Microsoft David","Microsoft Mark"];if(gender==="male"){utt.pitch=0.7;utt.rate=0.88;}else{utt.pitch=1.15;utt.rate=0.95;}const doSpeak=()=>{const voices=window.speechSynthesis.getVoices();const enVoices=voices.filter(v=>v.lang&&v.lang.startsWith("en"));const femaleN=["Samantha","Karen","Victoria","Moira","Fiona","Tessa","Veena","Zira","Google US English Female","Microsoft Zira"];const maleN=["Tom","Daniel","Alex","Fred","Google US English Male","Microsoft David","Microsoft Mark"];const namedMatch=enVoices.find(v=>gender==="female"?femaleN.some(n=>v.name.toLowerCase().includes(n.toLowerCase())):maleN.some(n=>v.name.toLowerCase().includes(n.toLowerCase())));const picked=namedMatch||enVoices.find(v=>v.localService)||enVoices[0]||voices[0];if(picked)utt.voice=picked;window.speechSynthesis.speak(utt);};const pVoices=window.speechSynthesis.getVoices();if(pVoices&&pVoices.length>0){doSpeak();}else{window.speechSynthesis.onvoiceschanged=()=>{window.speechSynthesis.onvoiceschanged=null;doSpeak();};}}} style={{...bBtn("ghost"),width:"100%",fontSize:11,border:"1px solid "+C.border,color:C.muted,marginBottom:8}}>ðŸ”Š Preview Voice</button><button onClick={()=>{const loadAndShow=()=>{const v=window.speechSynthesis.getVoices();if(!v||v.length===0){alert("No voices loaded yet. Try again in a moment.");return;}const list=v.filter(x=>x.lang.startsWith("en")).map(x=>x.name+" ("+x.lang+(x.localService?" local":" remote")+")").join("\n");alert("Available English voices ("+v.filter(x=>x.lang.startsWith("en")).length+" of "+v.length+" total):\n\n"+list);};const v=window.speechSynthesis.getVoices();if(v&&v.length>0){loadAndShow();}else{window.speechSynthesis.onvoiceschanged=()=>{window.speechSynthesis.onvoiceschanged=null;loadAndShow();};}}} style={{...bBtn("ghost"),width:"100%",fontSize:11,border:"1px solid "+C.border,color:C.muted,marginBottom:16}}>ðŸ” Show Available Voices</button><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:8}}>Shopping Partner</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:6}}>Who gets the emailed shopping list?</div><input placeholder="Name (e.g. Lisa)" value={shopPartnerName} onChange={e=>{setShopPartnerName(e.target.value);localStorage.setItem("sk_shopPartnerName",e.target.value);}} style={{width:"100%",background:C.card,border:"1px solid "+C.border,borderRadius:6,padding:"6px 10px",color:C.text,fontFamily:FM,fontSize:12,marginBottom:6,boxSizing:"border-box"}}/><input placeholder="Email address" value={shopPartnerEmail} onChange={e=>{setShopPartnerEmail(e.target.value);localStorage.setItem("sk_shopPartnerEmail",e.target.value);}} style={{width:"100%",background:C.card,border:"1px solid "+C.border,borderRadius:6,padding:"6px 10px",color:C.text,fontFamily:FM,fontSize:12,boxSizing:"border-box"}}/><div style={{fontSize:11,color:C.muted,fontFamily:FM,margin:"10px 0 4px"}}>Phone for SMS shopping list</div><input placeholder="e.g. 616-555-1234" type="tel" value={shopPhone} onChange={e=>{setShopPhone(e.target.value);localStorage.setItem("sk_shopPhone",e.target.value);}} style={{width:"100%",background:C.card,border:"1px solid "+C.border,borderRadius:6,padding:"6px 10px",color:C.text,fontFamily:FM,fontSize:12,boxSizing:"border-box"}}/><div style={{fontSize:10,color:C.muted,fontFamily:FM,marginTop:3}}>US numbers only.</div><div style={{background:"#22c55e"+"12",border:"1px solid "+"#22c55e"+"33",borderRadius:8,padding:"10px 12px",marginTop:8}}><div style={{fontFamily:FM,fontSize:11,fontWeight:700,color:"#16a34a",marginBottom:4}}>ðŸ“± On mobile — works instantly</div><div style={{fontFamily:FM,fontSize:11,color:C.muted,lineHeight:1.5}}>Tap "Text to..." and your shopping list opens in your Messages app, ready to send.</div></div><div style={{background:C.surface,border:"1px solid "+C.border,borderRadius:8,padding:"10px 12px",marginTop:6}}><div style={{fontFamily:FM,fontSize:11,fontWeight:700,color:C.text,marginBottom:4}}>ðŸ–¥ On desktop — two options</div><div style={{fontFamily:FM,fontSize:11,color:C.muted,lineHeight:1.5,marginBottom:6}}><strong style={{color:C.text}}>Option 1 (free):</strong> Tap "Text to..." and choose your messaging app from the picker — the list is pre-filled.</div><div style={{fontFamily:FM,fontSize:11,color:C.muted,lineHeight:1.5,marginBottom:8}}><strong style={{color:C.text}}>Option 2 (background send):</strong> Connect Twilio to send SMS silently without any app picker.</div><button onClick={()=>setShowSmsHelp(true)} style={{background:"transparent",border:"1px solid "+C.accent,borderRadius:6,color:C.accent,fontFamily:FM,fontSize:11,cursor:"pointer",padding:"5px 10px",fontWeight:600}}>Set Up Twilio (background SMS)</button></div></div><div style={{display:"flex",flexDirection:"column",gap:12}}><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>{darkMode?"ðŸŒ™ Dark Mode":"â˜€ Light Mode"}</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Switch between dark and light display themes.</div><button style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.border,color:C.text}} onClick={()=>setDarkMode(m=>!m)}>{darkMode?"Switch to Light Mode â˜€":"Switch to Dark Mode ðŸŒ™"}</button></div><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>Recipe Search Site</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Where to search for recipes when you tap a meal name.</div><div style={{display:"flex",flexDirection:"column",gap:6}}>{[["google","ðŸ” Google Recipes"],["allrecipes","ðŸ³ AllRecipes"],["pinterest","ðŸ“Œ Pinterest"],["foodnetwork","ðŸ“º Food Network"]].map(([key,label])=>(<button key={key} onClick={()=>{setRecipeSite(key);localStorage.setItem("sk_recipeSite",key);}} style={{padding:"8px 12px",borderRadius:8,border:"1px solid "+(recipeSite===key?C.accent:C.border),background:recipeSite===key?C.accent+"22":"transparent",color:recipeSite===key?C.accent:C.text,fontFamily:FM,fontSize:12,cursor:"pointer",textAlign:"left"}}>{label}{recipeSite===key?" âœ“":""}</button>))}</div></div><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:8}}>Grocery Delivery</div><div style={{fontSize:11,color:C.muted,fontFamily:FM,marginBottom:10}}>Send your shopping list to a delivery service.</div><div style={{display:"flex",gap:6,marginBottom:10}}>{[["instacart","Instacart"],["shipt","Shipt"]].map(([k,label])=>(<button key={k} onClick={()=>{setDeliveryService(k);localStorage.setItem("sk_deliveryService",k);}} style={{flex:1,padding:"7px",borderRadius:8,border:"1px solid "+(deliveryService===k?"#00873A":C.border),background:deliveryService===k?"#00873A22":"transparent",color:deliveryService===k?"#00873A":C.text,fontFamily:FM,fontSize:11,cursor:"pointer",fontWeight:600}}>{label}{deliveryService===k?" âœ“":""}</button>))}</div>{deliveryService==="instacart"&&(<div><div style={{fontFamily:FM,fontSize:11,fontWeight:600,color:C.text,marginBottom:6}}>Preferred Store</div><div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>{[["meijer","Meijer"],["aldi","ALDI"],["kroger","Kroger"],["costco","Costco"],["walmart","Walmart"],["target","Target"]].map(([k,label])=>(<button key={k} onClick={()=>{setInstacartStore(k);localStorage.setItem("sk_instacartStore",k);}} style={{padding:"5px 10px",borderRadius:16,border:"1px solid "+(instacartStore===k?"#00873A":C.border),background:instacartStore===k?"#00873A22":"transparent",color:instacartStore===k?"#00873A":C.text,fontFamily:FM,fontSize:11,cursor:"pointer"}}>{label}{instacartStore===k?" âœ“":""}</button>))}</div><div style={{background:"#f0fdf4",border:"1px solid #86efac",borderRadius:8,padding:"10px 12px"}}><div style={{fontFamily:FM,fontSize:11,fontWeight:700,color:"#16a34a",marginBottom:3}}>Works now — no setup needed</div><div style={{fontFamily:FM,fontSize:11,color:C.muted,lineHeight:1.5}}>Tap Send to Instacart and your items open in Instacart ready to shop. One-tap pre-built cart coming when Instacart reopens their developer program.</div></div></div>)}</div><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>Reset Inventory</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Clears all inventory items. Keeps profiles, meal plan, and preferences.</div><button style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.red,color:C.red}} onClick={()=>{if(window.confirm("Clear all inventory? Cannot be undone.")){localStorage.removeItem("sk_inventory");localStorage.removeItem("sk_portionFixV2");setInventory([]);setShowSettings(false);alert("Inventory cleared.");}}}>Clear Inventory</button></div><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>Reset All Data</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Wipes everything and restarts the Setup Wizard. Use for demo resets.</div><button style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.red,color:C.red}} onClick={()=>{if(window.confirm("Reset ALL data? Cannot be undone.")){["sk_inventory","sk_familyProfiles","sk_familySize","sk_mealPlan","sk_sportsNights","sk_recipeSite","sk_seniorMode","sk_setupDone","sk_portionFixV2","sk_installDismissed","sk_reminderDismissed","sk_saleItems","sk_tempProfiles","sk_activeTab","sk_chatWelcomeDone","sk_tourChoice","sk_tourStep","sk_guestCaptured","sk_darkMode","sk_recipes","sk_recipeRatings","sk_desserts","sk_dessertRatings","sk_seenFeature_occasionSystem","sk_seenFeature_smsShoppingList"].forEach(k=>localStorage.removeItem(k));window.location.reload();}}}>Reset All Data</button></div></div><div style={{background:"#f5f3ff",borderRadius:10,padding:16,marginTop:12}}>
-<div style={{fontFamily:FD,fontSize:16,fontWeight:700,color:"#065f46",marginBottom:8}}>Household Members</div>{!isViewer&&!isManager&&user&&(<div style={{marginBottom:12}}><div style={{fontSize:12,color:"#444",fontFamily:FM,marginBottom:10,lineHeight:1.5}}>Invite a caregiver or family member to help manage this account, or share view-only access.</div>{!showInviteManager?(<div style={{display:"flex",flexDirection:"column",gap:6}}><button style={{...bBtn("ghost"),width:"100%",border:"1px solid #059669",color:"#065f46",fontWeight:600}} onClick={()=>setShowInviteManager(true)}>+ Invite Someone</button></div>):(<div style={{background:"#f0fdf4",borderRadius:10,padding:14,border:"1px solid #86efac"}}><div style={{fontFamily:FD,fontSize:13,fontWeight:600,color:"#065f46",marginBottom:10}}>Send an Invitation</div><div style={{fontSize:12,color:"#444",fontFamily:FM,marginBottom:6}}>Their email address</div><input placeholder="caregiver@email.com" value={inviteEmail} onChange={e=>setInviteEmail(e.target.value)} style={{width:"100%",background:"#fff",border:"1px solid #86efac",borderRadius:6,padding:"8px 10px",color:"#1a2344",fontFamily:FM,fontSize:13,marginBottom:10,boxSizing:"border-box"}}/><div style={{fontSize:12,color:"#444",fontFamily:FM,marginBottom:6}}>Their role</div><div style={{display:"flex",gap:6,marginBottom:10}}><button onClick={()=>setInviteRole("viewer")} style={{flex:1,padding:"8px",borderRadius:8,border:"1px solid "+(inviteRole==="viewer"?"#4a1d96":"#ccc"),background:inviteRole==="viewer"?"#f5f3ff":"#fff",color:inviteRole==="viewer"?"#4a1d96":"#444",fontFamily:FM,fontSize:11,cursor:"pointer",fontWeight:inviteRole==="viewer"?700:400}}>ðŸ‘ Viewer<br/><span style={{fontSize:10,fontWeight:400}}>Read-only — any plan</span></button><button onClick={()=>setInviteRole("manager")} style={{flex:1,padding:"8px",borderRadius:8,border:"1px solid "+(inviteRole==="manager"?"#059669":"#ccc"),background:inviteRole==="manager"?"#f0fdf4":"#fff",color:inviteRole==="manager"?"#065f46":"#444",fontFamily:FM,fontSize:11,cursor:"pointer",fontWeight:inviteRole==="manager"?700:400}}>ðŸ©º Manager<br/><span style={{fontSize:10,fontWeight:400}}>Edit meals — inventory</span></button></div>{inviteRole==="manager"&&can.tier!=="medical"&&(<div style={{background:"#fff7ed",border:"1px solid #fed7aa",borderRadius:8,padding:"10px 12px",marginBottom:10}}><div style={{fontSize:12,color:"#c2410c",fontFamily:FM,lineHeight:1.5}}>ðŸ”’ Manager access requires Medical+. <button onClick={()=>{setShowInviteManager(false);setShowSettings(false);onUpgrade();}} style={{background:"none",border:"none",color:"#c2410c",fontFamily:FM,fontSize:12,cursor:"pointer",textDecoration:"underline",padding:0}}>Upgrade now</button></div></div>)}{inviteSuccess?(<div style={{background:"#f0fdf4",border:"1px solid #86efac",borderRadius:8,padding:"10px 12px",marginBottom:8}}><div style={{fontSize:12,color:"#065f46",fontFamily:FM}}>{inviteSuccess}</div></div>):null}<div style={{display:"flex",gap:8}}><button style={{...bBtn("ghost"),flex:1,border:"1px solid #ccc",color:"#444"}} onClick={()=>{setShowInviteManager(false);setInviteEmail("");setInviteSuccess("");}}>Cancel</button><button style={{...bBtn("primary"),flex:1}} disabled={inviteSending||!inviteEmail||inviteEmail.indexOf("@")<0||(inviteRole==="manager"&&can.tier!=="medical")} onClick={async()=>{setInviteSending(true);setInviteSuccess("");try{const res=await fetch("/api/manage-invite",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"send",owner_uid:user.id,owner_name:user.user_metadata?.full_name||user.email,owner_email:user.email,invitee_email:inviteEmail,role:inviteRole})});const d=await res.json();if(d.success){setInviteSuccess("Invitation sent to "+inviteEmail+"! They have 7 days to accept.");setInviteEmail("");}else{setInviteSuccess("Error: "+(d.error||"Could not send invite"));}}catch(e){setInviteSuccess("Error sending invitation. Please try again.");}setInviteSending(false);}}>{inviteSending?"Sending...":"Send Invite"}</button></div></div>)}</div>)}{(isViewer||isManager)&&user&&(<div style={{marginBottom:12}}><div style={{background:"#f0fdf4",border:"1px solid #86efac",borderRadius:8,padding:"10px 12px"}}><div style={{fontSize:12,color:"#065f46",fontFamily:FM,fontWeight:600,marginBottom:4}}>ðŸ©º You have caregiver access to this account</div><div style={{fontSize:11,color:"#444",fontFamily:FM,lineHeight:1.5}}>{isManager?"You can edit the meal plan and inventory to help manage their diet.":"You have read-only access to view the meal plan and inventory."}</div></div></div>)}<div style={{borderTop:"1px solid #e5e7eb",marginBottom:12,paddingTop:12}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:"#4a1d96",marginBottom:4}}>ðŸ‘ Family Viewer Access</div>
+{showSettings&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setShowSettings(false)}><div style={{background:C.card,borderRadius:16,padding:28,width:340,maxWidth:"90vw",maxHeight:"90vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}><div style={{fontFamily:FD,fontSize:20,fontWeight:700,color:C.text,marginBottom:4}}>Settings</div><div style={{fontSize:11,color:C.muted,fontFamily:FM,marginBottom:20}}>Smart Kitchen v1.5</div><div style={{marginTop:12,background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:"#1A2344",marginBottom:8}}>🎙 Voice Assistant Name</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:6}}>What should your assistant be called? (default: Cathy)</div><input placeholder="e.g. Cathy, Alex, Rosie..." defaultValue={localStorage.getItem("sk_assistantName")||"Cathy"} onChange={e=>localStorage.setItem("sk_assistantName",e.target.value||"Cathy")} style={{width:"100%",background:C.card,border:"1px solid "+C.border,borderRadius:6,padding:"6px 10px",color:C.text,fontFamily:FM,fontSize:12,marginBottom:6,boxSizing:"border-box"}}/><div style={{fontSize:11,color:C.muted,fontFamily:FM,marginBottom:10}}>Tap the 🎙 Hey [Name] button in the menu to activate voice.</div><div style={{fontFamily:FD,fontSize:13,fontWeight:600,color:C.text,marginBottom:6}}>Assistant Voice</div><VoicePicker/><button onClick={()=>{if(!window.speechSynthesis)return;window.speechSynthesis.cancel();const utt=new SpeechSynthesisUtterance("Hi, I'm "+(localStorage.getItem("sk_assistantName")||"Cathy")+". I'm your Smart Kitchen assistant. What's for dinner tonight?");utt.rate=0.95;utt.pitch=1.05;const gender=localStorage.getItem("sk_voiceGender")||"female";const femaleNames=["Samantha","Karen","Victoria","Moira","Fiona","Tessa","Veena","Zira","Google US English Female","Microsoft Zira"];const maleNames=["Tom","Daniel","Alex","Fred","Google US English Male","Microsoft David","Microsoft Mark"];if(gender==="male"){utt.pitch=0.7;utt.rate=0.88;}else{utt.pitch=1.15;utt.rate=0.95;}const doSpeak=()=>{const voices=window.speechSynthesis.getVoices();const enVoices=voices.filter(v=>v.lang&&v.lang.startsWith("en"));const femaleN=["Samantha","Karen","Victoria","Moira","Fiona","Tessa","Veena","Zira","Google US English Female","Microsoft Zira"];const maleN=["Tom","Daniel","Alex","Fred","Google US English Male","Microsoft David","Microsoft Mark"];const namedMatch=enVoices.find(v=>gender==="female"?femaleN.some(n=>v.name.toLowerCase().includes(n.toLowerCase())):maleN.some(n=>v.name.toLowerCase().includes(n.toLowerCase())));const picked=namedMatch||enVoices.find(v=>v.localService)||enVoices[0]||voices[0];if(picked)utt.voice=picked;window.speechSynthesis.speak(utt);};const pVoices=window.speechSynthesis.getVoices();if(pVoices&&pVoices.length>0){doSpeak();}else{window.speechSynthesis.onvoiceschanged=()=>{window.speechSynthesis.onvoiceschanged=null;doSpeak();};}}} style={{...bBtn("ghost"),width:"100%",fontSize:11,border:"1px solid "+C.border,color:C.muted,marginBottom:8}}>🔊 Preview Voice</button><button onClick={()=>{const loadAndShow=()=>{const v=window.speechSynthesis.getVoices();if(!v||v.length===0){alert("No voices loaded yet. Try again in a moment.");return;}const list=v.filter(x=>x.lang.startsWith("en")).map(x=>x.name+" ("+x.lang+(x.localService?" local":" remote")+")").join("\n");alert("Available English voices ("+v.filter(x=>x.lang.startsWith("en")).length+" of "+v.length+" total):\n\n"+list);};const v=window.speechSynthesis.getVoices();if(v&&v.length>0){loadAndShow();}else{window.speechSynthesis.onvoiceschanged=()=>{window.speechSynthesis.onvoiceschanged=null;loadAndShow();};}}} style={{...bBtn("ghost"),width:"100%",fontSize:11,border:"1px solid "+C.border,color:C.muted,marginBottom:16}}>🔍 Show Available Voices</button><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:8}}>Shopping Partner</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:6}}>Who gets the emailed shopping list?</div><input placeholder="Name (e.g. Lisa)" value={shopPartnerName} onChange={e=>{setShopPartnerName(e.target.value);localStorage.setItem("sk_shopPartnerName",e.target.value);}} style={{width:"100%",background:C.card,border:"1px solid "+C.border,borderRadius:6,padding:"6px 10px",color:C.text,fontFamily:FM,fontSize:12,marginBottom:6,boxSizing:"border-box"}}/><input placeholder="Email address" value={shopPartnerEmail} onChange={e=>{setShopPartnerEmail(e.target.value);localStorage.setItem("sk_shopPartnerEmail",e.target.value);}} style={{width:"100%",background:C.card,border:"1px solid "+C.border,borderRadius:6,padding:"6px 10px",color:C.text,fontFamily:FM,fontSize:12,boxSizing:"border-box"}}/><div style={{fontSize:11,color:C.muted,fontFamily:FM,margin:"10px 0 4px"}}>Phone for SMS shopping list</div><input placeholder="e.g. 616-555-1234" type="tel" value={shopPhone} onChange={e=>{setShopPhone(e.target.value);localStorage.setItem("sk_shopPhone",e.target.value);}} style={{width:"100%",background:C.card,border:"1px solid "+C.border,borderRadius:6,padding:"6px 10px",color:C.text,fontFamily:FM,fontSize:12,boxSizing:"border-box"}}/><div style={{fontSize:10,color:C.muted,fontFamily:FM,marginTop:3}}>US numbers only.</div><div style={{background:"#22c55e"+"12",border:"1px solid "+"#22c55e"+"33",borderRadius:8,padding:"10px 12px",marginTop:8}}><div style={{fontFamily:FM,fontSize:11,fontWeight:700,color:"#16a34a",marginBottom:4}}>📱 On mobile — works instantly</div><div style={{fontFamily:FM,fontSize:11,color:C.muted,lineHeight:1.5}}>Tap "Text to..." and your shopping list opens in your Messages app, ready to send.</div></div><div style={{background:C.surface,border:"1px solid "+C.border,borderRadius:8,padding:"10px 12px",marginTop:6}}><div style={{fontFamily:FM,fontSize:11,fontWeight:700,color:C.text,marginBottom:4}}>🖥 On desktop — two options</div><div style={{fontFamily:FM,fontSize:11,color:C.muted,lineHeight:1.5,marginBottom:6}}><strong style={{color:C.text}}>Option 1 (free):</strong> Tap "Text to..." and choose your messaging app from the picker — the list is pre-filled.</div><div style={{fontFamily:FM,fontSize:11,color:C.muted,lineHeight:1.5,marginBottom:8}}><strong style={{color:C.text}}>Option 2 (background send):</strong> Connect Twilio to send SMS silently without any app picker.</div><button onClick={()=>setShowSmsHelp(true)} style={{background:"transparent",border:"1px solid "+C.accent,borderRadius:6,color:C.accent,fontFamily:FM,fontSize:11,cursor:"pointer",padding:"5px 10px",fontWeight:600}}>Set Up Twilio (background SMS)</button></div></div><div style={{display:"flex",flexDirection:"column",gap:12}}><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>{darkMode?"🌙 Dark Mode":"☀ Light Mode"}</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Switch between dark and light display themes.</div><button style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.border,color:C.text}} onClick={()=>setDarkMode(m=>!m)}>{darkMode?"Switch to Light Mode ☀":"Switch to Dark Mode 🌙"}</button></div><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>Recipe Search Site</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Where to search for recipes when you tap a meal name.</div><div style={{display:"flex",flexDirection:"column",gap:6}}>{[["google","🔍 Google Recipes"],["allrecipes","🍳 AllRecipes"],["pinterest","📌 Pinterest"],["foodnetwork","📺 Food Network"]].map(([key,label])=>(<button key={key} onClick={()=>{setRecipeSite(key);localStorage.setItem("sk_recipeSite",key);}} style={{padding:"8px 12px",borderRadius:8,border:"1px solid "+(recipeSite===key?C.accent:C.border),background:recipeSite===key?C.accent+"22":"transparent",color:recipeSite===key?C.accent:C.text,fontFamily:FM,fontSize:12,cursor:"pointer",textAlign:"left"}}>{label}{recipeSite===key?" ✓":""}</button>))}</div></div><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:8}}>Grocery Delivery</div><div style={{fontSize:11,color:C.muted,fontFamily:FM,marginBottom:10}}>Send your shopping list to a delivery service.</div><div style={{display:"flex",gap:6,marginBottom:10}}>{[["instacart","Instacart"],["shipt","Shipt"]].map(([k,label])=>(<button key={k} onClick={()=>{setDeliveryService(k);localStorage.setItem("sk_deliveryService",k);}} style={{flex:1,padding:"7px",borderRadius:8,border:"1px solid "+(deliveryService===k?"#00873A":C.border),background:deliveryService===k?"#00873A22":"transparent",color:deliveryService===k?"#00873A":C.text,fontFamily:FM,fontSize:11,cursor:"pointer",fontWeight:600}}>{label}{deliveryService===k?" ✓":""}</button>))}</div>{deliveryService==="instacart"&&(<div><div style={{fontFamily:FM,fontSize:11,fontWeight:600,color:C.text,marginBottom:6}}>Preferred Store</div><div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>{[["meijer","Meijer"],["aldi","ALDI"],["kroger","Kroger"],["costco","Costco"],["walmart","Walmart"],["target","Target"]].map(([k,label])=>(<button key={k} onClick={()=>{setInstacartStore(k);localStorage.setItem("sk_instacartStore",k);}} style={{padding:"5px 10px",borderRadius:16,border:"1px solid "+(instacartStore===k?"#00873A":C.border),background:instacartStore===k?"#00873A22":"transparent",color:instacartStore===k?"#00873A":C.text,fontFamily:FM,fontSize:11,cursor:"pointer"}}>{label}{instacartStore===k?" ✓":""}</button>))}</div><div style={{background:"#f0fdf4",border:"1px solid #86efac",borderRadius:8,padding:"10px 12px"}}><div style={{fontFamily:FM,fontSize:11,fontWeight:700,color:"#16a34a",marginBottom:3}}>Works now — no setup needed</div><div style={{fontFamily:FM,fontSize:11,color:C.muted,lineHeight:1.5}}>Tap Send to Instacart and your items open in Instacart ready to shop. One-tap pre-built cart coming when Instacart reopens their developer program.</div></div></div>)}</div><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>Reset Inventory</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Clears all inventory items. Keeps profiles, meal plan, and preferences.</div><button style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.red,color:C.red}} onClick={()=>{if(window.confirm("Clear all inventory? Cannot be undone.")){localStorage.removeItem("sk_inventory");localStorage.removeItem("sk_portionFixV2");setInventory([]);setShowSettings(false);alert("Inventory cleared.");}}}>Clear Inventory</button></div><div style={{background:C.surface,borderRadius:10,padding:16}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>Reset All Data</div><div style={{fontSize:12,color:C.muted,fontFamily:FM,marginBottom:10}}>Wipes everything and restarts the Setup Wizard. Use for demo resets.</div><button style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.red,color:C.red}} onClick={()=>{if(window.confirm("Reset ALL data? Cannot be undone.")){["sk_inventory","sk_familyProfiles","sk_familySize","sk_mealPlan","sk_sportsNights","sk_recipeSite","sk_seniorMode","sk_setupDone","sk_portionFixV2","sk_installDismissed","sk_reminderDismissed","sk_saleItems","sk_tempProfiles","sk_activeTab","sk_chatWelcomeDone","sk_tourChoice","sk_tourStep","sk_guestCaptured","sk_darkMode","sk_recipes","sk_recipeRatings","sk_desserts","sk_dessertRatings","sk_seenFeature_occasionSystem","sk_seenFeature_smsShoppingList"].forEach(k=>localStorage.removeItem(k));window.location.reload();}}}>Reset All Data</button></div></div><div style={{background:"#f5f3ff",borderRadius:10,padding:16,marginTop:12}}>
+<div style={{fontFamily:FD,fontSize:16,fontWeight:700,color:"#065f46",marginBottom:8}}>Household Members</div>{!isViewer&&!isManager&&user&&(<div style={{marginBottom:12}}><div style={{fontSize:12,color:"#444",fontFamily:FM,marginBottom:10,lineHeight:1.5}}>Invite a caregiver or family member to help manage this account, or share view-only access.</div>{!showInviteManager?(<div style={{display:"flex",flexDirection:"column",gap:6}}><button style={{...bBtn("ghost"),width:"100%",border:"1px solid #059669",color:"#065f46",fontWeight:600}} onClick={()=>setShowInviteManager(true)}>+ Invite Someone</button></div>):(<div style={{background:"#f0fdf4",borderRadius:10,padding:14,border:"1px solid #86efac"}}><div style={{fontFamily:FD,fontSize:13,fontWeight:600,color:"#065f46",marginBottom:10}}>Send an Invitation</div><div style={{fontSize:12,color:"#444",fontFamily:FM,marginBottom:6}}>Their email address</div><input placeholder="caregiver@email.com" value={inviteEmail} onChange={e=>setInviteEmail(e.target.value)} style={{width:"100%",background:"#fff",border:"1px solid #86efac",borderRadius:6,padding:"8px 10px",color:"#1a2344",fontFamily:FM,fontSize:13,marginBottom:10,boxSizing:"border-box"}}/><div style={{fontSize:12,color:"#444",fontFamily:FM,marginBottom:6}}>Their role</div><div style={{display:"flex",gap:6,marginBottom:10}}><button onClick={()=>setInviteRole("viewer")} style={{flex:1,padding:"8px",borderRadius:8,border:"1px solid "+(inviteRole==="viewer"?"#4a1d96":"#ccc"),background:inviteRole==="viewer"?"#f5f3ff":"#fff",color:inviteRole==="viewer"?"#4a1d96":"#444",fontFamily:FM,fontSize:11,cursor:"pointer",fontWeight:inviteRole==="viewer"?700:400}}>👁 Viewer<br/><span style={{fontSize:10,fontWeight:400}}>Read-only — any plan</span></button><button onClick={()=>setInviteRole("manager")} style={{flex:1,padding:"8px",borderRadius:8,border:"1px solid "+(inviteRole==="manager"?"#059669":"#ccc"),background:inviteRole==="manager"?"#f0fdf4":"#fff",color:inviteRole==="manager"?"#065f46":"#444",fontFamily:FM,fontSize:11,cursor:"pointer",fontWeight:inviteRole==="manager"?700:400}}>🩺 Manager<br/><span style={{fontSize:10,fontWeight:400}}>Edit meals — inventory</span></button></div>{inviteRole==="manager"&&can.tier!=="medical"&&(<div style={{background:"#fff7ed",border:"1px solid #fed7aa",borderRadius:8,padding:"10px 12px",marginBottom:10}}><div style={{fontSize:12,color:"#c2410c",fontFamily:FM,lineHeight:1.5}}>🔒 Manager access requires Medical+. <button onClick={()=>{setShowInviteManager(false);setShowSettings(false);onUpgrade();}} style={{background:"none",border:"none",color:"#c2410c",fontFamily:FM,fontSize:12,cursor:"pointer",textDecoration:"underline",padding:0}}>Upgrade now</button></div></div>)}{inviteSuccess?(<div style={{background:"#f0fdf4",border:"1px solid #86efac",borderRadius:8,padding:"10px 12px",marginBottom:8}}><div style={{fontSize:12,color:"#065f46",fontFamily:FM}}>{inviteSuccess}</div></div>):null}<div style={{display:"flex",gap:8}}><button style={{...bBtn("ghost"),flex:1,border:"1px solid #ccc",color:"#444"}} onClick={()=>{setShowInviteManager(false);setInviteEmail("");setInviteSuccess("");}}>Cancel</button><button style={{...bBtn("primary"),flex:1}} disabled={inviteSending||!inviteEmail||inviteEmail.indexOf("@")<0||(inviteRole==="manager"&&can.tier!=="medical")} onClick={async()=>{setInviteSending(true);setInviteSuccess("");try{const res=await fetch("/api/manage-invite",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"send",owner_uid:user.id,owner_name:user.user_metadata?.full_name||user.email,owner_email:user.email,invitee_email:inviteEmail,role:inviteRole})});const d=await res.json();if(d.success){setInviteSuccess("Invitation sent to "+inviteEmail+"! They have 7 days to accept.");setInviteEmail("");}else{setInviteSuccess("Error: "+(d.error||"Could not send invite"));}}catch(e){setInviteSuccess("Error sending invitation. Please try again.");}setInviteSending(false);}}>{inviteSending?"Sending...":"Send Invite"}</button></div></div>)}</div>)}{(isViewer||isManager)&&user&&(<div style={{marginBottom:12}}><div style={{background:"#f0fdf4",border:"1px solid #86efac",borderRadius:8,padding:"10px 12px"}}><div style={{fontSize:12,color:"#065f46",fontFamily:FM,fontWeight:600,marginBottom:4}}>🩺 You have caregiver access to this account</div><div style={{fontSize:11,color:"#444",fontFamily:FM,lineHeight:1.5}}>{isManager?"You can edit the meal plan and inventory to help manage their diet.":"You have read-only access to view the meal plan and inventory."}</div></div></div>)}<div style={{borderTop:"1px solid #e5e7eb",marginBottom:12,paddingTop:12}}><div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:"#4a1d96",marginBottom:4}}>👁 Family Viewer Access</div>
 <div style={{fontSize:12,color:"#888",fontFamily:FM,marginBottom:10}}>Set a custom code so family members can view your meal plan and inventory in read-only mode on their own device.</div>
 <ViewerCodeManager user={user} isViewer={isViewer} viewerRole={viewerRole}/>
 </div>
 <div style={{background:"#EEF1F8",borderRadius:10,padding:16,marginTop:12}}>
-<div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:"#1A2344",marginBottom:4}}>ðŸŒ Cloud Sync</div>
+<div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:"#1A2344",marginBottom:4}}>🌐 Cloud Sync</div>
 <div style={{fontSize:12,color:"#888",fontFamily:FM,marginBottom:10}}>Your data syncs automatically every 5 minutes and when you switch apps. Tap to sync now.</div>
 {!isViewer&&<button style={{...bBtn("primary"),width:"100%",marginBottom:8}} onClick={async()=>{
   if(!user){alert("Sign in to use cloud sync.");return;}
   const ok=await import("./supabaseClient").then(m=>m.saveCloudData(user.id));
-  alert(ok?"Data saved to cloud âœ“":"Sync failed — check connection");
+  alert(ok?"Data saved to cloud ✓":"Sync failed — check connection");
 }}>Save to Cloud Now</button>}
 {!isViewer&&<button style={{...bBtn("ghost"),width:"100%",border:"1px solid #1A2344",color:"#1A2344",marginBottom:8}} onClick={async()=>{
   if(!user){alert("Sign in to use cloud sync.");return;}
   const ok=await import("./supabaseClient").then(m=>m.loadCloudData(user.id));
-  if(ok){window.dispatchEvent(new Event("sk_cloud_loaded"));alert("Data loaded from cloud âœ“");}
+  if(ok){window.dispatchEvent(new Event("sk_cloud_loaded"));alert("Data loaded from cloud ✓");}
   else alert("Load failed — check connection");
 }}>Load from Cloud</button>}
 {!isViewer&&<button style={{...bBtn("ghost"),width:"100%",border:"1px solid #b45309",color:"#b45309"}} onClick={async()=>{
   const count=await import("./supabaseClient").then(m=>m.restoreFromBackup());
-  if(count>0){window.dispatchEvent(new Event("sk_cloud_loaded"));alert("Restored "+count+" items from backup âœ“ Refresh to see changes.");}
+  if(count>0){window.dispatchEvent(new Event("sk_cloud_loaded"));alert("Restored "+count+" items from backup ✓ Refresh to see changes.");}
   else alert("No backup found.");
 }}>Restore from Backup</button>}
 {isViewer&&<button style={{...bBtn("primary"),width:"100%"}} onClick={async()=>{
@@ -2464,9 +2464,9 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     const d=result.data;
     Object.entries(SMAP).forEach(([k,v])=>{if(d[k]!==null&&d[k]!==undefined){try{if(Array.isArray(d[k])&&d[k].length===0)return;localStorage.setItem(v,typeof d[k]==="object"?JSON.stringify(d[k]):String(d[k]));}catch(e){}}});
     window.dispatchEvent(new Event("sk_cloud_loaded"));
-    alert("Updated! âœ“");
+    alert("Updated! ✓");
   }catch(e){alert("Error: "+e.message);}
-}}>ðŸ”„ Refresh Family Data</button>}
+}}>🔄 Refresh Family Data</button>}
 </div>
 <button style={{...bBtn("ghost"),width:"100%",marginTop:8,border:"1px solid #7c3aed",color:"#4a1d96"}} onClick={()=>{setShowSettings(false);setShowJoinViewer(true);}}>&#128065; Join as Viewer (enter family code)</button>
 </div><button style={{...bBtn("ghost"),width:"100%",marginTop:8}} onClick={()=>setShowSettings(false)}>Close</button></div></div>}
@@ -2475,7 +2475,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
           <div style={{background:C.surface,borderRadius:16,padding:28,maxWidth:440,width:"100%",border:"1px solid "+C.border,maxHeight:"90vh",overflowY:"auto"}}>
             {wizardStep===-3&&(<div style={{padding:"8px 0"}}>
               <div style={{textAlign:"center",marginBottom:20}}>
-                <div style={{fontFamily:FD,fontSize:seniorMode?30:22,color:C.accent,marginBottom:6}}>ðŸ‘‹ Welcome to Smart Kitchen!</div>
+                <div style={{fontFamily:FD,fontSize:seniorMode?30:22,color:C.accent,marginBottom:6}}>👋 Welcome to Smart Kitchen!</div>
                 <div style={{fontFamily:"system-ui,-apple-system,sans-serif",fontSize:seniorMode?16:13,color:C.muted,lineHeight:1.6}}>Create your free account to save your meal plans, inventory, and preferences across any device.</div>
               </div>
               <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:12}}>
@@ -2524,7 +2524,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                 }}
                 disabled={wizardSignupLoading}
               >
-                {wizardSignupLoading?"Creating account...":"Create Free Account â†’"}
+                {wizardSignupLoading?"Creating account...":"Create Free Account →"}
               </button>
               <button
                 style={{...bBtn("ghost"),width:"100%",padding:seniorMode?14:10,fontSize:seniorMode?16:13}}
@@ -2532,20 +2532,20 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
               >
                 Skip for now — explore first
               </button>
-              {onShowGuestViewer&&<button onClick={onShowGuestViewer} style={{background:"transparent",border:"none",color:"#a78bfa",fontFamily:FM,fontSize:seniorMode?15:12,cursor:"pointer",marginTop:4,textDecoration:"underline",display:"block",width:"100%",padding:"8px 0"}}>ðŸ‘ Have a family code? View their kitchen</button>}
-              <div style={{fontFamily:"system-ui",fontSize:seniorMode?14:11,color:C.muted,textAlign:"center",marginTop:10,lineHeight:1.6}}>30-day free trial Â· No credit card required Â· Cancel anytime</div>
+              {onShowGuestViewer&&<button onClick={onShowGuestViewer} style={{background:"transparent",border:"none",color:"#a78bfa",fontFamily:FM,fontSize:seniorMode?15:12,cursor:"pointer",marginTop:4,textDecoration:"underline",display:"block",width:"100%",padding:"8px 0"}}>👁 Have a family code? View their kitchen</button>}
+              <div style={{fontFamily:"system-ui",fontSize:seniorMode?14:11,color:C.muted,textAlign:"center",marginTop:10,lineHeight:1.6}}>30-day free trial · No credit card required · Cancel anytime</div>
             </div>)}
             {wizardStep===-2&&(<div style={{textAlign:"center",padding:"8px 0",maxHeight:"70vh",overflowY:"auto"}}>
               <img src="data:image/jpeg;base64,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" alt="Smart Kitchen" style={{width:"200px",height:"auto",marginBottom:16,borderRadius:20,boxShadow:"0 8px 32px rgba(0,0,0,0.3)"}}/>
               <div style={{fontFamily:FD,fontSize:seniorMode?34:24,color:C.accent,marginBottom:8}}>Welcome to Smart Kitchen</div>
-              <div style={{fontFamily:"system-ui,-apple-system,sans-serif",fontSize:seniorMode?16:11,color:C.muted,fontStyle:"italic",marginBottom:12,lineHeight:1.8,textAlign:"center"}}>Most apps are created by developers for users.<br/>Smart Kitchenâ„¢ was created by a user, for users.</div>
+              <div style={{fontFamily:"system-ui,-apple-system,sans-serif",fontSize:seniorMode?16:11,color:C.muted,fontStyle:"italic",marginBottom:12,lineHeight:1.8,textAlign:"center"}}>Most apps are created by developers for users.<br/>Smart Kitchen™ was created by a user, for users.</div>
               <div style={{fontFamily:"system-ui,-apple-system,sans-serif",fontSize:seniorMode?19:14,color:C.text,lineHeight:1.7,marginBottom:20}}>Your personal AI-powered kitchen assistant — designed to help your family eat well, waste less, and spend smarter.</div>
               <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:24,textAlign:"left"}}>
                 {[
-                  ["ðŸ“¦","Inventory","Scan receipts and shelves to track what you have on hand"],
-                  ["ðŸ½","Meal Planning","Get a personalized 7-day dinner plan based on your proteins and pantry"],
-                  ["ðŸ”","Recipes","AI-suggested recipes with step-by-step instructions"],
-                  ["ðŸ·","Sale Shopping","Scan weekly ads to build budget meal plans around what's on sale"],
+                  ["📦","Inventory","Scan receipts and shelves to track what you have on hand"],
+                  ["🍽","Meal Planning","Get a personalized 7-day dinner plan based on your proteins and pantry"],
+                  ["🔍","Recipes","AI-suggested recipes with step-by-step instructions"],
+                  ["🏷","Sale Shopping","Scan weekly ads to build budget meal plans around what's on sale"],
                 ].map(([icon,title,desc])=>(
                   <div key={title} style={{display:"flex",gap:12,alignItems:"flex-start",background:C.card,borderRadius:10,padding:"10px 12px"}}>
                     <span style={{fontSize:22,flexShrink:0}}>{icon}</span>
@@ -2558,7 +2558,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
               </div>
               <div style={{fontFamily:"system-ui,-apple-system,sans-serif",fontSize:seniorMode?16:12,color:C.muted,marginBottom:16,lineHeight:1.6}}>Setup takes about 2 minutes. You can always update your preferences later.</div>
               <button style={{...bBtn("primary"),width:"100%",padding:seniorMode?18:14,fontSize:seniorMode?19:15}} onClick={()=>setWizardStep(-1)}>
-                Let's Get Started â†’
+                Let's Get Started →
               </button>
             </div>)}
             {wizardStep===-1&&(<div style={{padding:"4px 0"}}>
@@ -2566,21 +2566,21 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
               <div style={{fontFamily:"system-ui,-apple-system,sans-serif",fontSize:seniorMode?17:13,color:C.muted,marginBottom:18,textAlign:"center",lineHeight:1.6}}>Just 3 quick steps — takes about 2 minutes.</div>
               <div style={{display:"flex",flexDirection:"column",gap:12,marginBottom:20}}>
                 <div style={{display:"flex",gap:14,alignItems:"flex-start",background:C.card,borderRadius:12,padding:"14px"}}>
-                  <div style={{width:36,height:36,borderRadius:10,background:C.accent+"22",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>ðŸ‘¨â€ðŸ‘©â€ðŸ‘§</div>
+                  <div style={{width:36,height:36,borderRadius:10,background:C.accent+"22",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>👨‍👩‍👧</div>
                   <div style={{flex:1}}>
                     <div style={{fontFamily:"system-ui,-apple-system,sans-serif",fontSize:seniorMode?19:14,fontWeight:700,color:C.text,marginBottom:4}}>1. Family Profile</div>
                     <div style={{fontFamily:"system-ui,-apple-system,sans-serif",fontSize:seniorMode?16:12,color:C.muted,lineHeight:1.6}}>Tell us who you're cooking for and any dietary or medical needs — <strong style={{color:C.text}}>diabetic-friendly, low sodium, gluten-free</strong>, and more. Smart Kitchen will <strong style={{color:"#22c55e"}}>automatically enforce these in every recipe and meal plan.</strong></div>
                   </div>
                 </div>
                 <div style={{display:"flex",gap:14,alignItems:"flex-start",background:C.card,borderRadius:12,padding:"14px"}}>
-                  <div style={{width:36,height:36,borderRadius:10,background:C.accent+"22",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>ðŸ“¦</div>
+                  <div style={{width:36,height:36,borderRadius:10,background:C.accent+"22",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>📦</div>
                   <div style={{flex:1}}>
                     <div style={{fontFamily:"system-ui,-apple-system,sans-serif",fontSize:seniorMode?19:14,fontWeight:700,color:C.text,marginBottom:4}}>2. Your Inventory</div>
                     <div style={{fontFamily:"system-ui,-apple-system,sans-serif",fontSize:seniorMode?16:12,color:C.muted,lineHeight:1.6}}>We'll quickly add proteins, pantry staples, and what you already have on hand — scan or type, whichever is easier.</div>
                   </div>
                 </div>
                 <div style={{display:"flex",gap:14,alignItems:"flex-start",background:C.card,borderRadius:12,padding:"14px"}}>
-                  <div style={{width:36,height:36,borderRadius:10,background:C.accent+"22",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>ðŸ½</div>
+                  <div style={{width:36,height:36,borderRadius:10,background:C.accent+"22",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>🍽</div>
                   <div style={{flex:1}}>
                     <div style={{fontFamily:"system-ui,-apple-system,sans-serif",fontSize:seniorMode?19:14,fontWeight:700,color:C.text,marginBottom:4}}>3. Meal Preferences</div>
                     <div style={{fontFamily:"system-ui,-apple-system,sans-serif",fontSize:seniorMode?16:12,color:C.muted,lineHeight:1.6}}>How your family likes to eat — quick weeknight meals, busy sports nights, favorite cuisines, and more.</div>
@@ -2588,15 +2588,15 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                 </div>
               </div>
               <div style={{background:"#1a2e1a",borderRadius:10,padding:"10px 14px",marginBottom:20,display:"flex",gap:10,alignItems:"center"}}>
-                <span style={{fontSize:16}}>ðŸ’¡</span>
+                <span style={{fontSize:16}}>💡</span>
                 <div style={{fontFamily:"system-ui,-apple-system,sans-serif",fontSize:seniorMode?16:12,color:"#86efac",lineHeight:1.5}}>You can always update any of these later from the app settings.</div>
               </div>
               <button style={{...bBtn("primary"),width:"100%",padding:14,fontSize:15}} onClick={()=>setWizardStep(0)}>
-                Let's Begin â†’
+                Let's Begin →
               </button>
             </div>)}
             {wizardStep===0&&(<div>
-              <div style={{fontFamily:FD,fontSize:20,color:C.accent,marginBottom:6}}>ðŸ‘¨â€ðŸ‘©â€ðŸ‘§ Family Profile</div>
+              <div style={{fontFamily:FD,fontSize:20,color:C.accent,marginBottom:6}}>👨‍👩‍👧 Family Profile</div>
               <div style={{fontFamily:"system-ui,-apple-system,sans-serif",fontSize:13,color:C.muted,marginBottom:16,lineHeight:1.6}}>Tell us about your household so meal plans respect everyone's needs.</div>
               <div style={{background:C.card,borderRadius:10,padding:14,marginBottom:14}}>
                 <div style={{fontSize:10,fontFamily:FM,color:C.muted,marginBottom:8,letterSpacing:0.8}}>FAMILY SIZE</div>
@@ -2641,23 +2641,23 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                 })}
               </div>
               <div style={{display:"flex",gap:8}}>
-                <button style={{...bBtn("ghost"),flex:1}} onClick={()=>setWizardStep(-1)}>â† Back</button>
-                <button style={{...bBtn("primary"),flex:2}} onClick={()=>setWizardStep(1)}>Next â†’</button>
+                <button style={{...bBtn("ghost"),flex:1}} onClick={()=>setWizardStep(-1)}>← Back</button>
+                <button style={{...bBtn("primary"),flex:2}} onClick={()=>setWizardStep(1)}>Next →</button>
               </div>
             </div>)}
             {wizardStep===1&&(<div>
-              <div style={{fontFamily:FD,fontSize:seniorMode?28:20,color:C.accent,marginBottom:6}}>ðŸ” Recipe Search</div>
+              <div style={{fontFamily:FD,fontSize:seniorMode?28:20,color:C.accent,marginBottom:6}}>🔍 Recipe Search</div>
               <div style={{fontFamily:FM,fontSize:seniorMode?16:12,color:C.muted,marginBottom:16,lineHeight:1.6}}>When you tap a meal name, which site opens for the full recipe?</div>
-              {[["google","ðŸ” Google Recipes"],["allrecipes","ðŸ³ AllRecipes"],["pinterest","ðŸ“Œ Pinterest"],["foodnetwork","ðŸ“º Food Network"]].map(([key,label])=>(
+              {[["google","🔍 Google Recipes"],["allrecipes","🍳 AllRecipes"],["pinterest","📌 Pinterest"],["foodnetwork","📺 Food Network"]].map(([key,label])=>(
                 <div key={key} onClick={()=>setRecipeSite(key)} style={{padding:seniorMode?"16px":"12px 16px",borderRadius:10,marginBottom:8,cursor:"pointer",border:"2px solid "+(recipeSite===key?C.accent:C.border),background:recipeSite===key?C.accent+"11":C.card,fontFamily:FM,fontSize:seniorMode?17:13,color:recipeSite===key?C.accent:C.text}}>{label}</div>
               ))}
               <div style={{display:"flex",gap:8,marginTop:16}}>
-                <button style={{...bBtn("ghost"),flex:1}} onClick={()=>setWizardStep(0)}>â† Back</button>
-                <button style={{...bBtn("primary"),flex:2}} onClick={()=>setWizardStep(2)}>Next â†’</button>
+                <button style={{...bBtn("ghost"),flex:1}} onClick={()=>setWizardStep(0)}>← Back</button>
+                <button style={{...bBtn("primary"),flex:2}} onClick={()=>setWizardStep(2)}>Next →</button>
               </div>
             </div>)}
             {wizardStep===2&&(<div>
-              <div style={{fontFamily:FD,fontSize:20,color:C.accent,marginBottom:6}}>ðŸ¥© Add Your Proteins</div>
+              <div style={{fontFamily:FD,fontSize:20,color:C.accent,marginBottom:6}}>🥩 Add Your Proteins</div>
               <div style={{fontFamily:FM,fontSize:12,color:C.muted,marginBottom:16}}>What proteins do you have in your freezer?</div>
               <div style={{display:"flex",gap:8,marginBottom:10}}>
                 <input placeholder="Protein name" style={{...bInp,flex:2}} value={wizardProteinInput.name} onChange={e=>setWizardProteinInput(p=>({...p,name:e.target.value}))}/>
@@ -2665,36 +2665,36 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                 <input placeholder="Oz" style={{...bInp,flex:1,width:60}} value={wizardProteinInput.oz} onChange={e=>setWizardProteinInput(p=>({...p,oz:e.target.value}))} type="number"/>
               </div>
               <button style={{...bBtn("primary"),marginBottom:16,width:"100%"}} onClick={()=>{if(wizardProteinInput.name&&wizardProteinInput.qty){setWizardProteins(p=>[...p,{...wizardProteinInput}]);setWizardProteinInput({name:"",qty:"",oz:"6"});}}}>+ Add Protein</button>
-              {wizardProteins.map((p,i)=><div key={i} style={{fontFamily:FM,fontSize:12,color:C.text,padding:"6px 10px",background:C.card,borderRadius:8,marginBottom:6,display:"flex",justifyContent:"space-between"}}><span>{p.name} — {p.qty} portions ({p.oz}oz)</span><span style={{cursor:"pointer",color:C.red}} onClick={()=>setWizardProteins(prev=>prev.filter((_,j)=>j!==i))}>âœ•</span></div>)}
+              {wizardProteins.map((p,i)=><div key={i} style={{fontFamily:FM,fontSize:12,color:C.text,padding:"6px 10px",background:C.card,borderRadius:8,marginBottom:6,display:"flex",justifyContent:"space-between"}}><span>{p.name} — {p.qty} portions ({p.oz}oz)</span><span style={{cursor:"pointer",color:C.red}} onClick={()=>setWizardProteins(prev=>prev.filter((_,j)=>j!==i))}>✕</span></div>)}
               <div style={{display:"flex",gap:8,marginTop:8}}>
-                <button style={{...bBtn("ghost"),flex:1}} onClick={()=>setWizardStep(1)}>â† Back</button>
+                <button style={{...bBtn("ghost"),flex:1}} onClick={()=>setWizardStep(1)}>← Back</button>
                 <button style={{...bBtn("ghost"),flex:1}} onClick={()=>setWizardStep(3)}>Skip</button>
-                <button style={{...bBtn("primary"),flex:2}} onClick={()=>setWizardStep(3)}>Next â†’</button>
+                <button style={{...bBtn("primary"),flex:2}} onClick={()=>setWizardStep(3)}>Next →</button>
               </div>
             </div>)}
             {wizardStep===3&&(<div>
-              <div style={{fontFamily:FD,fontSize:seniorMode?28:20,color:C.accent,marginBottom:6}}>ðŸ“¦ Inventory Setup</div>
+              <div style={{fontFamily:FD,fontSize:seniorMode?28:20,color:C.accent,marginBottom:6}}>📦 Inventory Setup</div>
               <div style={{fontFamily:FM,fontSize:seniorMode?16:13,color:C.muted,marginBottom:20,lineHeight:1.6}}>How do you want to start your pantry inventory?</div>
               <div style={{display:'flex',flexDirection:'column',gap:10}}>
                 <button style={{...bBtn('primary'),padding:seniorMode?'20px':'16px',textAlign:'left'}} onClick={()=>{setPantryChecklist(COMMON_PANTRY.map(i=>({...i,checked:true})));setWizardStep(4);}}>
-                  <div style={{fontFamily:FD,fontSize:seniorMode?18:14}}>âœ… Start with common pantry items</div>
+                  <div style={{fontFamily:FD,fontSize:seniorMode?18:14}}>✅ Start with common pantry items</div>
                   <div style={{fontFamily:FM,fontSize:seniorMode?15:12,color:C.muted,marginTop:4}}>We'll pre-check ~30 staples — just uncheck what you don't have</div>
                 </button>
                 <button style={{...bBtn('ghost'),padding:seniorMode?'20px':'16px',textAlign:'left'}} onClick={()=>{setPantryChecklist(COMMON_PANTRY.map(i=>({...i,checked:false})));setWizardStep(4);}}>
-                  <div style={{fontFamily:FD,fontSize:seniorMode?18:14}}>ðŸ”² Start from scratch</div>
+                  <div style={{fontFamily:FD,fontSize:seniorMode?18:14}}>🔲 Start from scratch</div>
                   <div style={{fontFamily:FM,fontSize:seniorMode?15:12,color:C.muted,marginTop:4}}>Manually check off what you have</div>
                 </button>
                 <button style={{...bBtn('ghost'),padding:seniorMode?'20px':'16px',textAlign:'left'}} onClick={()=>completeWizard()}>
-                  <div style={{fontFamily:FD,fontSize:seniorMode?18:14}}>â­ Skip for now</div>
+                  <div style={{fontFamily:FD,fontSize:seniorMode?18:14}}>⏭ Skip for now</div>
                   <div style={{fontFamily:FM,fontSize:seniorMode?15:12,color:C.muted,marginTop:4}}>Go straight to the app — you can add inventory anytime</div>
                 </button>
               </div>
               <div style={{display:'flex',gap:8,marginTop:16}}>
-                <button style={{...bBtn('ghost'),flex:1}} onClick={()=>setWizardStep(2)}>â† Back</button>
+                <button style={{...bBtn('ghost'),flex:1}} onClick={()=>setWizardStep(2)}>← Back</button>
               </div>
             </div>)}
             {wizardStep===4&&(<div>
-              <div style={{fontFamily:FD,fontSize:seniorMode?28:20,color:C.accent,marginBottom:6}}>ðŸ§º Pantry Checklist</div>
+              <div style={{fontFamily:FD,fontSize:seniorMode?28:20,color:C.accent,marginBottom:6}}>🧺 Pantry Checklist</div>
               <div style={{fontFamily:FM,fontSize:seniorMode?16:13,color:C.muted,marginBottom:12,lineHeight:1.6}}>Check off what you have on hand:</div>
               <div style={{maxHeight:320,overflowY:'auto',marginBottom:12}}>
                 {pantryChecklist.map((item,idx)=>(
@@ -2706,30 +2706,30 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                 ))}
               </div>
               <div style={{display:'flex',gap:8}}>
-                <button style={{...bBtn('ghost'),flex:1}} onClick={()=>setWizardStep(3)}>â† Back</button>
-                <button style={{...bBtn('primary'),flex:2}} onClick={()=>{const checked=pantryChecklist.filter(i=>i.checked).map(i=>i.name);if(checked.length>0){const newItems=checked.map(name=>({id:Date.now()+Math.random(),name,quantity:1,unit:'item',category:pantryChecklist.find(p=>p.name===name)?.category||'Pantry',addedDate:new Date().toISOString().split('T')[0]}));setInventory(prev=>[...prev,...newItems.filter(ni=>!prev.some(p=>p.name===ni.name))]);}completeWizard();}}>ðŸŽ‰ Finish Setup ({pantryChecklist.filter(i=>i.checked).length} items)</button>
+                <button style={{...bBtn('ghost'),flex:1}} onClick={()=>setWizardStep(3)}>← Back</button>
+                <button style={{...bBtn('primary'),flex:2}} onClick={()=>{const checked=pantryChecklist.filter(i=>i.checked).map(i=>i.name);if(checked.length>0){const newItems=checked.map(name=>({id:Date.now()+Math.random(),name,quantity:1,unit:'item',category:pantryChecklist.find(p=>p.name===name)?.category||'Pantry',addedDate:new Date().toISOString().split('T')[0]}));setInventory(prev=>[...prev,...newItems.filter(ni=>!prev.some(p=>p.name===ni.name))]);}completeWizard();}}>🎉 Finish Setup ({pantryChecklist.filter(i=>i.checked).length} items)</button>
               </div>
             </div>)}
             
           </div>
         </div>
       )}
-      {showInstallBanner&&(<div style={{background:C.surface,borderBottom:"2px solid "+C.accent,padding:"8px 16px",display:"flex",alignItems:"center",gap:10}}><span style={{fontSize:20}}>ðŸ“±</span><div style={{flex:1,minWidth:0}}><div style={{fontFamily:FM,fontSize:12,fontWeight:600,color:C.accent}}>Install Smart Kitchen on your phone</div><div style={{fontFamily:FM,fontSize:11,color:C.muted,marginTop:1}}>{/iPhone|iPad|iPod/.test(navigator.userAgent)?"Tap Share then Add to Home Screen":"Tap menu then Add to Home Screen"}</div></div><button onClick={dismissInstall} style={{background:"transparent",border:"1px solid "+C.border,borderRadius:8,color:C.muted,cursor:"pointer",fontFamily:FM,fontSize:11,padding:"5px 10px",flexShrink:0}}>Got it</button></div>)}
-      {isViewer&&<div style={{background:"#4a1d96",color:"#e9d5ff",padding:"10px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:"2px solid #7c3aed"}}><span style={{fontSize:14,fontFamily:"Arial,sans-serif"}}>ðŸ‘ Viewing {viewerRole?.label||"Family"} account — Read Only Mode</span></div>}
-      {showVoicePanel&&<div style={{position:"fixed",bottom:90,left:"50%",transform:"translateX(-50%)",zIndex:999,background:"#1A2344",borderRadius:16,padding:"16px 20px",width:340,maxWidth:"90vw",boxShadow:"0 8px 32px rgba(0,0,0,0.4)",border:"2px solid "+(voiceState==="listening"?"#ef4444":voiceState==="speaking"?"#C8963E":"#3b82f6")}}><div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}><div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:20}}>{voiceState==="listening"?"ðŸ”´":voiceState==="speaking"?"ðŸ”Š":voiceState==="processing"?"â³":"ðŸŽ™"}</span><span style={{color:"#C8963E",fontWeight:700,fontSize:15,fontFamily:"Arial"}}>Hey {assistantName()}</span></div><button onClick={()=>{stopListening();setShowVoicePanel(false);}} style={{background:"transparent",border:"none",color:"#aaa",cursor:"pointer",fontSize:18,lineHeight:1}}>x</button></div>{voiceTranscript&&<div style={{background:"rgba(255,255,255,0.08)",borderRadius:8,padding:"8px 12px",marginBottom:8}}><div style={{fontSize:11,color:"#aaa",fontFamily:"Arial",marginBottom:2}}>You said:</div><div style={{fontSize:14,color:"#fff",fontFamily:"Arial"}}>{voiceTranscript}</div></div>}{voiceResponse&&<div style={{background:"rgba(200,150,62,0.15)",borderRadius:8,padding:"8px 12px",marginBottom:8,border:"1px solid rgba(200,150,62,0.3)"}}><div style={{fontSize:11,color:"#C8963E",fontFamily:"Arial",marginBottom:2}}>{assistantName()} says:</div><div style={{fontSize:14,color:"#fff",fontFamily:"Arial",lineHeight:1.5}}>{voiceResponse}</div></div>}<div style={{textAlign:"center"}}><button onClick={voiceState==="idle"?startListening:stopListening} style={{background:voiceState==="listening"?"#ef4444":"#C8963E",border:"none",borderRadius:50,width:56,height:56,fontSize:24,cursor:"pointer",color:"#fff",display:"inline-flex",alignItems:"center",justifyContent:"center"}}>{voiceState==="listening"?"â¹":"ðŸŽ™"}</button><div style={{fontSize:11,color:"#aaa",fontFamily:"Arial",marginTop:6}}>{voiceState==="listening"?"Tap to stop":voiceState==="processing"?"Thinking...":voiceState==="speaking"?"Speaking...":"Tap to speak"}</div></div></div>}
-      {isManager&&<div style={{background:"#065f46",color:"#d1fae5",padding:"10px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:"2px solid #059669"}}><span style={{fontSize:14,fontFamily:"Arial,sans-serif"}}>ðŸ©º Managing household account — Caregiver Mode</span></div>}
-      {seniorMode&&<div style={{background:"#1a2e3a",borderBottom:"2px solid #60a5fa",padding:"12px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",paddingRight:180}}><span style={{fontFamily:"system-ui",fontSize:20,color:"#93c5fd",fontWeight:700}}>ðŸ‘´ Senior-Friendly Mode is On</span><button onClick={()=>{if(window.confirm("Turn off larger text and simplified navigation?"))setSeniorMode(false);}} style={{background:"transparent",border:"2px solid #60a5fa",borderRadius:8,color:"#93c5fd",cursor:"pointer",fontFamily:"system-ui",fontSize:16,padding:"8px 18px",fontWeight:600}}>Turn Off</button></div>}
+      {showInstallBanner&&(<div style={{background:C.surface,borderBottom:"2px solid "+C.accent,padding:"8px 16px",display:"flex",alignItems:"center",gap:10}}><span style={{fontSize:20}}>📱</span><div style={{flex:1,minWidth:0}}><div style={{fontFamily:FM,fontSize:12,fontWeight:600,color:C.accent}}>Install Smart Kitchen on your phone</div><div style={{fontFamily:FM,fontSize:11,color:C.muted,marginTop:1}}>{/iPhone|iPad|iPod/.test(navigator.userAgent)?"Tap Share then Add to Home Screen":"Tap menu then Add to Home Screen"}</div></div><button onClick={dismissInstall} style={{background:"transparent",border:"1px solid "+C.border,borderRadius:8,color:C.muted,cursor:"pointer",fontFamily:FM,fontSize:11,padding:"5px 10px",flexShrink:0}}>Got it</button></div>)}
+      {isViewer&&<div style={{background:"#4a1d96",color:"#e9d5ff",padding:"10px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:"2px solid #7c3aed"}}><span style={{fontSize:14,fontFamily:"Arial,sans-serif"}}>👁 Viewing {viewerRole?.label||"Family"} account — Read Only Mode</span></div>}
+      {showVoicePanel&&<div style={{position:"fixed",bottom:90,left:"50%",transform:"translateX(-50%)",zIndex:999,background:"#1A2344",borderRadius:16,padding:"16px 20px",width:340,maxWidth:"90vw",boxShadow:"0 8px 32px rgba(0,0,0,0.4)",border:"2px solid "+(voiceState==="listening"?"#ef4444":voiceState==="speaking"?"#C8963E":"#3b82f6")}}><div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}><div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:20}}>{voiceState==="listening"?"🔴":voiceState==="speaking"?"🔊":voiceState==="processing"?"⏳":"🎙"}</span><span style={{color:"#C8963E",fontWeight:700,fontSize:15,fontFamily:"Arial"}}>Hey {assistantName()}</span></div><button onClick={()=>{stopListening();setShowVoicePanel(false);}} style={{background:"transparent",border:"none",color:"#aaa",cursor:"pointer",fontSize:18,lineHeight:1}}>x</button></div>{voiceTranscript&&<div style={{background:"rgba(255,255,255,0.08)",borderRadius:8,padding:"8px 12px",marginBottom:8}}><div style={{fontSize:11,color:"#aaa",fontFamily:"Arial",marginBottom:2}}>You said:</div><div style={{fontSize:14,color:"#fff",fontFamily:"Arial"}}>{voiceTranscript}</div></div>}{voiceResponse&&<div style={{background:"rgba(200,150,62,0.15)",borderRadius:8,padding:"8px 12px",marginBottom:8,border:"1px solid rgba(200,150,62,0.3)"}}><div style={{fontSize:11,color:"#C8963E",fontFamily:"Arial",marginBottom:2}}>{assistantName()} says:</div><div style={{fontSize:14,color:"#fff",fontFamily:"Arial",lineHeight:1.5}}>{voiceResponse}</div></div>}<div style={{textAlign:"center"}}><button onClick={voiceState==="idle"?startListening:stopListening} style={{background:voiceState==="listening"?"#ef4444":"#C8963E",border:"none",borderRadius:50,width:56,height:56,fontSize:24,cursor:"pointer",color:"#fff",display:"inline-flex",alignItems:"center",justifyContent:"center"}}>{voiceState==="listening"?"⏹":"🎙"}</button><div style={{fontSize:11,color:"#aaa",fontFamily:"Arial",marginTop:6}}>{voiceState==="listening"?"Tap to stop":voiceState==="processing"?"Thinking...":voiceState==="speaking"?"Speaking...":"Tap to speak"}</div></div></div>}
+      {isManager&&<div style={{background:"#065f46",color:"#d1fae5",padding:"10px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:"2px solid #059669"}}><span style={{fontSize:14,fontFamily:"Arial,sans-serif"}}>🩺 Managing household account — Caregiver Mode</span></div>}
+      {seniorMode&&<div style={{background:"#1a2e3a",borderBottom:"2px solid #60a5fa",padding:"12px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",paddingRight:180}}><span style={{fontFamily:"system-ui",fontSize:20,color:"#93c5fd",fontWeight:700}}>👴 Senior-Friendly Mode is On</span><button onClick={()=>{if(window.confirm("Turn off larger text and simplified navigation?"))setSeniorMode(false);}} style={{background:"transparent",border:"2px solid #60a5fa",borderRadius:8,color:"#93c5fd",cursor:"pointer",fontFamily:"system-ui",fontSize:16,padding:"8px 18px",fontWeight:600}}>Turn Off</button></div>}
       {showInventoryReminder&&(
         <div style={{background:"#1a2e1a",borderBottom:"2px solid #22c55e",padding:"10px 16px",paddingRight:180,display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
-            <span style={{fontSize:20}}>ðŸ“¦</span>
+            <span style={{fontSize:20}}>📦</span>
             <div>
               <div style={{fontFamily:FM,fontSize:12,fontWeight:600,color:"#22c55e"}}>{new Date().getDay()===0?"Sunday":"Wednesday"} Inventory Check</div>
               <div style={{fontFamily:FM,fontSize:11,color:"#86efac",marginTop:2}}>Take a moment to verify your inventory is accurate — scan new items or adjust quantities.</div>
             </div>
           </div>
           <div style={{display:"flex",gap:8,flexShrink:0}}>
-            <button onClick={()=>{dismissReminder();setTab("inventory");}} style={{background:"#22c55e",border:"none",borderRadius:8,color:"#0a0a0a",cursor:"pointer",fontFamily:FM,fontSize:11,fontWeight:600,padding:"5px 12px"}}>âœ… Review Now</button>
+            <button onClick={()=>{dismissReminder();setTab("inventory");}} style={{background:"#22c55e",border:"none",borderRadius:8,color:"#0a0a0a",cursor:"pointer",fontFamily:FM,fontSize:11,fontWeight:600,padding:"5px 12px"}}>✅ Review Now</button>
             <button onClick={dismissReminder} style={{background:"transparent",border:"1px solid #22c55e44",borderRadius:8,color:"#86efac",cursor:"pointer",fontFamily:FM,fontSize:11,padding:"5px 10px"}}>Dismiss</button>
           </div>
         </div>
@@ -2738,47 +2738,47 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       <div style={{background:C.surface,borderBottom:"1px solid "+C.border,padding:"14px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,flexWrap:"wrap"}}>
         <div style={{display:"flex",alignItems:"flex-start",gap:12}}>
           <div>
-            <div style={{fontFamily:FD,fontSize:seniorMode?36:26,color:C.accent,lineHeight:1}}>Smart Kitchenâ„¢</div>
+            <div style={{fontFamily:FD,fontSize:seniorMode?36:26,color:C.accent,lineHeight:1}}>Smart Kitchen™</div>
             <div style={{fontSize:seniorMode?15:11,color:C.muted,marginTop:3,fontFamily:FM}}>
-              {totalPortions} protein portions Â· {blendItem?.qty||0} blend bags Â· {inventory.length} items
-              {restrictedProfiles.length>0&&<span style={{...bTag("#f472b6"),marginLeft:8,fontSize:9}}>âš• dietary restrictions active</span>}
+              {totalPortions} protein portions · {blendItem?.qty||0} blend bags · {inventory.length} items
+              {restrictedProfiles.length>0&&<span style={{...bTag("#f472b6"),marginLeft:8,fontSize:9}}>⚕ dietary restrictions active</span>}
             </div>
           </div>
           <button onClick={()=>{const n=!darkMode;setDarkMode(n);try{localStorage.setItem("sk_darkMode",n?"1":"0");}catch{}}} title={darkMode?"Switch to Light Mode":"Switch to Dark Mode"}
             style={{background:"transparent",border:"2px solid "+C.accent+"66",borderRadius:8,color:C.accent,cursor:"pointer",fontSize:seniorMode?26:22,padding:seniorMode?"8px 12px":"6px 10px",marginTop:2,lineHeight:1,transition:"all 0.15s"}}>
-            {darkMode?"ðŸŒ™":"â˜€ï¸"}
+            {darkMode?"🌙":"☀️"}
           </button>
           <button onClick={()=>setShowSettings(true)} title="Settings"
             style={{background:"transparent",border:"2px solid "+C.accent+"66",borderRadius:8,color:C.accent,cursor:"pointer",fontSize:seniorMode?26:22,padding:seniorMode?"8px 12px":"6px 10px",marginTop:2,lineHeight:1,transition:"all 0.15s"}}
             onMouseOver={e=>e.currentTarget.style.color=C.accent}
             onMouseOut={e=>e.currentTarget.style.color=C.muted}>
-            âš™
+            ⚙
           </button>
         </div>
         <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
-          <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px"}} onClick={()=>setProfileModalOpen(true)}>ðŸ‘¨â€ðŸ‘©â€ðŸ‘§ Family</button>
+          <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px"}} onClick={()=>setProfileModalOpen(true)}>👨‍👩‍👧 Family</button>
           <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px",border:"1px solid "+(seniorMode?C.blue:C.border),color:seniorMode?C.blue:C.muted}} onClick={()=>setSeniorMode(m=>!m)}>{seniorMode?"Aa On":"Aa Off"}</button>
-          <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px"}} onClick={()=>openRepack("veg")}>ðŸ«• Prep Veg</button>
-          <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px"}} onClick={()=>openRepack("protein")} disabled={isViewer}>ðŸ¥© Repackage</button>
-          <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px"}} onClick={()=>{setScanOpen(true);setScanStage("upload");setScanResults(null);setScanPreview(null);setScanB64(null);setScanMode("shelf");}} disabled={isViewer}>ðŸ“· Scan</button>       <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px"}} onClick={()=>{
+          <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px"}} onClick={()=>openRepack("veg")}>🫕 Prep Veg</button>
+          <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px"}} onClick={()=>openRepack("protein")} disabled={isViewer}>🥩 Repackage</button>
+          <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px"}} onClick={()=>{setScanOpen(true);setScanStage("upload");setScanResults(null);setScanPreview(null);setScanB64(null);setScanMode("shelf");}} disabled={isViewer}>📷 Scan</button>       <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px"}} onClick={()=>{
             if(!can.unlimitedRecipes){
-              setUpgradeModal({feature:"Unlimited Recipe Suggestions",desc:"Get unlimited AI-powered recipe suggestions based on exactly what you have in your kitchen.",icon:"ðŸ½"});
+              setUpgradeModal({feature:"Unlimited Recipe Suggestions",desc:"Get unlimited AI-powered recipe suggestions based on exactly what you have in your kitchen.",icon:"🍽"});
               return;
             }
             fetchRecipes();
-          }}>âœ¨ Recipes</button>
-          <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px",border:"1px solid "+C.accent,color:C.accent}} onClick={()=>{setMakeThisModal(true);setMakeThisInput("");setMakeThisResult(null);}}>ðŸ½ Make This</button>
-          <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px",border:"1px solid #b45309",color:"#b45309"}} onClick={()=>{setFamilyRecipesOpen(true);setFrAddMode(null);setFrEditRecipe(null);setFrViewRecipe(null);}}>ðŸ“– Family Recipes</button>
+          }}>✨ Recipes</button>
+          <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px",border:"1px solid "+C.accent,color:C.accent}} onClick={()=>{setMakeThisModal(true);setMakeThisInput("");setMakeThisResult(null);}}>🍽 Make This</button>
+          <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px",border:"1px solid #b45309",color:"#b45309"}} onClick={()=>{setFamilyRecipesOpen(true);setFrAddMode(null);setFrEditRecipe(null);setFrViewRecipe(null);}}>📖 Family Recipes</button>
           {(restrictedProfiles.length>0||can.medicalCompliance)&&<button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px",border:"1px solid #dc2626",color:"#dc2626",fontWeight:600}} onClick={()=>{setCanIHaveOpen(true);setCanIHaveImg(null);setCanIHaveResult(null);setCanIHaveText("");}}>Can I Have This?</button>}
-          {can.medicalCompliance&&<button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px",border:"1px solid #3b82f6",color:"#3b82f6",fontWeight:600}} onClick={()=>{setShowScaleModal(true);setScaleError("");setScaleCalcResult(null);}}>âš– Scale</button>}
-          <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px",border:"1px solid "+C.accent,color:C.accent,fontWeight:600}} onClick={()=>{setShowOccasionPlanner(true);setOccasionStep("form");setOccasionResult(null);setOccasionDate("");}}>ðŸŽ‰ Plan Occasion</button>
-          <button onClick={voiceState==="listening"?stopListening:voiceState==="speaking"?stopListening:startListening} style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px",border:"2px solid "+(voiceState==="listening"?"#ef4444":voiceState==="speaking"?"#C8963E":voiceState==="processing"?"#8b5cf6":"#1A2344"),color:voiceState==="listening"?"#ef4444":voiceState==="speaking"?"#C8963E":voiceState==="processing"?"#8b5cf6":"#1A2344",fontWeight:700,minWidth:seniorMode?90:70}} title={"Hey "+assistantName()+" — tap to speak"}>{voiceState==="listening"?"ðŸ”´ Listening...":voiceState==="processing"?"â³ Thinking...":voiceState==="speaking"?"ðŸ”Š Speaking...":("ðŸŽ™ Hey "+assistantName())}</button>
+          {can.medicalCompliance&&<button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px",border:"1px solid #3b82f6",color:"#3b82f6",fontWeight:600}} onClick={()=>{setShowScaleModal(true);setScaleError("");setScaleCalcResult(null);}}>⚖ Scale</button>}
+          <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px",border:"1px solid "+C.accent,color:C.accent,fontWeight:600}} onClick={()=>{setShowOccasionPlanner(true);setOccasionStep("form");setOccasionResult(null);setOccasionDate("");}}>🎉 Plan Occasion</button>
+          <button onClick={voiceState==="listening"?stopListening:voiceState==="speaking"?stopListening:startListening} style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px",border:"2px solid "+(voiceState==="listening"?"#ef4444":voiceState==="speaking"?"#C8963E":voiceState==="processing"?"#8b5cf6":"#1A2344"),color:voiceState==="listening"?"#ef4444":voiceState==="speaking"?"#C8963E":voiceState==="processing"?"#8b5cf6":"#1A2344",fontWeight:700,minWidth:seniorMode?90:70}} title={"Hey "+assistantName()+" — tap to speak"}>{voiceState==="listening"?"🔴 Listening...":voiceState==="processing"?"⏳ Thinking...":voiceState==="speaking"?"🔊 Speaking...":("🎙 Hey "+assistantName())}</button>
         </div>
       </div>
 
       {/* -- Tabs -- */}
       <div style={{display:"flex",background:C.surface,borderBottom:"1px solid "+C.border,paddingLeft:12,overflowX:"auto"}}>
-        {[["inventory","ðŸ“¦","Inventory"],["recipes","ðŸ½","Recipes"],["saved","â­","Saved"],["mealplan","ðŸ“…","Meal Plan"],["shopping","ðŸ›’","Shopping"],["desserts","ðŸ°","Desserts"],["leftovers","ðŸ¥¡","Leftovers"],["substitute","ðŸ”„","Substitute"]].map(([k,ic,lb])=>(
+        {[["inventory","📦","Inventory"],["recipes","🍽","Recipes"],["saved","⭐","Saved"],["mealplan","📅","Meal Plan"],["shopping","🛒","Shopping"],["desserts","🍰","Desserts"],["leftovers","🥡","Leftovers"],["substitute","🔄","Substitute"]].map(([k,ic,lb])=>(
           <button key={k} onClick={()=>setTab(k)} style={{background:"transparent",border:"none",borderBottom:"2px solid "+(tab===k?C.accent:"transparent"),padding:"11px 16px",color:tab===k?C.accent:C.muted,cursor:"pointer",fontFamily:FM,fontSize:seniorMode?18:11,fontWeight:700,letterSpacing:0.5,whiteSpace:"nowrap",transition:"all 0.15s",padding:seniorMode?"16px 22px":"11px 16px"}}>
             {ic} {lb.toUpperCase()}
           </button>
@@ -2787,14 +2787,14 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
 
       {/* -- Content -- */}
       <div style={{padding:"20px",maxWidth:940,margin:"0 auto",fontSize:seniorMode?"22px":"14px"}}>
-        {loading&&<div style={{textAlign:"center",padding:80}}><div style={{fontFamily:FD,fontSize:28,color:C.accent,marginBottom:12}}>{loadMsg}</div><LoadingDots/><div style={{fontSize:11,color:C.dim,fontFamily:FM,marginTop:10}}>this may take 10â€“20 seconds</div></div>}
+        {loading&&<div style={{textAlign:"center",padding:80}}><div style={{fontFamily:FD,fontSize:28,color:C.accent,marginBottom:12}}>{loadMsg}</div><LoadingDots/><div style={{fontSize:11,color:C.dim,fontFamily:FM,marginTop:10}}>this may take 10–20 seconds</div></div>}
         {/* == INVENTORY == */}
         {!loading&&tab==="inventory"&&(
           <div>
             {/* Freezer summary */}
             <div style={{background:C.card,border:"1px solid "+C.borderLight,borderRadius:12,padding:"14px 18px",marginBottom:18,display:"grid",gridTemplateColumns:"1fr auto 1fr",gap:16,alignItems:"start"}}>
               <div>
-                <div style={{fontSize:10,fontFamily:FM,color:C.muted,marginBottom:8,letterSpacing:0.8}}>ðŸ¥© PROTEIN PORTIONS</div>
+                <div style={{fontSize:10,fontFamily:FM,color:C.muted,marginBottom:8,letterSpacing:0.8}}>🥩 PROTEIN PORTIONS</div>
                 {proteinItems.length===0?<div style={{fontSize:12,color:C.dim}}>None</div>:proteinItems.map(i=>(
                   <div key={i.id} style={{fontSize:13,marginBottom:3,display:"flex",gap:8,alignItems:"center"}}>
                     <span style={{color:C.text,fontWeight:600}}>{i.name}</span>
@@ -2805,12 +2805,12 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
               </div>
               <div style={{width:1,background:C.border,alignSelf:"stretch"}}/>
               <div>
-                <div style={{fontSize:10,fontFamily:FM,color:C.muted,marginBottom:8,letterSpacing:0.8}}>ðŸ«• MIXED SAUTÃ‰ BLEND</div>
+                <div style={{fontSize:10,fontFamily:FM,color:C.muted,marginBottom:8,letterSpacing:0.8}}>🫕 MIXED SAUTÉ BLEND</div>
                 {blendItem?(
                   <div>
-                    <span style={bTag(blendItem.qty===0?C.red:C.orange)}>{blendItem.qty} Ã— 2-cup bags</span>
+                    <span style={bTag(blendItem.qty===0?C.red:C.orange)}>{blendItem.qty} × 2-cup bags</span>
                     <div style={{fontSize:11,color:C.muted,marginTop:4}}>{blendItem.blendNote}</div>
-                    <div style={{fontSize:11,color:C.muted}}>â‰ˆ {blendItem.qty} dinners</div>
+                    <div style={{fontSize:11,color:C.muted}}>≈ {blendItem.qty} dinners</div>
                   </div>
                 ):<div style={{fontSize:12,color:C.dim}}>None logged</div>}
               </div>
@@ -2826,8 +2826,8 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
               <select value={filterCat} onChange={e=>setFilterCat(e.target.value)} style={{...bInp,width:"auto",padding:"7px 12px",fontSize:11}}>
                 <option>All</option>{CATEGORIES.map(c=><option key={c}>{c}</option>)}
               </select>
-              <button style={bBtn("ghost")} onClick={()=>setShowAdd(v=>!v)}>{showAdd?"âœ• Cancel":"+ Add"}</button>
-              {inventory.filter(i=>i.category==="Wild Harvest"||i.category==="Home Harvest").length>0&&(<button style={{...bBtn("ghost"),background:"#1a3a1a",border:"1px solid #4c4",color:"#4c4"}} onClick={()=>{setLabelSelected({});setLabelModal(true);}}>ðŸ· Print Labels</button>)}
+              <button style={bBtn("ghost")} onClick={()=>setShowAdd(v=>!v)}>{showAdd?"✕ Cancel":"+ Add"}</button>
+              {inventory.filter(i=>i.category==="Wild Harvest"||i.category==="Home Harvest").length>0&&(<button style={{...bBtn("ghost"),background:"#1a3a1a",border:"1px solid #4c4",color:"#4c4"}} onClick={()=>{setLabelSelected({});setLabelModal(true);}}>🏷 Print Labels</button>)}
             </div>
 
             {showAdd&&(
@@ -2843,7 +2843,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                   {[["Protein","#ef4444"],["Produce","#22c55e"],["Dairy","#60a5fa"],["Frozen","#a78bfa"],["Pantry","#f59e0b"],["Baking","#f472b6"],["Grains","#d97706"],["Condiments","#94a3b8"],["Other","#6b7280"],["Wild Harvest","#5a8a2e"],["Home Harvest","#2e8a5a"]].map(([cat,col])=>(
                     <button key={cat} onClick={()=>{const autoLoc=cat==="Protein"?"Freezer":cat==="Dairy"||cat==="Produce"?"Fridge":cat==="Frozen"?"Freezer":cat==="Wild Harvest"||cat==="Home Harvest"?newItem.location:newItem.location;const isHarvest=cat==="Wild Harvest"||cat==="Home Harvest";setNewItem(p=>({...p,category:cat,location:autoLoc,harvestType:isHarvest?p.harvestType:""}));}} style={{padding:"4px 10px",borderRadius:20,border:"2px solid "+(newItem.category===cat?col:"transparent"),background:newItem.category===cat?col+"22":"transparent",color:newItem.category===cat?col:C.muted,fontFamily:FM,fontSize:11,fontWeight:600,cursor:"pointer",transition:"all 0.15s"}}>{cat}</button>
                   ))}
-                  <span style={{marginLeft:"auto",fontFamily:FM,fontSize:11,color:C.muted,whiteSpace:"nowrap",paddingLeft:8}}>ðŸ“ Location:</span>
+                  <span style={{marginLeft:"auto",fontFamily:FM,fontSize:11,color:C.muted,whiteSpace:"nowrap",paddingLeft:8}}>📍 Location:</span>
                   <div style={{display:"flex",gap:6,flexShrink:0}}>
                     {["Freezer","Fridge","Pantry"].map(loc=>(
                       <button key={loc} onClick={()=>setNewItem(p=>({...p,location:loc}))} style={{padding:"4px 10px",borderRadius:20,border:"2px solid "+(newItem.location===loc?C.accent:"transparent"),background:newItem.location===loc?C.accent+"22":"transparent",color:newItem.location===loc?C.accent:C.muted,fontFamily:FM,fontSize:11,fontWeight:600,cursor:"pointer",transition:"all 0.15s",whiteSpace:"nowrap"}}>{loc}</button>
@@ -2852,8 +2852,8 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                 </div>
                 {(newItem.category==="Wild Harvest"||newItem.category==="Home Harvest")&&(
                   <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center",marginTop:8,paddingTop:8,borderTop:"1px solid "+C.border}}>
-                    <span style={{fontFamily:FM,fontSize:11,color:C.muted,marginRight:2}}>{newItem.category==="Wild Harvest"?"ðŸ¦Œ":"ðŸŒ±"} Type:</span>
-                    {[["Protein","ðŸ¥©","#ef4444"],["Produce","ðŸ¥¦","#22c55e"],["Pantry","ðŸ«™","#f59e0b"]].map(([ht,ico,col])=>(
+                    <span style={{fontFamily:FM,fontSize:11,color:C.muted,marginRight:2}}>{newItem.category==="Wild Harvest"?"🦌":"🌱"} Type:</span>
+                    {[["Protein","🥩","#ef4444"],["Produce","🥦","#22c55e"],["Pantry","🫙","#f59e0b"]].map(([ht,ico,col])=>(
                       <button key={ht} onClick={()=>setNewItem(p=>({...p,harvestType:ht}))} style={{padding:"4px 12px",borderRadius:20,border:"2px solid "+(newItem.harvestType===ht?col:"transparent"),background:newItem.harvestType===ht?col+"22":"transparent",color:newItem.harvestType===ht?col:C.muted,fontSize:11,cursor:"pointer",fontFamily:FM}}>
                         {ico} {ht}
                       </button>
@@ -2874,9 +2874,9 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                       <div>
                         <div style={{fontWeight:600,fontSize:seniorMode?22:13,lineHeight:1.4}}>{item.name}</div>
                         {item.blendNote&&<div style={{fontSize:10,color:C.muted,marginTop:1}}>{item.blendNote}</div>}
-                        {item.isLow&&<div style={bTag(C.red)}>âš  Low</div>}
+                        {item.isLow&&<div style={bTag(C.red)}>⚠ Low</div>}
                       </div>
-                      <button onClick={()=>setInventory(p=>p.filter(i=>i.id!==item.id))} style={{background:"transparent",border:"none",color:C.dim,cursor:"pointer",fontSize:14,padding:2}}>âœ•</button>
+                      <button onClick={()=>setInventory(p=>p.filter(i=>i.id!==item.id))} style={{background:"transparent",border:"none",color:C.dim,cursor:"pointer",fontSize:14,padding:2}}>✕</button>
                     </div>
                     <div style={{display:"flex",gap:4,flexWrap:"wrap",alignItems:"center"}}>
                       <select value={item.category} onChange={e=>{const cat=e.target.value;const autoLoc=cat==="Protein"?"Freezer":cat==="Dairy"||cat==="Produce"?"Fridge":cat==="Frozen"?"Freezer":cat==="Baking"?"Pantry":item.location;setInventory(p=>p.map(i=>i.id===item.id?{...i,category:cat,location:autoLoc}:i));}} onClick={e=>e.stopPropagation()} style={{fontSize:11,fontWeight:600,padding:"2px 4px",borderRadius:8,border:"1px solid "+(CAT_COLORS[item.category]||C.muted)+"88",background:(CAT_COLORS[item.category]||C.muted)+"22",color:CAT_COLORS[item.category]||C.muted,cursor:"pointer",maxWidth:100,colorScheme:darkMode?"dark":"light"}}>
@@ -2889,12 +2889,12 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                       {isDV&&<span style={bTag(C.orange)}>{item.cupsPerBag}c bag</span>}
                     </div>
                     <div style={{display:"flex",alignItems:"center",gap:6}}>
-                      <button onClick={()=>setInventory(p=>p.map(i=>i.id===item.id?{...i,qty:Math.max(0,i.qty-1)}:i))} style={{width:seniorMode?52:24,height:seniorMode?52:24,borderRadius:8,background:C.surface,border:"2px solid "+C.border,color:C.text,cursor:"pointer",fontSize:seniorMode?26:14,display:"flex",alignItems:"center",justifyContent:"center"}}>âˆ’</button>
+                      <button onClick={()=>setInventory(p=>p.map(i=>i.id===item.id?{...i,qty:Math.max(0,i.qty-1)}:i))} style={{width:seniorMode?52:24,height:seniorMode?52:24,borderRadius:8,background:C.surface,border:"2px solid "+C.border,color:C.text,cursor:"pointer",fontSize:seniorMode?26:14,display:"flex",alignItems:"center",justifyContent:"center"}}>−</button>
                       <span style={{fontFamily:FM,fontSize:13,minWidth:56,textAlign:"center",color:item.qty===0?C.red:C.text}}>{item.qty} <span style={{fontSize:10,color:C.muted}}>{item.unit}</span></span>
                       <button onClick={()=>setInventory(p=>p.map(i=>i.id===item.id?{...i,qty:i.qty+1}:i))} style={{width:seniorMode?52:24,height:seniorMode?52:24,borderRadius:8,background:C.surface,border:"2px solid "+C.border,color:C.text,cursor:"pointer",fontSize:seniorMode?26:14,display:"flex",alignItems:"center",justifyContent:"center"}}>+</button>
                       {item.qty===0&&<span style={bTag(C.red)}>OUT</span>}
                     </div>
-                    {(isBP||isDV)&&<button onClick={()=>openRepack(isBP?"protein":"veg")} style={{...bBtn("ghost"),padding:"4px 8px",fontSize:10,width:"100%"}}>{isBP?"ðŸ¥© Add Batch":"ðŸ«• Prep More"}</button>}
+                    {(isBP||isDV)&&<button onClick={()=>openRepack(isBP?"protein":"veg")} style={{...bBtn("ghost"),padding:"4px 8px",fontSize:10,width:"100%"}}>{isBP?"🥩 Add Batch":"🫕 Prep More"}</button>}
                     <button onClick={()=>setRestockQueue(q=>{const n=item.name;const has=q.includes(n);const next=has?q.filter(x=>x!==n):[...q,n];localStorage.setItem("sk_restockQueue",JSON.stringify(next));return next;})} style={{...bBtn("ghost"),padding:"4px 8px",fontSize:10,width:"100%",marginTop:4,border:"1px solid "+(restockQueue.includes(item.name)?C.accent:C.border),color:restockQueue.includes(item.name)?C.accent:C.muted}}>{restockQueue.includes(item.name)?"Queued":"+ Restock"}</button>
                   </div>
                 );
@@ -2908,29 +2908,29 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
           <div>
             {(hasNoWhiteRice||hasNoRegularPasta||hasZeroSugar)&&(
               <div style={{background:"#f472b6"+"15",border:"1px solid #f472b644",borderRadius:10,padding:"12px 16px",marginBottom:16}}>
-                <div style={{fontSize:11,fontFamily:FM,color:"#f472b6",marginBottom:4}}>âš• DIETARY RESTRICTIONS ACTIVE</div>
+                <div style={{fontSize:11,fontFamily:FM,color:"#f472b6",marginBottom:4}}>⚕ DIETARY RESTRICTIONS ACTIVE</div>
                 <div style={{fontSize:12,color:C.muted}}>
-                  {hasNoWhiteRice&&<span style={{marginRight:12}}>ðŸš« Brown rice only</span>}
-                  {hasNoRegularPasta&&<span style={{marginRight:12}}>ðŸš« Whole wheat pasta only</span>}
-                  {hasZeroSugar&&<span>ðŸš« Zero sugar</span>}
+                  {hasNoWhiteRice&&<span style={{marginRight:12}}>🚫 Brown rice only</span>}
+                  {hasNoRegularPasta&&<span style={{marginRight:12}}>🚫 Whole wheat pasta only</span>}
+                  {hasZeroSugar&&<span>🚫 Zero sugar</span>}
                 </div>
               </div>
             )}
             {recipes.length===0?(
               <div style={{textAlign:"center",padding:60}}>
-                <div style={{fontFamily:FD,fontSize:48,color:C.accent,marginBottom:16}}>ðŸ½</div>
+                <div style={{fontFamily:FD,fontSize:48,color:C.accent,marginBottom:16}}>🍽</div>
                 {recipeError&&<div style={{color:C.red,fontFamily:FM,fontSize:12,marginBottom:14,background:C.red+"15",padding:"10px 16px",borderRadius:8}}>{recipeError}</div>}
                 <div style={{color:C.muted,marginBottom:20}}>AI suggests dinners built around your freezer preps</div>
-                <button style={bBtn("primary")} onClick={fetchRecipes}>âœ¨ Suggest Recipes</button>
+                <button style={bBtn("primary")} onClick={fetchRecipes}>✨ Suggest Recipes</button>
               </div>
             ):(
               <div>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:8}}>
                   <div style={{fontFamily:FD,fontSize:22}}>Recipe Suggestions</div>
                   <div style={{display:"flex",gap:8}}>
-                    <button style={{...bBtn("ghost"),border:"1px solid "+C.accent,color:C.accent}} onClick={()=>setShowOccasionPlanner(true)}>ðŸŽ‰ Occasion</button>
-                        <button onClick={()=>{setPairDrinkMeal(day);setPairDrinkResult(null);}} style={{background:"transparent",border:"1px solid #7c3aed44",borderRadius:seniorMode?10:4,color:"#7c3aed",fontFamily:FM,fontSize:seniorMode?18:11,padding:seniorMode?"12px 20px":"8px 14px",cursor:"pointer",flexShrink:0}}>ðŸ· Pair a Drink</button>
-                    <button style={bBtn("ghost")} onClick={fetchRecipes}>ðŸ”„ Refresh</button>
+                    <button style={{...bBtn("ghost"),border:"1px solid "+C.accent,color:C.accent}} onClick={()=>setShowOccasionPlanner(true)}>🎉 Occasion</button>
+                        <button onClick={()=>{setPairDrinkMeal(day);setPairDrinkResult(null);}} style={{background:"transparent",border:"1px solid #7c3aed44",borderRadius:seniorMode?10:4,color:"#7c3aed",fontFamily:FM,fontSize:seniorMode?18:11,padding:seniorMode?"12px 20px":"8px 14px",cursor:"pointer",flexShrink:0}}>🍷 Pair a Drink</button>
+                    <button style={bBtn("ghost")} onClick={fetchRecipes}>🔄 Refresh</button>
                   </div>
                 </div>
                 <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(340px,1fr))",gap:14}}>
@@ -2943,7 +2943,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                       onMouseLeave={e=>{e.currentTarget.style.borderColor=C.border;e.currentTarget.style.background=C.card;}}>
                       {mealPhotos[r.name]&&<div style={{marginBottom:10,borderRadius:8,overflow:"hidden"}}><img src={mealPhotos[r.name]} alt={r.name} style={{width:"100%",maxHeight:140,objectFit:"cover",display:"block",borderRadius:8}} /></div>}
                       <div style={{display:"flex",justifyContent:"space-between",marginBottom:8,alignItems:"flex-start"}}>
-                        <div style={{fontFamily:FD,fontSize:seniorMode?26:19,lineHeight:1.3,flex:1}}><a href={getRecipeUrl(r.name)} target="_blank" rel="noopener noreferrer" style={{color:C.accent,textDecoration:"none"}}>ðŸ” {r.name}</a></div>
+                        <div style={{fontFamily:FD,fontSize:seniorMode?26:19,lineHeight:1.3,flex:1}}><a href={getRecipeUrl(r.name)} target="_blank" rel="noopener noreferrer" style={{color:C.accent,textDecoration:"none"}}>🔍 {r.name}</a></div>
                         <span style={{...bTag(r.difficulty==="Easy"?C.green:r.difficulty==="Hard"?C.red:C.accent),marginLeft:8}}>{r.difficulty}</span>
                       </div>
                       <div style={{color:C.muted,fontSize:seniorMode?17:13,marginBottom:8,lineHeight:1.6}}>{r.description}</div>
@@ -2951,22 +2951,22 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                       <div style={{display:"flex",gap:4,marginBottom:10}} onClick={e=>e.stopPropagation()}>
                         {[1,2,3,4,5].map(star=>(
                           <button key={star} onClick={e=>{e.stopPropagation();const mealName=r.name;setRecipeRatings(prev=>{const cur=prev[r.name]?.rating||0;const next={...prev};if(cur===star){delete next[r.name];}else{next[r.name]={rating:star,recipe:r};}try{localStorage.setItem("sk_recipeRatings",JSON.stringify(next));}catch{}if(star===5&&cur!==5){const skips=parseInt(localStorage.getItem("sk_photoSkipCount")||"0");if(skips<3) setTimeout(()=>setPhotoPromptMeal(mealName),300);}return next;});}} style={{background:"none",border:"none",cursor:"pointer",fontSize:seniorMode?22:16,padding:"0 1px",color:star<=(recipeRatings[r.name]?.rating||0)?"#f59e0b":"#555",transition:"color 0.1s"}} title={star===1?"Never suggest again":star===5?"Keeper!":"Rate "+star+" stars"}>
-                            {star<=(recipeRatings[r.name]?.rating||0)?"â˜…":"â˜†"}
+                            {star<=(recipeRatings[r.name]?.rating||0)?"★":"☆"}
                           </button>
                         ))}
-                        {rating>=3&&<span style={{fontSize:10,color:C.muted,fontFamily:FM,marginLeft:4,alignSelf:"center"}}>{rating===5?"ðŸ† Keeper":rating===4?"â¤ Favorite":"ðŸ‘ Good"}</span>}
-                        {rating===1&&<span style={{fontSize:10,color:C.red,fontFamily:FM,marginLeft:4,alignSelf:"center"}}>ðŸš« Excluded</span>}
+                        {rating>=3&&<span style={{fontSize:10,color:C.muted,fontFamily:FM,marginLeft:4,alignSelf:"center"}}>{rating===5?"🏆 Keeper":rating===4?"❤ Favorite":"👍 Good"}</span>}
+                        {rating===1&&<span style={{fontSize:10,color:C.red,fontFamily:FM,marginLeft:4,alignSelf:"center"}}>🚫 Excluded</span>}
                       </div>
                       <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
-                        <span style={{...bTag(C.muted),fontSize:seniorMode?14:undefined}}>â± {r.time}</span>
-                        <span style={bTag(C.blue)}>ðŸ‘¨â€ðŸ‘©â€ðŸ‘§ {activeProfiles.length} people</span>
-                        <span style={{...bTag(C.green),fontSize:seniorMode?14:undefined}}>âœ… {(r.usesFromInventory||[]).length} on hand</span>
-                        {(r.missingIngredients||[]).length>0&&<span style={{...bTag(C.red),fontSize:seniorMode?14:undefined}}>ðŸ›’ {r.missingIngredients.length} needed</span>}
+                        <span style={{...bTag(C.muted),fontSize:seniorMode?14:undefined}}>⏱ {r.time}</span>
+                        <span style={bTag(C.blue)}>👨‍👩‍👧 {activeProfiles.length} people</span>
+                        <span style={{...bTag(C.green),fontSize:seniorMode?14:undefined}}>✅ {(r.usesFromInventory||[]).length} on hand</span>
+                        {(r.missingIngredients||[]).length>0&&<span style={{...bTag(C.red),fontSize:seniorMode?14:undefined}}>🛒 {r.missingIngredients.length} needed</span>}
                       </div>
-                      <div style={{fontSize:seniorMode?17:11,color:C.accent,fontFamily:FM,fontWeight:seniorMode?700:400}}>TAP FOR FULL RECIPE â†’</div>
+                      <div style={{fontSize:seniorMode?17:11,color:C.accent,fontFamily:FM,fontWeight:seniorMode?700:400}}>TAP FOR FULL RECIPE →</div>
                       <div style={{marginTop:10,display:"flex",gap:8}}>
-                      <button onClick={e=>{e.stopPropagation();printRecipeCard(r,mealPhotos[r.name]);}} style={{padding:"8px 12px",borderRadius:8,border:"1px solid "+C.border,background:C.surface,color:C.text,fontSize:12,cursor:"pointer"}}>ðŸ–¨ Print</button>
-                      <button onClick={e=>{e.stopPropagation();setSwapRecipeModal(r);setSwapRecipeRequest("");}} style={{flex:1,padding:"8px",borderRadius:8,border:"1px solid "+C.border,background:C.surface,color:C.text,fontFamily:FM,fontSize:12,cursor:"pointer"}} disabled={isViewer}>âœ¦ Swap Recipe</button><button onClick={e=>{e.stopPropagation();setPhotoPromptMeal(r.name);}} style={{padding:"8px 12px",borderRadius:8,border:"1px solid "+C.border,background:C.surface,color:C.muted,fontFamily:FM,fontSize:seniorMode?16:12,cursor:"pointer"}} title="Add photo" disabled={isViewer}>ðŸ“¸ {mealPhotos[r.name]?"Change":"Photo"}</button></div>
+                      <button onClick={e=>{e.stopPropagation();printRecipeCard(r,mealPhotos[r.name]);}} style={{padding:"8px 12px",borderRadius:8,border:"1px solid "+C.border,background:C.surface,color:C.text,fontSize:12,cursor:"pointer"}}>🖨 Print</button>
+                      <button onClick={e=>{e.stopPropagation();setSwapRecipeModal(r);setSwapRecipeRequest("");}} style={{flex:1,padding:"8px",borderRadius:8,border:"1px solid "+C.border,background:C.surface,color:C.text,fontFamily:FM,fontSize:12,cursor:"pointer"}} disabled={isViewer}>✦ Swap Recipe</button><button onClick={e=>{e.stopPropagation();setPhotoPromptMeal(r.name);}} style={{padding:"8px 12px",borderRadius:8,border:"1px solid "+C.border,background:C.surface,color:C.muted,fontFamily:FM,fontSize:seniorMode?16:12,cursor:"pointer"}} title="Add photo" disabled={isViewer}>📸 {mealPhotos[r.name]?"Change":"Photo"}</button></div>
                     </div>
                   )})}
                 </div>
@@ -2975,29 +2975,29 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
           </div>
         )}
 
-        {swapRecipeModal&&<div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.7)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setSwapRecipeModal(null)}><div style={{background:C.card,borderRadius:12,padding:24,width:360,maxWidth:"90vw"}} onClick={e=>e.stopPropagation()}><div style={{fontFamily:FD,fontSize:18,fontWeight:700,color:C.text,marginBottom:16}}>Swap Recipe</div><button onClick={async()=>{setSwapRecipeLoading(true);const prompt="Give me ONE different recipe suggestion"+( swapRecipeRequest.trim()?" for: "+swapRecipeRequest.trim():" (different from "+swapRecipeModal.name+")")+". Inventory: "+inventory.map(i=>i.name).filter(Boolean).join(", ")+". Return ONLY valid JSON: {name,description,time,difficulty,instructions:[4 short strings],usesFromInventory:[],missingIngredients:[]}";const res=await callClaude({system:"Recipe AI. Return ONLY valid JSON, no markdown.",prompt,maxTokens:600});try{const raw=typeof res==="string"?res:Array.isArray(res)?res.map(r=>r.text||"").join(""):res?.content?.[0]?.text||"";const clean=raw.replace(/```json|```/g,"").trim();const parsed=JSON.parse(clean);setRecipes(prev=>prev.map(r=>r.id===swapRecipeModal.id?{...parsed,id:swapRecipeModal.id,usesFromInventory:parsed.usesFromInventory||[],missingIngredients:parsed.missingIngredients||[]}:r));setSwapRecipeModal(null);}catch(e){alert("Could not parse recipe.");}setSwapRecipeLoading(false);}} style={{width:"100%",padding:"12px",borderRadius:8,background:C.accent,border:"none",color:"#000",fontFamily:FM,fontSize:14,fontWeight:700,cursor:"pointer",marginBottom:10}}>{swapRecipeLoading?"Thinking...":"âœ¦ Surprise Me"}</button><div style={{color:C.muted,fontFamily:FM,fontSize:12,textAlign:"center",marginBottom:8}}>— or request a specific recipe —</div><input value={swapRecipeRequest} onChange={e=>setSwapRecipeRequest(e.target.value)} placeholder='e.g. "Something with chicken"' style={{width:"100%",padding:"8px 12px",borderRadius:6,border:"1px solid "+C.border,background:C.surface,color:C.text,fontFamily:FM,fontSize:13,boxSizing:"border-box",marginBottom:10}}/><button onClick={async()=>{if(!swapRecipeRequest.trim()){alert("Please type a recipe request first.");return;}setSwapRecipeLoading(true);const prompt="Give me ONE recipe for: "+swapRecipeRequest.trim()+". Inventory: "+inventory.map(i=>i.name).filter(Boolean).join(", ")+". Return ONLY valid JSON: {name,description,time,difficulty,instructions:[4 short strings],usesFromInventory:[],missingIngredients:[]}";const res=await callClaude({system:"Recipe AI. Return ONLY valid JSON, no markdown.",prompt,maxTokens:600});try{const raw=typeof res==="string"?res:Array.isArray(res)?res.map(r=>r.text||"").join(""):res?.content?.[0]?.text||"";const clean=raw.replace(/```json|```/g,"").trim();const parsed=JSON.parse(clean);setRecipes(prev=>prev.map(r=>r.id===swapRecipeModal.id?{...parsed,id:swapRecipeModal.id,usesFromInventory:parsed.usesFromInventory||[],missingIngredients:parsed.missingIngredients||[]}:r));setSwapRecipeModal(null);}catch(e){alert("Could not parse recipe.");}setSwapRecipeLoading(false);}} style={{width:"100%",padding:"12px",borderRadius:8,background:"transparent",border:"1px solid "+C.accent,color:C.accent,fontFamily:FM,fontSize:14,cursor:"pointer",marginBottom:8}}>Make This Recipe</button><button onClick={()=>setSwapRecipeModal(null)} style={{width:"100%",padding:"8px",borderRadius:8,background:"transparent",border:"none",color:C.muted,fontFamily:FM,fontSize:12,cursor:"pointer"}}>Cancel</button></div></div>}
+        {swapRecipeModal&&<div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.7)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setSwapRecipeModal(null)}><div style={{background:C.card,borderRadius:12,padding:24,width:360,maxWidth:"90vw"}} onClick={e=>e.stopPropagation()}><div style={{fontFamily:FD,fontSize:18,fontWeight:700,color:C.text,marginBottom:16}}>Swap Recipe</div><button onClick={async()=>{setSwapRecipeLoading(true);const prompt="Give me ONE different recipe suggestion"+( swapRecipeRequest.trim()?" for: "+swapRecipeRequest.trim():" (different from "+swapRecipeModal.name+")")+". Inventory: "+inventory.map(i=>i.name).filter(Boolean).join(", ")+". Return ONLY valid JSON: {name,description,time,difficulty,instructions:[4 short strings],usesFromInventory:[],missingIngredients:[]}";const res=await callClaude({system:"Recipe AI. Return ONLY valid JSON, no markdown.",prompt,maxTokens:600});try{const raw=typeof res==="string"?res:Array.isArray(res)?res.map(r=>r.text||"").join(""):res?.content?.[0]?.text||"";const clean=raw.replace(/```json|```/g,"").trim();const parsed=JSON.parse(clean);setRecipes(prev=>prev.map(r=>r.id===swapRecipeModal.id?{...parsed,id:swapRecipeModal.id,usesFromInventory:parsed.usesFromInventory||[],missingIngredients:parsed.missingIngredients||[]}:r));setSwapRecipeModal(null);}catch(e){alert("Could not parse recipe.");}setSwapRecipeLoading(false);}} style={{width:"100%",padding:"12px",borderRadius:8,background:C.accent,border:"none",color:"#000",fontFamily:FM,fontSize:14,fontWeight:700,cursor:"pointer",marginBottom:10}}>{swapRecipeLoading?"Thinking...":"✦ Surprise Me"}</button><div style={{color:C.muted,fontFamily:FM,fontSize:12,textAlign:"center",marginBottom:8}}>— or request a specific recipe —</div><input value={swapRecipeRequest} onChange={e=>setSwapRecipeRequest(e.target.value)} placeholder='e.g. "Something with chicken"' style={{width:"100%",padding:"8px 12px",borderRadius:6,border:"1px solid "+C.border,background:C.surface,color:C.text,fontFamily:FM,fontSize:13,boxSizing:"border-box",marginBottom:10}}/><button onClick={async()=>{if(!swapRecipeRequest.trim()){alert("Please type a recipe request first.");return;}setSwapRecipeLoading(true);const prompt="Give me ONE recipe for: "+swapRecipeRequest.trim()+". Inventory: "+inventory.map(i=>i.name).filter(Boolean).join(", ")+". Return ONLY valid JSON: {name,description,time,difficulty,instructions:[4 short strings],usesFromInventory:[],missingIngredients:[]}";const res=await callClaude({system:"Recipe AI. Return ONLY valid JSON, no markdown.",prompt,maxTokens:600});try{const raw=typeof res==="string"?res:Array.isArray(res)?res.map(r=>r.text||"").join(""):res?.content?.[0]?.text||"";const clean=raw.replace(/```json|```/g,"").trim();const parsed=JSON.parse(clean);setRecipes(prev=>prev.map(r=>r.id===swapRecipeModal.id?{...parsed,id:swapRecipeModal.id,usesFromInventory:parsed.usesFromInventory||[],missingIngredients:parsed.missingIngredients||[]}:r));setSwapRecipeModal(null);}catch(e){alert("Could not parse recipe.");}setSwapRecipeLoading(false);}} style={{width:"100%",padding:"12px",borderRadius:8,background:"transparent",border:"1px solid "+C.accent,color:C.accent,fontFamily:FM,fontSize:14,cursor:"pointer",marginBottom:8}}>Make This Recipe</button><button onClick={()=>setSwapRecipeModal(null)} style={{width:"100%",padding:"8px",borderRadius:8,background:"transparent",border:"none",color:C.muted,fontFamily:FM,fontSize:12,cursor:"pointer"}}>Cancel</button></div></div>}
         {/* == SAVED RECIPES == */}
         {tab==="saved"&&(
           <div style={{padding:20,maxWidth:940,margin:"0 auto"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10,flexWrap:"wrap",gap:8}}>
-              <div style={{fontFamily:FD,fontSize:22,color:C.text}}>â­ Saved Recipes</div>
+              <div style={{fontFamily:FD,fontSize:22,color:C.text}}>⭐ Saved Recipes</div>
               <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-                {[["all","All"],["keepers","ðŸ† Keepers"],["good","ðŸ‘ 3+"]].map(([f,lb])=>(
+                {[["all","All"],["keepers","🏆 Keepers"],["good","👍 3+"]].map(([f,lb])=>(
                   <button key={f} onClick={()=>setSavedRecipesFilter(f)} style={{...bBtn(savedRecipesFilter===f?"primary":"ghost"),fontSize:seniorMode?15:11,padding:seniorMode?"10px 16px":"5px 10px"}}>{lb}</button>
                 ))}
-                <button onClick={()=>setShowImportModal(true)} style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 14px":"5px 10px",border:"1px solid #8b5cf6",color:"#8b5cf6"}}>ðŸ“¥ Import</button>
-                <button onClick={()=>{setShareMode(m=>!m);setShareSelected({});}} style={{...bBtn(shareMode?"primary":"ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 14px":"5px 10px",border:"1px solid "+C.accent,color:shareMode?"#0c0e14":C.accent}}>{shareMode?"âœ• Cancel":"ðŸ“¤ Share"}</button>
+                <button onClick={()=>setShowImportModal(true)} style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 14px":"5px 10px",border:"1px solid #8b5cf6",color:"#8b5cf6"}}>📥 Import</button>
+                <button onClick={()=>{setShareMode(m=>!m);setShareSelected({});}} style={{...bBtn(shareMode?"primary":"ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 14px":"5px 10px",border:"1px solid "+C.accent,color:shareMode?"#0c0e14":C.accent}}>{shareMode?"✕ Cancel":"📤 Share"}</button>
               </div>
             </div>
             {shareMode&&Object.keys(shareSelected).length>0&&(
               <div style={{background:C.accent+"18",border:"1px solid "+C.accent+"44",borderRadius:10,padding:"10px 14px",marginBottom:10,display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
                 <span style={{fontFamily:FM,fontSize:12,color:C.accent,fontWeight:600}}>{Object.keys(shareSelected).length} recipe{Object.keys(shareSelected).length>1?"s":""} selected</span>
-                <button onClick={()=>setShowShareModal(true)} style={{...bBtn("primary"),fontSize:12,padding:"7px 16px"}}>ðŸ“¤ Share These</button>
+                <button onClick={()=>setShowShareModal(true)} style={{...bBtn("primary"),fontSize:12,padding:"7px 16px"}}>📤 Share These</button>
               </div>
             )}
             {(Object.keys(recipeRatings).filter(name=>recipeRatings[name]?.rating>=3).length+Object.keys({...loadLocal("sk_dessertRatings",{}),...dessertRatings}).filter(name=>({...loadLocal("sk_dessertRatings",{}),...dessertRatings})[name]?.rating>=3).length)===0?(
               <div style={{textAlign:"center",padding:60}}>
-                <div style={{fontSize:48,marginBottom:16}}>â­</div>
+                <div style={{fontSize:48,marginBottom:16}}>⭐</div>
                 <div style={{color:C.muted,fontFamily:FM,fontSize:14,marginBottom:8}}>No saved recipes yet</div>
                 <div style={{color:C.muted,fontFamily:FM,fontSize:12}}>Rate a recipe or dessert 3 stars or more to save it here.</div>
               </div>
@@ -3025,7 +3025,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                     onMouseLeave={e=>{e.currentTarget.style.background=C.card;}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
                       {mealPhotos[name]&&<div style={{marginBottom:10,borderRadius:8,overflow:"hidden",gridColumn:"1/-1"}}><img src={mealPhotos[name]} alt={name} style={{width:"100%",maxHeight:140,objectFit:"cover",display:"block",borderRadius:8}} /></div>}
-                    <div style={{fontFamily:FD,fontSize:seniorMode?26:19,lineHeight:1.3,flex:1}}><a href={getRecipeUrl(name)} target="_blank" rel="noopener noreferrer" style={{color:C.accent,textDecoration:"none"}}>{isDesert?"ðŸ°":"ðŸ”"} {name}</a></div>
+                    <div style={{fontFamily:FD,fontSize:seniorMode?26:19,lineHeight:1.3,flex:1}}><a href={getRecipeUrl(name)} target="_blank" rel="noopener noreferrer" style={{color:C.accent,textDecoration:"none"}}>{isDesert?"🍰":"🔍"} {name}</a></div>
                       <span style={{...bTag(r.difficulty==="Easy"?C.green:r.difficulty==="Hard"?C.red:C.accent),marginLeft:8}}>{r.difficulty}</span>
                     </div>
                     {r.description&&<div style={{color:C.muted,fontSize:seniorMode?17:13,marginBottom:8,lineHeight:1.6}}>{r.description}</div>}
@@ -3033,32 +3033,32 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                     <div style={{display:"flex",gap:4,marginBottom:10}} onClick={e=>e.stopPropagation()}>
                       {[1,2,3,4,5].map(star=>(
                         <button key={star} onClick={e=>{e.stopPropagation();const mealName=name;const setter=isDesert?setDessertRatings:setRecipeRatings;setter(prev=>{const cur=prev[name]?.rating||0;const next={...prev};if(cur===star){delete next[name];}else{next[name]={rating:star,recipe:r};}if(star===5&&cur!==5){const skips=parseInt(localStorage.getItem("sk_photoSkipCount")||"0");if(skips<3) setTimeout(()=>setPhotoPromptMeal(mealName),300);}return next;});}} style={{background:"none",border:"none",cursor:"pointer",fontSize:seniorMode?22:16,padding:"0 1px",color:star<=rating?"#f59e0b":"#555"}}>
-                          {star<=rating?"â˜…":"â˜†"}
+                          {star<=rating?"★":"☆"}
                         </button>
                       ))}
                       <span style={{fontSize:10,color:rating===5?"#f59e0b":rating===4?C.green:C.muted,fontFamily:FM,marginLeft:4,alignSelf:"center",fontWeight:600}}>
-                        {rating===5?"ðŸ† Keeper":rating===4?"â¤ Favorite":"ðŸ‘ Good"}
+                        {rating===5?"🏆 Keeper":rating===4?"❤ Favorite":"👍 Good"}
                       </span>
                     </div>
                     <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
-                      {r.time&&<span style={{...bTag(C.muted),fontSize:seniorMode?14:undefined}}>â± {r.time}</span>}
-                      {(r.usesFromInventory||[]).length>0&&<span style={{...bTag(C.green),fontSize:seniorMode?14:undefined}}>âœ… {r.usesFromInventory.length} on hand</span>}
-                      {(r.missingIngredients||[]).length>0&&<span style={{...bTag(C.red),fontSize:seniorMode?14:undefined}}>ðŸ›’ {r.missingIngredients.length} needed</span>}
+                      {r.time&&<span style={{...bTag(C.muted),fontSize:seniorMode?14:undefined}}>⏱ {r.time}</span>}
+                      {(r.usesFromInventory||[]).length>0&&<span style={{...bTag(C.green),fontSize:seniorMode?14:undefined}}>✅ {r.usesFromInventory.length} on hand</span>}
+                      {(r.missingIngredients||[]).length>0&&<span style={{...bTag(C.red),fontSize:seniorMode?14:undefined}}>🛒 {r.missingIngredients.length} needed</span>}
                     </div>
-                    <div style={{fontSize:seniorMode?19:11,color:C.accent,fontFamily:FM,fontWeight:700,marginBottom:10,letterSpacing:seniorMode?0.5:0}}>TAP FOR FULL RECIPE â†’</div>
+                    <div style={{fontSize:seniorMode?19:11,color:C.accent,fontFamily:FM,fontWeight:700,marginBottom:10,letterSpacing:seniorMode?0.5:0}}>TAP FOR FULL RECIPE →</div>
                     <div style={{display:"flex",gap:8,marginBottom:8}}>
-                      <button onClick={e=>{e.stopPropagation();const today=new Date();const dateStr=today.toISOString().split("T")[0].replace(/-/g,"");window.open("https://calendar.google.com/calendar/render?action=TEMPLATE&text="+encodeURIComponent("Dinner: "+name)+"&dates="+dateStr+"/"+dateStr,"_blank");}} style={{flex:1,padding:seniorMode?"14px":"8px",borderRadius:8,border:"1px solid #5b9cf6",background:"transparent",color:"#5b9cf6",fontFamily:FM,fontSize:seniorMode?16:11,cursor:"pointer"}} disabled={isViewer}>ðŸ“… Add to Calendar</button>
+                      <button onClick={e=>{e.stopPropagation();const today=new Date();const dateStr=today.toISOString().split("T")[0].replace(/-/g,"");window.open("https://calendar.google.com/calendar/render?action=TEMPLATE&text="+encodeURIComponent("Dinner: "+name)+"&dates="+dateStr+"/"+dateStr,"_blank");}} style={{flex:1,padding:seniorMode?"14px":"8px",borderRadius:8,border:"1px solid #5b9cf6",background:"transparent",color:"#5b9cf6",fontFamily:FM,fontSize:seniorMode?16:11,cursor:"pointer"}} disabled={isViewer}>📅 Add to Calendar</button>
                     </div>
                     <div style={{display:"flex",gap:8}}>
-                      <button onClick={e=>{e.stopPropagation();if(isDesert){setDessertRatings(prev=>{const next={...prev};delete next[name];return next;});}else{setRecipeRatings(prev=>{const next={...prev};delete next[name];return next;});}}} style={{flex:1,padding:seniorMode?"14px":"8px",borderRadius:8,border:"1px solid "+C.red,background:"transparent",color:C.red,fontFamily:FM,fontSize:seniorMode?16:11,cursor:"pointer"}}>ðŸ—‘ Remove</button>
-                      <button onClick={e=>{e.stopPropagation();setPhotoPromptMeal(name);}} style={{padding:"8px 14px",borderRadius:8,border:"1px solid "+C.border,background:"transparent",color:C.muted,fontFamily:FM,fontSize:seniorMode?16:12,cursor:"pointer"}} title="Add or change photo" disabled={isViewer}>ðŸ“¸ {mealPhotos[name]?"Change Photo":"Add Photo"}</button>
+                      <button onClick={e=>{e.stopPropagation();if(isDesert){setDessertRatings(prev=>{const next={...prev};delete next[name];return next;});}else{setRecipeRatings(prev=>{const next={...prev};delete next[name];return next;});}}} style={{flex:1,padding:seniorMode?"14px":"8px",borderRadius:8,border:"1px solid "+C.red,background:"transparent",color:C.red,fontFamily:FM,fontSize:seniorMode?16:11,cursor:"pointer"}}>🗑 Remove</button>
+                      <button onClick={e=>{e.stopPropagation();setPhotoPromptMeal(name);}} style={{padding:"8px 14px",borderRadius:8,border:"1px solid "+C.border,background:"transparent",color:C.muted,fontFamily:FM,fontSize:seniorMode?16:12,cursor:"pointer"}} title="Add or change photo" disabled={isViewer}>📸 {mealPhotos[name]?"Change Photo":"Add Photo"}</button>
                       {!isViewer&&<button onClick={e=>{e.stopPropagation();
                         if(!familyRecipes.find(r=>r.name===name)){
                           const rData=recipeRatings[name];
                           setFamilyRecipes(p=>[...p,{id:Date.now()+Math.random(),name,...(rData?.recipe||{}),isFamilyRecipe:true}]);
                           alert(name+" moved to Family Recipes!");
                         } else { alert(name+" is already in Family Recipes."); }
-                      }} style={{padding:"8px 14px",borderRadius:8,border:"1px solid #b45309",background:"transparent",color:"#b45309",fontFamily:FM,fontSize:seniorMode?16:12,cursor:"pointer"}}>ðŸ“– Add to Family</button>}
+                      }} style={{padding:"8px 14px",borderRadius:8,border:"1px solid #b45309",background:"transparent",color:"#b45309",fontFamily:FM,fontSize:seniorMode?16:12,cursor:"pointer"}}>📖 Add to Family</button>}
                     </div>
                   </div>
                 )})}
@@ -3080,10 +3080,10 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
               return(
                 <div style={{marginTop:24}}>
                   <div style={{fontFamily:FM,fontSize:11,color:C.red,letterSpacing:0.8,marginBottom:10,display:"flex",alignItems:"center",gap:6}}>
-                    <span>ðŸš«</span><span>REJECTED MEALS</span>
+                    <span>🚫</span><span>REJECTED MEALS</span>
                     <span style={{fontSize:10,color:C.muted,fontWeight:400,marginLeft:4}}>{showRejected?"Tap Restore to add back to suggestions":"Hidden"}</span>
                     <button onClick={()=>setShowRejected(v=>!v)} style={{marginLeft:"auto",background:"transparent",border:"1px solid "+C.border,borderRadius:6,color:C.muted,cursor:"pointer",fontSize:10,padding:"2px 8px",fontFamily:FM}}>
-                      {showRejected?"âœ• Hide":"â–¼ Show"}
+                      {showRejected?"✕ Hide":"▼ Show"}
                     </button>
                   </div>
                   {showRejected&&allBanned.map(({name,reason})=>(
@@ -3101,7 +3101,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                           localStorage.setItem("sk_changeMealHistory",JSON.stringify(filtered));
                         }catch{}
                       }} style={{background:"#1a2e1a",border:"1px solid #4c4",borderRadius:8,color:"#4c4",cursor:"pointer",fontSize:seniorMode?15:12,padding:seniorMode?"6px 16px":"4px 12px",whiteSpace:"nowrap",flexShrink:0}}>
-                        â†© Restore
+                        ↩ Restore
                       </button>
                     </div>
                   ))}
@@ -3115,41 +3115,41 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
             {saleItems.length>0&&(
               <div style={{background:"#1a1500",border:"1px solid #f59e0b",borderRadius:12,padding:"12px 16px",marginBottom:16,display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
                 <div>
-                  <div style={{fontFamily:FD,fontSize:14,color:"#f59e0b"}}>ðŸ· {saleItems.length} Meijer Sale Items Loaded</div>
+                  <div style={{fontFamily:FD,fontSize:14,color:"#f59e0b"}}>🏷 {saleItems.length} Meijer Sale Items Loaded</div>
                   <div style={{fontFamily:FM,fontSize:11,color:"#fbbf24",marginTop:2}}>{saleItems.slice(0,4).map(i=>i.name).join(", ")}{saleItems.length>4?" + "+(saleItems.length-4)+" more":""}</div>
                 </div>
                 <div style={{display:"flex",gap:8}}>
-                  <button style={{...bBtn("ghost"),fontSize:11,padding:"6px 12px",border:"1px solid #f59e0b44",color:"#f59e0b"}} onClick={()=>setSaleItems([])}>âœ• Clear</button>
-                  <button style={{padding:"8px 16px",borderRadius:9,border:"none",background:"#f59e0b",color:"#0c0e14",fontFamily:FM,fontSize:12,fontWeight:700,cursor:"pointer"}} onClick={buildSaleMealPlan}>ðŸ· Build Sale Meal Plan</button>
+                  <button style={{...bBtn("ghost"),fontSize:11,padding:"6px 12px",border:"1px solid #f59e0b44",color:"#f59e0b"}} onClick={()=>setSaleItems([])}>✕ Clear</button>
+                  <button style={{padding:"8px 16px",borderRadius:9,border:"none",background:"#f59e0b",color:"#0c0e14",fontFamily:FM,fontSize:12,fontWeight:700,cursor:"pointer"}} onClick={buildSaleMealPlan}>🏷 Build Sale Meal Plan</button>
                 </div>
               </div>
             )}
-            {(()=>{const tod=new Date();return activeProfiles.filter(p=>p.dob).find(p=>{const b=new Date(p.dob+"T12:00:00");const nb=new Date(tod.getFullYear(),b.getMonth(),b.getDate());if(nb<tod) nb.setFullYear(tod.getFullYear()+1);return Math.ceil((nb-tod)/(1000*60*60*24))<=7;});})()&&(()=>{const tod=new Date();const bPerson=activeProfiles.filter(p=>p.dob).find(p=>{const b=new Date(p.dob+"T12:00:00");const nb=new Date(tod.getFullYear(),b.getMonth(),b.getDate());if(nb<tod) nb.setFullYear(tod.getFullYear()+1);return Math.ceil((nb-tod)/(1000*60*60*24))<=7;});const b2=new Date(bPerson.dob+"T12:00:00");const nb2=new Date(tod.getFullYear(),b2.getMonth(),b2.getDate());if(nb2<tod) nb2.setFullYear(tod.getFullYear()+1);const days=Math.ceil((nb2-tod)/(1000*60*60*24));return <div style={{background:"#f59e0b22",border:"1px solid #f59e0b44",borderRadius:10,padding:"10px 14px",marginBottom:10,display:"flex",alignItems:"center",gap:10,cursor:"pointer"}} onClick={()=>{setShowOccasionPlanner(true);setOccasionState(s=>({...s,eventType:"party",audienceType:"family"}));setOccasionStep("form");}}><span style={{fontSize:20}}>ðŸŽ‚</span><div><div style={{fontFamily:FM,fontSize:12,fontWeight:700,color:"#d97706"}}>{bPerson.name||"Someone"} has a birthday in {days} day{days===1?"":"s"}!</div><div style={{fontFamily:FM,fontSize:11,color:C.muted}}>Tap to plan a birthday dinner.</div></div></div>;})()}
+            {(()=>{const tod=new Date();return activeProfiles.filter(p=>p.dob).find(p=>{const b=new Date(p.dob+"T12:00:00");const nb=new Date(tod.getFullYear(),b.getMonth(),b.getDate());if(nb<tod) nb.setFullYear(tod.getFullYear()+1);return Math.ceil((nb-tod)/(1000*60*60*24))<=7;});})()&&(()=>{const tod=new Date();const bPerson=activeProfiles.filter(p=>p.dob).find(p=>{const b=new Date(p.dob+"T12:00:00");const nb=new Date(tod.getFullYear(),b.getMonth(),b.getDate());if(nb<tod) nb.setFullYear(tod.getFullYear()+1);return Math.ceil((nb-tod)/(1000*60*60*24))<=7;});const b2=new Date(bPerson.dob+"T12:00:00");const nb2=new Date(tod.getFullYear(),b2.getMonth(),b2.getDate());if(nb2<tod) nb2.setFullYear(tod.getFullYear()+1);const days=Math.ceil((nb2-tod)/(1000*60*60*24));return <div style={{background:"#f59e0b22",border:"1px solid #f59e0b44",borderRadius:10,padding:"10px 14px",marginBottom:10,display:"flex",alignItems:"center",gap:10,cursor:"pointer"}} onClick={()=>{setShowOccasionPlanner(true);setOccasionState(s=>({...s,eventType:"party",audienceType:"family"}));setOccasionStep("form");}}><span style={{fontSize:20}}>🎂</span><div><div style={{fontFamily:FM,fontSize:12,fontWeight:700,color:"#d97706"}}>{bPerson.name||"Someone"} has a birthday in {days} day{days===1?"":"s"}!</div><div style={{fontFamily:FM,fontSize:11,color:C.muted}}>Tap to plan a birthday dinner.</div></div></div>;})()}
             {occasionState.eventType&&<div style={{background:C.accent+"18",border:"1px solid "+C.accent+"44",borderRadius:10,padding:"8px 14px",marginBottom:10,display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
               <span style={{fontSize:16}}>{OCCASION_EVENT_TYPES.find(e=>e.key===occasionState.eventType)?.emoji||""}</span>
-              <span style={{fontFamily:FM,fontSize:12,color:C.accent,fontWeight:600}}>{OCCASION_EVENT_TYPES.find(e=>e.key===occasionState.eventType)?.label} Â· {OCCASION_AUDIENCE_TYPES.find(a=>a.key===occasionState.audienceType)?.label}{occasionState.headCount?" Â· "+occasionState.headCount+" people":""}</span>
-              <button onClick={()=>setOccasionState({eventType:"",audienceType:"family",headCount:"",mode:"use",budget:"",guestRestrictions:"",note:""})} style={{background:"transparent",border:"none",color:C.muted,cursor:"pointer",fontSize:12,marginLeft:"auto"}}>âœ• Clear</button>
+              <span style={{fontFamily:FM,fontSize:12,color:C.accent,fontWeight:600}}>{OCCASION_EVENT_TYPES.find(e=>e.key===occasionState.eventType)?.label} · {OCCASION_AUDIENCE_TYPES.find(a=>a.key===occasionState.audienceType)?.label}{occasionState.headCount?" · "+occasionState.headCount+" people":""}</span>
+              <button onClick={()=>setOccasionState({eventType:"",audienceType:"family",headCount:"",mode:"use",budget:"",guestRestrictions:"",note:""})} style={{background:"transparent",border:"none",color:C.muted,cursor:"pointer",fontSize:12,marginLeft:"auto"}}>✕ Clear</button>
             </div>}
             {can.medicalCompliance&&user?.id&&(<NutritionDashboard familyProfiles={familyProfiles} user={user} supabase={supabase} seniorMode={seniorMode} C={C} FM={FM} FD={FD}/>)}<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18,flexWrap:"wrap",gap:10}}>
-              <div style={{fontFamily:FD,fontSize:24}}>7-Day Dinner Plan <span style={{fontSize:13,color:C.muted,fontFamily:FB}}>Â· {activeProfiles.length} people</span></div>
+              <div style={{fontFamily:FD,fontSize:24}}>7-Day Dinner Plan <span style={{fontSize:13,color:C.muted,fontFamily:FB}}>· {activeProfiles.length} people</span></div>
               <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                <button style={bBtn("ghost")} onClick={buildMealPlan} disabled={isViewer}>ðŸ”„ Regenerate</button>
-                <button style={{...bBtn("ghost"),border:"1px solid "+C.accent,color:C.accent}} onClick={()=>setShowOccasionPlanner(true)}>ðŸŽ‰ Plan Occasion</button>
-                {mealPlan.length>0&&<><button style={bBtn("ghost")} onClick={printMealPlan}>ðŸ–¨ Print</button><button style={bBtn("ghost")} onClick={pushToCalendar}>ðŸ“… Calendar</button><button style={bBtn("primary")} onClick={genShopping}>ðŸ›’ Shopping List</button></>}
+                <button style={bBtn("ghost")} onClick={buildMealPlan} disabled={isViewer}>🔄 Regenerate</button>
+                <button style={{...bBtn("ghost"),border:"1px solid "+C.accent,color:C.accent}} onClick={()=>setShowOccasionPlanner(true)}>🎉 Plan Occasion</button>
+                {mealPlan.length>0&&<><button style={bBtn("ghost")} onClick={printMealPlan}>🖨 Print</button><button style={bBtn("ghost")} onClick={pushToCalendar}>📅 Calendar</button><button style={bBtn("primary")} onClick={genShopping}>🛒 Shopping List</button></>}
               </div>
             </div>
             {mealPlan.length===0?(
               <div style={{textAlign:"center",padding:60}}>
-                <div style={{fontFamily:FD,fontSize:48,color:C.accent,marginBottom:16}}>ðŸ“…</div>
-                <div style={{color:C.muted,marginBottom:20}}>Builds around your protein portions and sautÃ© blend bags</div>
-                <button style={{...bBtn("primary"),padding:seniorMode?"18px 36px":"10px 24px",fontSize:seniorMode?20:13}} onClick={buildMealPlan} disabled={isViewer}>ðŸ“… Build Meal Plan</button>
+                <div style={{fontFamily:FD,fontSize:48,color:C.accent,marginBottom:16}}>📅</div>
+                <div style={{color:C.muted,marginBottom:20}}>Builds around your protein portions and sauté blend bags</div>
+                <button style={{...bBtn("primary"),padding:seniorMode?"18px 36px":"10px 24px",fontSize:seniorMode?20:13}} onClick={buildMealPlan} disabled={isViewer}>📅 Build Meal Plan</button>
               </div>
             ):(
               <div>
                 <div style={{background:C.card,border:"1px solid "+C.border,borderRadius:10,padding:"10px 16px",marginBottom:12,display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
                   <div style={{fontSize:10,fontFamily:FM,color:C.muted,marginRight:4}}>THIS WEEK:</div>
                   {mealPlan.filter(d=>d.proteinUsed).map((d,i)=>(
-                    <span key={i} style={bTag(PROTEIN_TAG_COLOR(d.proteinUsed))}>{d.day?.slice(0,3)} Â· {d.proteinUsed}</span>
+                    <span key={i} style={bTag(PROTEIN_TAG_COLOR(d.proteinUsed))}>{d.day?.slice(0,3)} · {d.proteinUsed}</span>
                   ))}
                 </div>
                 <div style={{display:"flex",flexDirection:"column",gap:9}}>
@@ -3160,11 +3160,11 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                           <div style={{fontWeight:700,color:C.accent,fontSize:seniorMode?30:20,fontFamily:FD}}>{day.day}</div>
                           <div style={{fontFamily:FM,fontSize:9,color:C.muted}}>DAY {i+1}</div>
                         </div>
-                        <button onClick={()=>day.quickMeal?clearQuickMeal(i):quickMealForDay(i)} disabled={isViewer} style={{background:day.quickMeal?"#f59e0b22":"transparent",border:"1px solid "+(day.quickMeal?"#f59e0b":C.border),borderRadius:6,color:day.quickMeal?"#f59e0b":C.muted,cursor:"pointer",fontFamily:FM,fontSize:seniorMode?14:10,padding:seniorMode?"6px 14px":"3px 8px"}}>{day.quickMeal?"âš¡ Busy Night":"âš¡ Busy?"}</button>
+                        <button onClick={()=>day.quickMeal?clearQuickMeal(i):quickMealForDay(i)} disabled={isViewer} style={{background:day.quickMeal?"#f59e0b22":"transparent",border:"1px solid "+(day.quickMeal?"#f59e0b":C.border),borderRadius:6,color:day.quickMeal?"#f59e0b":C.muted,cursor:"pointer",fontFamily:FM,fontSize:seniorMode?14:10,padding:seniorMode?"6px 14px":"3px 8px"}}>{day.quickMeal?"⚡ Busy Night":"⚡ Busy?"}</button>
                       </div>
                       <div style={{display:"flex",flexDirection:"column",gap:8}}>
                       <div style={{flex:1,minWidth:0}}>
-                        {day.quickMeal&&<span style={{fontSize:10,background:"#f59e0b22",color:"#f59e0b",padding:"2px 6px",borderRadius:4,fontFamily:FM,display:"inline-block",marginBottom:4}}>âš¡ BUSY NIGHT — under 20 min</span>}
+                        {day.quickMeal&&<span style={{fontSize:10,background:"#f59e0b22",color:"#f59e0b",padding:"2px 6px",borderRadius:4,fontFamily:FM,display:"inline-block",marginBottom:4}}>⚡ BUSY NIGHT — under 20 min</span>}
                         {day.isOccasion&&<span style={{fontSize:10,background:C.accent+"22",color:C.accent,padding:"2px 8px",borderRadius:4,fontFamily:FM,display:"inline-block",marginBottom:4,fontWeight:600}}>{day.occasionLabel||"Occasion"}</span>}
                         {mealPhotos[day.meal]&&<div style={{marginBottom:6}}><img src={mealPhotos[day.meal]} alt={day.meal} style={{width:"100%",maxHeight:160,objectFit:"cover",borderRadius:8,border:"1px solid "+C.borderLight}} /></div>}
                         {restrictedProfiles.length>0&&(()=>{
@@ -3181,40 +3181,40 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                             if(p.restriction==="athlete") hints.push("high-protein");
                             return (
                               <span key={p.id} style={{fontSize:10,background:r.color+"22",color:r.color,padding:"2px 7px",borderRadius:4,fontFamily:FM,display:"inline-flex",alignItems:"center",gap:3,marginBottom:4,border:"1px solid "+r.color+"44"}}>
-                                {r.icon} {name}{hints.length>0?" Â· "+hints[0]:""}
+                                {r.icon} {name}{hints.length>0?" · "+hints[0]:""}
                               </span>
                             );
                           }).filter(Boolean);
                           return badges.length>0?<div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:4}}>{badges}</div>:null;
                         })()}
-                        {(()=>{const warns=getMedicalWarnings(day.meal);if(!warns.length)return null;const strictBlocks=warns.filter(w=>w.enforcement==="strict");const warnFlags=warns.filter(w=>w.enforcement==="warn");return(<div style={{display:"flex",flexDirection:"column",gap:3,marginBottom:4}}>{strictBlocks.map((w,i)=>(<span key={"s"+i} style={{fontSize:10,background:"#dc2626",color:"#fff",padding:"3px 8px",borderRadius:4,fontFamily:FM,display:"flex",alignItems:"center",gap:4,border:"1px solid #991b1b"}}>ðŸš« <strong>{w.member}:</strong> {w.msg}</span>))}{warnFlags.map((w,i)=>(<span key={"w"+i} style={{fontSize:10,background:"#d97706",color:"#fff",padding:"3px 8px",borderRadius:4,fontFamily:FM,display:"flex",alignItems:"center",gap:4,border:"1px solid #b45309"}}>âš  <strong>{w.member}:</strong> {w.msg}</span>))}</div>);})()}
-                        <div><div onClick={()=>openMealPlanRecipe(day)} style={{fontFamily:FD,fontSize:seniorMode?26:19,marginBottom:4,color:C.accent,cursor:"pointer",lineHeight:1.4}}>ðŸ” {day.meal}</div>
+                        {(()=>{const warns=getMedicalWarnings(day.meal);if(!warns.length)return null;const strictBlocks=warns.filter(w=>w.enforcement==="strict");const warnFlags=warns.filter(w=>w.enforcement==="warn");return(<div style={{display:"flex",flexDirection:"column",gap:3,marginBottom:4}}>{strictBlocks.map((w,i)=>(<span key={"s"+i} style={{fontSize:10,background:"#dc2626",color:"#fff",padding:"3px 8px",borderRadius:4,fontFamily:FM,display:"flex",alignItems:"center",gap:4,border:"1px solid #991b1b"}}>🚫 <strong>{w.member}:</strong> {w.msg}</span>))}{warnFlags.map((w,i)=>(<span key={"w"+i} style={{fontSize:10,background:"#d97706",color:"#fff",padding:"3px 8px",borderRadius:4,fontFamily:FM,display:"flex",alignItems:"center",gap:4,border:"1px solid #b45309"}}>⚠ <strong>{w.member}:</strong> {w.msg}</span>))}</div>);})()}
+                        <div><div onClick={()=>openMealPlanRecipe(day)} style={{fontFamily:FD,fontSize:seniorMode?26:19,marginBottom:4,color:C.accent,cursor:"pointer",lineHeight:1.4}}>🔍 {day.meal}</div>
                         {/* Star rating on meal plan card */}
                         <div style={{display:"flex",gap:3,marginBottom:6}} onClick={e=>e.stopPropagation()}>
                           {[1,2,3,4,5].map(star=>{
                             const mealRating=recipeRatings[day.meal]?.rating||0;
-                            return <button key={star} onClick={e=>{e.stopPropagation();setRecipeRatings(prev=>{const cur=prev[day.meal]?.rating||0;const next={...prev};if(cur===star){delete next[day.meal];}else{next[day.meal]={rating:star,recipe:{name:day.meal,description:"",time:"",difficulty:"Easy",usesFromInventory:day.ingredients||[],missingIngredients:day.shoppingNeeded?.map(s=>s.name)||[]}};}if(star===5&&cur!==5){const skips=parseInt(localStorage.getItem("sk_photoSkipCount")||"0");if(skips<3) setTimeout(()=>setPhotoPromptMeal(day.meal),300);}return next;});}} style={{background:"none",border:"none",cursor:"pointer",fontSize:seniorMode?20:16,padding:"0 1px",color:star<=mealRating?"#f59e0b":"#555"}} title={star===1?"Never suggest again":star===5?"Keeper!":"Rate "+star+" stars"}>{star<=mealRating?"â˜…":"â˜†"}</button>;
+                            return <button key={star} onClick={e=>{e.stopPropagation();setRecipeRatings(prev=>{const cur=prev[day.meal]?.rating||0;const next={...prev};if(cur===star){delete next[day.meal];}else{next[day.meal]={rating:star,recipe:{name:day.meal,description:"",time:"",difficulty:"Easy",usesFromInventory:day.ingredients||[],missingIngredients:day.shoppingNeeded?.map(s=>s.name)||[]}};}if(star===5&&cur!==5){const skips=parseInt(localStorage.getItem("sk_photoSkipCount")||"0");if(skips<3) setTimeout(()=>setPhotoPromptMeal(day.meal),300);}return next;});}} style={{background:"none",border:"none",cursor:"pointer",fontSize:seniorMode?20:16,padding:"0 1px",color:star<=mealRating?"#f59e0b":"#555"}} title={star===1?"Never suggest again":star===5?"Keeper!":"Rate "+star+" stars"}>{star<=mealRating?"★":"☆"}</button>;
                           })}
-                          {(recipeRatings[day.meal]?.rating||0)>=3&&<span style={{fontSize:9,color:C.muted,fontFamily:FM,marginLeft:3,alignSelf:"center"}}>{recipeRatings[day.meal]?.rating===5?"ðŸ†":recipeRatings[day.meal]?.rating===4?"â¤":"ðŸ‘"}</span>}
+                          {(recipeRatings[day.meal]?.rating||0)>=3&&<span style={{fontSize:9,color:C.muted,fontFamily:FM,marginLeft:3,alignSelf:"center"}}>{recipeRatings[day.meal]?.rating===5?"🏆":recipeRatings[day.meal]?.rating===4?"❤":"👍"}</span>}
                         </div>
-                        <div style={{display:"flex",gap:10,alignItems:"center",marginBottom:day.ingredients&&day.ingredients.length>0?6:0}}><span onClick={()=>openMealPlanRecipe(day)} style={{fontSize:seniorMode?18:13,color:"#f59e0b",fontFamily:FM,cursor:"pointer",letterSpacing:0.3,fontWeight:700,whiteSpace:"nowrap"}}>TAP FOR FULL RECIPE â†’</span><a href={getRecipeUrl(day.meal)} target="_blank" rel="noopener noreferrer" style={{fontSize:10,color:"#60a5fa",fontFamily:FM,textDecoration:"none",fontWeight:600}}>ðŸŒ web</a></div>{day.ingredients&&day.ingredients.length>0&&(()=>{const maxShow=3;const expanded=expandedIngDay===i;const shown=expanded?day.ingredients:day.ingredients.slice(0,maxShow);return <div style={{marginTop:6,padding:"8px 10px",background:"rgba(255,255,255,0.05)",borderRadius:6,fontSize:11,fontFamily:FM}}><div style={{fontWeight:600,marginBottom:4,color:C.muted,fontSize:seniorMode?13:10}}>INGREDIENTS</div>{shown.map((ing,ii)=><div key={ii} style={{color:C.text,marginBottom:seniorMode?4:2,fontSize:seniorMode?15:11}}>Â· {ing}</div>)}{day.ingredients.length>maxShow&&<button onClick={e=>{e.stopPropagation();setExpandedIngDay(expanded?null:i);}} style={{background:"transparent",border:"none",color:C.accent,fontFamily:FM,fontSize:seniorMode?14:11,cursor:"pointer",padding:"4px 0",fontWeight:600}}>{expanded?"â–² Show less":"â–¼ Show all "+day.ingredients.length+" ingredients"}</button>}</div>;})()}</div>
+                        <div style={{display:"flex",gap:10,alignItems:"center",marginBottom:day.ingredients&&day.ingredients.length>0?6:0}}><span onClick={()=>openMealPlanRecipe(day)} style={{fontSize:seniorMode?18:13,color:"#f59e0b",fontFamily:FM,cursor:"pointer",letterSpacing:0.3,fontWeight:700,whiteSpace:"nowrap"}}>TAP FOR FULL RECIPE →</span><a href={getRecipeUrl(day.meal)} target="_blank" rel="noopener noreferrer" style={{fontSize:10,color:"#60a5fa",fontFamily:FM,textDecoration:"none",fontWeight:600}}>🌐 web</a></div>{day.ingredients&&day.ingredients.length>0&&(()=>{const maxShow=3;const expanded=expandedIngDay===i;const shown=expanded?day.ingredients:day.ingredients.slice(0,maxShow);return <div style={{marginTop:6,padding:"8px 10px",background:"rgba(255,255,255,0.05)",borderRadius:6,fontSize:11,fontFamily:FM}}><div style={{fontWeight:600,marginBottom:4,color:C.muted,fontSize:seniorMode?13:10}}>INGREDIENTS</div>{shown.map((ing,ii)=><div key={ii} style={{color:C.text,marginBottom:seniorMode?4:2,fontSize:seniorMode?15:11}}>· {ing}</div>)}{day.ingredients.length>maxShow&&<button onClick={e=>{e.stopPropagation();setExpandedIngDay(expanded?null:i);}} style={{background:"transparent",border:"none",color:C.accent,fontFamily:FM,fontSize:seniorMode?14:11,cursor:"pointer",padding:"4px 0",fontWeight:600}}>{expanded?"▲ Show less":"▼ Show all "+day.ingredients.length+" ingredients"}</button>}</div>;})()}</div>
                         <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-                          {day.proteinUsed&&<span style={bTag(PROTEIN_TAG_COLOR(day.proteinUsed))}>ðŸ¥© {day.proteinUsed}</span>}
-                          {(day.sauteBagsUsed||0)>0&&<span style={bTag(C.orange)}>ðŸ«• {day.sauteBagsUsed} bag</span>}
-                          {day.sideUsed&&<span style={bTag(C.green)}>ðŸ¥¦ {day.sideUsed}</span>}
+                          {day.proteinUsed&&<span style={bTag(PROTEIN_TAG_COLOR(day.proteinUsed))}>🥩 {day.proteinUsed}</span>}
+                          {(day.sauteBagsUsed||0)>0&&<span style={bTag(C.orange)}>🫕 {day.sauteBagsUsed} bag</span>}
+                          {day.sideUsed&&<span style={bTag(C.green)}>🥦 {day.sideUsed}</span>}
                         </div>
                       </div>
                       <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
                         {(day.shoppingNeeded||[]).length===0
-                          ?<span style={bTag(C.green)}>âœ… Ready</span>
-                          :<div style={{width:"100%",marginBottom:4}}><div style={{fontSize:9,color:C.muted,marginBottom:3,fontFamily:FM}}>NEED</div>{(day.shoppingNeeded||[]).map((s,j)=><div key={j} style={{fontSize:seniorMode?15:13,color:C.red,marginBottom:2}}>Â· {s.qty} {s.unit} {s.name}</div>)}</div>}
-                        <button onClick={()=>madeMeal(day)} style={{background:"#3ecf8e22",border:"1px solid #3ecf8e44",borderRadius:seniorMode?10:6,color:"#3ecf8e",cursor:"pointer",fontFamily:FM,fontSize:seniorMode?18:11,padding:seniorMode?"12px 20px":"8px 14px",flexShrink:0,fontWeight:seniorMode?700:400}} disabled={isViewer}>âœ… Made It!</button>
-                        {familyProfiles.some(p=>p.guidedPlateMode)&&(<button onClick={()=>{const qualifying=familyProfiles.filter(p=>p.guidedPlateMode||p.medicalPlan||(can.medicalCompliance&&p.medicalAllergies?.length>0));const active=qualifying.length>0?qualifying:familyProfiles.slice(0,1);setPlateStep(0);setPlateComponents([]);setPlateCumulativeG(0);setPlateSessionId(Date.now().toString());setPlateCoachNote("");setShowPlateSummary(false);setScaleCalcResult(null);setScaleError("");if(active.length===1){const activeP=active[0];setPlateSession({active:true,memberName:activeP.name||"",mealName:day.meal,mealDay:day.day,activeProfile:activeP});setPlatePendingMeal(null);setPlateQualifyingMembers([]);}else{setPlatePendingMeal(day);setPlateQualifyingMembers(active);setPlateSession({active:true,memberName:"",mealName:day.meal,mealDay:day.day,activeProfile:null});}setShowScaleModal(true);}} style={{background:"#10b98122",border:"1px solid #10b981",borderRadius:seniorMode?10:6,color:"#10b981",cursor:"pointer",fontFamily:FM,fontSize:seniorMode?16:11,padding:seniorMode?"10px 16px":"6px 12px",flexShrink:0,fontWeight:600}} disabled={isViewer}>ðŸ½ Build Plate</button>)}
-                        <button onClick={()=>setPhotoPromptMeal(day.meal)} style={{background:"transparent",border:"1px solid "+C.border,borderRadius:seniorMode?10:6,color:C.muted,cursor:"pointer",fontFamily:FM,fontSize:seniorMode?16:12,padding:seniorMode?"10px 14px":"8px 12px",flexShrink:0}} title="Add photo" disabled={isViewer}>ðŸ“¸ {mealPhotos[day.meal]?"Change":"Photo"}</button>
-                        <button onClick={()=>{setChangeMealModal(i);setChangeMealRequest("");}} style={{background:"transparent",border:"1px solid "+C.border,borderRadius:seniorMode?10:4,color:C.muted,fontFamily:FM,fontSize:seniorMode?18:11,padding:seniorMode?"12px 20px":"8px 14px",cursor:"pointer",flexShrink:0}} disabled={isViewer}>ðŸ”„ Change Meal</button>
-                        <button onClick={()=>{setShowOccasionPlanner(true);setOccasionStep("form");setOccasionResult(null);setOccasionDate("");}} style={{background:"transparent",border:"1px solid "+C.accent,borderRadius:seniorMode?10:4,color:C.accent,fontFamily:FM,fontSize:seniorMode?18:11,padding:seniorMode?"12px 20px":"8px 14px",cursor:"pointer",flexShrink:0}}>ðŸŽ‰ Occasion</button>
-                        <button onClick={()=>{setPairDrinkMeal(day);setPairDrinkResult(null);setPairDrinkCellar(null);setPairDrinkCellarLoading(false);}} style={{background:"transparent",border:"1px solid #7c3aed44",borderRadius:seniorMode?10:4,color:"#7c3aed",fontFamily:FM,fontSize:seniorMode?18:11,padding:seniorMode?"12px 20px":"8px 14px",cursor:"pointer",flexShrink:0}}>ðŸ· Pair a Drink</button>
-                        <button onClick={()=>{const today=new Date();const daysToMon=today.getDay()===0?1:8-today.getDay();const monday=new Date(today);monday.setDate(today.getDate()+daysToMon);const offsets={Monday:0,Tuesday:1,Wednesday:2,Thursday:3,Friday:4,Saturday:5,Sunday:6};const d=new Date(monday);d.setDate(monday.getDate()+(offsets[day.day]??0));const dateStr=d.toISOString().split("T")[0].replace(/-/g,"");const desc=[day.proteinUsed?"Protein: "+day.proteinUsed:"",day.sideUsed?"Side: "+day.sideUsed:"",(day.shoppingNeeded||[]).length>0?"Need: "+day.shoppingNeeded.map(s=>s.name).join(", "):"All on hand"].filter(Boolean).join(" | ");window.open("https://calendar.google.com/calendar/render?action=TEMPLATE&text="+encodeURIComponent("Dinner: "+day.meal)+"&dates="+dateStr+"/"+dateStr+"&details="+encodeURIComponent(desc),"_blank");}} style={{background:"transparent",border:"1px solid #5b9cf6",borderRadius:4,color:"#5b9cf6",fontFamily:FM,fontSize:seniorMode?14:11,padding:"8px 14px",cursor:"pointer",flexShrink:0}} disabled={isViewer}>ðŸ“… Add to Calendar</button>
+                          ?<span style={bTag(C.green)}>✅ Ready</span>
+                          :<div style={{width:"100%",marginBottom:4}}><div style={{fontSize:9,color:C.muted,marginBottom:3,fontFamily:FM}}>NEED</div>{(day.shoppingNeeded||[]).map((s,j)=><div key={j} style={{fontSize:seniorMode?15:13,color:C.red,marginBottom:2}}>· {s.qty} {s.unit} {s.name}</div>)}</div>}
+                        <button onClick={()=>madeMeal(day)} style={{background:"#3ecf8e22",border:"1px solid #3ecf8e44",borderRadius:seniorMode?10:6,color:"#3ecf8e",cursor:"pointer",fontFamily:FM,fontSize:seniorMode?18:11,padding:seniorMode?"12px 20px":"8px 14px",flexShrink:0,fontWeight:seniorMode?700:400}} disabled={isViewer}>✅ Made It!</button>
+                        {familyProfiles.some(p=>p.guidedPlateMode)&&(<button onClick={()=>{const qualifying=familyProfiles.filter(p=>p.guidedPlateMode||p.medicalPlan||(can.medicalCompliance&&p.medicalAllergies?.length>0));const active=qualifying.length>0?qualifying:familyProfiles.slice(0,1);setPlateStep(0);setPlateComponents([]);setPlateCumulativeG(0);setPlateSessionId(Date.now().toString());setPlateCoachNote("");setShowPlateSummary(false);setScaleCalcResult(null);setScaleError("");if(active.length===1){const activeP=active[0];setPlateSession({active:true,memberName:activeP.name||"",mealName:day.meal,mealDay:day.day,activeProfile:activeP});setPlatePendingMeal(null);setPlateQualifyingMembers([]);}else{setPlatePendingMeal(day);setPlateQualifyingMembers(active);setPlateSession({active:true,memberName:"",mealName:day.meal,mealDay:day.day,activeProfile:null});}setShowScaleModal(true);}} style={{background:"#10b98122",border:"1px solid #10b981",borderRadius:seniorMode?10:6,color:"#10b981",cursor:"pointer",fontFamily:FM,fontSize:seniorMode?16:11,padding:seniorMode?"10px 16px":"6px 12px",flexShrink:0,fontWeight:600}} disabled={isViewer}>🍽 Build Plate</button>)}
+                        <button onClick={()=>setPhotoPromptMeal(day.meal)} style={{background:"transparent",border:"1px solid "+C.border,borderRadius:seniorMode?10:6,color:C.muted,cursor:"pointer",fontFamily:FM,fontSize:seniorMode?16:12,padding:seniorMode?"10px 14px":"8px 12px",flexShrink:0}} title="Add photo" disabled={isViewer}>📸 {mealPhotos[day.meal]?"Change":"Photo"}</button>
+                        <button onClick={()=>{setChangeMealModal(i);setChangeMealRequest("");}} style={{background:"transparent",border:"1px solid "+C.border,borderRadius:seniorMode?10:4,color:C.muted,fontFamily:FM,fontSize:seniorMode?18:11,padding:seniorMode?"12px 20px":"8px 14px",cursor:"pointer",flexShrink:0}} disabled={isViewer}>🔄 Change Meal</button>
+                        <button onClick={()=>{setShowOccasionPlanner(true);setOccasionStep("form");setOccasionResult(null);setOccasionDate("");}} style={{background:"transparent",border:"1px solid "+C.accent,borderRadius:seniorMode?10:4,color:C.accent,fontFamily:FM,fontSize:seniorMode?18:11,padding:seniorMode?"12px 20px":"8px 14px",cursor:"pointer",flexShrink:0}}>🎉 Occasion</button>
+                        <button onClick={()=>{setPairDrinkMeal(day);setPairDrinkResult(null);setPairDrinkCellar(null);setPairDrinkCellarLoading(false);}} style={{background:"transparent",border:"1px solid #7c3aed44",borderRadius:seniorMode?10:4,color:"#7c3aed",fontFamily:FM,fontSize:seniorMode?18:11,padding:seniorMode?"12px 20px":"8px 14px",cursor:"pointer",flexShrink:0}}>🍷 Pair a Drink</button>
+                        <button onClick={()=>{const today=new Date();const daysToMon=today.getDay()===0?1:8-today.getDay();const monday=new Date(today);monday.setDate(today.getDate()+daysToMon);const offsets={Monday:0,Tuesday:1,Wednesday:2,Thursday:3,Friday:4,Saturday:5,Sunday:6};const d=new Date(monday);d.setDate(monday.getDate()+(offsets[day.day]??0));const dateStr=d.toISOString().split("T")[0].replace(/-/g,"");const desc=[day.proteinUsed?"Protein: "+day.proteinUsed:"",day.sideUsed?"Side: "+day.sideUsed:"",(day.shoppingNeeded||[]).length>0?"Need: "+day.shoppingNeeded.map(s=>s.name).join(", "):"All on hand"].filter(Boolean).join(" | ");window.open("https://calendar.google.com/calendar/render?action=TEMPLATE&text="+encodeURIComponent("Dinner: "+day.meal)+"&dates="+dateStr+"/"+dateStr+"&details="+encodeURIComponent(desc),"_blank");}} style={{background:"transparent",border:"1px solid #5b9cf6",borderRadius:4,color:"#5b9cf6",fontFamily:FM,fontSize:seniorMode?14:11,padding:"8px 14px",cursor:"pointer",flexShrink:0}} disabled={isViewer}>📅 Add to Calendar</button>
                       </div>
                       </div>
                     </div>
@@ -3225,11 +3225,11 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
           </div>
         )}
 
-        {pairDrinkMeal&&<div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.7)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}><div style={{background:C.card,borderRadius:16,padding:24,maxWidth:520,width:"100%",maxHeight:"85vh",overflowY:"auto",boxShadow:"0 20px 60px rgba(0,0,0,0.5)"}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}}><div><div style={{fontFamily:FD,fontSize:22,color:"#7c3aed",fontWeight:700,marginBottom:4}}>ðŸ· Pair a Drink</div><div style={{fontFamily:FM,fontSize:12,color:C.muted}}>{pairDrinkMeal.meal}</div></div><button onClick={()=>{setPairDrinkMeal(null);setPairDrinkResult(null);setPairDrinkLoading(false);setPairDrinkCellar(null);setPairDrinkCellarLoading(false);}} style={{background:"transparent",border:"none",color:C.muted,fontSize:22,cursor:"pointer",lineHeight:1}}>X</button></div>{/* Smart Cellar live inventory pull */}
+        {pairDrinkMeal&&<div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.7)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}><div style={{background:C.card,borderRadius:16,padding:24,maxWidth:520,width:"100%",maxHeight:"85vh",overflowY:"auto",boxShadow:"0 20px 60px rgba(0,0,0,0.5)"}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}}><div><div style={{fontFamily:FD,fontSize:22,color:"#7c3aed",fontWeight:700,marginBottom:4}}>🍷 Pair a Drink</div><div style={{fontFamily:FM,fontSize:12,color:C.muted}}>{pairDrinkMeal.meal}</div></div><button onClick={()=>{setPairDrinkMeal(null);setPairDrinkResult(null);setPairDrinkLoading(false);setPairDrinkCellar(null);setPairDrinkCellarLoading(false);}} style={{background:"transparent",border:"none",color:C.muted,fontSize:22,cursor:"pointer",lineHeight:1}}>X</button></div>{/* Smart Cellar live inventory pull */}
 <div style={{marginBottom:14}}>
   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
     <div style={{fontFamily:FM,fontSize:12,fontWeight:600,color:C.text}}>
-      ðŸ¾ Smart Cellar Inventory
+      🍾 Smart Cellar Inventory
     </div>
     <button
       onClick={async()=>{
@@ -3250,13 +3250,13 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
         setPairDrinkCellarLoading(false);
       }}
       style={{background:"#7c3aed22",border:"1px solid #7c3aed66",borderRadius:8,color:"#7c3aed",fontFamily:FM,fontSize:11,fontWeight:700,padding:"5px 12px",cursor:"pointer"}}>
-      {pairDrinkCellarLoading?"Loadingâ€¦":"âŸ³ Pull from Smart Cellar"}
+      {pairDrinkCellarLoading?"Loading…":"⟳ Pull from Smart Cellar"}
     </button>
   </div>
   {/* Not loaded yet */}
   {!pairDrinkCellar&&(
     <div style={{background:C.surface,border:"1px dashed #7c3aed44",borderRadius:8,padding:"14px 12px",fontFamily:FM,fontSize:11,color:C.muted,lineHeight:1.6,textAlign:"center"}}>
-      <div style={{fontSize:22,marginBottom:6}}>ðŸ·</div>
+      <div style={{fontSize:22,marginBottom:6}}>🍷</div>
       Tap <strong style={{color:"#7c3aed"}}>Pull from Smart Cellar</strong> to load your bottle inventory,<br/>or skip to get a general style recommendation.
     </div>
   )}
@@ -3289,26 +3289,26 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
 </div><div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16}}><div style={{fontFamily:FM,fontSize:11,color:C.muted,width:"100%",marginBottom:2}}>Preference (optional)</div>{["Wine","Beer","Spirits","Non-Alcoholic"].map(p=><button key={p} id={"pref-"+p} onClick={()=>{document.querySelectorAll("[id^=pref-]").forEach(b=>b.style.background="transparent");document.getElementById("pref-"+p).style.background="#7c3aed22";}} style={{background:"transparent",border:"1px solid #7c3aed44",borderRadius:20,color:"#7c3aed",fontFamily:FM,fontSize:11,padding:"5px 12px",cursor:"pointer"}}>{p}</button>)}</div><button onClick={async()=>{const inv=Array.isArray(pairDrinkCellar)&&pairDrinkCellar.length>0
   ?pairDrinkCellar.map(b=>`${b.name} (${b.category}${b.remaining_pct?", "+Math.round(b.remaining_pct)+"% remaining":""}${b.sweetness?", "+b.sweetness:""}${b.vintage?", "+b.vintage:""})`).join("\n")
   :"";
-const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElementById("pref-"+p)?.style.background.includes("7c3aed22"))||"";setPairDrinkLoading(true);setPairDrinkResult(null);try{const resp=await callAI({system:"You are a sommelier and beverage pairing expert. The user will give you a meal name, optional cellar/bar inventory, and an optional preference. Recommend the best pairing from their inventory if provided, or suggest a type if inventory is empty. Be specific, warm, and brief. Format: lead with the specific bottle or drink name in bold, then 2-3 sentences on why it works with this meal. If inventory is provided, always pick from it. If nothing in inventory fits well, say so and suggest what to look for.",prompt:"Meal: "+pairDrinkMeal.meal+(pairDrinkMeal.proteinUsed?". Protein: "+pairDrinkMeal.proteinUsed:"")+(pairDrinkMeal.sideUsed?". Side: "+pairDrinkMeal.sideUsed:"")+(inv?"\n\nCellar inventory:\n"+inv:"\n\nNo inventory provided — suggest a style.")+(pref?"\n\nPreference: "+pref:""),maxTokens:300});setPairDrinkResult(typeof resp==="string"?resp:resp?.content?.[0]?.text||"No recommendation returned.");}catch(e){setPairDrinkResult("Unable to get recommendation. Please try again.");}finally{setPairDrinkLoading(false);}}} disabled={pairDrinkLoading} style={{width:"100%",background:pairDrinkLoading?"#7c3aed44":"#7c3aed",border:"none",borderRadius:10,color:"#fff",fontFamily:FM,fontWeight:700,fontSize:seniorMode?16:13,padding:seniorMode?"14px":"11px 16px",cursor:pairDrinkLoading?"not-allowed":"pointer",marginBottom:14}}>{pairDrinkLoading?"â³ Finding your pairing...":"ðŸ· Get Pairing Recommendation"}</button>{pairDrinkResult&&<div style={{background:"#7c3aed11",border:"1px solid #7c3aed33",borderRadius:10,padding:16,fontFamily:FM,fontSize:seniorMode?15:13,color:C.text,lineHeight:1.6,whiteSpace:"pre-wrap"}}>{pairDrinkResult}</div>}</div></div>}
+const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElementById("pref-"+p)?.style.background.includes("7c3aed22"))||"";setPairDrinkLoading(true);setPairDrinkResult(null);try{const resp=await callAI({system:"You are a sommelier and beverage pairing expert. The user will give you a meal name, optional cellar/bar inventory, and an optional preference. Recommend the best pairing from their inventory if provided, or suggest a type if inventory is empty. Be specific, warm, and brief. Format: lead with the specific bottle or drink name in bold, then 2-3 sentences on why it works with this meal. If inventory is provided, always pick from it. If nothing in inventory fits well, say so and suggest what to look for.",prompt:"Meal: "+pairDrinkMeal.meal+(pairDrinkMeal.proteinUsed?". Protein: "+pairDrinkMeal.proteinUsed:"")+(pairDrinkMeal.sideUsed?". Side: "+pairDrinkMeal.sideUsed:"")+(inv?"\n\nCellar inventory:\n"+inv:"\n\nNo inventory provided — suggest a style.")+(pref?"\n\nPreference: "+pref:""),maxTokens:300});setPairDrinkResult(typeof resp==="string"?resp:resp?.content?.[0]?.text||"No recommendation returned.");}catch(e){setPairDrinkResult("Unable to get recommendation. Please try again.");}finally{setPairDrinkLoading(false);}}} disabled={pairDrinkLoading} style={{width:"100%",background:pairDrinkLoading?"#7c3aed44":"#7c3aed",border:"none",borderRadius:10,color:"#fff",fontFamily:FM,fontWeight:700,fontSize:seniorMode?16:13,padding:seniorMode?"14px":"11px 16px",cursor:pairDrinkLoading?"not-allowed":"pointer",marginBottom:14}}>{pairDrinkLoading?"⏳ Finding your pairing...":"🍷 Get Pairing Recommendation"}</button>{pairDrinkResult&&<div style={{background:"#7c3aed11",border:"1px solid #7c3aed33",borderRadius:10,padding:16,fontFamily:FM,fontSize:seniorMode?15:13,color:C.text,lineHeight:1.6,whiteSpace:"pre-wrap"}}>{pairDrinkResult}</div>}</div></div>}
 
         {changeMealModal!==null&&<div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.7)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setChangeMealModal(null)}><div style={{background:C.card,borderRadius:12,padding:24,width:360,maxWidth:"90vw"}} onClick={e=>e.stopPropagation()}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-          <div style={{fontFamily:FD,fontSize:18,fontWeight:700,color:C.text}}>ðŸ”„ Change {mealPlan[changeMealModal]?.day} Meal</div>
-          <button onClick={()=>setShowOccasionPlanner(true)} style={{background:"transparent",border:"1px solid "+C.accent,borderRadius:16,color:C.accent,fontFamily:FM,fontSize:11,cursor:"pointer",padding:"5px 10px"}}>ðŸŽ‰ {occasionState.eventType?OCCASION_EVENT_TYPES.find(e=>e.key===occasionState.eventType)?.label:"Occasion"}</button>
-        </div><div style={{marginBottom:16}}><button onClick={async()=>{setChangeMealLoading(true);try{const h=JSON.parse(localStorage.getItem("sk_changeMealHistory")||"[]");const d=mealPlan[changeMealModal];if(d){h.push({meal:d.meal,protein:d.proteinUsed||null,day:d.day,ts:Date.now()});localStorage.setItem("sk_changeMealHistory",JSON.stringify(h.slice(-100)));}}catch{} const day=mealPlan[changeMealModal];const prompt=`${buildOccasionContext(occasionState)}Suggest a different dinner meal for ${day.day}. Current meal was: ${day.meal}. INVENTORY (items already owned — do NOT put these in needToBuy): ${inventory.map(i=>String(i.name||"")).filter(Boolean).join(", ")}. STRICT RULE: needToBuy must contain ONLY ingredients required for this meal that are NOT in the inventory list above. If an ingredient appears in inventory, it must NOT appear in needToBuy. Cross-check every needToBuy item against inventory before returning. Return JSON: {meal,ingredients:[],needToBuy:[],proteinUsed:"",sauteBagsUsed:0,quickMeal:false}.`;const res=await callClaude({system:"Meal planning AI. Return ONLY valid JSON, no markdown.",prompt,maxTokens:600});try{console.log("changeMeal res:",JSON.stringify(res));const resText=typeof res==="string"?res:Array.isArray(res)?res.map(r=>r.text||"").join(""):res?.content?.[0]?.text||res?.[0]?.text||"";const raw=resText.replace(/```json|```/g,"").trim();console.log("raw:",raw);const s=raw.indexOf("{"),e=raw.lastIndexOf("}");const parsed=JSON.parse(raw.slice(s,e+1));setMealPlan(p=>p.map((d,i)=>i===changeMealModal?{...d,...parsed,needToBuy:parsed.needToBuy||[],shoppingNeeded:(parsed.needToBuy||[]).map(n=>typeof n==="string"?{qty:1,unit:"",name:n}:n),ingredients:parsed.ingredients||[]}:d));setExpandedIngDay(null);setChangeMealModal(null);}catch(err){console.error("Parse error:",err);alert("Could not parse meal suggestion");}setChangeMealLoading(false);}} style={{width:"100%",padding:seniorMode?"14px":"10px",background:C.accent,border:"none",borderRadius:8,color:"#000",fontFamily:FM,fontSize:seniorMode?16:13,fontWeight:600,cursor:"pointer",marginBottom:10}}>âœ¨ {changeMealLoading?"Thinking...":"Surprise Me"}</button><div style={{fontFamily:FM,fontSize:12,color:C.muted,marginBottom:8}}>— or request a specific meal —</div><input style={{width:"100%",padding:"8px",background:C.surface,border:"1px solid "+C.border,borderRadius:6,color:C.text,fontFamily:FM,fontSize:13,boxSizing:"border-box",marginBottom:10}} placeholder='e.g. "Goulash"' value={changeMealRequest} onChange={e=>setChangeMealRequest(e.target.value)} onClick={e=>e.stopPropagation()} onFocus={e=>e.stopPropagation()} /><button onClick={async()=>{if(!changeMealRequest.trim())return;setChangeMealLoading(true);try{const h=JSON.parse(localStorage.getItem("sk_changeMealHistory")||"[]");const d=mealPlan[changeMealModal];if(d){h.push({meal:d.meal,protein:d.proteinUsed||null,day:d.day,ts:Date.now()});localStorage.setItem("sk_changeMealHistory",JSON.stringify(h.slice(-100)));}}catch{} const day=mealPlan[changeMealModal];const prompt=`Create a dinner meal for ${day.day} using "${changeMealRequest}". INVENTORY (items already owned — do NOT put these in needToBuy): ${inventory.map(i=>String(i.name||"")).filter(Boolean).join(", ")}. STRICT RULE: needToBuy must contain ONLY ingredients required for this meal that are NOT in the inventory list above. If an ingredient appears in inventory, it must NOT appear in needToBuy. Cross-check every needToBuy item against inventory before returning. Return JSON: {meal,ingredients:[],needToBuy:[],proteinUsed:"",sauteBagsUsed:0,quickMeal:false}.`;const res=await callClaude({system:"Meal planning AI. Return ONLY valid JSON, no markdown.",prompt,maxTokens:600});try{const resText3=typeof res==="string"?res:Array.isArray(res)?res.map(r=>r.text||"").join(""):res?.content?.[0]?.text||res?.[0]?.text||"";const raw=resText3;const s=raw.indexOf("{"),e=raw.lastIndexOf("}");const parsed=JSON.parse(raw.slice(s,e+1));setMealPlan(p=>p.map((d,i)=>i===changeMealModal?{...d,...parsed,needToBuy:parsed.needToBuy||[],shoppingNeeded:(parsed.needToBuy||[]).map(n=>typeof n==="string"?{qty:1,unit:"",name:n}:n),ingredients:parsed.ingredients||[]}:d));setExpandedIngDay(null);setChangeMealModal(null);}catch(e){alert("Could not parse meal suggestion");}setChangeMealLoading(false);}} style={{width:"100%",padding:"10px",background:"transparent",border:"1px solid "+C.accent,borderRadius:8,color:C.accent,fontFamily:FM,fontSize:13,cursor:"pointer"}}>ðŸ½ {changeMealLoading?"Thinking...":"Make This Meal"}</button></div><button onClick={()=>setChangeMealModal(null)} style={{width:"100%",padding:"8px",background:"transparent",border:"none",color:C.muted,fontFamily:FM,fontSize:12,cursor:"pointer"}}>Cancel</button></div></div>}
+          <div style={{fontFamily:FD,fontSize:18,fontWeight:700,color:C.text}}>🔄 Change {mealPlan[changeMealModal]?.day} Meal</div>
+          <button onClick={()=>setShowOccasionPlanner(true)} style={{background:"transparent",border:"1px solid "+C.accent,borderRadius:16,color:C.accent,fontFamily:FM,fontSize:11,cursor:"pointer",padding:"5px 10px"}}>🎉 {occasionState.eventType?OCCASION_EVENT_TYPES.find(e=>e.key===occasionState.eventType)?.label:"Occasion"}</button>
+        </div><div style={{marginBottom:16}}><button onClick={async()=>{setChangeMealLoading(true);try{const h=JSON.parse(localStorage.getItem("sk_changeMealHistory")||"[]");const d=mealPlan[changeMealModal];if(d){h.push({meal:d.meal,protein:d.proteinUsed||null,day:d.day,ts:Date.now()});localStorage.setItem("sk_changeMealHistory",JSON.stringify(h.slice(-100)));}}catch{} const day=mealPlan[changeMealModal];const prompt=`${buildOccasionContext(occasionState)}Suggest a different dinner meal for ${day.day}. Current meal was: ${day.meal}. INVENTORY (items already owned — do NOT put these in needToBuy): ${inventory.map(i=>String(i.name||"")).filter(Boolean).join(", ")}. STRICT RULE: needToBuy must contain ONLY ingredients required for this meal that are NOT in the inventory list above. If an ingredient appears in inventory, it must NOT appear in needToBuy. Cross-check every needToBuy item against inventory before returning. Return JSON: {meal,ingredients:[],needToBuy:[],proteinUsed:"",sauteBagsUsed:0,quickMeal:false}.`;const res=await callClaude({system:"Meal planning AI. Return ONLY valid JSON, no markdown.",prompt,maxTokens:600});try{console.log("changeMeal res:",JSON.stringify(res));const resText=typeof res==="string"?res:Array.isArray(res)?res.map(r=>r.text||"").join(""):res?.content?.[0]?.text||res?.[0]?.text||"";const raw=resText.replace(/```json|```/g,"").trim();console.log("raw:",raw);const s=raw.indexOf("{"),e=raw.lastIndexOf("}");const parsed=JSON.parse(raw.slice(s,e+1));setMealPlan(p=>p.map((d,i)=>i===changeMealModal?{...d,...parsed,needToBuy:parsed.needToBuy||[],shoppingNeeded:(parsed.needToBuy||[]).map(n=>typeof n==="string"?{qty:1,unit:"",name:n}:n),ingredients:parsed.ingredients||[]}:d));setExpandedIngDay(null);setChangeMealModal(null);}catch(err){console.error("Parse error:",err);alert("Could not parse meal suggestion");}setChangeMealLoading(false);}} style={{width:"100%",padding:seniorMode?"14px":"10px",background:C.accent,border:"none",borderRadius:8,color:"#000",fontFamily:FM,fontSize:seniorMode?16:13,fontWeight:600,cursor:"pointer",marginBottom:10}}>✨ {changeMealLoading?"Thinking...":"Surprise Me"}</button><div style={{fontFamily:FM,fontSize:12,color:C.muted,marginBottom:8}}>— or request a specific meal —</div><input style={{width:"100%",padding:"8px",background:C.surface,border:"1px solid "+C.border,borderRadius:6,color:C.text,fontFamily:FM,fontSize:13,boxSizing:"border-box",marginBottom:10}} placeholder='e.g. "Goulash"' value={changeMealRequest} onChange={e=>setChangeMealRequest(e.target.value)} onClick={e=>e.stopPropagation()} onFocus={e=>e.stopPropagation()} /><button onClick={async()=>{if(!changeMealRequest.trim())return;setChangeMealLoading(true);try{const h=JSON.parse(localStorage.getItem("sk_changeMealHistory")||"[]");const d=mealPlan[changeMealModal];if(d){h.push({meal:d.meal,protein:d.proteinUsed||null,day:d.day,ts:Date.now()});localStorage.setItem("sk_changeMealHistory",JSON.stringify(h.slice(-100)));}}catch{} const day=mealPlan[changeMealModal];const prompt=`Create a dinner meal for ${day.day} using "${changeMealRequest}". INVENTORY (items already owned — do NOT put these in needToBuy): ${inventory.map(i=>String(i.name||"")).filter(Boolean).join(", ")}. STRICT RULE: needToBuy must contain ONLY ingredients required for this meal that are NOT in the inventory list above. If an ingredient appears in inventory, it must NOT appear in needToBuy. Cross-check every needToBuy item against inventory before returning. Return JSON: {meal,ingredients:[],needToBuy:[],proteinUsed:"",sauteBagsUsed:0,quickMeal:false}.`;const res=await callClaude({system:"Meal planning AI. Return ONLY valid JSON, no markdown.",prompt,maxTokens:600});try{const resText3=typeof res==="string"?res:Array.isArray(res)?res.map(r=>r.text||"").join(""):res?.content?.[0]?.text||res?.[0]?.text||"";const raw=resText3;const s=raw.indexOf("{"),e=raw.lastIndexOf("}");const parsed=JSON.parse(raw.slice(s,e+1));setMealPlan(p=>p.map((d,i)=>i===changeMealModal?{...d,...parsed,needToBuy:parsed.needToBuy||[],shoppingNeeded:(parsed.needToBuy||[]).map(n=>typeof n==="string"?{qty:1,unit:"",name:n}:n),ingredients:parsed.ingredients||[]}:d));setExpandedIngDay(null);setChangeMealModal(null);}catch(e){alert("Could not parse meal suggestion");}setChangeMealLoading(false);}} style={{width:"100%",padding:"10px",background:"transparent",border:"1px solid "+C.accent,borderRadius:8,color:C.accent,fontFamily:FM,fontSize:13,cursor:"pointer"}}>🍽 {changeMealLoading?"Thinking...":"Make This Meal"}</button></div><button onClick={()=>setChangeMealModal(null)} style={{width:"100%",padding:"8px",background:"transparent",border:"none",color:C.muted,fontFamily:FM,fontSize:12,cursor:"pointer"}}>Cancel</button></div></div>}
 {/* == SHOPPING == */}
         {!loading&&tab==="shopping"&&(
           <div>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
               <div style={{fontFamily:FD,fontSize:24}}>Shopping List</div>
               <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                {shopping.length>0&&<><div style={{fontFamily:FM,fontSize:seniorMode?15:11,color:C.muted,fontWeight:seniorMode?600:400}}>{shopping.filter(i=>i.checked).length}/{shopping.length} items</div><button style={{...bBtn("ghost"),padding:"6px 12px",fontSize:11}} onClick={printShopping}>ðŸ–¨ Print</button>{shopPartnerEmail&&<button style={{...bBtn("ghost"),padding:"6px 12px",fontSize:11}} onClick={async()=>{const btn=document.activeElement;btn.textContent="Sending...";btn.disabled=true;try{const r=await fetch("/api/send-shopping-list",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({toEmail:shopPartnerEmail,toName:shopPartnerName,items:shopping,fromName:"Smart Kitchen"})});const d=await r.json();if(d.success){setEmailSentModal(shopPartnerEmail);}else if(d.fallback){window.location.href=d.mailtoUrl;}else{alert("Could not send email. Please try again.");}}catch(e){alert("Could not send email: "+e.message);}btn.textContent="Email to "+(shopPartnerName||shopPartnerEmail);btn.disabled=false;}}>Email to {shopPartnerName||shopPartnerEmail}</button>}{shopPhone&&<button style={{...bBtn("ghost"),padding:"6px 12px",fontSize:11,border:"1px solid #22c55e",color:"#22c55e"}} onClick={async()=>{setSmsSent(false);try{const r=await fetch("/api/send-shopping-sms",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({toPhone:shopPhone,items:shopping,fromName:shopPartnerName||"Smart Kitchen"})});const d=await r.json();if(d.success){setSmsSent(true);setTimeout(()=>setSmsSent(false),4000);}else if(d.fallback&&d.smsUrl){window.open(d.smsUrl);}else{alert("Could not send SMS. Please try again.");}}catch(e){alert("Could not send SMS: "+e.message);}}}>{smsSent?"Sent!":"Text to "+shopPhone}</button>}<button style={{...bBtn("ghost"),padding:"6px 12px",fontSize:11,background:"#00873A",border:"1px solid #00873A",color:"#ffffff",fontWeight:600}} onClick={sendToDelivery} disabled={instacartLoading}>{instacartLoading?"Opening...":"ðŸ›’ "+(deliveryService==="shipt"?"Send to Shipt":"Send to Instacart")}</button>{restockQueue.length>0&&<button style={{...bBtn("ghost"),padding:"6px 12px",fontSize:11,border:"1px solid "+C.accent,color:C.accent}} onClick={()=>{const toAdd=restockQueue.filter(name=>!shopping.some(s=>s.name.toLowerCase()===name.toLowerCase())).map(name=>({name,qty:1,unit:"",category:"Pantry",checked:false,suggestBulk:false}));if(toAdd.length>0){setShopping(p=>[...p,...toAdd]);alert(toAdd.length+" item"+(toAdd.length>1?"s":"")+" added to shopping list.");}else{alert("All restock items are already on the list.");}  }}>+ {restockQueue.length} Restock</button>}</>}
+                {shopping.length>0&&<><div style={{fontFamily:FM,fontSize:seniorMode?15:11,color:C.muted,fontWeight:seniorMode?600:400}}>{shopping.filter(i=>i.checked).length}/{shopping.length} items</div><button style={{...bBtn("ghost"),padding:"6px 12px",fontSize:11}} onClick={printShopping}>🖨 Print</button>{shopPartnerEmail&&<button style={{...bBtn("ghost"),padding:"6px 12px",fontSize:11}} onClick={async()=>{const btn=document.activeElement;btn.textContent="Sending...";btn.disabled=true;try{const r=await fetch("/api/send-shopping-list",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({toEmail:shopPartnerEmail,toName:shopPartnerName,items:shopping,fromName:"Smart Kitchen"})});const d=await r.json();if(d.success){setEmailSentModal(shopPartnerEmail);}else if(d.fallback){window.location.href=d.mailtoUrl;}else{alert("Could not send email. Please try again.");}}catch(e){alert("Could not send email: "+e.message);}btn.textContent="Email to "+(shopPartnerName||shopPartnerEmail);btn.disabled=false;}}>Email to {shopPartnerName||shopPartnerEmail}</button>}{shopPhone&&<button style={{...bBtn("ghost"),padding:"6px 12px",fontSize:11,border:"1px solid #22c55e",color:"#22c55e"}} onClick={async()=>{setSmsSent(false);try{const r=await fetch("/api/send-shopping-sms",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({toPhone:shopPhone,items:shopping,fromName:shopPartnerName||"Smart Kitchen"})});const d=await r.json();if(d.success){setSmsSent(true);setTimeout(()=>setSmsSent(false),4000);}else if(d.fallback&&d.smsUrl){window.open(d.smsUrl);}else{alert("Could not send SMS. Please try again.");}}catch(e){alert("Could not send SMS: "+e.message);}}}>{smsSent?"Sent!":"Text to "+shopPhone}</button>}<button style={{...bBtn("ghost"),padding:"6px 12px",fontSize:11,background:"#00873A",border:"1px solid #00873A",color:"#ffffff",fontWeight:600}} onClick={sendToDelivery} disabled={instacartLoading}>{instacartLoading?"Opening...":"🛒 "+(deliveryService==="shipt"?"Send to Shipt":"Send to Instacart")}</button>{restockQueue.length>0&&<button style={{...bBtn("ghost"),padding:"6px 12px",fontSize:11,border:"1px solid "+C.accent,color:C.accent}} onClick={()=>{const toAdd=restockQueue.filter(name=>!shopping.some(s=>s.name.toLowerCase()===name.toLowerCase())).map(name=>({name,qty:1,unit:"",category:"Pantry",checked:false,suggestBulk:false}));if(toAdd.length>0){setShopping(p=>[...p,...toAdd]);alert(toAdd.length+" item"+(toAdd.length>1?"s":"")+" added to shopping list.");}else{alert("All restock items are already on the list.");}  }}>+ {restockQueue.length} Restock</button>}</>}
               </div>
             </div>
             {shopping.length===0?(
               <div style={{textAlign:"center",padding:60}}>
-                <div style={{fontFamily:FD,fontSize:48,color:C.accent,marginBottom:16}}>ðŸ›’</div>
+                <div style={{fontFamily:FD,fontSize:48,color:C.accent,marginBottom:16}}>🛒</div>
                 <div style={{color:C.muted,marginBottom:20}}>{mealPlan.length===0?"Build a meal plan first":"Generate your list from the meal plan"}</div>
-                {mealPlan.length>0?<button style={bBtn("primary")} onClick={genShopping}>ðŸ›’ Generate</button>:<button style={bBtn("ghost")} onClick={()=>setTab("mealplan")}>â†’ Meal Plan</button>}
+                {mealPlan.length>0?<button style={bBtn("primary")} onClick={genShopping}>🛒 Generate</button>:<button style={bBtn("ghost")} onClick={()=>setTab("mealplan")}>→ Meal Plan</button>}
               </div>
             ):(
               <div>
@@ -3322,9 +3322,9 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                       return(
                         <div key={gi} onClick={()=>setShopping(p=>p.map((si,sii)=>sii===gi?{...si,checked:!si.checked}:si))}
                           style={{background:C.card,border:"1px solid "+C.border,borderRadius:10,padding:seniorMode?"16px 18px":"10px 14px",marginBottom:seniorMode?10:6,display:"flex",alignItems:"center",gap:12,cursor:"pointer",opacity:item.checked?0.45:1,transition:"opacity 0.2s"}}>
-                          <div style={{width:seniorMode?28:18,height:seniorMode?28:18,borderRadius:4,border:"2px solid "+(item.checked?C.green:C.border),background:item.checked?C.green:"transparent",display:"flex",alignItems:"center",justifyContent:"center",fontSize:seniorMode?16:11,flexShrink:0}}>{item.checked&&"âœ“"}</div>
+                          <div style={{width:seniorMode?28:18,height:seniorMode?28:18,borderRadius:4,border:"2px solid "+(item.checked?C.green:C.border),background:item.checked?C.green:"transparent",display:"flex",alignItems:"center",justifyContent:"center",fontSize:seniorMode?16:11,flexShrink:0}}>{item.checked&&"✓"}</div>
                           <div style={{flex:1,fontSize:seniorMode?18:13,fontWeight:seniorMode?600:400,lineHeight:1.4,textDecoration:item.checked?"line-through":"none"}}>{item.name}</div>
-                          {item.suggestBulk&&<span style={bTag(C.orange)}>ðŸ“¦ bulk</span>}
+                          {item.suggestBulk&&<span style={bTag(C.orange)}>📦 bulk</span>}
                           <div style={{fontFamily:FM,fontSize:12,color:C.muted}}>{item.qty} {item.unit}</div>
                         </div>
                       );
@@ -3335,8 +3335,8 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                   const checked=shopping.filter(i=>i.checked);
                   setInventory(prev=>{const u=[...prev];checked.forEach(si=>{const idx=u.findIndex(i=>i.name.toLowerCase()===si.name.toLowerCase());if(idx>=0){u[idx]={...u[idx],qty:+(u[idx].qty+(si.qty||1)).toFixed(1)};}else{u.push({id:Date.now()+Math.random(),name:si.name,qty:si.qty||1,unit:si.unit,category:si.category,location:"Pantry"});}});return u;});
                   setShopping(p=>p.filter(i=>!i.checked));
-                  alert("âœ… Items restocked!");
-                }}>âœ… Restock Checked Items</button>
+                  alert("✅ Items restocked!");
+                }}>✅ Restock Checked Items</button>
               </div>
             )}
           </div>
@@ -3346,13 +3346,13 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
         {tab==="desserts"&&(
           <div>
             <div style={{background:C.card,border:"1px solid "+C.accent+"44",borderRadius:12,padding:"12px 16px",marginBottom:18,display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
-              <div style={{fontSize:10,fontFamily:FM,color:C.accent,letterSpacing:0.8}}>ðŸ§ BAKING PANTRY:</div>
+              <div style={{fontSize:10,fontFamily:FM,color:C.accent,letterSpacing:0.8}}>🧁 BAKING PANTRY:</div>
               {[...new Set([...inventory.filter(i=>i.category==="Baking").map(i=>i.name),...["Brownie Mixes","Muffin Mixes","Pie Crusts","Puff Pastry","Crescent Dough","Cream Cheese","Condensed Milk","Pie Fillings","Flour","Sugar","Vanilla","Cinnamon","Baking Powder","Baking Soda","Cocoa Powder","Powdered Sugar","Brown Sugar","Chocolate Chips","Butter","Eggs"].filter(name=>inventory.some(i=>i.name.toLowerCase().includes(name.toLowerCase())))])].map(i=>(
                 <span key={i} style={bTag(C.accent)}>{i}</span>
               ))}
             </div>
             {dessertLoading?(
-              <div style={{textAlign:"center",padding:60}}><div style={{fontFamily:FD,fontSize:28,color:C.accent,marginBottom:12}}>Raiding the dessert pantryâ€¦</div><LoadingDots/></div>
+              <div style={{textAlign:"center",padding:60}}><div style={{fontFamily:FD,fontSize:28,color:C.accent,marginBottom:12}}>Raiding the dessert pantry…</div><LoadingDots/></div>
             ):dessertError?(
               <div style={{textAlign:"center",padding:60}}>
                 <div style={{color:C.red,fontFamily:FM,fontSize:13,marginBottom:16}}>{dessertError}</div>
@@ -3360,16 +3360,16 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
               </div>
             ):desserts.length===0?(
               <div style={{textAlign:"center",padding:60}}>
-                <div style={{fontFamily:FD,fontSize:48,marginBottom:16}}>ðŸ°</div>
+                <div style={{fontFamily:FD,fontSize:48,marginBottom:16}}>🍰</div>
                 <div style={{fontFamily:FD,fontSize:22,color:C.accent,marginBottom:10}}>What's for Dessert?</div>
                 <div style={{color:C.muted,marginBottom:20}}>Let AI suggest treats from your baking pantry</div>
-                <button style={{...bBtn("primary"),padding:"12px 28px"}} onClick={fetchDesserts}>ðŸ° Suggest Desserts</button>
+                <button style={{...bBtn("primary"),padding:"12px 28px"}} onClick={fetchDesserts}>🍰 Suggest Desserts</button>
               </div>
             ):(
               <div>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
                   <div style={{fontFamily:FD,fontSize:22}}>Desserts & Sweet Treats</div>
-                  <button style={bBtn("ghost")} onClick={fetchDesserts}>ðŸ”„ New Suggestions</button>
+                  <button style={bBtn("ghost")} onClick={fetchDesserts}>🔄 New Suggestions</button>
                 </div>
                 <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(340px,1fr))",gap:14}}>
                   {desserts.map(d=>{
@@ -3381,30 +3381,30 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                       onMouseLeave={e=>{e.currentTarget.style.borderColor=rating===1?C.red+"66":rating>=4?C.accent+"66":C.border;e.currentTarget.style.background=C.card;}}>
                       <div style={{display:"flex",justifyContent:"space-between",marginBottom:8,alignItems:"flex-start"}}>
                         {mealPhotos[d.name]&&<div style={{marginBottom:8,borderRadius:8,overflow:"hidden"}}><img src={mealPhotos[d.name]} alt={d.name} style={{width:"100%",maxHeight:140,objectFit:"cover",display:"block",borderRadius:8}} /></div>}
-                        <div style={{fontFamily:FD,fontSize:19,lineHeight:1.3,flex:1}}>{d.name}{rating===5&&<span style={{marginLeft:6,fontSize:14}}>ðŸ†</span>}{rating===4&&<span style={{marginLeft:6,fontSize:14}}>â¤</span>}</div>
+                        <div style={{fontFamily:FD,fontSize:19,lineHeight:1.3,flex:1}}>{d.name}{rating===5&&<span style={{marginLeft:6,fontSize:14}}>🏆</span>}{rating===4&&<span style={{marginLeft:6,fontSize:14}}>❤</span>}</div>
                         <span style={{...bTag(d.difficulty==="Easy"?C.green:d.difficulty==="Hard"?C.red:C.accent),marginLeft:8}}>{d.difficulty}</span>
                       </div>
                       <div style={{color:C.muted,fontSize:13,marginBottom:12,lineHeight:1.5}}>{d.description}</div>
                       <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
-                        <span style={bTag(C.muted)}>â± {d.time}</span>
+                        <span style={bTag(C.muted)}>⏱ {d.time}</span>
                         <span style={bTag("#f472b6")}>{d.category}</span>
-                        {d.servings&&<span style={bTag(C.blue)}>ðŸ½ {d.servings} servings</span>}
-                        {(d.usesFromInventory||[]).length>0&&<span style={bTag(C.green)}>âœ… {d.usesFromInventory.length} on hand</span>}
-                        {(d.missingIngredients||[]).length>0&&<span style={bTag(C.red)}>ðŸ›’ {d.missingIngredients.length} needed</span>}
+                        {d.servings&&<span style={bTag(C.blue)}>🍽 {d.servings} servings</span>}
+                        {(d.usesFromInventory||[]).length>0&&<span style={bTag(C.green)}>✅ {d.usesFromInventory.length} on hand</span>}
+                        {(d.missingIngredients||[]).length>0&&<span style={bTag(C.red)}>🛒 {d.missingIngredients.length} needed</span>}
                       </div>
                       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                         <div style={{display:"flex",gap:2}} onClick={e=>e.stopPropagation()}>
                           {[1,2,3,4,5].map(star=>(
                             <button key={star} onClick={e=>{e.stopPropagation();const mealName=d.name;setDessertRatings(prev=>{const cur=prev[d.name]?.rating||0;const next={...prev};if(cur===star){delete next[d.name];}else{next[d.name]={rating:star,recipe:d};}try{localStorage.setItem("sk_dessertRatings",JSON.stringify(next));}catch{}if(star===5&&cur!==5){const skips=parseInt(localStorage.getItem("sk_photoSkipCount")||"0");if(skips<3) setTimeout(()=>setPhotoPromptMeal(mealName),300);}return next;});}} style={{background:"none",border:"none",cursor:"pointer",fontSize:seniorMode?22:16,padding:"0 1px",color:star<=rating?"#f59e0b":"#555",transition:"color 0.1s"}} title={star===1?"Never suggest again":star===5?"Keeper!":"Rate "+star+" stars"}>
-                              {star<=rating?"â˜…":"â˜†"}
+                              {star<=rating?"★":"☆"}
                             </button>
                           ))}
                         </div>
                         <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
-                          <span style={{fontSize:11,color:C.accent,fontFamily:FM,letterSpacing:0.5}}>TAP FOR RECIPE â†’</span>
-                          <a href={getRecipeUrl(d.name)} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{fontSize:10,color:"#60a5fa",fontFamily:FM,textDecoration:"none",fontWeight:600}}>ðŸŒ web</a>
-                          <button onClick={e=>{e.stopPropagation();const today=new Date();const dateStr=today.toISOString().split("T")[0].replace(/-/g,"");window.open("https://calendar.google.com/calendar/render?action=TEMPLATE&text="+encodeURIComponent("Dessert: "+d.name)+"&dates="+dateStr+"/"+dateStr+"&details="+encodeURIComponent(d.description||""),"_blank");}} style={{background:"transparent",border:"1px solid #5b9cf6",borderRadius:4,color:"#5b9cf6",fontFamily:FM,fontSize:10,padding:"3px 8px",cursor:"pointer"}}>ðŸ“… Calendar</button>
-                          <button onClick={e=>{e.stopPropagation();setPhotoPromptMeal(d.name);}} style={{background:"transparent",border:"1px solid "+C.border,borderRadius:6,color:C.muted,fontFamily:FM,fontSize:seniorMode?16:12,padding:seniorMode?"8px 14px":"6px 10px",cursor:"pointer"}} title="Add photo" disabled={isViewer}>ðŸ“¸ {mealPhotos[d.name]?"Change":"Photo"}</button>
+                          <span style={{fontSize:11,color:C.accent,fontFamily:FM,letterSpacing:0.5}}>TAP FOR RECIPE →</span>
+                          <a href={getRecipeUrl(d.name)} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{fontSize:10,color:"#60a5fa",fontFamily:FM,textDecoration:"none",fontWeight:600}}>🌐 web</a>
+                          <button onClick={e=>{e.stopPropagation();const today=new Date();const dateStr=today.toISOString().split("T")[0].replace(/-/g,"");window.open("https://calendar.google.com/calendar/render?action=TEMPLATE&text="+encodeURIComponent("Dessert: "+d.name)+"&dates="+dateStr+"/"+dateStr+"&details="+encodeURIComponent(d.description||""),"_blank");}} style={{background:"transparent",border:"1px solid #5b9cf6",borderRadius:4,color:"#5b9cf6",fontFamily:FM,fontSize:10,padding:"3px 8px",cursor:"pointer"}}>📅 Calendar</button>
+                          <button onClick={e=>{e.stopPropagation();setPhotoPromptMeal(d.name);}} style={{background:"transparent",border:"1px solid "+C.border,borderRadius:6,color:C.muted,fontFamily:FM,fontSize:seniorMode?16:12,padding:seniorMode?"8px 14px":"6px 10px",cursor:"pointer"}} title="Add photo" disabled={isViewer}>📸 {mealPhotos[d.name]?"Change":"Photo"}</button>
                         </div>
                       </div>
                     </div>
@@ -3422,10 +3422,10 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
           <div style={{background:C.surface,border:"1px solid "+C.borderLight,borderRadius:18,padding:22,maxWidth:600,width:"100%",maxHeight:"90vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
               <div>
-                <div style={{fontFamily:FD,fontSize:24,color:C.accent}}>ðŸ‘¨â€ðŸ‘©â€ðŸ‘§ Family Profiles</div>
+                <div style={{fontFamily:FD,fontSize:24,color:C.accent}}>👨‍👩‍👧 Family Profiles</div>
                 <div style={{fontSize:11,color:C.muted,fontFamily:FM,marginTop:3}}>Meal plans adapt to each person's needs</div>
               </div>
-              <button onClick={()=>setProfileModalOpen(false)} style={{background:"transparent",border:"none",color:C.muted,cursor:"pointer",fontSize:20}}>âœ•</button>
+              <button onClick={()=>setProfileModalOpen(false)} style={{background:"transparent",border:"none",color:C.muted,cursor:"pointer",fontSize:20}}>✕</button>
             </div>
 
             {/* Family size */}
@@ -3465,12 +3465,12 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                         </div>
                       </div>
                       <button onClick={()=>setEditingProfile(isEditing?null:profile.id)} style={{...bBtn("ghost"),padding:"5px 10px",fontSize:11}}>
-                        {isEditing?"âœ“ Done":"âœ Edit"}
+                        {isEditing?"✓ Done":"✏ Edit"}
                       </button>
                     </div>
                     {isEditing&&(
                       <div style={{display:"flex",flexDirection:"column",gap:10}}>
-                        <div><Label>NAME</Label><input style={bInp} placeholder={"Family member "+(idx+1)} value={profile.name} onChange={e=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,name:e.target.value}:pr))}/></div><div style={{marginTop:10}}><Label>DATE OF BIRTH <span style={{fontWeight:400,color:C.muted,fontSize:9}}>(optional)</span></Label><input type="date" style={{...bInp,colorScheme:darkMode?"dark":"light"}} value={profile.dob||""} max={new Date().toISOString().split("T")[0]} onChange={e=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,dob:e.target.value}:pr))}/>{profile.dob&&(()=>{const age=Math.floor((new Date()-new Date(profile.dob+"T12:00:00"))/(1000*60*60*24*365.25));const today=new Date();const bday=new Date(profile.dob+"T12:00:00");const nextBday=new Date(today.getFullYear(),bday.getMonth(),bday.getDate());if(nextBday<today) nextBday.setFullYear(today.getFullYear()+1);const daysUntil=Math.ceil((nextBday-today)/(1000*60*60*24));return <div style={{fontFamily:FM,fontSize:11,color:C.muted,marginTop:4,display:"flex",gap:10,flexWrap:"wrap"}}><span style={{color:C.text,fontWeight:600}}>Age {age}</span>{daysUntil<=30&&<span style={{color:C.accent,fontWeight:600}}>ðŸŽ‚ Birthday in {daysUntil} day{daysUntil===1?"":"s"}!</span>}{daysUntil>30&&daysUntil<=365&&<span>ðŸŽ‚ Birthday in {daysUntil} days</span>}</div>;})()}</div>
+                        <div><Label>NAME</Label><input style={bInp} placeholder={"Family member "+(idx+1)} value={profile.name} onChange={e=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,name:e.target.value}:pr))}/></div><div style={{marginTop:10}}><Label>DATE OF BIRTH <span style={{fontWeight:400,color:C.muted,fontSize:9}}>(optional)</span></Label><input type="date" style={{...bInp,colorScheme:darkMode?"dark":"light"}} value={profile.dob||""} max={new Date().toISOString().split("T")[0]} onChange={e=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,dob:e.target.value}:pr))}/>{profile.dob&&(()=>{const age=Math.floor((new Date()-new Date(profile.dob+"T12:00:00"))/(1000*60*60*24*365.25));const today=new Date();const bday=new Date(profile.dob+"T12:00:00");const nextBday=new Date(today.getFullYear(),bday.getMonth(),bday.getDate());if(nextBday<today) nextBday.setFullYear(today.getFullYear()+1);const daysUntil=Math.ceil((nextBday-today)/(1000*60*60*24));return <div style={{fontFamily:FM,fontSize:11,color:C.muted,marginTop:4,display:"flex",gap:10,flexWrap:"wrap"}}><span style={{color:C.text,fontWeight:600}}>Age {age}</span>{daysUntil<=30&&<span style={{color:C.accent,fontWeight:600}}>🎂 Birthday in {daysUntil} day{daysUntil===1?"":"s"}!</span>}{daysUntil>30&&daysUntil<=365&&<span>🎂 Birthday in {daysUntil} days</span>}</div>;})()}</div>
                         <div>
                           <Label>ROLE</Label>
                           <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
@@ -3564,7 +3564,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
             </div>
             <div style={{marginTop:20,borderTop:"1px solid "+C.border,paddingTop:16}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-                  <div style={{fontFamily:FD,fontSize:16,color:"#a78bfa"}}>âš• Temporary Medical Diets</div>
+                  <div style={{fontFamily:FD,fontSize:16,color:"#a78bfa"}}>⚕ Temporary Medical Diets</div>
                   <button style={{...bBtn("ghost"),fontSize:11,padding:"4px 10px",border:"1px solid #a78bfa",color:"#a78bfa"}} onClick={()=>setShowTempForm(f=>!f)}>+ Add</button>
                 </div>
                 {showTempForm&&(
@@ -3588,7 +3588,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                       setTempProfiles(p=>[...p,{...newTemp,id:Date.now()}]);
                       setNewTemp({name:"",reason:"",restriction:"lowSodium",customNotes:"",startDate:new Date().toISOString().split("T")[0],endDate:"",duration:7});
                       setShowTempForm(false);
-                    }}>âš• Save Temporary Diet</button>
+                    }}>⚕ Save Temporary Diet</button>
                   </div>
                 )}
                 {tempProfiles.length===0&&!showTempForm&&<div style={{fontFamily:"system-ui,-apple-system,sans-serif",fontSize:12,color:C.muted,textAlign:"center",padding:"12px 0"}}>No temporary diets active</div>}
@@ -3601,16 +3601,16 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                         <div>
                           <div style={{fontFamily:FD,fontSize:13,color:isExpired?C.muted:isActive?"#a78bfa":C.muted}}>{RESTRICTION_PRESETS[t.restriction]?.icon} {t.name} — {t.reason}</div>
-                          <div style={{fontFamily:FM,fontSize:11,color:C.muted,marginTop:2}}>{RESTRICTION_PRESETS[t.restriction]?.label}{t.customNotes?" Â· "+t.customNotes:""}</div>
-                          <div style={{fontFamily:FM,fontSize:10,marginTop:4,color:isExpired?"#ef4444":daysLeft<=3?"#f59e0b":"#86efac"}}>{isExpired?"âš  Expired "+t.endDate:isActive?daysLeft===null?"Active (no end date)":daysLeft<=3?"âš  Ends in "+daysLeft+" day"+(daysLeft===1?"":"s"):"âœ… Active until "+t.endDate:"Starts "+t.startDate}</div>
+                          <div style={{fontFamily:FM,fontSize:11,color:C.muted,marginTop:2}}>{RESTRICTION_PRESETS[t.restriction]?.label}{t.customNotes?" · "+t.customNotes:""}</div>
+                          <div style={{fontFamily:FM,fontSize:10,marginTop:4,color:isExpired?"#ef4444":daysLeft<=3?"#f59e0b":"#86efac"}}>{isExpired?"⚠ Expired "+t.endDate:isActive?daysLeft===null?"Active (no end date)":daysLeft<=3?"⚠ Ends in "+daysLeft+" day"+(daysLeft===1?"":"s"):"✅ Active until "+t.endDate:"Starts "+t.startDate}</div>
                         </div>
-                        <button onClick={()=>setTempProfiles(p=>p.filter(x=>x.id!==t.id))} style={{background:"transparent",border:"none",color:C.muted,cursor:"pointer",fontSize:14}}>âœ•</button>
+                        <button onClick={()=>setTempProfiles(p=>p.filter(x=>x.id!==t.id))} style={{background:"transparent",border:"none",color:C.muted,cursor:"pointer",fontSize:14}}>✕</button>
                       </div>
                     </div>
                   );
                 })}
               </div>
-            <button style={{...bBtn("primary"),width:"100%",marginTop:14,padding:12}} onClick={()=>setProfileModalOpen(false)}>âœ… Save & Close</button>
+            <button style={{...bBtn("primary"),width:"100%",marginTop:14,padding:12}} onClick={()=>setProfileModalOpen(false)}>✅ Save & Close</button>
           </div>
         </div>
       )}
@@ -3620,11 +3620,11 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
         <div style={{position:"fixed",inset:0,background:"#000d",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:16}} onClick={()=>setRpOpen(false)}>
           <div style={{background:C.surface,border:"1px solid "+C.borderLight,borderRadius:18,padding:22,maxWidth:560,width:"100%",maxHeight:"90vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
-              <div style={{fontFamily:FD,fontSize:22,color:C.accent}}>{rpMode==="protein"?"ðŸ¥© Repackage Protein":"ðŸ«• Prep SautÃ© Blend Bags"}</div>
+              <div style={{fontFamily:FD,fontSize:22,color:C.accent}}>{rpMode==="protein"?"🥩 Repackage Protein":"🫕 Prep Sauté Blend Bags"}</div>
               <div style={{display:"flex",gap:7}}>
-                <button onClick={()=>setRpMode("protein")} style={{...bBtn(rpMode==="protein"?"orange":"ghost"),padding:"6px 12px",fontSize:11}}>ðŸ¥©</button>
-                <button onClick={()=>setRpMode("veg")} style={{...bBtn(rpMode==="veg"?"teal":"ghost"),padding:"6px 12px",fontSize:11}}>ðŸ«•</button>
-                <button onClick={()=>setRpOpen(false)} style={{background:"transparent",border:"none",color:C.muted,cursor:"pointer",fontSize:20}}>âœ•</button>
+                <button onClick={()=>setRpMode("protein")} style={{...bBtn(rpMode==="protein"?"orange":"ghost"),padding:"6px 12px",fontSize:11}}>🥩</button>
+                <button onClick={()=>setRpMode("veg")} style={{...bBtn(rpMode==="veg"?"teal":"ghost"),padding:"6px 12px",fontSize:11}}>🫕</button>
+                <button onClick={()=>setRpOpen(false)} style={{background:"transparent",border:"none",color:C.muted,cursor:"pointer",fontSize:20}}>✕</button>
               </div>
             </div>
             {rpMode==="protein"&&(
@@ -3658,17 +3658,17 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                 )}
                 <div style={{display:"flex",gap:8}}>
                   <button style={{...bBtn("ghost"),flex:1}} onClick={()=>setRpOpen(false)}>Cancel</button>
-                  <button style={{...bBtn("orange"),flex:2,opacity:(rpPName&&rpPLbs)?1:0.4}} onClick={commitProtein}>ðŸ¥© Add {rpPPreview?rpPPreview.portions+" Portions":"to Inventory"}</button>
+                  <button style={{...bBtn("orange"),flex:2,opacity:(rpPName&&rpPLbs)?1:0.4}} onClick={commitProtein}>🥩 Add {rpPPreview?rpPPreview.portions+" Portions":"to Inventory"}</button>
                 </div>
               </div>
             )}
             {rpMode==="veg"&&(
               <div>
                 <div style={{background:C.surface,border:"1px solid "+C.orange+"33",borderRadius:10,padding:12,marginBottom:14,fontSize:seniorMode?16:12,color:C.muted,lineHeight:1.6}}>
-                  <strong style={{color:C.orange}}>Mixed SautÃ© Blend</strong> — diced onion + celery + bell pepper, bagged in 2-cup portions.
+                  <strong style={{color:C.orange}}>Mixed Sauté Blend</strong> — diced onion + celery + bell pepper, bagged in 2-cup portions.
                 </div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:14}}>
-                  {[{label:"ðŸ§… Onions",key:"onions",cupsEach:1.5},{label:"ðŸ¥¬ Celery stalks",key:"celery",cupsEach:0.5},{label:"ðŸ«‘ Bell peppers",key:"peppers",cupsEach:1.0}].map(v=>{
+                  {[{label:"🧅 Onions",key:"onions",cupsEach:1.5},{label:"🥬 Celery stalks",key:"celery",cupsEach:0.5},{label:"🫑 Bell peppers",key:"peppers",cupsEach:1.0}].map(v=>{
                     const s=rpVSessions.find(s=>s.id===v.key)||{count:""};
                     return(
                       <div key={v.key}>
@@ -3712,7 +3712,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                     const bags=Math.floor(((o*1.5)+(c*0.5)+(p*1.0))/2);
                     if(bags===0){alert("Not enough veg for a 2-cup bag.");return;}
                     setRpYieldConfirm({estimated:bags,o,c,p});setRpActualBags(String(bags));
-                  }}>ðŸ«• Confirm — Estimated {Math.floor(((parseFloat(rpVSessions.find(s=>s.id==="onions")?.count||0)||0)*1.5+((parseFloat(rpVSessions.find(s=>s.id==="celery")?.count||0)||0)*0.5)+((parseFloat(rpVSessions.find(s=>s.id==="peppers")?.count||0)||0)*1.0))/2)} Bags</button>
+                  }}>🫕 Confirm — Estimated {Math.floor(((parseFloat(rpVSessions.find(s=>s.id==="onions")?.count||0)||0)*1.5+((parseFloat(rpVSessions.find(s=>s.id==="celery")?.count||0)||0)*0.5)+((parseFloat(rpVSessions.find(s=>s.id==="peppers")?.count||0)||0)*1.0))/2)} Bags</button>
                 </div>
               </div>
             )}
@@ -3724,16 +3724,16 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
       {rpYieldConfirm&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300,padding:16}}>
           <div style={{background:C.card,border:"1px solid "+C.border,borderRadius:16,padding:24,maxWidth:400,width:"100%"}}>
-            <div style={{fontFamily:FD,fontSize:20,color:C.accent,marginBottom:8}}>ðŸ«• Actual Yield?</div>
+            <div style={{fontFamily:FD,fontSize:20,color:C.accent,marginBottom:8}}>🫕 Actual Yield?</div>
             <div style={{fontSize:14,color:C.muted,marginBottom:20}}>Estimated <span style={{color:C.orange,fontWeight:700}}>{rpYieldConfirm.estimated} bags</span>. How many 2-cup bags did you actually get?</div>
             <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20}}>
-              <button onClick={()=>setRpActualBags(b=>String(Math.max(1,parseInt(b||"0")-1)))} style={{...bBtn("ghost"),padding:"8px 16px",fontSize:20}}>âˆ’</button>
+              <button onClick={()=>setRpActualBags(b=>String(Math.max(1,parseInt(b||"0")-1)))} style={{...bBtn("ghost"),padding:"8px 16px",fontSize:20}}>−</button>
               <input type="number" min="1" max="50" value={rpActualBags} onChange={e=>setRpActualBags(e.target.value)} style={{flex:1,textAlign:"center",fontSize:28,fontWeight:700,fontFamily:FD,color:C.orange,background:C.surface,border:"1px solid "+C.border,borderRadius:10,padding:"10px 0"}}/>
               <button onClick={()=>setRpActualBags(b=>String(parseInt(b||"0")+1))} style={{...bBtn("ghost"),padding:"8px 16px",fontSize:20}}>+</button>
             </div>
             {parseInt(rpActualBags)!==rpYieldConfirm.estimated&&(
               <div style={{fontSize:12,color:C.muted,marginBottom:16,textAlign:"center"}}>
-                {parseInt(rpActualBags)>rpYieldConfirm.estimated?"ðŸ“ˆ":"ðŸ“‰"} {Math.abs(parseInt(rpActualBags)-rpYieldConfirm.estimated)} bags {parseInt(rpActualBags)>rpYieldConfirm.estimated?"more":"fewer"} than estimated — Smart Kitchen will learn from this.
+                {parseInt(rpActualBags)>rpYieldConfirm.estimated?"📈":"📉"} {Math.abs(parseInt(rpActualBags)-rpYieldConfirm.estimated)} bags {parseInt(rpActualBags)>rpYieldConfirm.estimated?"more":"fewer"} than estimated — Smart Kitchen will learn from this.
               </div>
             )}
             <div style={{display:"flex",gap:8}}>
@@ -3752,10 +3752,10 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                 setInventory(prev=>{
                   const idx=prev.findIndex(i=>i.vegType==="sauteBlend");
                   if(idx>=0) return prev.map((i,ii)=>ii===idx?{...i,qty:i.qty+actual}:i);
-                  return [...prev,{id:Date.now(),name:"Mixed SautÃ© Blend",qty:actual,unit:"2-cup bags",category:"Produce",location:"Freezer",isDicedVeg:true,vegType:"sauteBlend",cupsPerBag:2,blendNote:"Diced onion + celery + bell pepper"}];
+                  return [...prev,{id:Date.now(),name:"Mixed Sauté Blend",qty:actual,unit:"2-cup bags",category:"Produce",location:"Freezer",isDicedVeg:true,vegType:"sauteBlend",cupsPerBag:2,blendNote:"Diced onion + celery + bell pepper"}];
                 });
                 setRpYieldConfirm(null);setRpActualBags("");setRpOpen(false);
-              }}>âœ“ Save {rpActualBags} Bags</button>
+              }}>✓ Save {rpActualBags} Bags</button>
             </div>
           </div>
         </div>
@@ -3766,33 +3766,33 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
         <div style={{position:"fixed",inset:0,background:"#000c",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:16}} onClick={()=>{if(scanStage!=="review")setScanOpen(false);}}>
           <div style={{background:C.surface,border:"1px solid "+C.borderLight,borderRadius:18,padding:"12px 16px",maxWidth:540,width:"100%",maxHeight:"92vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-              <div style={{fontSize:12,fontFamily:FM,color:C.muted}}>{scanMode==="receipt"?"ðŸ§¾ Receipt Scanner":scanMode==="weeklyad"?"ðŸ· Weekly Ad Scanner":"ðŸ“· Shelf Scanner"} Â· {scanStage==="review"?"Review items":"tap photo or browse"}</div>
-              <button onClick={()=>setScanOpen(false)} style={{background:"transparent",border:"none",color:C.muted,cursor:"pointer",fontSize:20}}>âœ•</button>
+              <div style={{fontSize:12,fontFamily:FM,color:C.muted}}>{scanMode==="receipt"?"🧾 Receipt Scanner":scanMode==="weeklyad"?"🏷 Weekly Ad Scanner":"📷 Shelf Scanner"} · {scanStage==="review"?"Review items":"tap photo or browse"}</div>
+              <button onClick={()=>setScanOpen(false)} style={{background:"transparent",border:"none",color:C.muted,cursor:"pointer",fontSize:20}}>✕</button>
             </div>
             {scanStage==="upload"&&(
               <div>
                 <div style={{display:"flex",gap:8,marginBottom:16}}>
                   <button onClick={()=>{setScanMode("shelf");setScanPreview(null);setScanB64(null);}}
                     style={{flex:1,padding:"12px",borderRadius:9,border:"1px solid "+(scanMode==="shelf"?C.accent:C.border),background:scanMode==="shelf"?C.accent+"22":"transparent",color:scanMode==="shelf"?C.accent:C.muted,cursor:"pointer",fontFamily:FM,fontSize:13,fontWeight:700}}>
-                    ðŸ“· Shelf Photo
+                    📷 Shelf Photo
                   </button>
                   <button onClick={()=>{setScanMode("receipt");setScanPreview(null);setScanB64(null);}}
                     style={{flex:1,padding:"12px",borderRadius:9,border:"1px solid "+(scanMode==="receipt"?C.accent:C.border),background:scanMode==="receipt"?C.accent+"22":"transparent",color:scanMode==="receipt"?C.accent:C.muted,cursor:"pointer",fontFamily:FM,fontSize:13,fontWeight:700}}>
-                    ðŸ§¾ Receipt
+                    🧾 Receipt
                   </button>
                   <button onClick={()=>{setScanMode("weeklyad");setScanPreview(null);setScanB64(null);}}
                     style={{flex:1,padding:"12px",borderRadius:9,border:"1px solid "+(scanMode==="weeklyad"?"#f59e0b":C.border),background:scanMode==="weeklyad"?"#f59e0b22":"transparent",color:scanMode==="weeklyad"?"#f59e0b":C.muted,cursor:"pointer",fontFamily:FM,fontSize:13,fontWeight:700}}>
-                    ðŸ· Weekly Ad
+                    🏷 Weekly Ad
                   </button>
                 </div>
                 {scanMode==="receipt"&&(
                   <div style={{background:"#1a2018",borderRadius:10,padding:12,marginBottom:12,fontSize:seniorMode?16:12,color:C.muted,lineHeight:1.6}}>
-                    ðŸ“¸ Lay receipt flat, good lighting, capture full receipt in frame.
+                    📸 Lay receipt flat, good lighting, capture full receipt in frame.
                   </div>
                 )}
                 {scanMode==="weeklyad"&&(
                   <div style={{background:"#1a1a00",borderRadius:10,padding:12,marginBottom:12,fontSize:12,color:"#fbbf24",lineHeight:1.6}}>
-                    ðŸ· Screenshot the weekly ad from your Meijer app, or photograph a printed flyer. Select all pages at once - Smart Kitchen will scan each page and combine results automatically.
+                    🏷 Screenshot the weekly ad from your Meijer app, or photograph a printed flyer. Select all pages at once - Smart Kitchen will scan each page and combine results automatically.
                   </div>
                 )}
                 <div onClick={()=>fileRef.current.click()}
@@ -3800,11 +3800,11 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                   {scanPreview?(
                     <div style={{position:"relative",width:"100%"}}>
                       <img src={scanPreview} alt="" style={{width:"100%",display:"block",borderRadius:10,maxHeight:240,objectFit:"cover"}}/>
-                      <button onClick={e=>{e.stopPropagation();setScanPreview(null);setScanB64(null);}} style={{position:"absolute",top:8,right:8,background:"#000a",border:"none",color:"#fff",borderRadius:"50%",width:26,height:26,cursor:"pointer",fontSize:13}}>âœ•</button>
+                      <button onClick={e=>{e.stopPropagation();setScanPreview(null);setScanB64(null);}} style={{position:"absolute",top:8,right:8,background:"#000a",border:"none",color:"#fff",borderRadius:"50%",width:26,height:26,cursor:"pointer",fontSize:13}}>✕</button>
                     </div>
                   ):(
                     <div style={{textAlign:"center",padding:30}}>
-                      <div style={{fontSize:32,marginBottom:8}}>{scanMode==="receipt"?"ðŸ§¾":scanMode==="weeklyad"?"ðŸ·":"ðŸ“·"}</div>
+                      <div style={{fontSize:32,marginBottom:8}}>{scanMode==="receipt"?"🧾":scanMode==="weeklyad"?"🏷":"📷"}</div>
                       <div style={{fontFamily:FD,fontSize:16,color:C.text}}>{scanMode==="receipt"?"Tap to photograph receipt":scanMode==="weeklyad"?"Tap to screenshot weekly ad":"Tap to photograph shelf"}</div>
                       <div style={{fontSize:12,color:C.muted,marginBottom:12}}>opens camera directly</div>
                       <button onClick={e=>{e.stopPropagation();galleryRef.current.click();}} style={{background:"transparent",border:"1px solid "+C.border,borderRadius:8,color:C.muted,cursor:"pointer",fontFamily:FM,fontSize:11,padding:"6px 14px"}}>{scanMode==="weeklyad"?"Select All Pages (multi-select OK)":"Choose from Gallery"}</button>
@@ -3817,14 +3817,14 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                   <button style={{flex:1,padding:"9px",borderRadius:9,border:"1px solid "+C.border,background:"transparent",color:C.muted,cursor:"pointer",fontFamily:FM,fontSize:12,fontWeight:600}} onClick={()=>setScanOpen(false)}>Cancel</button>
                   <button style={{flex:2,padding:"9px",borderRadius:9,border:"none",background:scanB64?C.accent:C.border,color:scanB64?"#0c0e14":C.muted,cursor:scanB64?"pointer":"not-allowed",fontFamily:FM,fontSize:12,fontWeight:700,opacity:scanB64?1:0.5}}
                     onClick={scanMode==="receipt"?analyzeReceipt:scanMode==="weeklyad"?analyzeWeeklyAd:analyzePhoto} disabled={!scanB64}>
-                    {scanMode==="receipt"?"ðŸ§¾ Read Receipt":scanMode==="weeklyad"?"ðŸ· Extract Sale Items":"ðŸ” Analyze Photo"}
+                    {scanMode==="receipt"?"🧾 Read Receipt":scanMode==="weeklyad"?"🏷 Extract Sale Items":"🔍 Analyze Photo"}
                   </button>
                 </div>
               </div>
             )}
             {scanStage==="analyzing"&&(
               <div style={{textAlign:"center",padding:40}}>
-                <div style={{fontSize:48,marginBottom:16}}>â³</div>
+                <div style={{fontSize:48,marginBottom:16}}>⏳</div>
                 <div style={{fontFamily:FD,fontSize:20,color:C.accent,marginBottom:8}}>{scanMode==="receipt"?"Reading Receipt...":"Analyzing Photo..."}</div>
                 <div style={{fontFamily:FM,fontSize:12,color:C.muted,marginBottom:24}}>This may take 10-20 seconds</div>
                 {scanPreview&&<img src={scanPreview} alt="" style={{width:"100%",borderRadius:8,maxHeight:180,objectFit:"cover",opacity:0.5}}/>}
@@ -3841,10 +3841,10 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                   {scanResults.map((item,i)=>(
                     <div key={i} style={{background:item.selected?C.surface:C.card,border:"1px solid "+(item.selected?C.accent:C.border),borderRadius:10,padding:"10px 14px"}}>
                       <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:item.selected?8:0,cursor:"pointer"}} onClick={e=>{if(e.target.tagName==="INPUT"||e.target.tagName==="SELECT")return;setScanResults(p=>p.map((si,sii)=>sii===i?{...si,selected:!si.selected}:si))}}>
-                        <div style={{width:18,height:18,borderRadius:4,border:"2px solid "+(item.selected?C.green:C.border),background:item.selected?C.green:"transparent",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,flexShrink:0}}>{item.selected&&"âœ“"}</div>
+                        <div style={{width:18,height:18,borderRadius:4,border:"2px solid "+(item.selected?C.green:C.border),background:item.selected?C.green:"transparent",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,flexShrink:0}}>{item.selected&&"✓"}</div>
                         <div style={{flex:1}}>
                           <input style={{fontSize:13,fontWeight:600,border:"1px solid #555",borderRadius:4,padding:"2px 6px",width:"100%",background:C.surface,color:C.text}} value={item.name} onClick={e=>e.stopPropagation()} onFocus={e=>e.stopPropagation()} onChange={e=>{const updated=[...scanResults];updated[i]={...updated[i],name:e.target.value};setScanResults(updated)}} />
-                          <div style={{fontSize:11,color:C.muted,fontFamily:FM,display:"flex",alignItems:"center",gap:4,flexWrap:"wrap"}}><input type="number" style={{width:50,fontSize:11,border:"1px solid #555",borderRadius:3,padding:"1px 4px",background:C.surface,color:C.text}} value={item.qty} onClick={e=>e.stopPropagation()} onFocus={e=>e.stopPropagation()} onChange={e=>{const updated=[...scanResults];updated[i]={...updated[i],qty:e.target.value};setScanResults(updated)}} /><input style={{width:60,fontSize:11,border:"1px solid #555",borderRadius:3,padding:"1px 4px",background:C.surface,color:C.text}} value={item.unit} onClick={e=>e.stopPropagation()} onFocus={e=>e.stopPropagation()} onChange={e=>{const updated=[...scanResults];updated[i]={...updated[i],unit:e.target.value};setScanResults(updated)}} /> Â· {item.category} Â· {item.location||"Pantry"}{item.price?<span style={{color:"#cbd5e1",fontWeight:600,marginLeft:4}}>{item.price}</span>:""} Â· <span style={{padding:"1px 6px",borderRadius:10,fontSize:10,fontWeight:700,background:item.confidence==="high"?C.green+"22":item.confidence==="low"?C.red+"22":"#f59e0b22",color:item.confidence==="high"?C.green:item.confidence==="low"?C.red:"#f59e0b"}}>{item.confidence==="high"?"âœ“ High":item.confidence==="low"?"âš  Low":"â— Med"}</span>{item.expiryDays&&<span style={{padding:"1px 6px",borderRadius:10,fontSize:10,fontWeight:600,background:item.expiryDays<=3?C.red+"22":item.expiryDays<=7?"#f59e0b22":C.green+"22",color:item.expiryDays<=3?C.red:item.expiryDays<=7?"#f59e0b":C.green,marginLeft:2}}>â± {item.expiryDays<=2?"Use/freeze within "+item.expiryDays+" days":item.expiryDays<=7?"Use within "+item.expiryDays+" days":item.expiryDays+" day shelf life"}</span>}</div>
+                          <div style={{fontSize:11,color:C.muted,fontFamily:FM,display:"flex",alignItems:"center",gap:4,flexWrap:"wrap"}}><input type="number" style={{width:50,fontSize:11,border:"1px solid #555",borderRadius:3,padding:"1px 4px",background:C.surface,color:C.text}} value={item.qty} onClick={e=>e.stopPropagation()} onFocus={e=>e.stopPropagation()} onChange={e=>{const updated=[...scanResults];updated[i]={...updated[i],qty:e.target.value};setScanResults(updated)}} /><input style={{width:60,fontSize:11,border:"1px solid #555",borderRadius:3,padding:"1px 4px",background:C.surface,color:C.text}} value={item.unit} onClick={e=>e.stopPropagation()} onFocus={e=>e.stopPropagation()} onChange={e=>{const updated=[...scanResults];updated[i]={...updated[i],unit:e.target.value};setScanResults(updated)}} /> · {item.category} · {item.location||"Pantry"}{item.price?<span style={{color:"#cbd5e1",fontWeight:600,marginLeft:4}}>{item.price}</span>:""} · <span style={{padding:"1px 6px",borderRadius:10,fontSize:10,fontWeight:700,background:item.confidence==="high"?C.green+"22":item.confidence==="low"?C.red+"22":"#f59e0b22",color:item.confidence==="high"?C.green:item.confidence==="low"?C.red:"#f59e0b"}}>{item.confidence==="high"?"✓ High":item.confidence==="low"?"⚠ Low":"● Med"}</span>{item.expiryDays&&<span style={{padding:"1px 6px",borderRadius:10,fontSize:10,fontWeight:600,background:item.expiryDays<=3?C.red+"22":item.expiryDays<=7?"#f59e0b22":C.green+"22",color:item.expiryDays<=3?C.red:item.expiryDays<=7?"#f59e0b":C.green,marginLeft:2}}>⏱ {item.expiryDays<=2?"Use/freeze within "+item.expiryDays+" days":item.expiryDays<=7?"Use within "+item.expiryDays+" days":item.expiryDays+" day shelf life"}</span>}</div>
                         </div>
                         <span style={bTag(item.action==="update"?C.blue:C.green)}>{item.action==="update"?"UPDATE":"NEW"}</span>
                       </div>
@@ -3876,7 +3876,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                 )}
               </div>
             )}
-            {scanStage==="done"&&<div style={{textAlign:"center",padding:40}}><div style={{fontSize:40,marginBottom:12}}>âœ…</div><div style={{fontFamily:FD,fontSize:22,color:C.green}}>Inventory Updated!</div></div>}
+            {scanStage==="done"&&<div style={{textAlign:"center",padding:40}}><div style={{fontSize:40,marginBottom:12}}>✅</div><div style={{fontFamily:FD,fontSize:22,color:C.green}}>Inventory Updated!</div></div>}
           </div>
         </div>
       )}
@@ -3885,7 +3885,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
       {showSeniorPrompt&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:700,padding:20}} onClick={()=>{setSeniorPromptDismissed(true);try{localStorage.setItem("sk_seniorPromptDismissed","1");}catch{}setShowSeniorPrompt(false);}}>
           <div style={{background:C.surface,border:"1px solid "+C.borderLight,borderRadius:16,padding:28,maxWidth:360,width:"100%",textAlign:"center"}} onClick={e=>e.stopPropagation()}>
-            <div style={{fontSize:48,marginBottom:10}}>ðŸ‘´</div>
+            <div style={{fontSize:48,marginBottom:10}}>👴</div>
             <div style={{fontFamily:FD,fontSize:22,fontWeight:700,color:C.accent,marginBottom:8}}>Senior-Friendly Mode</div>
             <div style={{fontFamily:FM,fontSize:15,color:C.muted,marginBottom:24,lineHeight:1.7}}>
               We noticed your profile is set to <strong style={{color:C.text}}>Senior Adult</strong>. Would you like larger text and easier navigation to make Smart Kitchen more comfortable to use?
@@ -3897,7 +3897,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                 setShowSeniorPrompt(false);
               }}
               style={{...bBtn("primary"),width:"100%",padding:"14px",fontSize:16,marginBottom:12,borderRadius:10}}>
-              âœ… Yes please — bigger text
+              ✅ Yes please — bigger text
             </button>
             <button onClick={()=>{
                 setSeniorPromptDismissed(true);
@@ -3908,7 +3908,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
               No thanks — keep it as is
             </button>
             <div style={{fontFamily:FM,fontSize:11,color:C.muted,marginTop:4,lineHeight:1.5}}>
-              You can always change this later using the <strong>ðŸ”¤ Senior</strong> button in the menu.
+              You can always change this later using the <strong>🔤 Senior</strong> button in the menu.
             </div>
           </div>
         </div>
@@ -3917,7 +3917,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
       {photoPromptMeal&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:600,padding:20}} onClick={()=>setPhotoPromptMeal(null)}>
           <div style={{background:C.surface,border:"1px solid "+C.borderLight,borderRadius:16,padding:24,maxWidth:340,width:"100%",textAlign:"center"}} onClick={e=>e.stopPropagation()}>
-            <div style={{fontSize:40,marginBottom:8}}>ðŸ†</div>
+            <div style={{fontSize:40,marginBottom:8}}>🏆</div>
             <div style={{fontFamily:FD,fontSize:20,fontWeight:700,color:C.accent,marginBottom:6}}>5-Star Keeper!</div>
             <div style={{fontFamily:FM,fontSize:13,color:C.muted,marginBottom:20,lineHeight:1.6}}>
               <strong style={{color:C.text}}>{photoPromptMeal}</strong> just earned a spot in your recipe hall of fame. Want to snap a photo to remember it?
@@ -3949,7 +3949,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
             />
             <button onClick={()=>document.getElementById("mealPhotoInput").click()}
               style={{...bBtn("primary"),width:"100%",padding:"12px",marginBottom:10,fontSize:14}}>
-              ðŸ“¸ Take a Photo
+              📸 Take a Photo
             </button>
             <button onClick={()=>{
                 const input=document.getElementById("mealPhotoInput");
@@ -3958,7 +3958,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                 setTimeout(()=>input.setAttribute("capture","environment"),1000);
               }}
               style={{...bBtn("ghost"),width:"100%",padding:"10px",marginBottom:10,fontSize:13,border:"1px solid "+C.border,color:C.text}}>
-              ðŸ–¼ Choose from Gallery
+              🖼 Choose from Gallery
             </button>
             <button onClick={()=>{
                 const next=photoSkipCount+1;
@@ -3978,8 +3978,8 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
 
           {/* Header */}
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-            <span style={{fontSize:18,fontWeight:700,color:"#dc2626",fontFamily:FD}}>âš• Can I Have This?</span>
-            <button onClick={()=>{setCanIHaveOpen(false);setCanIHaveResult(null);setCanIHaveImg(null);setCanIHaveText("");}} style={{background:"transparent",border:"none",color:C.muted,cursor:"pointer",fontSize:18}}>âœ•</button>
+            <span style={{fontSize:18,fontWeight:700,color:"#dc2626",fontFamily:FD}}>⚕ Can I Have This?</span>
+            <button onClick={()=>{setCanIHaveOpen(false);setCanIHaveResult(null);setCanIHaveImg(null);setCanIHaveText("");}} style={{background:"transparent",border:"none",color:C.muted,cursor:"pointer",fontSize:18}}>✕</button>
           </div>
           <div style={{fontSize:11,color:C.muted,marginBottom:14,fontFamily:FM}}>Checks food against every family member's medical profile, allergies and dietary restrictions.</div>
 
@@ -3989,7 +3989,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
               const hasMedical=can.medicalCompliance&&(p.enforcement&&((p.medicalAllergies||[]).length>0||(p.medications||[]).length>0||p.medicalPlan));
               const r=RESTRICTION_PRESETS[p.restriction];
               return(<span key={p.id} style={{fontSize:10,background:(hasMedical?"#dc262622":r?.color?r.color+"22":"#33333322"),color:(hasMedical?"#dc2626":r?.color||C.muted),padding:"2px 8px",borderRadius:10,border:"1px solid "+(hasMedical?"#dc262644":r?.color?r.color+"44":"#44444444"),fontFamily:FM}}>
-                {hasMedical?"âš•":r?.icon||""} {p.name}{hasMedical?" (Medical+)":""}
+                {hasMedical?"⚕":r?.icon||""} {p.name}{hasMedical?" (Medical+)":""}
               </span>);
             })}
           </div>
@@ -4014,7 +4014,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
             {canIHaveImg
               ?<img src={canIHaveImg} alt="" style={{width:"100%",maxHeight:180,objectFit:"cover"}}/>
               :<div style={{textAlign:"center",color:C.muted,padding:16}}>
-                <div style={{fontSize:32}}>ðŸ“¸</div>
+                <div style={{fontSize:32}}>📸</div>
                 <div style={{fontSize:12,marginTop:6,fontFamily:FM}}>Tap to photograph a food label</div>
                 <div style={{fontSize:10,marginTop:3,color:C.dim}}>Camera opens directly on mobile</div>
               </div>}
@@ -4062,7 +4062,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
               }
               setCanIHaveLoading(false);
             }} style={{width:"100%",padding:"13px",background:"#dc2626",border:"none",borderRadius:8,color:"#fff",fontWeight:700,cursor:"pointer",marginBottom:10,fontSize:14,fontFamily:FM,opacity:canIHaveLoading?0.7:1}}>
-              {canIHaveLoading?"âš• Checking all profiles...":"âš• Check This Food"}
+              {canIHaveLoading?"⚕ Checking all profiles...":"⚕ Check This Food"}
             </button>
           )}
 
@@ -4071,7 +4071,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
             <div>
               {/* Overall verdict banner */}
               <div style={{background:canIHaveResult.overall==="YES"?"#14532d":canIHaveResult.overall==="LIMITED"?"#d97706":"#dc2626",borderRadius:10,padding:"14px 16px",marginBottom:10,display:"flex",alignItems:"center",gap:12}}>
-                <div style={{fontSize:36,lineHeight:1}}>{canIHaveResult.overall==="YES"?"âœ…":canIHaveResult.overall==="LIMITED"?"âš ":"âŒ"}</div>
+                <div style={{fontSize:36,lineHeight:1}}>{canIHaveResult.overall==="YES"?"✅":canIHaveResult.overall==="LIMITED"?"⚠":"❌"}</div>
                 <div>
                   <div style={{fontSize:18,fontWeight:700,color:"#fff",fontFamily:FD}}>{canIHaveResult.overall==="YES"?"Safe to Eat":canIHaveResult.overall==="LIMITED"?"Use Caution":"Not Recommended"}</div>
                   <div style={{fontSize:12,color:"rgba(255,255,255,0.85)",marginTop:2}}>{canIHaveResult.summary}</div>
@@ -4084,7 +4084,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                   <div style={{fontSize:10,fontFamily:FM,color:C.muted,marginBottom:6}}>PER MEMBER</div>
                   {canIHaveResult.members.map((m,i)=>(
                     <div key={i} style={{display:"flex",alignItems:"flex-start",gap:10,padding:"8px 10px",borderRadius:8,marginBottom:4,background:m.verdict==="YES"?C.green+"11":m.verdict==="LIMITED"?"#d9770611":"#dc262611",border:"1px solid "+(m.verdict==="YES"?C.green+"33":m.verdict==="LIMITED"?"#d9770633":"#dc262633")}}>
-                      <span style={{fontSize:16,lineHeight:1.4}}>{m.verdict==="YES"?"âœ…":m.verdict==="LIMITED"?"âš ":"âŒ"}</span>
+                      <span style={{fontSize:16,lineHeight:1.4}}>{m.verdict==="YES"?"✅":m.verdict==="LIMITED"?"⚠":"❌"}</span>
                       <div>
                         <div style={{fontSize:12,fontWeight:700,color:C.text,fontFamily:FM}}>{m.name}</div>
                         <div style={{fontSize:11,color:C.muted,marginTop:1}}>{m.reason}</div>
@@ -4096,7 +4096,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
 
               {/* Actions */}
               <div style={{display:"flex",gap:8}}>
-                <button onClick={()=>{setCanIHaveResult(null);setCanIHaveImg(null);setCanIHaveText("");}} style={{flex:1,padding:"10px",background:"transparent",border:"1px solid "+C.border,borderRadius:6,color:C.muted,cursor:"pointer",fontFamily:FM,fontSize:12}}>ðŸ”„ Check Another</button>
+                <button onClick={()=>{setCanIHaveResult(null);setCanIHaveImg(null);setCanIHaveText("");}} style={{flex:1,padding:"10px",background:"transparent",border:"1px solid "+C.border,borderRadius:6,color:C.muted,cursor:"pointer",fontFamily:FM,fontSize:12}}>🔄 Check Another</button>
                 <button onClick={()=>{setCanIHaveOpen(false);setCanIHaveResult(null);setCanIHaveImg(null);setCanIHaveText("");}} style={{flex:1,padding:"10px",background:C.accent,border:"none",borderRadius:6,color:"#000",cursor:"pointer",fontFamily:FM,fontSize:12,fontWeight:700}}>Done</button>
               </div>
             </div>
@@ -4108,20 +4108,20 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
           <div style={{background:C.surface,border:"1px solid "+C.borderLight,borderRadius:16,padding:22,maxWidth:500,width:"100%",maxHeight:"88vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
             <div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}>
               <div style={{fontFamily:FD,fontSize:24,lineHeight:1.3,flex:1}}>{activeRecipe.name}</div>
-              <button onClick={()=>setActiveRecipe(null)} style={{background:"transparent",border:"none",color:C.muted,cursor:"pointer",fontSize:20}}>âœ•</button>
+              <button onClick={()=>setActiveRecipe(null)} style={{background:"transparent",border:"none",color:C.muted,cursor:"pointer",fontSize:20}}>✕</button>
             </div>
-            {(()=>{const warns=getMedicalWarnings(activeRecipe.name);if(!warns.length)return null;return(<div style={{display:"flex",flexDirection:"column",gap:3,marginBottom:10}}>{warns.filter(w=>w.enforcement==="strict").map((w,i)=>(<div key={"rs"+i} style={{fontSize:11,background:"#dc2626",color:"#fff",padding:"5px 10px",borderRadius:6,fontFamily:FM,display:"flex",alignItems:"center",gap:6,border:"1px solid #991b1b"}}>ðŸš« <span><strong>{w.member}</strong> — {w.msg}</span></div>))}{warns.filter(w=>w.enforcement==="warn").map((w,i)=>(<div key={"rw"+i} style={{fontSize:11,background:"#d97706",color:"#fff",padding:"5px 10px",borderRadius:6,fontFamily:FM,display:"flex",alignItems:"center",gap:6,border:"1px solid #b45309"}}>âš  <span><strong>{w.member}</strong> — {w.msg}</span></div>))}</div>);})()}
+            {(()=>{const warns=getMedicalWarnings(activeRecipe.name);if(!warns.length)return null;return(<div style={{display:"flex",flexDirection:"column",gap:3,marginBottom:10}}>{warns.filter(w=>w.enforcement==="strict").map((w,i)=>(<div key={"rs"+i} style={{fontSize:11,background:"#dc2626",color:"#fff",padding:"5px 10px",borderRadius:6,fontFamily:FM,display:"flex",alignItems:"center",gap:6,border:"1px solid #991b1b"}}>🚫 <span><strong>{w.member}</strong> — {w.msg}</span></div>))}{warns.filter(w=>w.enforcement==="warn").map((w,i)=>(<div key={"rw"+i} style={{fontSize:11,background:"#d97706",color:"#fff",padding:"5px 10px",borderRadius:6,fontFamily:FM,display:"flex",alignItems:"center",gap:6,border:"1px solid #b45309"}}>⚠ <span><strong>{w.member}</strong> — {w.msg}</span></div>))}</div>);})()}
             {mealPhotos[activeRecipe.name]&&<div style={{marginBottom:12}}><img src={mealPhotos[activeRecipe.name]} alt={activeRecipe.name} style={{width:"100%",maxHeight:200,objectFit:"cover",borderRadius:10,border:"1px solid "+C.borderLight}} /></div>}
             <div style={{color:C.muted,fontSize:13,marginBottom:14,lineHeight:1.6}}>{activeRecipe.description}</div>
             <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap"}}>
-              <span style={bTag(C.muted)}>â± {activeRecipe.time}</span>
+              <span style={bTag(C.muted)}>⏱ {activeRecipe.time}</span>
               <span style={bTag(activeRecipe.difficulty==="Easy"?C.green:activeRecipe.difficulty==="Hard"?C.red:C.accent)}>{activeRecipe.difficulty}</span>
-              <span style={bTag(C.blue)}>ðŸ‘¨â€ðŸ‘©â€ðŸ‘§ {activeProfiles.length} people</span>
+              <span style={bTag(C.blue)}>👨‍👩‍👧 {activeProfiles.length} people</span>
             </div>
             {(activeRecipe.missingIngredients||[]).length>0&&(
               <div style={{background:C.red+"15",border:"1px solid "+C.red+"33",borderRadius:10,padding:12,marginBottom:14}}>
                 <div style={{fontSize:10,fontFamily:FM,color:C.red,marginBottom:6,letterSpacing:0.8}}>MISSING</div>
-                {activeRecipe.missingIngredients.map((m,i)=><div key={i} style={{fontSize:13,color:C.red,marginBottom:3}}>Â· {m}</div>)}
+                {activeRecipe.missingIngredients.map((m,i)=><div key={i} style={{fontSize:13,color:C.red,marginBottom:3}}>· {m}</div>)}
               </div>
             )}
             <div style={{fontFamily:FM,fontSize:10,color:C.muted,letterSpacing:1,marginBottom:10}}>INSTRUCTIONS</div>
@@ -4133,7 +4133,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
             ))}
             <div style={{display:"flex",gap:8,marginTop:10}}>
               <button style={{...bBtn("ghost"),flex:1,padding:10,fontSize:12}} onClick={()=>printRecipeCard(activeRecipe,mealPhotos[activeRecipe.name])}>&#128424; Print</button>
-              <button style={{...bBtn("primary"),flex:3,padding:12}} onClick={()=>cookRecipe(activeRecipe)}>ðŸ³ I Cooked This — Update Inventory</button>
+              <button style={{...bBtn("primary"),flex:3,padding:12}} onClick={()=>cookRecipe(activeRecipe)}>🍳 I Cooked This — Update Inventory</button>
             </div>
         </div>
       </div>
@@ -4145,24 +4145,24 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
           <div style={{background:C.surface,border:"1px solid "+C.accent+"66",borderRadius:16,padding:22,maxWidth:500,width:"100%",maxHeight:"88vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
             <div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}>
               <div style={{fontFamily:FD,fontSize:24,lineHeight:1.3,flex:1,color:C.accent}}>{activeDessert.name}</div>
-              <button onClick={()=>setActiveDessert(null)} style={{background:"transparent",border:"none",color:C.muted,cursor:"pointer",fontSize:20}}>âœ•</button>
+              <button onClick={()=>setActiveDessert(null)} style={{background:"transparent",border:"none",color:C.muted,cursor:"pointer",fontSize:20}}>✕</button>
             </div>
             {mealPhotos[activeDessert.name]&&<div style={{marginBottom:12}}><img src={mealPhotos[activeDessert.name]} alt={activeDessert.name} style={{width:"100%",maxHeight:200,objectFit:"cover",borderRadius:10,border:"1px solid "+C.borderLight}} /></div>}
             <div style={{color:C.muted,fontSize:13,marginBottom:14,lineHeight:1.6}}>{activeDessert.description}</div>
             <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap"}}>
-              <span style={bTag(C.muted)}>â± {activeDessert.time}</span>
+              <span style={bTag(C.muted)}>⏱ {activeDessert.time}</span>
               <span style={bTag("#f472b6")}>{activeDessert.category}</span>
               <span style={bTag(activeDessert.difficulty==="Easy"?C.green:activeDessert.difficulty==="Hard"?C.red:C.accent)}>{activeDessert.difficulty}</span>
-              {activeDessert.servings&&<span style={bTag(C.blue)}>ðŸ½ {activeDessert.servings} servings</span>}
+              {activeDessert.servings&&<span style={bTag(C.blue)}>🍽 {activeDessert.servings} servings</span>}
             </div>
             <div style={{marginBottom:12}}>
-              <a href={getRecipeUrl(activeDessert.name)} target="_blank" rel="noopener noreferrer" style={{fontSize:11,color:"#f59e0b",fontFamily:FM,textDecoration:"none",fontWeight:600,letterSpacing:0.5}}>TAP FOR FULL RECIPE â†’</a>
-              <a href={getRecipeUrl(activeDessert.name)} target="_blank" rel="noopener noreferrer" style={{fontSize:10,color:"#60a5fa",fontFamily:FM,textDecoration:"none",fontWeight:600,marginLeft:10}}>ðŸŒ web search</a>
+              <a href={getRecipeUrl(activeDessert.name)} target="_blank" rel="noopener noreferrer" style={{fontSize:11,color:"#f59e0b",fontFamily:FM,textDecoration:"none",fontWeight:600,letterSpacing:0.5}}>TAP FOR FULL RECIPE →</a>
+              <a href={getRecipeUrl(activeDessert.name)} target="_blank" rel="noopener noreferrer" style={{fontSize:10,color:"#60a5fa",fontFamily:FM,textDecoration:"none",fontWeight:600,marginLeft:10}}>🌐 web search</a>
             </div>
             {(activeDessert.missingIngredients||[]).length>0&&(
               <div style={{background:C.red+"15",border:"1px solid "+C.red+"33",borderRadius:10,padding:12,marginBottom:14}}>
                 <div style={{fontSize:10,fontFamily:FM,color:C.red,marginBottom:6}}>NEED TO GET</div>
-                {activeDessert.missingIngredients.map((m,i)=><div key={i} style={{fontSize:13,color:C.red,marginBottom:3}}>Â· {m}</div>)}
+                {activeDessert.missingIngredients.map((m,i)=><div key={i} style={{fontSize:13,color:C.red,marginBottom:3}}>· {m}</div>)}
               </div>
             )}
             <div style={{fontFamily:FM,fontSize:10,color:C.muted,letterSpacing:1,marginBottom:10}}>INSTRUCTIONS</div>
@@ -4182,8 +4182,8 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                     return [...prev,...toAdd];
                   });
                   setActiveDessert(null);
-                  alert("ðŸ›’ Missing ingredients added to shopping list!");
-                }}>ðŸ›’ Add Missing to List</button>}
+                  alert("🛒 Missing ingredients added to shopping list!");
+                }}>🛒 Add Missing to List</button>}
               <button style={{...bBtn("primary"),flex:2,padding:12,background:"#f472b6",color:"#0c0e14"}}
                 onClick={()=>{
                   setInventory(p=>p.map(i=>{
@@ -4191,8 +4191,8 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                     return {...i,qty:Math.max(0,+(i.qty-1).toFixed(1))};
                   }));
                   setActiveDessert(null);
-                  alert("âœ… \""+activeDessert.name+"\" made! Inventory updated.");
-                }}>ðŸ° I Made This — Update Inventory</button>
+                  alert("✅ \""+activeDessert.name+"\" made! Inventory updated.");
+                }}>🍰 I Made This — Update Inventory</button>
             </div>
           </div>
         </div>
@@ -4203,13 +4203,13 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
       {tab==="leftovers"&&(
         <div style={{maxWidth:700,margin:"0 auto",padding:"0 8px"}}>
           <div style={{marginBottom:16}}>
-            <div style={{fontSize:seniorMode?22:16,fontWeight:700,color:C.accent,marginBottom:4}}>ðŸ¥¡ Leftovers Scanner</div>
+            <div style={{fontSize:seniorMode?22:16,fontWeight:700,color:C.accent,marginBottom:4}}>🥡 Leftovers Scanner</div>
             <div style={{fontSize:seniorMode?15:12,color:C.muted}}>Photograph your leftover container — Smart Kitchen will identify the dish, estimate servings, and set a use-by date so nothing gets wasted.</div>
           </div>
 
           {!leftoversOpen&&!leftoversPreview&&(
             <button style={{...bBtn("primary"),marginBottom:24,fontSize:seniorMode?16:13}} onClick={()=>setLeftoversOpen(true)}>
-              ðŸ“· Scan Leftover Container
+              📷 Scan Leftover Container
             </button>
           )}
 
@@ -4218,7 +4218,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
               <div style={{fontSize:12,color:C.muted,marginBottom:8}}>Take a photo of your leftover container or select from gallery</div>
               <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
                 <label style={{...bBtn("primary"),cursor:"pointer",fontSize:12,display:"inline-block"}}>
-                  ðŸ“· Camera
+                  📷 Camera
                   <input type="file" accept="image/*" capture="environment" style={{display:"none"}} onChange={async e=>{
                     const file=e.target.files[0]; if(!file) return;
                     const b64=await fileToBase64(file);
@@ -4227,7 +4227,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                   }}/>
                 </label>
                 <label style={{...bBtn("ghost"),cursor:"pointer",fontSize:12,display:"inline-block"}}>
-                  ðŸ–¼ Gallery
+                  🖼 Gallery
                   <input type="file" accept="image/*" style={{display:"none"}} onChange={async e=>{
                     const file=e.target.files[0]; if(!file) return;
                     const b64=await fileToBase64(file);
@@ -4260,7 +4260,7 @@ useDays is days from today the food is safe to eat (cooked food: 3-4 days typica
                     });
                     const text=(typeof res==="string"?res:res?.content?.[0]?.text||"").replace(/```json|```/g,"").trim();
                     const jsonMatch=text.match(/\{[\s\S]*\}/);
-                    if(!jsonMatch){setLeftoversError("Smart Kitchen couldnâ€™t read the response — try again.");setLeftoversLoading(false);return;}
+                    if(!jsonMatch){setLeftoversError("Smart Kitchen couldn’t read the response — try again.");setLeftoversLoading(false);return;}
                     const parsed=JSON.parse(jsonMatch[0]);
                     if(!parsed.dish){setLeftoversError("Dish name missing from response — try a clearer photo.");setLeftoversLoading(false);return;}
                     // Detect unrecognized dish — low confidence or generic name
@@ -4282,7 +4282,7 @@ useDays is days from today the food is safe to eat (cooked food: 3-4 days typica
                   }
                   setLeftoversLoading(false);
                 }}>
-                  {leftoversLoading?"ðŸ” Identifying...":"ðŸ” Identify & Save"}
+                  {leftoversLoading?"🔍 Identifying...":"🔍 Identify & Save"}
                 </button>
               )}
 
@@ -4291,7 +4291,7 @@ useDays is days from today the food is safe to eat (cooked food: 3-4 days typica
               {/* Unknown dish — ask user */}
               {leftoversUnknown&&(
                 <div style={{background:"#f59e0b11",border:"2px solid #f59e0b44",borderRadius:12,padding:16,marginTop:12}}>
-                  <div style={{fontFamily:FM,fontSize:seniorMode?16:13,fontWeight:700,color:"#d97706",marginBottom:8}}>ðŸ¤” I'm not sure what this is</div>
+                  <div style={{fontFamily:FM,fontSize:seniorMode?16:13,fontWeight:700,color:"#d97706",marginBottom:8}}>🤔 I'm not sure what this is</div>
                   <div style={{fontFamily:FM,fontSize:seniorMode?14:12,color:C.muted,marginBottom:12,lineHeight:1.5}}>I can see food in the container but I'm not confident what dish it is. What did you make?</div>
                   <input
                     autoFocus
@@ -4319,7 +4319,7 @@ useDays is days from today the food is safe to eat (cooked food: 3-4 days typica
                       }}
                       style={{...bBtn("primary"),flex:2,padding:"9px",fontSize:13,
                         opacity:leftoversManualName.trim()?1:0.5}}>
-                      That's What It Is âœ“
+                      That's What It Is ✓
                     </button>
                   </div>
                 </div>
@@ -4329,7 +4329,7 @@ useDays is days from today the food is safe to eat (cooked food: 3-4 days typica
 
           {leftoversResult&&leftoversResult.dish&&(
             <div style={{background:C.card,border:"2px solid "+C.accent,borderRadius:12,padding:16,marginBottom:16}}>
-              <div style={{fontSize:14,fontWeight:700,color:C.accent,marginBottom:12}}>âœ… Leftover Identified</div>
+              <div style={{fontSize:14,fontWeight:700,color:C.accent,marginBottom:12}}>✅ Leftover Identified</div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
                 <div style={{background:C.bg,borderRadius:8,padding:10}}>
                   <div style={{fontSize:10,color:C.muted,marginBottom:2}}>DISH</div>
@@ -4343,7 +4343,7 @@ useDays is days from today the food is safe to eat (cooked food: 3-4 days typica
                   <div style={{fontSize:10,color:C.muted,marginBottom:2}}>USE BY</div>
                   <div style={{fontSize:13,fontWeight:700,color:leftoversResult.useDays<=2?"#f66":"#4c4"}}>
                     {new Date(Date.now()+leftoversResult.useDays*86400000).toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})}
-                    {leftoversResult.useDays<=2?" âš  Soon!":" âœ“"}
+                    {leftoversResult.useDays<=2?" ⚠ Soon!":" ✓"}
                   </div>
                 </div>
                 <div style={{background:C.bg,borderRadius:8,padding:10}}>
@@ -4351,7 +4351,7 @@ useDays is days from today the food is safe to eat (cooked food: 3-4 days typica
                   <div style={{fontSize:13,fontWeight:700,color:leftoversResult.confidence==="high"?"#4c4":leftoversResult.confidence==="medium"?"#fa0":"#f66"}}>{leftoversResult.confidence?.toUpperCase()}</div>
                 </div>
               </div>
-              {leftoversResult.notes&&<div style={{fontSize:12,color:C.muted,marginBottom:12,fontStyle:"italic"}}>ðŸ’¡ {leftoversResult.notes}</div>}
+              {leftoversResult.notes&&<div style={{fontSize:12,color:C.muted,marginBottom:12,fontStyle:"italic"}}>💡 {leftoversResult.notes}</div>}
               <button style={{...bBtn("primary"),width:"100%",fontSize:13}} onClick={()=>{
                 const useByDate=new Date(Date.now()+leftoversResult.useDays*86400000).toLocaleDateString("en-US",{month:"short",day:"numeric"});
                 const saveLeftover=(photoDataUrl)=>{
@@ -4384,19 +4384,19 @@ useDays is days from today the food is safe to eat (cooked food: 3-4 days typica
                     canvas.width=img.width*ratio;canvas.height=img.height*ratio;
                     canvas.getContext("2d").drawImage(img,0,0,canvas.width,canvas.height);
                     saveLeftover(canvas.toDataURL("image/jpeg",0.65));
-                    alert("âœ… "+dishName+" saved! Use by "+useByDate+".");
+                    alert("✅ "+dishName+" saved! Use by "+useByDate+".");
                   };
-                  img.onerror=()=>{saveLeftover(leftoversPreview||null);alert("âœ… "+dishName+" saved! Use by "+useByDate+".");};
+                  img.onerror=()=>{saveLeftover(leftoversPreview||null);alert("✅ "+dishName+" saved! Use by "+useByDate+".");};
                   img.src="data:"+leftoversMime+";base64,"+leftoversB64;
                 } else if(leftoversPreview){
                   saveLeftover(leftoversPreview);
-                  alert("âœ… "+dishName+" saved! Use by "+useByDate+".");
+                  alert("✅ "+dishName+" saved! Use by "+useByDate+".");
                 } else {
                   saveLeftover(null);
-                  alert("âœ… "+dishName+" saved! Use by "+useByDate+".");
+                  alert("✅ "+dishName+" saved! Use by "+useByDate+".");
                 }
               }}>
-                ðŸ’¾ Save to Inventory
+                💾 Save to Inventory
               </button>
               <button style={{...bBtn("ghost"),width:"100%",fontSize:12,marginTop:8}} onClick={()=>{setLeftoversResult(null);setLeftoversPreview(null);setLeftoversB64(null);}}>
                 Try Again
@@ -4419,9 +4419,9 @@ useDays is days from today the food is safe to eat (cooked food: 3-4 days typica
                       {item.photo&&<img src={item.photo} alt={item.name} style={{width:seniorMode?72:56,height:seniorMode?72:56,objectFit:"cover",borderRadius:8,flexShrink:0,border:"1px solid "+C.border}} />}
                       <div>
                         <div style={{fontSize:seniorMode?20:14,fontWeight:600,color:C.text}}>{item.name}</div>
-                        <div style={{fontSize:seniorMode?16:11,color:C.muted}}>{item.qty} {item.unit}{item.useBy?" Â· Use by "+item.useBy:""}</div>
-                        {urgent&&<span style={{fontSize:seniorMode?15:10,color:"#f66",fontWeight:700}}>âš  Use TODAY</span>}
-                        {warning&&!urgent&&<span style={{fontSize:seniorMode?15:10,color:"#fa0",fontWeight:700}}>âš  Use SOON</span>}
+                        <div style={{fontSize:seniorMode?16:11,color:C.muted}}>{item.qty} {item.unit}{item.useBy?" · Use by "+item.useBy:""}</div>
+                        {urgent&&<span style={{fontSize:seniorMode?15:10,color:"#f66",fontWeight:700}}>⚠ Use TODAY</span>}
+                        {warning&&!urgent&&<span style={{fontSize:seniorMode?15:10,color:"#fa0",fontWeight:700}}>⚠ Use SOON</span>}
                       </div>
                     </div>
                     <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap",justifyContent:"flex-end"}}>
@@ -4465,7 +4465,7 @@ useDays is days from today the food is safe to eat (cooked food: 3-4 days typica
       {tab==="substitute"&&(
         <div style={{maxWidth:700,margin:"0 auto",padding:"0 8px"}}>
           <div style={{marginBottom:16}}>
-            <div style={{fontSize:seniorMode?22:16,fontWeight:700,color:C.accent,marginBottom:4}}>ðŸ”„ Can I Substitute This?</div>
+            <div style={{fontSize:seniorMode?22:16,fontWeight:700,color:C.accent,marginBottom:4}}>🔄 Can I Substitute This?</div>
             <div style={{fontSize:seniorMode?15:12,color:C.muted}}>Out of an ingredient? Type it below and Smart Kitchen will check your pantry and suggest the best substitution with exact measurements.</div>
           </div>
 
@@ -4533,7 +4533,7 @@ What can I substitute and do I have what I need?`,
                 }catch(e){setSubError("Could not find substitution. Try being more specific.");}
                 setSubLoading(false);
               }}>
-                {subLoading?"ðŸ” Checking...":"ðŸ” Find Sub"}
+                {subLoading?"🔍 Checking...":"🔍 Find Sub"}
               </button>
             </div>
             <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
@@ -4553,11 +4553,11 @@ What can I substitute and do I have what I need?`,
 
               {subResult.makeIt?.possible&&(
                 <div style={{background:C.card,border:"2px solid #4c4",borderRadius:12,padding:16}}>
-                  <div style={{fontSize:12,fontWeight:700,color:"#4c4",marginBottom:8}}>âœ¨ MAKE IT YOURSELF</div>
+                  <div style={{fontSize:12,fontWeight:700,color:"#4c4",marginBottom:8}}>✨ MAKE IT YOURSELF</div>
                   <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:8}}>
                     {(subResult.makeIt.ingredients||[]).map((ing,i)=>{
                       const inStock=inventory.some(item=>item.name.toLowerCase().includes(ing.split(" ")[ing.split(" ").length-1].toLowerCase()));
-                      return<span key={i} style={{background:inStock?"#1a3a1a":"#3a1a1a",border:"1px solid "+(inStock?"#4c4":"#f66"),borderRadius:6,padding:"3px 8px",fontSize:12,color:inStock?"#4c4":"#f99"}}>{inStock?"âœ“":"âœ—"} {ing}</span>;
+                      return<span key={i} style={{background:inStock?"#1a3a1a":"#3a1a1a",border:"1px solid "+(inStock?"#4c4":"#f66"),borderRadius:6,padding:"3px 8px",fontSize:12,color:inStock?"#4c4":"#f99"}}>{inStock?"✓":"✗"} {ing}</span>;
                     })}
                   </div>
                   {subResult.makeIt.instructions&&<div style={{fontSize:13,color:C.text,marginBottom:6}}>{subResult.makeIt.instructions}</div>}
@@ -4574,9 +4574,9 @@ What can I substitute and do I have what I need?`,
                       <div key={i} style={{borderBottom:i<subResult.swapWith.length-1?"1px solid "+C.border:"none",paddingBottom:i<subResult.swapWith.length-1?10:0,marginBottom:i<subResult.swapWith.length-1?10:0}}>
                         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
                           <span style={{fontSize:14,fontWeight:600,color:C.text}}>{swap.item}</span>
-                          <span style={{fontSize:11,background:inStock?"#1a3a1a":"#2a2a2a",color:inStock?"#4c4":C.muted,border:"1px solid "+(inStock?"#4c4":C.border),borderRadius:10,padding:"2px 8px"}}>{inStock?"âœ“ In Stock":"Not in pantry"}</span>
+                          <span style={{fontSize:11,background:inStock?"#1a3a1a":"#2a2a2a",color:inStock?"#4c4":C.muted,border:"1px solid "+(inStock?"#4c4":C.border),borderRadius:10,padding:"2px 8px"}}>{inStock?"✓ In Stock":"Not in pantry"}</span>
                         </div>
-                        {swap.ratio&&<div style={{fontSize:12,color:C.accent,marginBottom:2}}>ðŸ“ {swap.ratio}</div>}
+                        {swap.ratio&&<div style={{fontSize:12,color:C.accent,marginBottom:2}}>📏 {swap.ratio}</div>}
                         {swap.note&&<div style={{fontSize:11,color:C.muted,fontStyle:"italic"}}>{swap.note}</div>}
                       </div>
                     );
@@ -4586,7 +4586,7 @@ What can I substitute and do I have what I need?`,
 
               {subResult.warning&&(
                 <div style={{background:"#2a2000",border:"1px solid #fa0",borderRadius:10,padding:12}}>
-                  <div style={{fontSize:12,color:"#fa0"}}>âš  {subResult.warning}</div>
+                  <div style={{fontSize:12,color:"#fa0"}}>⚠ {subResult.warning}</div>
                 </div>
               )}
 
@@ -4603,22 +4603,22 @@ What can I substitute and do I have what I need?`,
           <div style={{background:"white",color:"#111",borderRadius:14,padding:24,maxWidth:660,width:"100%",maxHeight:"90vh",overflowY:"auto",fontFamily:"Arial, sans-serif"}}>
             <div id="sk-no-print" style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18,borderBottom:"2px solid #eee",paddingBottom:12}}>
               <div>
-                <div style={{fontSize:17,fontWeight:"bold"}}>{printModal==="mealplan"?"ðŸ½ Meal Plan":"ðŸ›’ Shopping List"}</div>
+                <div style={{fontSize:17,fontWeight:"bold"}}>{printModal==="mealplan"?"🍽 Meal Plan":"🛒 Shopping List"}</div>
                 <div style={{fontSize:12,color:"#888",marginTop:2}}>Press <strong>Ctrl+P</strong> (Win) or <strong>Cmd+P</strong> (Mac) to print</div>
               </div>
               <div style={{display:"flex",gap:8}}>
-                <button onClick={()=>{const c=document.getElementById("sk-print-content");if(!c)return;const w=window.open("","_blank","width=750,height=900");w.document.write("<html><head><title>Smart Kitchen</title><style>body{font-family:Arial,sans-serif;padding:32px 40px;color:#111;margin:0;}@page{margin:1cm;size:portrait;}h1{font-size:28px;font-weight:bold;margin:0 0 4px 0;color:#1A2344;}h2{font-size:22px;font-weight:bold;margin:6px 0;}h3{font-size:13px;color:#888;text-transform:uppercase;letter-spacing:1px;margin:0 0 2px 0;font-weight:normal;}.date{font-size:14px;color:#888;margin-bottom:20px;}.summary{background:#f5f5f5;border-radius:6px;padding:10px 16px;margin-bottom:20px;font-size:15px;}.day-card{border:2px solid #e2e6ef;border-radius:8px;padding:14px 18px;margin-bottom:12px;page-break-inside:avoid;}.day-name{font-size:22px;font-weight:bold;color:#1A2344;margin-bottom:2px;}.meal-name{font-size:18px;font-weight:bold;color:#C8963E;margin-bottom:6px;}.details{font-size:14px;color:#555;margin-bottom:4px;}.need{font-size:14px;color:#c00;}.good{font-size:14px;color:#080;}.brand{font-size:12px;color:#aaa;margin-top:24px;text-align:center;border-top:1px solid #eee;padding-top:12px;}</style></head><body>"+c.innerHTML+"</body></html>");w.document.close();w.focus();setTimeout(()=>{w.print();w.close();},400);}} style={{background:"#f0a500",border:"none",borderRadius:8,padding:"8px 18px",fontWeight:"bold",cursor:"pointer",fontSize:13}}>ðŸ–¨ Print Now</button>
-                <button onClick={()=>setPrintModal(null)} style={{background:"#eee",border:"none",borderRadius:8,padding:"8px 14px",cursor:"pointer",fontSize:13}}>âœ•</button>
+                <button onClick={()=>{const c=document.getElementById("sk-print-content");if(!c)return;const w=window.open("","_blank","width=750,height=900");w.document.write("<html><head><title>Smart Kitchen</title><style>body{font-family:Arial,sans-serif;padding:32px 40px;color:#111;margin:0;}@page{margin:1cm;size:portrait;}h1{font-size:28px;font-weight:bold;margin:0 0 4px 0;color:#1A2344;}h2{font-size:22px;font-weight:bold;margin:6px 0;}h3{font-size:13px;color:#888;text-transform:uppercase;letter-spacing:1px;margin:0 0 2px 0;font-weight:normal;}.date{font-size:14px;color:#888;margin-bottom:20px;}.summary{background:#f5f5f5;border-radius:6px;padding:10px 16px;margin-bottom:20px;font-size:15px;}.day-card{border:2px solid #e2e6ef;border-radius:8px;padding:14px 18px;margin-bottom:12px;page-break-inside:avoid;}.day-name{font-size:22px;font-weight:bold;color:#1A2344;margin-bottom:2px;}.meal-name{font-size:18px;font-weight:bold;color:#C8963E;margin-bottom:6px;}.details{font-size:14px;color:#555;margin-bottom:4px;}.need{font-size:14px;color:#c00;}.good{font-size:14px;color:#080;}.brand{font-size:12px;color:#aaa;margin-top:24px;text-align:center;border-top:1px solid #eee;padding-top:12px;}</style></head><body>"+c.innerHTML+"</body></html>");w.document.close();w.focus();setTimeout(()=>{w.print();w.close();},400);}} style={{background:"#f0a500",border:"none",borderRadius:8,padding:"8px 18px",fontWeight:"bold",cursor:"pointer",fontSize:13}}>🖨 Print Now</button>
+                <button onClick={()=>setPrintModal(null)} style={{background:"#eee",border:"none",borderRadius:8,padding:"8px 14px",cursor:"pointer",fontSize:13}}>✕</button>
               </div>
             </div>
             <div id="sk-print-content">
               {printModal==="mealplan"&&(
                 <div>
-                  <h1>Smart Kitchenâ„¢ — Weekly Meal Plan</h1>
+                  <h1>Smart Kitchen™ — Weekly Meal Plan</h1>
                   <div className="date">Week of {new Date().toLocaleDateString("en-US",{weekday:"long",year:"numeric",month:"long",day:"numeric"})}</div>
                   {mealPlan.filter(d=>d.proteinUsed).length>0&&(
                     <div className="summary">
-                      <strong>This week:</strong> {mealPlan.filter(d=>d.proteinUsed).map((d,i)=><span key={i}>{d.day?.slice(0,3)}: {d.proteinUsed}{i<mealPlan.filter(x=>x.proteinUsed).length-1?" Â· ":""}</span>)}
+                      <strong>This week:</strong> {mealPlan.filter(d=>d.proteinUsed).map((d,i)=><span key={i}>{d.day?.slice(0,3)}: {d.proteinUsed}{i<mealPlan.filter(x=>x.proteinUsed).length-1?" · ":""}</span>)}
                     </div>
                   )}
                   {mealPlan.map((day,i)=>(
@@ -4626,24 +4626,24 @@ What can I substitute and do I have what I need?`,
                       <h3>Day {i+1}</h3>
                       <div className="day-name">{day.day}</div>
                       <div className="meal-name">{day.meal}</div>
-                      <div className="details">{[day.proteinUsed&&"ðŸ¥© "+day.proteinUsed,(day.sauteBagsUsed||0)>0&&"ðŸ«• Saute blend: "+day.sauteBagsUsed+" bag",day.sideUsed&&"ðŸ¥¦ "+day.sideUsed].filter(Boolean).join("  Â·  ")}</div>
-                      {(day.shoppingNeeded||[]).length===0?<div className="good">âœ… All ingredients on hand</div>:<div className="need">ðŸ›’ Need: {(day.shoppingNeeded||[]).map(s=>s.qty+" "+s.unit+" "+s.name).join(", ")}</div>}
+                      <div className="details">{[day.proteinUsed&&"🥩 "+day.proteinUsed,(day.sauteBagsUsed||0)>0&&"🫕 Saute blend: "+day.sauteBagsUsed+" bag",day.sideUsed&&"🥦 "+day.sideUsed].filter(Boolean).join("  ·  ")}</div>
+                      {(day.shoppingNeeded||[]).length===0?<div className="good">✅ All ingredients on hand</div>:<div className="need">🛒 Need: {(day.shoppingNeeded||[]).map(s=>s.qty+" "+s.unit+" "+s.name).join(", ")}</div>}
                     </div>
                   ))}
-                  <div className="brand">smart-kitchen-opal.vercel.app Â· Printed {new Date().toLocaleDateString()}</div>
+                  <div className="brand">smart-kitchen-opal.vercel.app · Printed {new Date().toLocaleDateString()}</div>
                 </div>
               )}
               {printModal==="shopping"&&(
                 <div>
                   <div style={{fontSize:22,fontWeight:"bold",marginBottom:4}}>Shopping List</div>
-                  <div style={{fontSize:12,color:"#666",marginBottom:18}}>Smart Kitchen Â· {new Date().toLocaleDateString()}</div>
+                  <div style={{fontSize:12,color:"#666",marginBottom:18}}>Smart Kitchen · {new Date().toLocaleDateString()}</div>
                   {CATEGORIES.filter(cat=>shopping.some(i=>i.category===cat)).map(cat=>(
                     <div key={cat}>
                       <div style={{fontSize:11,fontWeight:"bold",textTransform:"uppercase",color:"#888",letterSpacing:1,margin:"14px 0 5px",borderBottom:"1px solid #eee",paddingBottom:3}}>{cat}</div>
                       {shopping.filter(i=>i.category===cat).map((item,idx)=>(
                         <div key={idx} style={{display:"flex",alignItems:"center",padding:"6px 0",borderBottom:"1px solid #f5f5f5",fontSize:14}}>
                           <div style={{width:16,height:16,border:"1.5px solid #999",borderRadius:3,marginRight:12,flexShrink:0}}/>
-                          <span style={{flex:1}}>{item.name}{item.suggestBulk?" ðŸ“¦":""}</span>
+                          <span style={{flex:1}}>{item.name}{item.suggestBulk?" 📦":""}</span>
                           <span style={{color:"#666",fontSize:12}}>{item.qty} {item.unit}</span>
                         </div>
                       ))}
@@ -4668,7 +4668,7 @@ What can I substitute and do I have what I need?`,
             {!shareResult?(
               <div>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-                  <div style={{fontFamily:FD,fontSize:20,color:C.accent}}>ðŸ“¤ Share Recipes</div>
+                  <div style={{fontFamily:FD,fontSize:20,color:C.accent}}>📤 Share Recipes</div>
                   <button onClick={()=>setShowShareModal(false)} style={{background:C.surface,border:"1px solid "+C.border,borderRadius:6,color:C.text,cursor:"pointer",fontSize:15,padding:"3px 9px"}}>x</button>
                 </div>
 
@@ -4679,10 +4679,10 @@ What can I substitute and do I have what I need?`,
                   </div>
                   {Object.values(shareSelected).map((r,i)=>(
                     <div key={i} style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
-                      <span style={{fontSize:14}}>{r.isFamilyRecipe?"ðŸ“–":"â­"}</span>
+                      <span style={{fontSize:14}}>{r.isFamilyRecipe?"📖":"⭐"}</span>
                       <span style={{fontFamily:FM,fontSize:13,color:C.text}}>{r.name}</span>
                       <button onClick={()=>setShareSelected(prev=>{const next={...prev};delete next[r.name];return next;})}
-                        style={{background:"transparent",border:"none",color:C.muted,cursor:"pointer",fontSize:12,marginLeft:"auto"}}>âœ•</button>
+                        style={{background:"transparent",border:"none",color:C.muted,cursor:"pointer",fontSize:12,marginLeft:"auto"}}>✕</button>
                     </div>
                   ))}
                 </div>
@@ -4716,7 +4716,7 @@ What can I substitute and do I have what I need?`,
             ):(
               <div>
                 <div style={{textAlign:"center",marginBottom:16}}>
-                  <div style={{fontSize:40,marginBottom:8}}>ðŸŽ‰</div>
+                  <div style={{fontSize:40,marginBottom:8}}>🎉</div>
                   <div style={{fontFamily:FD,fontSize:20,color:C.accent,marginBottom:4}}>Link Created!</div>
                   <div style={{fontFamily:FM,fontSize:13,color:C.muted}}>
                     {Object.keys(shareSelected).length} recipe{Object.keys(shareSelected).length>1?"s":""} ready to share
@@ -4736,16 +4736,16 @@ What can I substitute and do I have what I need?`,
                 <div style={{display:"flex",gap:8,marginBottom:10}}>
                   <button onClick={()=>{navigator.clipboard.writeText(shareResult.shareUrl);setShareCopied(true);setTimeout(()=>setShareCopied(false),3000);}}
                     style={{...bBtn(shareCopied?"ghost":"primary"),flex:1,padding:"10px",fontSize:13}}>
-                    {shareCopied?"âœ“ Copied!":"ðŸ“‹ Copy Link"}
+                    {shareCopied?"✓ Copied!":"📋 Copy Link"}
                   </button>
                   <button onClick={()=>{const text="I shared "+Object.keys(shareSelected).length+" recipes with you on Smart Kitchen! Use code "+shareResult.shareCode+" or tap: "+shareResult.shareUrl;if(navigator.share){navigator.share({title:"Smart Kitchen Recipes",text});}else{window.open("sms:?body="+encodeURIComponent(text));}}}
                     style={{...bBtn("ghost"),flex:1,padding:"10px",fontSize:13,border:"1px solid #22c55e",color:"#22c55e"}}>
-                    ðŸ“± Text Link
+                    📱 Text Link
                   </button>
                 </div>
                 <button onClick={()=>{const body="Hey! I shared some recipes with you on Smart Kitchen. Use code "+shareResult.shareCode+" or tap this link: "+shareResult.shareUrl;window.location.href="mailto:?subject=Smart Kitchen Recipes&body="+encodeURIComponent(body);}}
                   style={{...bBtn("ghost"),width:"100%",padding:"10px",fontSize:13,marginBottom:12}}>
-                  âœ‰ Email Link
+                  ✉ Email Link
                 </button>
 
                 <button onClick={()=>{setShowShareModal(false);setShareResult(null);setShareSelected({});setShareMode(false);setShareTitle("");}}
@@ -4762,7 +4762,7 @@ What can I substitute and do I have what I need?`,
           <div style={{background:C.card,border:"1px solid "+C.border,borderRadius:18,padding:24,maxWidth:420,width:"100%",maxHeight:"90vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
 
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-              <div style={{fontFamily:FD,fontSize:20,color:"#8b5cf6"}}>ðŸ“¥ Import Recipes</div>
+              <div style={{fontFamily:FD,fontSize:20,color:"#8b5cf6"}}>📥 Import Recipes</div>
               <button onClick={()=>{setShowImportModal(false);setImportResult(null);setImportCode("");}}
                 style={{background:C.surface,border:"1px solid "+C.border,borderRadius:6,color:C.text,cursor:"pointer",fontSize:15,padding:"3px 9px"}}>x</button>
             </div>
@@ -4794,13 +4794,13 @@ What can I substitute and do I have what I need?`,
                 <div style={{background:C.surface,borderRadius:12,padding:14,marginBottom:14}}>
                   <div style={{fontFamily:FD,fontSize:17,color:"#8b5cf6",marginBottom:4}}>{importResult.title}</div>
                   <div style={{fontFamily:FM,fontSize:12,color:C.muted,marginBottom:10}}>
-                    Shared by {importResult.ownerName} Â· {importResult.recipeCount} recipe{(importResult.recipeCount||0)>1?"s":""}
+                    Shared by {importResult.ownerName} · {importResult.recipeCount} recipe{(importResult.recipeCount||0)>1?"s":""}
                   </div>
                   <div style={{maxHeight:200,overflowY:"auto"}}>
                     {(importResult.recipes||[]).map((r,i)=>(
                       <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",
                         borderBottom:"1px solid "+C.border}}>
-                        <span style={{fontSize:14}}>{r.isFamilyRecipe?"ðŸ“–":"â­"}</span>
+                        <span style={{fontSize:14}}>{r.isFamilyRecipe?"📖":"⭐"}</span>
                         <div>
                           <div style={{fontFamily:FM,fontSize:13,color:C.text,fontWeight:600}}>{r.name}</div>
                           {r.time&&<div style={{fontFamily:FM,fontSize:11,color:C.muted}}>{r.time}</div>}
@@ -4816,7 +4816,7 @@ What can I substitute and do I have what I need?`,
                   <button onClick={()=>setImportResult(null)} style={{...bBtn("ghost"),flex:1,padding:"10px"}}>Back</button>
                   <button onClick={()=>confirmImport(importResult.recipes)}
                     style={{...bBtn("primary"),flex:2,padding:"10px",fontSize:14,background:"#8b5cf6"}}>
-                    Add All to My Kitchen âœ“
+                    Add All to My Kitchen ✓
                   </button>
                 </div>
               </div>
@@ -4832,7 +4832,7 @@ What can I substitute and do I have what I need?`,
 
             {/* Header */}
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-              <div style={{fontFamily:FD,fontSize:20,color:plateSession?"#10b981":"#3b82f6"}}>{plateSession?"ðŸ½ Build My Plate":"âš– Portion Scale"}</div>{plateSession&&!showPlateSummary&&(<div style={{marginTop:12}}><div style={{background:"#10b98118",borderRadius:10,padding:"10px 14px",marginBottom:12,border:"1px solid #10b98144"}}><div style={{fontFamily:FM,fontSize:11,color:"#10b981",fontWeight:700}}>{plateSession.memberName} — {plateSession.mealName}</div><div style={{fontFamily:FM,fontSize:10,color:"#888",marginTop:2}}>Step {plateStep+1} of {Math.max(plateStep+1,3)} — {plateStep===0?"Place empty plate and tap Zero":plateStep===1?"Add protein":"Add next component"}</div></div>{plateSession&&plateQualifyingMembers.length>1&&!plateSession.activeProfile&&(<div style={{marginBottom:14}}><div style={{fontFamily:FM,fontSize:seniorMode?16:13,color:"#fff",textAlign:"center",marginBottom:12,fontWeight:600}}>Who is this plate for?</div><div style={{display:"flex",flexWrap:"wrap",gap:8,justifyContent:"center"}}>{plateQualifyingMembers.map(p=>(<button key={p.id||p.name} onClick={()=>{setPlateSession(s=>({...s,memberName:p.name||"",activeProfile:p}));setPlatePendingMeal(null);setPlateQualifyingMembers([]);}} style={{background:"#10b98122",border:"2px solid #10b981",borderRadius:24,padding:seniorMode?"14px 22px":"10px 18px",color:"#10b981",fontFamily:FM,fontSize:seniorMode?18:14,fontWeight:700,cursor:"pointer"}}>{p.name||"Member"}{p.medicalPlan?(" — "+p.medicalPlan):(p.guidedPlateMode?" — Guided":"")}</button>))}</div><div style={{fontFamily:FM,fontSize:10,color:"#888",textAlign:"center",marginTop:10}}>Portion targets and coaching will be personalized to this member</div></div>)}<div style={{fontFamily:FM,fontSize:seniorMode?16:13,color:"#ccc",marginBottom:12,lineHeight:1.5,textAlign:"center"}}>{plateStep===0&&"Place your empty plate or bowl on the scale, then tap Tare / Zero below."}{plateStep===1&&"Add your protein. The scale shows the weight. Tap Log Component when ready."}{plateStep>=2&&"Add your next food component. The app calculates it from the weight difference."}</div>{(!plateSession||plateSession.activeProfile)&&plateStep>0&&(<div style={{marginBottom:10}}><div style={{fontFamily:FM,fontSize:10,color:"#888",marginBottom:4}}>WHAT ARE YOU ADDING?</div><input value={scaleFoodName} onChange={e=>setScaleFoodName(e.target.value)} placeholder={plateStep===1?"e.g. Chicken Breast":"e.g. Brown Rice, Green Beans..."} style={{width:"100%",background:"#1a1a2e",border:"1px solid #3b82f6",borderRadius:8,padding:"10px 12px",color:"#fff",fontFamily:"monospace",fontSize:14,boxSizing:"border-box"}}/></div>)}{scaleDevice&&plateStep>0&&(<div style={{textAlign:"center",marginBottom:10}}><div style={{fontFamily:"serif",fontSize:42,color:"#10b981"}}>{scaleWeight?.toFixed(scaleUnit==="lb"?3:1)||"0.0"}</div><div style={{fontFamily:FM,fontSize:12,color:"#888"}}>{scaleUnit}</div>{plateStep>1&&plateCumulativeG>0&&(<div style={{fontFamily:FM,fontSize:11,color:"#f59e0b",marginTop:4}}>This component: ~{Math.max(0,(scaleWeightGrams-plateCumulativeG)).toFixed(0)}g</div>)}</div>)}{plateStep>0&&scaleDevice&&scaleFoodName.trim()&&(<button onClick={async()=>{const componentG=plateStep===1?scaleWeightGrams:Math.max(0,scaleWeightGrams-plateCumulativeG);if(componentG<1) return;setScaleCalcLoading(true);try{const raw=await callClaude({system:"Nutrition AI. Return ONLY valid JSON: {calories,protein_g,carbs_g,fat_g,sat_fat_g,sugar_g,fiber_g,sodium_mg}. Numbers only, no units.",prompt:"Estimate nutrition for "+componentG.toFixed(0)+"g of "+scaleFoodName.trim()+". Return JSON only.",maxTokens:200,});const text=typeof raw==="string"?raw:raw?.content?.[0]?.text||"";const clean=text.replace(/```json|```/g,"").trim();const s=clean.indexOf("{");const e=clean.lastIndexOf("}");if(s===-1||e===-1) throw new Error("no json");const parsed=JSON.parse(clean.slice(s,e+1));const activeP=plateSession.activeProfile;const wwBudget=activeP?.wwPointsBudget;const wwPts=wwBudget?Math.max(0,Math.round(((parsed.calories||0)*0.0305)+((parsed.sat_fat_g||0)*0.275)+((parsed.sugar_g||0)*0.12)-((parsed.protein_g||0)*0.098))):null;const newComp={name:scaleFoodName.trim(),weightG:componentG,calories:parsed.calories||0,protein_g:parsed.protein_g||0,carbs_g:parsed.carbs_g||0,sat_fat_g:parsed.sat_fat_g||0,sugar_g:parsed.sugar_g||0,fiber_g:parsed.fiber_g||0,sodium_mg:parsed.sodium_mg||0,wwPoints:wwPts};const updated=[...plateComponents,newComp];setPlateComponents(updated);setPlateCumulativeG(scaleWeightGrams);setPlateStep(s=>s+1);setScaleFoodName("");setScaleCalcResult(null);logNutrition({memberName:activeP?.name||null,itemName:newComp.name,weightG:componentG,calories:newComp.calories,protein_g:newComp.protein_g,carbs_g:newComp.carbs_g,fat_g:parsed.fat_g||0,sat_fat_g:newComp.sat_fat_g,sugar_g:newComp.sugar_g,fiber_g:newComp.fiber_g,sodium_mg:newComp.sodium_mg,wwPoints:wwPts,source:"smart_plate",sessionId:plateSessionId});}catch(err){setScaleError("Could not estimate — try again.");}setScaleCalcLoading(false);}} style={{width:"100%",background:"#10b981",border:"none",borderRadius:10,padding:seniorMode?"14px":"10px",color:"#fff",fontFamily:FM,fontSize:seniorMode?18:14,fontWeight:700,cursor:"pointer",marginBottom:8}}>{scaleCalcLoading?"â³ Calculating...":"âœ“ Log Component"}</button>)}{plateComponents.length>0&&(<div style={{marginBottom:10}}><div style={{fontFamily:FM,fontSize:10,color:"#888",marginBottom:6}}>LOGGED SO FAR</div>{plateComponents.map((comp,ci)=>(<div key={ci} style={{display:"flex",justifyContent:"space-between",fontFamily:FM,fontSize:11,color:"#aaa",marginBottom:3,padding:"4px 8px",background:"#ffffff08",borderRadius:6}}><span>{comp.name}</span><span style={{color:"#10b981"}}>{comp.weightG.toFixed(0)}g • {comp.protein_g.toFixed(0)}g pro • {comp.calories.toFixed(0)}cal</span></div>))}</div>)}{plateComponents.length>0&&(<button onClick={async()=>{setShowPlateSummary(true);setPlateCoachLoading(true);const activeP=plateSession.activeProfile;const totP=plateComponents.reduce((a,r)=>a+(r.protein_g||0),0).toFixed(0);const totCal=plateComponents.reduce((a,r)=>a+(r.calories||0),0).toFixed(0);const totCarb=plateComponents.reduce((a,r)=>a+(r.carbs_g||0),0).toFixed(0);const totSat=plateComponents.reduce((a,r)=>a+(r.sat_fat_g||0),0).toFixed(0);const plan=activeP?.medicalPlan||"";const phase=activeP?.bariatricPhase||"";const ptarget=activeP?.proteinTargetG||75;const prompt="Member: "+(activeP?.name||"person")+". Dietary plan: "+(plan||"general")+". "+(phase?"Bariatric phase: "+phase+". ":"")+("Protein target: "+ptarget+"g/day. ")+"This plate: "+plateComponents.map(c=>c.name+" "+c.weightG.toFixed(0)+"g ("+c.protein_g.toFixed(0)+"g protein, "+c.calories.toFixed(0)+" cal, "+c.carbs_g.toFixed(0)+"g carbs)").join("; ")+". Total: "+totP+"g protein, "+totCal+" cal, "+totCarb+"g carbs, "+totSat+"g sat fat. Write 2-3 sentences of coaching feedback for this plate. Be specific, warm, and practical. No medical advice disclaimer needed in the coaching note.";try{const note=await callClaude({system:"You are a friendly nutrition coach for a meal planning app. Give brief, warm, specific feedback on the plate the user just built. 2-3 sentences max. Plain language, no jargon.",prompt,maxTokens:150});setPlateCoachNote(typeof note==="string"?note:note?.content?.[0]?.text||"");}catch{setPlateCoachNote("");}setPlateCoachLoading(false);}} style={{width:"100%",background:"#1a1a2e",border:"1px solid #10b981",borderRadius:10,padding:seniorMode?"12px":"8px",color:"#10b981",fontFamily:FM,fontSize:seniorMode?16:13,fontWeight:700,cursor:"pointer"}}>ðŸ½ Done — See Plate Summary</button>)}<button onClick={()=>{setPlateSession(null);setPlateComponents([]);setPlateStep(0);setPlateCumulativeG(0);setShowPlateSummary(false);setScaleFoodName("");}} style={{width:"100%",background:"transparent",border:"none",color:"#888",fontFamily:FM,fontSize:11,cursor:"pointer",marginTop:6,padding:4}}>Cancel — switch to quick weigh</button></div>)}{plateSession&&showPlateSummary&&(<div style={{marginTop:12}}><div style={{fontFamily:FD,fontSize:16,color:"#10b981",marginBottom:10,textAlign:"center"}}>ðŸ½ {plateSession.mealName} — Plate Summary</div>{plateComponents.map((comp,ci)=>(<div key={ci} style={{display:"grid",gridTemplateColumns:"1fr auto",gap:4,padding:"6px 10px",background:"#ffffff08",borderRadius:8,marginBottom:4}}><div style={{fontFamily:FM,fontSize:12,color:"#fff",fontWeight:600}}>{comp.name}</div><div style={{fontFamily:FM,fontSize:11,color:"#10b981",textAlign:"right"}}>{comp.weightG.toFixed(0)}g</div><div style={{fontFamily:FM,fontSize:11,color:"#888",gridColumn:"1/-1"}}>{comp.protein_g.toFixed(0)}g protein • {comp.calories.toFixed(0)} cal • {comp.carbs_g.toFixed(0)}g carbs • {comp.sat_fat_g.toFixed(1)}g sat fat{comp.wwPoints!=null?" • "+comp.wwPoints+"pts":""}</div></div>))}<div style={{borderTop:"1px solid #10b98144",marginTop:8,paddingTop:8}}><div style={{display:"grid",gridTemplateColumns:"1fr auto",fontFamily:FM,fontSize:13,fontWeight:700,color:"#10b981",marginBottom:4}}><span>PLATE TOTAL</span><span>{plateComponents.reduce((a,r)=>a+(r.weightG||0),0).toFixed(0)}g</span></div><div style={{fontFamily:FM,fontSize:12,color:"#aaa"}}>{plateComponents.reduce((a,r)=>a+(r.protein_g||0),0).toFixed(0)}g protein • {plateComponents.reduce((a,r)=>a+(r.calories||0),0).toFixed(0)} cal • {plateComponents.reduce((a,r)=>a+(r.carbs_g||0),0).toFixed(0)}g carbs{plateSession.activeProfile?.wwPointsBudget?(" • "+plateComponents.reduce((a,r)=>a+(r.wwPoints||0),0)+" pts total"):""}</div></div>{plateCoachLoading&&<div style={{fontFamily:FM,fontSize:12,color:"#888",textAlign:"center",marginTop:10}}>â³ Getting coaching feedback...</div>}{plateCoachNote&&!plateCoachLoading&&(<div style={{background:"#10b98118",border:"1px solid #10b98144",borderRadius:10,padding:"10px 14px",marginTop:10}}><div style={{fontFamily:FM,fontSize:11,color:"#10b981",fontWeight:700,marginBottom:4}}>Coaching Note</div><div style={{fontFamily:FM,fontSize:12,color:"#ccc",lineHeight:1.6}}>{plateCoachNote}</div></div>)}<button onClick={()=>{setPlateSession(null);setPlateComponents([]);setPlateStep(0);setPlateCumulativeG(0);setShowPlateSummary(false);setScaleFoodName("");setShowScaleModal(false);}} style={{width:"100%",background:"#10b981",border:"none",borderRadius:10,padding:seniorMode?"14px":"10px",color:"#fff",fontFamily:FM,fontSize:seniorMode?18:14,fontWeight:700,cursor:"pointer",marginTop:12}}>Done — Close</button><button onClick={()=>{setShowPlateSummary(false);}} style={{width:"100%",background:"transparent",border:"none",color:"#888",fontFamily:FM,fontSize:11,cursor:"pointer",marginTop:4,padding:4}}>Add another component</button></div>)}
+              <div style={{fontFamily:FD,fontSize:20,color:plateSession?"#10b981":"#3b82f6"}}>{plateSession?"🍽 Build My Plate":"⚖ Portion Scale"}</div>{plateSession&&!showPlateSummary&&(<div style={{marginTop:12}}><div style={{background:"#10b98118",borderRadius:10,padding:"10px 14px",marginBottom:12,border:"1px solid #10b98144"}}><div style={{fontFamily:FM,fontSize:11,color:"#10b981",fontWeight:700}}>{plateSession.memberName} — {plateSession.mealName}</div><div style={{fontFamily:FM,fontSize:10,color:"#888",marginTop:2}}>Step {plateStep+1} of {Math.max(plateStep+1,3)} — {plateStep===0?"Step 1: Zero the plate":plateStep===1?"Step 2: Add protein, tap Log":"Step "+(plateStep+1)+": Tare → Add component → Log"}</div></div>{plateSession&&plateQualifyingMembers.length>1&&!plateSession.activeProfile&&(<div style={{marginBottom:14}}><div style={{fontFamily:FM,fontSize:seniorMode?16:13,color:"#fff",textAlign:"center",marginBottom:12,fontWeight:600}}>Who is this plate for?</div><div style={{display:"flex",flexWrap:"wrap",gap:8,justifyContent:"center"}}>{plateQualifyingMembers.map(p=>(<button key={p.id||p.name} onClick={()=>{setPlateSession(s=>({...s,memberName:p.name||"",activeProfile:p}));setPlatePendingMeal(null);setPlateQualifyingMembers([]);}} style={{background:"#10b98122",border:"2px solid #10b981",borderRadius:24,padding:seniorMode?"14px 22px":"10px 18px",color:"#10b981",fontFamily:FM,fontSize:seniorMode?18:14,fontWeight:700,cursor:"pointer"}}>{p.name||"Member"}{p.medicalPlan?(" — "+p.medicalPlan):(p.guidedPlateMode?" — Guided":"")}</button>))}</div><div style={{fontFamily:FM,fontSize:10,color:"#888",textAlign:"center",marginTop:10}}>Portion targets and coaching will be personalized to this member</div></div>)}<div style={{fontFamily:FM,fontSize:seniorMode?16:13,color:"#ccc",marginBottom:12,lineHeight:1.5,textAlign:"center"}}>{plateStep===0&&"Place your empty plate or bowl on the scale, then tap Tare / Zero below."}{plateStep===1&&"Add your protein. The scale shows the weight. Tap Log Component when ready."}{plateStep>=2&&("Component #"+plateStep+" logged. Tap Tare / Zero to zero the scale, then add your next food item. The app calculates each addition by weight difference.")}</div>{(!plateSession||plateSession.activeProfile)&&plateStep>0&&(<div style={{marginBottom:10}}><div style={{fontFamily:FM,fontSize:10,color:"#888",marginBottom:4}}>WHAT ARE YOU ADDING?</div><input value={scaleFoodName} onChange={e=>setScaleFoodName(e.target.value)} placeholder={plateStep===1?"e.g. Chicken Breast":"e.g. Brown Rice, Green Beans..."} style={{width:"100%",background:"#1a1a2e",border:"1px solid #3b82f6",borderRadius:8,padding:"10px 12px",color:"#fff",fontFamily:"monospace",fontSize:14,boxSizing:"border-box"}}/></div>)}{scaleDevice&&plateStep>0&&(<div style={{textAlign:"center",marginBottom:10}}><div style={{fontFamily:"serif",fontSize:42,color:"#10b981"}}>{scaleWeight?.toFixed(scaleUnit==="lb"?3:1)||"0.0"}</div><div style={{fontFamily:FM,fontSize:12,color:"#888"}}>{scaleUnit}</div>{plateStep>1&&plateCumulativeG>0&&(<div style={{fontFamily:FM,fontSize:11,color:"#f59e0b",marginTop:4}}>This component: ~{Math.max(0,(scaleWeightGrams-plateCumulativeG)).toFixed(0)}g</div>)}</div>)}{plateStep>0&&scaleDevice&&scaleFoodName.trim()&&(<button onClick={async()=>{const componentG=plateStep===1?scaleWeightGrams:Math.max(0,scaleWeightGrams-plateCumulativeG);if(componentG<1) return;setScaleCalcLoading(true);try{const raw=await callClaude({system:"Nutrition AI. Return ONLY valid JSON: {calories,protein_g,carbs_g,fat_g,sat_fat_g,sugar_g,fiber_g,sodium_mg}. Numbers only, no units.",prompt:"Estimate nutrition for "+componentG.toFixed(0)+"g of "+scaleFoodName.trim()+". Return JSON only.",maxTokens:200,});const text=typeof raw==="string"?raw:raw?.content?.[0]?.text||"";const clean=text.replace(/```json|```/g,"").trim();const s=clean.indexOf("{");const e=clean.lastIndexOf("}");if(s===-1||e===-1) throw new Error("no json");const parsed=JSON.parse(clean.slice(s,e+1));const activeP=plateSession.activeProfile;const wwBudget=activeP?.wwPointsBudget;const wwPts=wwBudget?Math.max(0,Math.round(((parsed.calories||0)*0.0305)+((parsed.sat_fat_g||0)*0.275)+((parsed.sugar_g||0)*0.12)-((parsed.protein_g||0)*0.098))):null;const newComp={name:scaleFoodName.trim(),weightG:componentG,calories:parsed.calories||0,protein_g:parsed.protein_g||0,carbs_g:parsed.carbs_g||0,sat_fat_g:parsed.sat_fat_g||0,sugar_g:parsed.sugar_g||0,fiber_g:parsed.fiber_g||0,sodium_mg:parsed.sodium_mg||0,wwPoints:wwPts};const updated=[...plateComponents,newComp];setPlateComponents(updated);setPlateCumulativeG(scaleWeightGrams);setPlateStep(s=>s+1);setScaleFoodName("");setScaleCalcResult(null);logNutrition({memberName:activeP?.name||null,itemName:newComp.name,weightG:componentG,calories:newComp.calories,protein_g:newComp.protein_g,carbs_g:newComp.carbs_g,fat_g:parsed.fat_g||0,sat_fat_g:newComp.sat_fat_g,sugar_g:newComp.sugar_g,fiber_g:newComp.fiber_g,sodium_mg:newComp.sodium_mg,wwPoints:wwPts,source:"smart_plate",sessionId:plateSessionId});}catch(err){setScaleError("Could not estimate — try again.");}setScaleCalcLoading(false);}} style={{width:"100%",background:"#10b981",border:"none",borderRadius:10,padding:seniorMode?"14px":"10px",color:"#fff",fontFamily:FM,fontSize:seniorMode?18:14,fontWeight:700,cursor:"pointer",marginBottom:8}}>{scaleCalcLoading?"⏳ Calculating...":"✓ Log Component"}</button>)}{plateComponents.length>0&&(<div style={{marginBottom:10}}><div style={{fontFamily:FM,fontSize:10,color:"#888",marginBottom:6}}>LOGGED SO FAR</div>{plateComponents.map((comp,ci)=>(<div key={ci} style={{display:"flex",justifyContent:"space-between",fontFamily:FM,fontSize:11,color:"#aaa",marginBottom:3,padding:"4px 8px",background:"#ffffff08",borderRadius:6}}><span>{comp.name}</span><span style={{color:"#10b981"}}>{comp.weightG.toFixed(0)}g • {comp.protein_g.toFixed(0)}g pro • {comp.calories.toFixed(0)}cal</span></div>))}</div>)}{plateComponents.length>0&&(<button onClick={async()=>{setShowPlateSummary(true);setPlateCoachLoading(true);const activeP=plateSession.activeProfile;const totP=plateComponents.reduce((a,r)=>a+(r.protein_g||0),0).toFixed(0);const totCal=plateComponents.reduce((a,r)=>a+(r.calories||0),0).toFixed(0);const totCarb=plateComponents.reduce((a,r)=>a+(r.carbs_g||0),0).toFixed(0);const totSat=plateComponents.reduce((a,r)=>a+(r.sat_fat_g||0),0).toFixed(0);const plan=activeP?.medicalPlan||"";const phase=activeP?.bariatricPhase||"";const ptarget=activeP?.proteinTargetG||75;const prompt="Member: "+(activeP?.name||"person")+". Dietary plan: "+(plan||"general")+". "+(phase?"Bariatric phase: "+phase+". ":"")+("Protein target: "+ptarget+"g/day. ")+"This plate: "+plateComponents.map(c=>c.name+" "+c.weightG.toFixed(0)+"g ("+c.protein_g.toFixed(0)+"g protein, "+c.calories.toFixed(0)+" cal, "+c.carbs_g.toFixed(0)+"g carbs)").join("; ")+". Total: "+totP+"g protein, "+totCal+" cal, "+totCarb+"g carbs, "+totSat+"g sat fat. Write 2-3 sentences of coaching feedback for this plate. Be specific, warm, and practical. No medical advice disclaimer needed in the coaching note.";try{const note=await callClaude({system:"You are a friendly nutrition coach for a meal planning app. Give brief, warm, specific feedback on the plate the user just built. 2-3 sentences max. Plain language, no jargon.",prompt,maxTokens:150});setPlateCoachNote(typeof note==="string"?note:note?.content?.[0]?.text||"");}catch{setPlateCoachNote("");}setPlateCoachLoading(false);}} style={{width:"100%",background:"#1a1a2e",border:"1px solid #10b981",borderRadius:10,padding:seniorMode?"12px":"8px",color:"#10b981",fontFamily:FM,fontSize:seniorMode?16:13,fontWeight:700,cursor:"pointer"}}>🍽 Done — See Plate Summary</button>)}<button onClick={()=>{setPlateSession(null);setPlateComponents([]);setPlateStep(0);setPlateCumulativeG(0);setShowPlateSummary(false);setScaleFoodName("");}} style={{width:"100%",background:"transparent",border:"none",color:"#888",fontFamily:FM,fontSize:11,cursor:"pointer",marginTop:6,padding:4}}>Cancel — switch to quick weigh</button></div>)}{plateSession&&showPlateSummary&&(<div style={{marginTop:12}}><div style={{fontFamily:FD,fontSize:16,color:"#10b981",marginBottom:10,textAlign:"center"}}>🍽 {plateSession.mealName} — Plate Summary</div>{plateComponents.map((comp,ci)=>(<div key={ci} style={{display:"grid",gridTemplateColumns:"1fr auto",gap:4,padding:"6px 10px",background:"#ffffff08",borderRadius:8,marginBottom:4}}><div style={{fontFamily:FM,fontSize:12,color:"#fff",fontWeight:600}}>{comp.name}</div><div style={{fontFamily:FM,fontSize:11,color:"#10b981",textAlign:"right"}}>{comp.weightG.toFixed(0)}g</div><div style={{fontFamily:FM,fontSize:11,color:"#888",gridColumn:"1/-1"}}>{comp.protein_g.toFixed(0)}g protein • {comp.calories.toFixed(0)} cal • {comp.carbs_g.toFixed(0)}g carbs • {comp.sat_fat_g.toFixed(1)}g sat fat{comp.wwPoints!=null?" • "+comp.wwPoints+"pts":""}</div></div>))}<div style={{borderTop:"1px solid #10b98144",marginTop:8,paddingTop:8}}><div style={{display:"grid",gridTemplateColumns:"1fr auto",fontFamily:FM,fontSize:13,fontWeight:700,color:"#10b981",marginBottom:4}}><span>PLATE TOTAL</span><span>{plateComponents.reduce((a,r)=>a+(r.weightG||0),0).toFixed(0)}g</span></div><div style={{fontFamily:FM,fontSize:12,color:"#aaa"}}>{plateComponents.reduce((a,r)=>a+(r.protein_g||0),0).toFixed(0)}g protein • {plateComponents.reduce((a,r)=>a+(r.calories||0),0).toFixed(0)} cal • {plateComponents.reduce((a,r)=>a+(r.carbs_g||0),0).toFixed(0)}g carbs{plateSession.activeProfile?.wwPointsBudget?(" • "+plateComponents.reduce((a,r)=>a+(r.wwPoints||0),0)+" pts total"):""}</div></div>{plateCoachLoading&&<div style={{fontFamily:FM,fontSize:12,color:"#888",textAlign:"center",marginTop:10}}>⏳ Getting coaching feedback...</div>}{plateCoachNote&&!plateCoachLoading&&(<div style={{background:"#10b98118",border:"1px solid #10b98144",borderRadius:10,padding:"10px 14px",marginTop:10}}><div style={{fontFamily:FM,fontSize:11,color:"#10b981",fontWeight:700,marginBottom:4}}>Coaching Note</div><div style={{fontFamily:FM,fontSize:12,color:"#ccc",lineHeight:1.6}}>{plateCoachNote}</div></div>)}<button onClick={()=>{setPlateSession(null);setPlateComponents([]);setPlateStep(0);setPlateCumulativeG(0);setShowPlateSummary(false);setScaleFoodName("");setShowScaleModal(false);}} style={{width:"100%",background:"#10b981",border:"none",borderRadius:10,padding:seniorMode?"14px":"10px",color:"#fff",fontFamily:FM,fontSize:seniorMode?18:14,fontWeight:700,cursor:"pointer",marginTop:12}}>Done — Close</button><button onClick={()=>{setShowPlateSummary(false);}} style={{width:"100%",background:"transparent",border:"none",color:"#888",fontFamily:FM,fontSize:11,cursor:"pointer",marginTop:4,padding:4}}>Add another component</button></div>)}
               <button onClick={()=>{setShowScaleModal(false);disconnectScale();}} style={{background:C.surface,border:"1px solid "+C.border,borderRadius:6,color:C.text,cursor:"pointer",fontSize:15,padding:"3px 9px"}}>x</button>
             </div>
 
@@ -4847,12 +4847,12 @@ What can I substitute and do I have what I need?`,
             {/* Connect / Status */}
             {!scaleDevice?(
               <div style={{textAlign:"center",padding:"20px 0"}}>
-                <div style={{fontSize:48,marginBottom:12}}>âš–</div>
+                <div style={{fontSize:48,marginBottom:12}}>⚖</div>
                 <div style={{fontFamily:FM,fontSize:13,color:C.muted,marginBottom:16,lineHeight:1.5}}>
                   Connect your Bluetooth kitchen scale to weigh portions and get instant calorie estimates.
                 </div>
                 <div style={{fontFamily:FM,fontSize:11,color:C.muted,marginBottom:16}}>
-                  Compatible: <strong style={{color:C.text}}>Etekcity Nutrition Scale</strong> (ENS-L221S) Â· Service 0xFFF0
+                  Compatible: <strong style={{color:C.text}}>Etekcity Nutrition Scale</strong> (ENS-L221S) · Service 0xFFF0
                 </div>
                 <button onClick={connectScale} disabled={scaleConnecting||!navigator.bluetooth}
                   style={{...bBtn("primary"),padding:"12px 24px",fontSize:14,opacity:(!navigator.bluetooth)?0.5:1}}>
@@ -4865,12 +4865,12 @@ What can I substitute and do I have what I need?`,
               <div>
                 {/* Live weight display */}
                 <div style={{background:C.surface,borderRadius:14,padding:20,textAlign:"center",marginBottom:16,border:"2px solid #3b82f644"}}>
-                  <div style={{fontFamily:FM,fontSize:11,color:"#3b82f6",fontWeight:600,marginBottom:4}}>CONNECTED Â· LIVE READING</div>
+                  <div style={{fontFamily:FM,fontSize:11,color:"#3b82f6",fontWeight:600,marginBottom:4}}>CONNECTED · LIVE READING</div>
                   <div style={{fontFamily:FD,fontSize:seniorMode?52:42,color:C.text,lineHeight:1}}>
                     {scaleWeight!==null?scaleWeight.toFixed(1):"---"}
                   </div>
                   <div style={{fontFamily:FM,fontSize:16,color:C.muted}}>{scaleUnit}</div>
-                  {scaleWeight>0&&<div style={{fontFamily:FM,fontSize:11,color:C.muted,marginTop:4}}>{scaleUnit==="g"?((scaleWeight/28.35).toFixed(2)+" oz Â· "+(scaleWeight/453.6).toFixed(3)+" lb"):scaleUnit==="oz"?((scaleWeight).toFixed(2)+" oz Â· "+scaleWeightGrams.toFixed(1)+" g"):scaleUnit==="lb"?((scaleWeight).toFixed(3)+" lb Â· "+scaleWeightGrams.toFixed(1)+" g"):scaleUnit==="ml"?((scaleWeight).toFixed(1)+" ml Â· "+(scaleWeight/29.5735).toFixed(2)+" fl.oz"):scaleUnit==="fl.oz"?((scaleWeight).toFixed(2)+" fl.oz Â· "+(scaleWeight*29.5735).toFixed(1)+" ml"):""}</div>}
+                  {scaleWeight>0&&<div style={{fontFamily:FM,fontSize:11,color:C.muted,marginTop:4}}>{scaleUnit==="g"?((scaleWeight/28.35).toFixed(2)+" oz · "+(scaleWeight/453.6).toFixed(3)+" lb"):scaleUnit==="oz"?((scaleWeight).toFixed(2)+" oz · "+scaleWeightGrams.toFixed(1)+" g"):scaleUnit==="lb"?((scaleWeight).toFixed(3)+" lb · "+scaleWeightGrams.toFixed(1)+" g"):scaleUnit==="ml"?((scaleWeight).toFixed(1)+" ml · "+(scaleWeight/29.5735).toFixed(2)+" fl.oz"):scaleUnit==="fl.oz"?((scaleWeight).toFixed(2)+" fl.oz · "+(scaleWeight*29.5735).toFixed(1)+" ml"):""}</div>}
                 </div>
 
                 {/* Food name input */}
@@ -4895,9 +4895,9 @@ What can I substitute and do I have what I need?`,
                 {scaleCalcResult&&(
                   <div style={{background:C.surface,borderRadius:12,padding:16,marginBottom:12}}>
                     <div style={{fontFamily:FM,fontSize:12,fontWeight:700,color:C.text,marginBottom:10}}>
-                      {scaleFoodName} Â· {scaleWeight?.toFixed(scaleUnit==="lb"?3:1)}{scaleUnit}
+                      {scaleFoodName} · {scaleWeight?.toFixed(scaleUnit==="lb"?3:1)}{scaleUnit}
                     </div>
-                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>{[["Calories","cal",scaleCalcResult.calories,"#f59e0b"],["Protein","g",scaleCalcResult.protein_g,"#3b82f6"],["Carbs","g",scaleCalcResult.carbs_g,"#22c55e"],["Fat","g",scaleCalcResult.fat_g,"#ef4444"],["Sat. Fat","g",scaleCalcResult.sat_fat_g,"#dc2626"],["Sugar","g",scaleCalcResult.sugar_g,"#f97316"],["Fiber","g",scaleCalcResult.fiber_g,"#8b5cf6"],["Sodium","mg",scaleCalcResult.sodium_mg,"#64748b"]].map(([label,unit,val,color])=>(<div key={label} style={{background:C.card,borderRadius:8,padding:"10px 12px",border:"1px solid "+C.border}}><div style={{fontFamily:FM,fontSize:10,color:C.muted,marginBottom:2}}>{label}</div><div style={{fontFamily:FD,fontSize:seniorMode?20:16,color:color}}>{val??"-"}<span style={{fontSize:10,color:C.muted}}> {unit}</span></div></div>))}</div>{(()=>{const activeP=familyProfiles.find(p=>p.guidedPlateMode)||familyProfiles[0];const ptarget=activeP?.proteinTargetG;const pval=scaleCalcResult.protein_g;if(!ptarget||!pval) return null;const pct=Math.round((pval/ptarget)*100);const met=pval>=ptarget*0.9;return(<div style={{marginTop:10,background:met?"#1b5e2018":"#f59e0b18",borderRadius:8,padding:"8px 12px",border:"1px solid "+(met?"#22c55e":"#f59e0b")}}><div style={{fontFamily:FM,fontSize:11,color:met?"#22c55e":"#f59e0b",fontWeight:700}}>{pval}g protein — {pct}% of {ptarget}g daily target{met?" âœ“":""}</div></div>);})()}{(()=>{const activeP=familyProfiles.find(p=>p.wwPointsBudget)||familyProfiles[0];const budget=activeP?.wwPointsBudget;if(!budget||!scaleCalcResult.calories) return null;const cal=scaleCalcResult.calories||0;const sat=scaleCalcResult.sat_fat_g||0;const sug=scaleCalcResult.sugar_g||0;const pro=scaleCalcResult.protein_g||0;const pts=Math.max(0,Math.round((cal*0.0305)+(sat*0.275)+(sug*0.12)-(pro*0.098)));const rem=Math.max(0,budget-pts);return(<div style={{marginTop:8,background:"#7c3aed18",borderRadius:8,padding:"8px 12px",border:"1px solid #7c3aed"}}><div style={{fontFamily:FM,fontSize:11,color:"#7c3aed",fontWeight:700,marginBottom:2}}>WW Points Estimate: {pts} pts</div><div style={{fontFamily:FM,fontSize:10,color:C.muted}}>{rem} pts remaining of {budget} daily budget • estimate only, not official WW value</div></div>);})()}{scaleCalcResult.notes&&<div style={{fontFamily:FM,fontSize:11,color:C.muted,marginTop:8,lineHeight:1.5}}>{scaleCalcResult.notes}</div>}
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>{[["Calories","cal",scaleCalcResult.calories,"#f59e0b"],["Protein","g",scaleCalcResult.protein_g,"#3b82f6"],["Carbs","g",scaleCalcResult.carbs_g,"#22c55e"],["Fat","g",scaleCalcResult.fat_g,"#ef4444"],["Sat. Fat","g",scaleCalcResult.sat_fat_g,"#dc2626"],["Sugar","g",scaleCalcResult.sugar_g,"#f97316"],["Fiber","g",scaleCalcResult.fiber_g,"#8b5cf6"],["Sodium","mg",scaleCalcResult.sodium_mg,"#64748b"]].map(([label,unit,val,color])=>(<div key={label} style={{background:C.card,borderRadius:8,padding:"10px 12px",border:"1px solid "+C.border}}><div style={{fontFamily:FM,fontSize:10,color:C.muted,marginBottom:2}}>{label}</div><div style={{fontFamily:FD,fontSize:seniorMode?20:16,color:color}}>{val??"-"}<span style={{fontSize:10,color:C.muted}}> {unit}</span></div></div>))}</div>{(()=>{const activeP=familyProfiles.find(p=>p.guidedPlateMode)||familyProfiles[0];const ptarget=activeP?.proteinTargetG;const pval=scaleCalcResult.protein_g;if(!ptarget||!pval) return null;const pct=Math.round((pval/ptarget)*100);const met=pval>=ptarget*0.9;return(<div style={{marginTop:10,background:met?"#1b5e2018":"#f59e0b18",borderRadius:8,padding:"8px 12px",border:"1px solid "+(met?"#22c55e":"#f59e0b")}}><div style={{fontFamily:FM,fontSize:11,color:met?"#22c55e":"#f59e0b",fontWeight:700}}>{pval}g protein — {pct}% of {ptarget}g daily target{met?" ✓":""}</div></div>);})()}{(()=>{const activeP=familyProfiles.find(p=>p.wwPointsBudget)||familyProfiles[0];const budget=activeP?.wwPointsBudget;if(!budget||!scaleCalcResult.calories) return null;const cal=scaleCalcResult.calories||0;const sat=scaleCalcResult.sat_fat_g||0;const sug=scaleCalcResult.sugar_g||0;const pro=scaleCalcResult.protein_g||0;const pts=Math.max(0,Math.round((cal*0.0305)+(sat*0.275)+(sug*0.12)-(pro*0.098)));const rem=Math.max(0,budget-pts);return(<div style={{marginTop:8,background:"#7c3aed18",borderRadius:8,padding:"8px 12px",border:"1px solid #7c3aed"}}><div style={{fontFamily:FM,fontSize:11,color:"#7c3aed",fontWeight:700,marginBottom:2}}>WW Points Estimate: {pts} pts</div><div style={{fontFamily:FM,fontSize:10,color:C.muted}}>{rem} pts remaining of {budget} daily budget • estimate only, not official WW value</div></div>);})()}{scaleCalcResult.notes&&<div style={{fontFamily:FM,fontSize:11,color:C.muted,marginTop:8,lineHeight:1.5}}>{scaleCalcResult.notes}</div>}
                   </div>
                 )}
 
@@ -4912,7 +4912,7 @@ What can I substitute and do I have what I need?`,
                     setScaleWeight(0);
                   }} style={{...bBtn("ghost"),flex:1,padding:"9px",fontSize:12,
                     border:"1px solid "+C.border}}>
-                    âš– Tare / Zero
+                    ⚖ Tare / Zero
                   </button>
                   <button onClick={disconnectScale} style={{...bBtn("ghost"),flex:1,padding:"9px",
                     fontSize:12,color:"#dc2626",border:"1px solid #dc262644"}}>
@@ -4927,7 +4927,7 @@ What can I substitute and do I have what I need?`,
               <div style={{fontFamily:FM,fontSize:11,fontWeight:700,color:C.text,marginBottom:4}}>Recommended Scale</div>
               <div style={{fontFamily:FM,fontSize:11,color:C.muted,lineHeight:1.5}}>
                 <strong style={{color:C.text}}>Etekcity Nutrition Scale</strong> — confirmed compatible (BLE FFF0/FFF1/FFF2).<br/>
-                Search â€œEtekcity Nutrition Scale ENS-L221Sâ€ on Amazon.
+                Search “Etekcity Nutrition Scale ENS-L221S” on Amazon.
               </div>
             </div>
 
@@ -4942,14 +4942,14 @@ What can I substitute and do I have what I need?`,
           <div style={{background:C.card,border:"1px solid "+C.border,borderRadius:18,padding:24,maxWidth:460,width:"100%",maxHeight:"90vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
 
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-              <div style={{fontFamily:FD,fontSize:20,color:C.accent}}>ðŸ“¤ Recipe Sharing</div>
+              <div style={{fontFamily:FD,fontSize:20,color:C.accent}}>📤 Recipe Sharing</div>
               <button onClick={()=>{setShowShareModal(false);setShareResult(null);}} style={{background:C.surface,border:"1px solid "+C.border,borderRadius:6,color:C.text,cursor:"pointer",fontSize:15,padding:"3px 9px"}}>x</button>
             </div>
 
             {/* SUCCESS STATE */}
             {shareResult&&(
               <div style={{textAlign:"center"}}>
-                <div style={{fontSize:48,marginBottom:12}}>ðŸŽ‰</div>
+                <div style={{fontSize:48,marginBottom:12}}>🎉</div>
                 <div style={{fontFamily:FD,fontSize:20,color:C.accent,marginBottom:8}}>Your recipes are ready to share!</div>
                 <div style={{fontFamily:FM,fontSize:13,color:C.muted,marginBottom:16,lineHeight:1.5}}>
                   Share this code with anyone. They can enter it in Smart Kitchen to import your recipes into their account.
@@ -4957,16 +4957,16 @@ What can I substitute and do I have what I need?`,
                 <div style={{background:C.surface,borderRadius:12,padding:20,marginBottom:16}}>
                   <div style={{fontFamily:FM,fontSize:11,color:C.muted,marginBottom:6}}>SHARE CODE</div>
                   <div style={{fontFamily:FD,fontSize:42,color:C.accent,letterSpacing:6,marginBottom:10}}>{shareResult.code}</div>
-                  <div style={{fontFamily:FM,fontSize:11,color:C.muted}}>Valid for 90 days Â· {Object.keys(shareSelected).length||"Selected"} recipes</div>
+                  <div style={{fontFamily:FM,fontSize:11,color:C.muted}}>Valid for 90 days · {Object.keys(shareSelected).length||"Selected"} recipes</div>
                 </div>
                 <div style={{display:"flex",gap:8,marginBottom:16}}>
                   <button onClick={()=>{navigator.clipboard?.writeText(shareResult.code);alert("Code copied!");}}
-                    style={{...bBtn("ghost"),flex:1,padding:"10px",fontSize:13}}>ðŸ“‹ Copy Code</button>
+                    style={{...bBtn("ghost"),flex:1,padding:"10px",fontSize:13}}>📋 Copy Code</button>
                   <button onClick={()=>{navigator.clipboard?.writeText(shareResult.url);alert("Link copied!");}}
-                    style={{...bBtn("primary"),flex:2,padding:"10px",fontSize:13}}>ðŸ”— Copy Link</button>
+                    style={{...bBtn("primary"),flex:2,padding:"10px",fontSize:13}}>🔗 Copy Link</button>
                 </div>
                 {navigator.share&&<button onClick={()=>navigator.share({title:"Smart Kitchen Recipes",text:"Here are my recipes! Use code "+shareResult.code+" in Smart Kitchen to import them.",url:shareResult.url})}
-                  style={{...bBtn("ghost"),width:"100%",padding:"10px",fontSize:13,marginBottom:8}}>ðŸ“± Share via Messages / Email</button>}
+                  style={{...bBtn("ghost"),width:"100%",padding:"10px",fontSize:13,marginBottom:8}}>📱 Share via Messages / Email</button>}
                 <button onClick={()=>setShareResult(null)} style={{...bBtn("ghost"),width:"100%",padding:"9px",fontSize:12,color:C.muted}}>Share More Recipes</button>
               </div>
             )}
@@ -4975,7 +4975,7 @@ What can I substitute and do I have what I need?`,
             {!shareResult&&(
               <div>
                 <div style={{display:"flex",gap:6,marginBottom:20}}>
-                  {[["share","ðŸ“¤ Share My Recipes"],["import","ðŸ“¥ Import Recipes"]].map(([k,label])=>(
+                  {[["share","📤 Share My Recipes"],["import","📥 Import Recipes"]].map(([k,label])=>(
                     <button key={k} onClick={()=>{setShareSelectMode(k==="share");if(k==="import"){setShareSelected([]);}}}
                       style={{flex:1,padding:"10px",borderRadius:10,border:"1px solid "+(shareMode&&k==="share"||!shareMode&&k==="import"?C.accent:C.border),
                       background:(shareMode&&k==="share"||!shareMode&&k==="import")?C.accent+"22":"transparent",
@@ -4993,7 +4993,7 @@ What can I substitute and do I have what I need?`,
                       Select recipes to share. Recipients get a 6-character code to import them into their Smart Kitchen.
                     </div>
                     <div style={{marginBottom:10}}>
-                      <input placeholder='Give this collection a name (e.g. "Rickâ€™s Favorites")'
+                      <input placeholder='Give this collection a name (e.g. "Rick’s Favorites")'
                         value={shareTitle} onChange={e=>setShareTitle(e.target.value)}
                         style={{width:"100%",background:C.surface,border:"1px solid "+C.border,borderRadius:8,
                         padding:"8px 10px",color:C.text,fontFamily:FM,fontSize:13,boxSizing:"border-box"}}/>
@@ -5002,7 +5002,7 @@ What can I substitute and do I have what I need?`,
                     {/* 5-Star Saved Recipes */}
                     {Object.entries(recipeRatings).filter(([,v])=>v?.rating>=3).length>0&&(
                       <div style={{marginBottom:12}}>
-                        <div style={{fontFamily:FM,fontSize:11,fontWeight:700,color:C.muted,marginBottom:6}}>â­ SAVED RECIPES (3+ stars)</div>
+                        <div style={{fontFamily:FM,fontSize:11,fontWeight:700,color:C.muted,marginBottom:6}}>⭐ SAVED RECIPES (3+ stars)</div>
                         {Object.entries(recipeRatings).filter(([,v])=>v?.rating>=3).map(([name,v])=>(
                           <div key={name} onClick={()=>setShareSelected(p=>{const n={...p};if(n[name])delete n[name];else n[name]={name,isFamilyRecipe:false};return n;})}
                             style={{display:"flex",alignItems:"center",gap:10,padding:"8px 10px",borderRadius:8,
@@ -5012,11 +5012,11 @@ What can I substitute and do I have what I need?`,
                             <div style={{width:20,height:20,borderRadius:4,border:"2px solid "+(name in shareSelected?C.accent:C.border),
                               background:name in shareSelected?C.accent:"transparent",display:"flex",alignItems:"center",
                               justifyContent:"center",fontSize:12,flexShrink:0}}>
-                              {name in shareSelected&&"âœ“"}
+                              {name in shareSelected&&"✓"}
                             </div>
                             <div style={{flex:1}}>
                               <div style={{fontFamily:FM,fontSize:13,color:C.text,fontWeight:600}}>{name}</div>
-                              <div style={{fontFamily:FM,fontSize:11,color:C.muted}}>{"â˜…".repeat(v.rating)}{"â˜†".repeat(5-v.rating)} Â· Saved</div>
+                              <div style={{fontFamily:FM,fontSize:11,color:C.muted}}>{"★".repeat(v.rating)}{"☆".repeat(5-v.rating)} · Saved</div>
                             </div>
                           </div>
                         ))}
@@ -5026,7 +5026,7 @@ What can I substitute and do I have what I need?`,
                     {/* Family Recipes */}
                     {familyRecipes.length>0&&(
                       <div style={{marginBottom:16}}>
-                        <div style={{fontFamily:FM,fontSize:11,fontWeight:700,color:C.muted,marginBottom:6}}>ðŸ“– FAMILY RECIPES</div>
+                        <div style={{fontFamily:FM,fontSize:11,fontWeight:700,color:C.muted,marginBottom:6}}>📖 FAMILY RECIPES</div>
                         {familyRecipes.map(r=>(
                           <div key={r.id} onClick={()=>setShareSelected(p=>{const n={...p};if(n[r.name])delete n[r.name];else n[r.name]={...r,isFamilyRecipe:true};return n;})}
                             style={{display:"flex",alignItems:"center",gap:10,padding:"8px 10px",borderRadius:8,
@@ -5036,11 +5036,11 @@ What can I substitute and do I have what I need?`,
                             <div style={{width:20,height:20,borderRadius:4,border:"2px solid "+(r.name in shareSelected?C.accent:C.border),
                               background:r.name in shareSelected?C.accent:"transparent",display:"flex",alignItems:"center",
                               justifyContent:"center",fontSize:12,flexShrink:0}}>
-                              {r.name in shareSelected&&"âœ“"}
+                              {r.name in shareSelected&&"✓"}
                             </div>
                             <div style={{flex:1}}>
                               <div style={{fontFamily:FM,fontSize:13,color:C.text,fontWeight:600}}>{r.name}</div>
-                              <div style={{fontFamily:FM,fontSize:11,color:C.muted}}>ðŸ“– Family Recipe{r.notes?" Â· "+r.notes.slice(0,30):""}</div>
+                              <div style={{fontFamily:FM,fontSize:11,color:C.muted}}>📖 Family Recipe{r.notes?" · "+r.notes.slice(0,30):""}</div>
                             </div>
                           </div>
                         ))}
@@ -5086,15 +5086,15 @@ What can I substitute and do I have what I need?`,
                       <div style={{background:C.surface,borderRadius:12,padding:16,border:"1px solid "+C.border}}>
                         <div style={{fontFamily:FD,fontSize:18,color:C.accent,marginBottom:4}}>{importResult.title}</div>
                         <div style={{fontFamily:FM,fontSize:12,color:C.muted,marginBottom:12}}>
-                          Shared by {importResult.owner_name} Â· {importResult.recipe_count} recipe{importResult.recipe_count!==1?"s":""}
+                          Shared by {importResult.owner_name} · {importResult.recipe_count} recipe{importResult.recipe_count!==1?"s":""}
                         </div>
                         <div style={{marginBottom:12,maxHeight:200,overflowY:"auto"}}>
                           {(importResult.recipes||[]).map((r,i)=>(
                             <div key={i} style={{fontFamily:FM,fontSize:13,color:C.text,padding:"6px 0",
                               borderBottom:"1px solid "+C.border,display:"flex",alignItems:"center",gap:8}}>
-                              <span>{r.isFamilyRecipe?"ðŸ“–":"â­"}</span>
+                              <span>{r.isFamilyRecipe?"📖":"⭐"}</span>
                               <span style={{flex:1}}>{r.name}</span>
-                              {r.rating>0&&<span style={{color:"#f59e0b",fontSize:11}}>{"â˜…".repeat(r.rating)}</span>}
+                              {r.rating>0&&<span style={{color:"#f59e0b",fontSize:11}}>{"★".repeat(r.rating)}</span>}
                             </div>
                           ))}
                         </div>
@@ -5145,7 +5145,7 @@ What can I substitute and do I have what I need?`,
                 From your Twilio Console dashboard, copy:<br/>
                 <span style={{color:C.text,fontWeight:600}}>Account SID</span> — starts with AC...<br/>
                 <span style={{color:C.text,fontWeight:600}}>Auth Token</span> — click the eye icon to reveal<br/>
-                Then go to <strong style={{color:C.text}}>Phone Numbers â†’ Buy a Number</strong> — about $1/month (free on trial).
+                Then go to <strong style={{color:C.text}}>Phone Numbers → Buy a Number</strong> — about $1/month (free on trial).
               </div>
             </div>
 
@@ -5153,7 +5153,7 @@ What can I substitute and do I have what I need?`,
             <div style={{background:C.surface,borderRadius:10,padding:14,marginBottom:10}}>
               <div style={{fontFamily:FM,fontSize:12,fontWeight:700,color:C.accent,marginBottom:6}}>Step 3 — Add to Vercel</div>
               <div style={{fontFamily:FM,fontSize:11,color:C.muted,lineHeight:1.6}}>
-                Go to your <strong style={{color:C.text}}>Vercel dashboard â†’ smart-kitchen â†’ Settings â†’ Environment Variables</strong> and add these three:<br/><br/>
+                Go to your <strong style={{color:C.text}}>Vercel dashboard → smart-kitchen → Settings → Environment Variables</strong> and add these three:<br/><br/>
                 <code style={{background:C.bg,padding:"2px 6px",borderRadius:4,fontSize:10,display:"block",marginBottom:3}}>TWILIO_ACCOUNT_SID = AC...</code>
                 <code style={{background:C.bg,padding:"2px 6px",borderRadius:4,fontSize:10,display:"block",marginBottom:3}}>TWILIO_AUTH_TOKEN = your_token</code>
                 <code style={{background:C.bg,padding:"2px 6px",borderRadius:4,fontSize:10,display:"block"}}>TWILIO_PHONE_NUMBER = +16165551234</code>
@@ -5164,7 +5164,7 @@ What can I substitute and do I have what I need?`,
             <div style={{background:C.surface,borderRadius:10,padding:14,marginBottom:16}}>
               <div style={{fontFamily:FM,fontSize:12,fontWeight:700,color:C.accent,marginBottom:6}}>Step 4 — Redeploy</div>
               <div style={{fontFamily:FM,fontSize:11,color:C.muted,lineHeight:1.6}}>
-                In Vercel, click <strong style={{color:C.text}}>Deployments â†’ Redeploy</strong> on the latest deployment. After that, "Text to..." sends silently in the background — no app picker needed.
+                In Vercel, click <strong style={{color:C.text}}>Deployments → Redeploy</strong> on the latest deployment. After that, "Text to..." sends silently in the background — no app picker needed.
               </div>
             </div>
 
@@ -5229,18 +5229,18 @@ What can I substitute and do I have what I need?`,
                 </div>
                 {occasionState.audienceType==="adult"&&(
                   <div style={{background:"#7c3aed"+"15",border:"1px solid "+"#7c3aed"+"44",borderRadius:10,padding:"10px 14px",marginBottom:14,display:"flex",alignItems:"center",gap:10}}>
-                    <span style={{fontSize:18}}>ðŸ’‘</span>
+                    <span style={{fontSize:18}}>💑</span>
                     <div>
-                      <div style={{fontFamily:FM,fontSize:12,fontWeight:700,color:"#7c3aed"}}>Intimate Date Night Â· Adults (21+)</div>
+                      <div style={{fontFamily:FM,fontSize:12,fontWeight:700,color:"#7c3aed"}}>Intimate Date Night · Adults (21+)</div>
                       <div style={{fontFamily:FM,fontSize:11,color:C.muted,marginTop:2}}>Head count set to 2. Smart Kitchen will suggest an elevated, romantic meal — wine pairings included.</div>
                     </div>
                   </div>
                 )}
                 {occasionState.audienceType==="adults"&&(
                   <div style={{background:"#d97706"+"15",border:"1px solid "+"#d97706"+"44",borderRadius:10,padding:"10px 14px",marginBottom:14,display:"flex",alignItems:"center",gap:10}}>
-                    <span style={{fontSize:18}}>ðŸº</span>
+                    <span style={{fontSize:18}}>🍺</span>
                     <div>
-                      <div style={{fontFamily:FM,fontSize:12,fontWeight:700,color:"#d97706"}}>Adults Party Â· 21+</div>
+                      <div style={{fontFamily:FM,fontSize:12,fontWeight:700,color:"#d97706"}}>Adults Party · 21+</div>
                       <div style={{fontFamily:FM,fontSize:11,color:C.muted,marginTop:2}}>Great for BBQs, game days, holiday gatherings. Beer, wine, and cocktail-friendly food — shareable crowd-pleasers.</div>
                     </div>
                   </div>
@@ -5311,7 +5311,7 @@ What can I substitute and do I have what I need?`,
             {occasionStep==="loading"&&(
               <div style={{textAlign:"center",padding:"40px 0"}}>
                 <div style={{fontSize:40,marginBottom:16}}>
-                  {OCCASION_EVENT_TYPES.find(e=>e.key===occasionState.eventType)?.emoji||"ðŸ½"}
+                  {OCCASION_EVENT_TYPES.find(e=>e.key===occasionState.eventType)?.emoji||"🍽"}
                 </div>
                 <div style={{fontFamily:FM,fontSize:14,color:C.muted}}>Planning your perfect {occasionCustomText||OCCASION_EVENT_TYPES.find(e=>e.key===occasionState.eventType)?.label||"occasion"} meal...</div>
               </div>
@@ -5386,50 +5386,50 @@ What can I substitute and do I have what I need?`,
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:400,padding:16}} onClick={()=>{if(!makeThisLoading){setMakeThisModal(false);}}}>
           <div style={{background:C.card,border:"1px solid "+C.border,borderRadius:18,padding:28,maxWidth:480,width:"100%"}} onClick={e=>e.stopPropagation()}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-              <div style={{fontFamily:FD,fontSize:22,color:C.accent}}>ðŸ½ Make This</div>
-              <button onClick={()=>{if(!makeThisLoading){setMakeThisModal(false);setMakeThisResult(null);setMakeThisInput("");}}} style={{background:C.surface,border:"1px solid "+C.border,borderRadius:6,color:C.text,cursor:"pointer",fontSize:16,lineHeight:1,padding:"4px 10px",fontWeight:600}} title="Close">âœ• Close</button>
+              <div style={{fontFamily:FD,fontSize:22,color:C.accent}}>🍽 Make This</div>
+              <button onClick={()=>{if(!makeThisLoading){setMakeThisModal(false);setMakeThisResult(null);setMakeThisInput("");}}} style={{background:C.surface,border:"1px solid "+C.border,borderRadius:6,color:C.text,cursor:"pointer",fontSize:16,lineHeight:1,padding:"4px 10px",fontWeight:600}} title="Close">✕ Close</button>
             </div>
             <div style={{fontFamily:FM,fontSize:13,color:C.muted,marginBottom:16}}>Type any dish — Claude will find the recipe and check your pantry.</div>
             {!makeThisResult?(
               <div>
                 <input value={makeThisInput} onChange={e=>setMakeThisInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&makeThisInput.trim()&&!makeThisLoading&&(async()=>{setMakeThisLoading(true);const res=await callClaude({system:"Recipe AI. Return ONLY valid JSON, no markdown, no backticks.",prompt:"Give me a recipe for: "+makeThisInput.trim()+". Inventory available: "+inventory.map(i=>i.name).filter(Boolean).join(", ")+". Return JSON: {name,description,time,difficulty,servings,instructions:[5 strings],usesFromInventory:[ingredient names from inventory],missingIngredients:[items NOT in inventory]}."});try{const raw=(typeof res==="string"?res:Array.isArray(res)?res.map(r=>r.text||"").join(""):res?.[0]?.text||"").replace(/```json|```/g,"").trim();const s=raw.indexOf("{"),e2=raw.lastIndexOf("}");const p=JSON.parse(raw.slice(s,e2+1));setMakeThisResult(p);}catch(e){alert("Could not parse recipe. Try again.");}setMakeThisLoading(false);})()}  placeholder='e.g. "Peanut butter cookies"' style={{...bInp,marginBottom:14,fontSize:15}} autoFocus/>
-                <button onClick={async()=>{if(!makeThisInput.trim())return;setMakeThisLoading(true);const res=await callClaude({system:"Recipe AI. Return ONLY valid JSON, no markdown, no backticks.",prompt:"Give me a recipe for: "+makeThisInput.trim()+". Inventory available: "+inventory.map(i=>i.name).filter(Boolean).join(", ")+". Return JSON: {name,description,time,difficulty,servings,instructions:[5 strings],usesFromInventory:[ingredient names from inventory],missingIngredients:[items NOT in inventory]}."});try{const raw=(typeof res==="string"?res:Array.isArray(res)?res.map(r=>r.text||"").join(""):res?.[0]?.text||"").replace(/```json|```/g,"").trim();const s=raw.indexOf("{"),e2=raw.lastIndexOf("}");const p=JSON.parse(raw.slice(s,e2+1));setMakeThisResult(p);}catch(e){alert("Could not parse recipe. Try again.");}setMakeThisLoading(false);}} disabled={!makeThisInput.trim()||makeThisLoading} style={{...bBtn("primary"),width:"100%",padding:"12px",fontSize:15,opacity:makeThisInput.trim()&&!makeThisLoading?1:0.5}}>{makeThisLoading?"Finding recipe...":"Find Recipe â†’"}</button>
+                <button onClick={async()=>{if(!makeThisInput.trim())return;setMakeThisLoading(true);const res=await callClaude({system:"Recipe AI. Return ONLY valid JSON, no markdown, no backticks.",prompt:"Give me a recipe for: "+makeThisInput.trim()+". Inventory available: "+inventory.map(i=>i.name).filter(Boolean).join(", ")+". Return JSON: {name,description,time,difficulty,servings,instructions:[5 strings],usesFromInventory:[ingredient names from inventory],missingIngredients:[items NOT in inventory]}."});try{const raw=(typeof res==="string"?res:Array.isArray(res)?res.map(r=>r.text||"").join(""):res?.[0]?.text||"").replace(/```json|```/g,"").trim();const s=raw.indexOf("{"),e2=raw.lastIndexOf("}");const p=JSON.parse(raw.slice(s,e2+1));setMakeThisResult(p);}catch(e){alert("Could not parse recipe. Try again.");}setMakeThisLoading(false);}} disabled={!makeThisInput.trim()||makeThisLoading} style={{...bBtn("primary"),width:"100%",padding:"12px",fontSize:15,opacity:makeThisInput.trim()&&!makeThisLoading?1:0.5}}>{makeThisLoading?"Finding recipe...":"Find Recipe →"}</button>
               </div>
             ):(
               <div>
                 {/* Recipe card — matches suggestion card style */}
                 <div style={{background:C.card,border:"1px solid "+C.border,borderRadius:14,padding:18,marginBottom:14,cursor:"pointer"}} onClick={()=>setActiveRecipe({...makeThisResult,id:"makethis"})}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
-                    <div style={{fontFamily:FD,fontSize:19,color:C.accent,flex:1}}>ðŸ” {makeThisResult.name}</div>
+                    <div style={{fontFamily:FD,fontSize:19,color:C.accent,flex:1}}>🔍 {makeThisResult.name}</div>
                     <span style={bTag(makeThisResult.difficulty==="Easy"?C.green:makeThisResult.difficulty==="Hard"?C.red:C.accent)}>{makeThisResult.difficulty}</span>
                   </div>
                   {mealPhotos[makeThisResult.name]&&<div style={{marginBottom:10,borderRadius:8,overflow:"hidden"}}><img src={mealPhotos[makeThisResult.name]} alt={makeThisResult.name} style={{width:"100%",maxHeight:140,objectFit:"cover",display:"block",borderRadius:8}} /></div>}
                   <div style={{color:C.muted,fontSize:13,marginBottom:12,lineHeight:1.5}}>{makeThisResult.description}</div>
                   <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
-                    {makeThisResult.time&&<span style={bTag(C.muted)}>â± {makeThisResult.time}</span>}
-                    {makeThisResult.servings&&<span style={bTag(C.blue)}>ðŸ½ {makeThisResult.servings} servings</span>}
-                    {(makeThisResult.usesFromInventory||[]).length>0&&<span style={bTag(C.green)}>âœ… {makeThisResult.usesFromInventory.length} on hand</span>}
-                    {(makeThisResult.missingIngredients||[]).length>0&&<span style={bTag(C.red)}>ðŸ›’ {makeThisResult.missingIngredients.length} needed</span>}
+                    {makeThisResult.time&&<span style={bTag(C.muted)}>⏱ {makeThisResult.time}</span>}
+                    {makeThisResult.servings&&<span style={bTag(C.blue)}>🍽 {makeThisResult.servings} servings</span>}
+                    {(makeThisResult.usesFromInventory||[]).length>0&&<span style={bTag(C.green)}>✅ {makeThisResult.usesFromInventory.length} on hand</span>}
+                    {(makeThisResult.missingIngredients||[]).length>0&&<span style={bTag(C.red)}>🛒 {makeThisResult.missingIngredients.length} needed</span>}
                   </div>
                   {/* Star ratings */}
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                     <div style={{display:"flex",gap:2}}>
                       {[1,2,3,4,5].map(star=>(
                         <button key={star} onClick={e=>{e.stopPropagation();const mealName=makeThisResult.name;setRecipeRatings(prev=>{const cur=prev[makeThisResult.name]?.rating||0;const next={...prev};if(cur===star){delete next[makeThisResult.name];}else{next[makeThisResult.name]={rating:star,recipe:makeThisResult};}try{localStorage.setItem("sk_recipeRatings",JSON.stringify(next));}catch{}if(star===5&&cur!==5){const skips=parseInt(localStorage.getItem("sk_photoSkipCount")||"0");if(skips<3) setTimeout(()=>setPhotoPromptMeal(mealName),300);}return next;});}} style={{background:"none",border:"none",cursor:"pointer",fontSize:16,padding:"0 1px",color:star<=(recipeRatings[makeThisResult.name]?.rating||0)?"#f59e0b":"#555"}}>
-                          {star<=(recipeRatings[makeThisResult.name]?.rating||0)?"â˜…":"â˜†"}
+                          {star<=(recipeRatings[makeThisResult.name]?.rating||0)?"★":"☆"}
                         </button>
                       ))}
                     </div>
                     <div style={{display:"flex",gap:10,alignItems:"center"}}>
-                      <span onClick={e=>{e.stopPropagation();setActiveRecipe(makeThisResult);}} style={{fontSize:11,color:C.accent,fontFamily:FM,letterSpacing:0.5,cursor:"pointer"}}>TAP FOR FULL RECIPE â†’</span>
-                      <a href={getRecipeUrl(makeThisResult.name)} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{fontSize:10,color:"#60a5fa",fontFamily:FM,textDecoration:"none",fontWeight:600}}>ðŸŒ web</a>
-                      <button onClick={e=>{e.stopPropagation();setPhotoPromptMeal(makeThisResult.name);}} style={{background:"transparent",border:"1px solid "+C.border,borderRadius:6,color:C.muted,fontFamily:FM,fontSize:12,cursor:"pointer",padding:"6px 10px"}} title="Add photo">ðŸ“¸ {mealPhotos[makeThisResult.name]?"Change":"Photo"}</button>
+                      <span onClick={e=>{e.stopPropagation();setActiveRecipe(makeThisResult);}} style={{fontSize:11,color:C.accent,fontFamily:FM,letterSpacing:0.5,cursor:"pointer"}}>TAP FOR FULL RECIPE →</span>
+                      <a href={getRecipeUrl(makeThisResult.name)} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{fontSize:10,color:"#60a5fa",fontFamily:FM,textDecoration:"none",fontWeight:600}}>🌐 web</a>
+                      <button onClick={e=>{e.stopPropagation();setPhotoPromptMeal(makeThisResult.name);}} style={{background:"transparent",border:"1px solid "+C.border,borderRadius:6,color:C.muted,fontFamily:FM,fontSize:12,cursor:"pointer",padding:"6px 10px"}} title="Add photo">📸 {mealPhotos[makeThisResult.name]?"Change":"Photo"}</button>
                     </div>
                   </div>
                 </div>
                 <div style={{display:"flex",gap:10}}>
-                  <button onClick={()=>printRecipeCard(makeThisResult,mealPhotos[makeThisResult.name])} style={{...bBtn("ghost"),padding:"10px 12px",fontSize:12}}>ðŸ–¨ Print</button>
-                  <button onClick={()=>{setMakeThisResult(null);setMakeThisInput("");}} style={{...bBtn("ghost"),flex:1,padding:"10px"}}>â† Try Another</button>
+                  <button onClick={()=>printRecipeCard(makeThisResult,mealPhotos[makeThisResult.name])} style={{...bBtn("ghost"),padding:"10px 12px",fontSize:12}}>🖨 Print</button>
+                  <button onClick={()=>{setMakeThisResult(null);setMakeThisInput("");}} style={{...bBtn("ghost"),flex:1,padding:"10px"}}>← Try Another</button>
                   <button onClick={()=>setMakeThisModal(false)} style={{...bBtn("primary"),flex:1,padding:"10px"}}>Done</button>
                 </div>
               </div>
@@ -5441,29 +5441,29 @@ What can I substitute and do I have what I need?`,
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.82)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:500,padding:16}} onClick={()=>{if(!frLoading){setFamilyRecipesOpen(false);setFrAddMode(null);setFrEditRecipe(null);setFrViewRecipe(null);}}}>
           <div style={{background:"#fdf6ec",borderRadius:18,padding:24,width:"100%",maxWidth:520,maxHeight:"90vh",overflowY:"auto",boxShadow:"0 8px 48px rgba(0,0,0,0.5)",border:"3px solid #c8963e"}} onClick={e=>e.stopPropagation()}>
 
-            {/* â”€â”€ VIEW RECIPE â”€â”€ */}
+            {/* ── VIEW RECIPE ── */}
             {frViewRecipe&&!frEditRecipe&&(<div>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
                 <div style={{flex:1}}>
                   <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?28:22,color:"#5c3317",lineHeight:1.2}}>{frViewRecipe.name}</div>
                   {frViewRecipe.kitchenOf&&<div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,color:"#8b6340",fontStyle:"italic",marginTop:2}}>From the kitchen of {frViewRecipe.kitchenOf}</div>}
                 </div>
-                <button onClick={()=>setFrViewRecipe(null)} style={{background:"transparent",border:"none",fontSize:20,cursor:"pointer",color:"#8b6340",padding:"0 4px"}}>âœ•</button>
+                <button onClick={()=>setFrViewRecipe(null)} style={{background:"transparent",border:"none",fontSize:20,cursor:"pointer",color:"#8b6340",padding:"0 4px"}}>✕</button>
               </div>
               {frViewRecipe.photo
   ?<div style={{position:"relative",marginBottom:14}}>
     <img src={frViewRecipe.photo} alt={frViewRecipe.name} style={{width:"100%",maxHeight:200,objectFit:"cover",borderRadius:10,border:"2px solid #e8d5b0"}}/>
     <div style={{position:"absolute",bottom:8,right:8,display:"flex",gap:6}}>
-    <button onClick={()=>document.getElementById("fr-dish-camera").click()} style={{background:"rgba(92,51,23,0.75)",border:"none",borderRadius:20,padding:"6px 10px",color:"#fdf6ec",fontFamily:"Georgia,serif",fontSize:11,cursor:"pointer"}}>ðŸ“· Camera</button>
-    <button onClick={()=>document.getElementById("fr-dish-gallery").click()} style={{background:"rgba(92,51,23,0.75)",border:"none",borderRadius:20,padding:"6px 10px",color:"#fdf6ec",fontFamily:"Georgia,serif",fontSize:11,cursor:"pointer"}}>ðŸ–¼ Gallery</button>
+    <button onClick={()=>document.getElementById("fr-dish-camera").click()} style={{background:"rgba(92,51,23,0.75)",border:"none",borderRadius:20,padding:"6px 10px",color:"#fdf6ec",fontFamily:"Georgia,serif",fontSize:11,cursor:"pointer"}}>📷 Camera</button>
+    <button onClick={()=>document.getElementById("fr-dish-gallery").click()} style={{background:"rgba(92,51,23,0.75)",border:"none",borderRadius:20,padding:"6px 10px",color:"#fdf6ec",fontFamily:"Georgia,serif",fontSize:11,cursor:"pointer"}}>🖼 Gallery</button>
   </div>
   </div>
   :<div style={{marginBottom:14,display:"flex",gap:10}}>
     <button onClick={()=>document.getElementById("fr-dish-camera").click()} style={{flex:1,background:"#fffbf0",border:"2px dashed #e8d5b0",borderRadius:10,padding:"16px 10px",cursor:"pointer",fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,color:"#8b6340",textAlign:"center"}}>
-      <div style={{fontSize:28,marginBottom:4}}>ðŸ“·</div>Take a Photo
+      <div style={{fontSize:28,marginBottom:4}}>📷</div>Take a Photo
     </button>
     <button onClick={()=>document.getElementById("fr-dish-gallery").click()} style={{flex:1,background:"#fffbf0",border:"2px dashed #e8d5b0",borderRadius:10,padding:"16px 10px",cursor:"pointer",fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,color:"#8b6340",textAlign:"center"}}>
-      <div style={{fontSize:28,marginBottom:4}}>ðŸ–¼</div>Choose from Gallery
+      <div style={{fontSize:28,marginBottom:4}}>🖼</div>Choose from Gallery
     </button>
   </div>}
 <input id="fr-dish-camera" type="file" accept="image/*" capture="environment" style={{display:"none"}} onChange={e=>{
@@ -5512,13 +5512,13 @@ What can I substitute and do I have what I need?`,
 }}/>
               <div style={{display:"flex",gap:10,marginBottom:14,flexWrap:"wrap",alignItems:"center"}}>
                 <div style={{display:"flex",alignItems:"center",gap:6,background:"#fef3c7",borderRadius:20,padding:"4px 12px",border:"1px solid #f59e0b"}}>
-                  <span style={{fontSize:14}}>ðŸ½</span>
+                  <span style={{fontSize:14}}>🍽</span>
                   <span style={{fontFamily:"Georgia,serif",fontSize:13,color:"#92400e",fontWeight:700}}>Serves</span>
-                  <button onClick={()=>setFrServings(s=>Math.max(1,s-1))} style={{background:"#f59e0b",border:"none",borderRadius:"50%",width:20,height:20,cursor:"pointer",fontSize:12,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700}}>âˆ’</button>
+                  <button onClick={()=>setFrServings(s=>Math.max(1,s-1))} style={{background:"#f59e0b",border:"none",borderRadius:"50%",width:20,height:20,cursor:"pointer",fontSize:12,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700}}>−</button>
                   <span style={{fontFamily:"Georgia,serif",fontSize:15,color:"#92400e",fontWeight:700,minWidth:16,textAlign:"center"}}>{frServings}</span>
                   <button onClick={()=>setFrServings(s=>s+1)} style={{background:"#f59e0b",border:"none",borderRadius:"50%",width:20,height:20,cursor:"pointer",fontSize:12,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700}}>+</button>
                 </div>
-                {frViewRecipe.rotation&&<span style={{background:"#dcfce7",border:"1px solid #16a34a",borderRadius:20,padding:"4px 10px",fontSize:12,color:"#166534",fontFamily:"Georgia,serif"}}>ðŸ”„ {frViewRecipe.frequency==="weekly"?"Weekly":frViewRecipe.frequency==="4week"?"Monthly":"Seasonal"}</span>}
+                {frViewRecipe.rotation&&<span style={{background:"#dcfce7",border:"1px solid #16a34a",borderRadius:20,padding:"4px 10px",fontSize:12,color:"#166534",fontFamily:"Georgia,serif"}}>🔄 {frViewRecipe.frequency==="weekly"?"Weekly":frViewRecipe.frequency==="4week"?"Monthly":"Seasonal"}</span>}
                 {(frViewRecipe.seasons||[]).map(s=><span key={s} style={{background:"#ede9fe",border:"1px solid #7c3aed",borderRadius:20,padding:"4px 10px",fontSize:12,color:"#5b21b6",fontFamily:"Georgia,serif"}}>{s}</span>)}
               </div>
               <div style={{background:"#fffbf0",border:"1px solid #e8d5b0",borderRadius:10,padding:14,marginBottom:14}}>
@@ -5535,9 +5535,9 @@ What can I substitute and do I have what I need?`,
                 <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?16:13,fontWeight:700,color:"#5c3317",marginBottom:8,borderBottom:"1px dashed #e8d5b0",paddingBottom:6}}>Instructions</div>
                 {(frViewRecipe.steps||[]).filter(step=>step&&step.trim()).map((step,i)=><div key={i} style={{fontFamily:"Georgia,serif",fontSize:seniorMode?16:13,color:"#3d2008",marginBottom:8,display:"flex",gap:8,lineHeight:1.6}}><span style={{fontWeight:700,color:"#c8963e",flexShrink:0}}>{i+1}.</span><span>{step}</span></div>)}
               </div>
-              {frViewRecipe.notes&&<div style={{background:"#fef9f0",border:"1px dashed #c8963e",borderRadius:10,padding:12,marginBottom:14,fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,color:"#8b6340",fontStyle:"italic"}}>ðŸ’› {frViewRecipe.notes}</div>}
+              {frViewRecipe.notes&&<div style={{background:"#fef9f0",border:"1px dashed #c8963e",borderRadius:10,padding:12,marginBottom:14,fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,color:"#8b6340",fontStyle:"italic"}}>💛 {frViewRecipe.notes}</div>}
               <div style={{position:"sticky",bottom:0,background:"#fdf6ec",paddingTop:10,paddingBottom:4,marginTop:4}}>
-                <button onClick={()=>setFrViewRecipe(null)} style={{width:"100%",background:"transparent",border:"2px solid #e8d5b0",borderRadius:10,padding:"11px",color:"#8b6340",fontFamily:"Georgia,serif",fontSize:16,cursor:"pointer",fontWeight:700}}>âœ• Close Recipe</button>
+                <button onClick={()=>setFrViewRecipe(null)} style={{width:"100%",background:"transparent",border:"2px solid #e8d5b0",borderRadius:10,padding:"11px",color:"#8b6340",fontFamily:"Georgia,serif",fontSize:16,cursor:"pointer",fontWeight:700}}>✕ Close Recipe</button>
               </div>
               <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                 <button onClick={()=>{
@@ -5584,7 +5584,7 @@ What can I substitute and do I have what I need?`,
                     w.document.write(html);
                     w.document.close();w.focus();setTimeout(()=>{w.print();w.close();},600);
                   }
-                }} style={{flex:1,background:"#5c3317",border:"none",borderRadius:10,padding:"12px",color:"#fdf6ec",fontFamily:"Georgia,serif",fontSize:seniorMode?16:13,cursor:"pointer",fontWeight:700}}>ðŸ–¨ Print Recipe</button>
+                }} style={{flex:1,background:"#5c3317",border:"none",borderRadius:10,padding:"12px",color:"#fdf6ec",fontFamily:"Georgia,serif",fontSize:seniorMode?16:13,cursor:"pointer",fontWeight:700}}>🖨 Print Recipe</button>
                 <button onClick={()=>{
                   const missing=(frViewRecipe.ingredients||[]).filter(ing=>{
                     const name=ing.replace(/^[\d.\/\s]+[a-zA-Z]*\s*/,"").toLowerCase().trim();
@@ -5597,29 +5597,29 @@ What can I substitute and do I have what I need?`,
                     localStorage.setItem("sk_shoppingList",JSON.stringify([...existing,...added.map(m=>({name:m,checked:false,source:"Family Recipe: "+frViewRecipe.name}))]));
                     alert(added.length+" ingredient"+(added.length!==1?"s":"")+" added to your shopping list!");
                   }
-                }} style={{flex:1,background:"#5c3317",border:"none",borderRadius:10,padding:"12px",color:"#fdf6ec",fontFamily:"Georgia,serif",fontSize:seniorMode?16:13,cursor:"pointer",fontWeight:700}}>ðŸ›’ Add Missing to Shopping List</button>
+                }} style={{flex:1,background:"#5c3317",border:"none",borderRadius:10,padding:"12px",color:"#fdf6ec",fontFamily:"Georgia,serif",fontSize:seniorMode?16:13,cursor:"pointer",fontWeight:700}}>🛒 Add Missing to Shopping List</button>
                 <button onClick={()=>{
                   setShareSelected({[frViewRecipe.name]:{...frViewRecipe,isFamilyRecipe:true}});
                   setShareTitle(frViewRecipe.name+(frViewRecipe.kitchenOf?" — From the kitchen of "+frViewRecipe.kitchenOf:""));
                   setShareMode(true);
                   setShowShareModal(true);
-                }} style={{background:"transparent",border:"2px solid #c8963e",borderRadius:10,padding:"10px 16px",color:"#c8963e",fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,cursor:"pointer",fontWeight:600}}>ðŸ“¤ Share</button>
+                }} style={{background:"transparent",border:"2px solid #c8963e",borderRadius:10,padding:"10px 16px",color:"#c8963e",fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,cursor:"pointer",fontWeight:600}}>📤 Share</button>
                 <button onClick={()=>{
                   if(!recipeRatings[frViewRecipe.name]){
                     setRecipeRatings(p=>({...p,[frViewRecipe.name]:{rating:4,recipe:{...frViewRecipe,isFamilyRecipe:false}}}));
                     alert(frViewRecipe.name+" added to Saved Recipes!");
                   } else { alert(frViewRecipe.name+" is already in Saved Recipes."); }
-                }} style={{background:"transparent",border:"2px solid #5b9cf6",borderRadius:10,padding:"10px 16px",color:"#5b9cf6",fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,cursor:"pointer"}}>â­ Add to Saved</button>
-                <button onClick={()=>{setFrEditRecipe({...frViewRecipe});setFrServings(frViewRecipe.servings||4);}} style={{background:"transparent",border:"2px solid #c8963e",borderRadius:10,padding:"10px 16px",color:"#5c3317",fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,cursor:"pointer"}}>âœ Edit</button>
-                <button onClick={()=>{if(window.confirm("Delete "+frViewRecipe.name+"?")){const updated=familyRecipes.filter(r=>r.id!==frViewRecipe.id);setFamilyRecipes(updated);try{localStorage.setItem("sk_familyRecipes",JSON.stringify(updated));}catch{}setFrViewRecipe(null);}}} style={{background:"transparent",border:"2px solid #dc2626",borderRadius:10,padding:"10px 16px",color:"#dc2626",fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,cursor:"pointer"}}>ðŸ—‘ Delete</button>
+                }} style={{background:"transparent",border:"2px solid #5b9cf6",borderRadius:10,padding:"10px 16px",color:"#5b9cf6",fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,cursor:"pointer"}}>⭐ Add to Saved</button>
+                <button onClick={()=>{setFrEditRecipe({...frViewRecipe});setFrServings(frViewRecipe.servings||4);}} style={{background:"transparent",border:"2px solid #c8963e",borderRadius:10,padding:"10px 16px",color:"#5c3317",fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,cursor:"pointer"}}>✏ Edit</button>
+                <button onClick={()=>{if(window.confirm("Delete "+frViewRecipe.name+"?")){const updated=familyRecipes.filter(r=>r.id!==frViewRecipe.id);setFamilyRecipes(updated);try{localStorage.setItem("sk_familyRecipes",JSON.stringify(updated));}catch{}setFrViewRecipe(null);}}} style={{background:"transparent",border:"2px solid #dc2626",borderRadius:10,padding:"10px 16px",color:"#dc2626",fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,cursor:"pointer"}}>🗑 Delete</button>
               </div>
             </div>)}
 
-            {/* â”€â”€ EDIT / REVIEW RECIPE â”€â”€ */}
+            {/* ── EDIT / REVIEW RECIPE ── */}
             {frEditRecipe&&(<div>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-                <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?22:18,color:"#5c3317",fontWeight:700}}>âœ Edit Recipe</div>
-                <button onClick={()=>setFrEditRecipe(null)} style={{background:"transparent",border:"none",fontSize:20,cursor:"pointer",color:"#8b6340"}}>âœ•</button>
+                <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?22:18,color:"#5c3317",fontWeight:700}}>✏ Edit Recipe</div>
+                <button onClick={()=>setFrEditRecipe(null)} style={{background:"transparent",border:"none",fontSize:20,cursor:"pointer",color:"#8b6340"}}>✕</button>
               </div>
               {[["Recipe Name","name"],["From the Kitchen of (optional)","kitchenOf"],["Family Notes (optional)","notes"]].map(([label,field])=>(
                 <div key={field} style={{marginBottom:10}}>
@@ -5654,7 +5654,7 @@ What can I substitute and do I have what I need?`,
                   {frEditRecipe.frequency==="seasonal"&&(<>
                     <div style={{fontFamily:"Georgia,serif",fontSize:12,color:"#8b6340",marginBottom:6}}>Seasons & Holidays</div>
                     <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-                      {["ðŸŒ¸ Spring","â˜€ Summer","ðŸ‚ Fall","â„ Winter","ðŸŽ„ Christmas","ðŸ¦ƒ Thanksgiving","ðŸ£ Easter","ðŸŽ† Fourth of July"].map(s=>{
+                      {["🌸 Spring","☀ Summer","🍂 Fall","❄ Winter","🎄 Christmas","🦃 Thanksgiving","🐣 Easter","🎆 Fourth of July"].map(s=>{
                         const active=(frEditRecipe.seasons||[]).includes(s);
                         return <button key={s} onClick={()=>setFrEditRecipe(r=>({...r,seasons:active?(r.seasons||[]).filter(x=>x!==s):[...(r.seasons||[]),s]}))} style={{padding:"5px 10px",borderRadius:20,border:"2px solid "+(active?"#7c3aed":"#e8d5b0"),background:active?"#ede9fe":"transparent",fontFamily:"Georgia,serif",fontSize:11,color:active?"#5b21b6":"#8b6340",cursor:"pointer"}}>{s}</button>;
                       })}
@@ -5672,38 +5672,38 @@ What can I substitute and do I have what I need?`,
                   setFrEditRecipe(null);
                   setFrAddMode(null);
                   setFrViewRecipe(saved);
-                }} style={{flex:2,background:"#5c3317",border:"none",borderRadius:10,padding:"13px",color:"#fdf6ec",fontFamily:"Georgia,serif",fontSize:seniorMode?17:14,cursor:"pointer",fontWeight:700}}>ðŸ’¾ Save Recipe</button>
+                }} style={{flex:2,background:"#5c3317",border:"none",borderRadius:10,padding:"13px",color:"#fdf6ec",fontFamily:"Georgia,serif",fontSize:seniorMode?17:14,cursor:"pointer",fontWeight:700}}>💾 Save Recipe</button>
                 <button onClick={()=>setFrEditRecipe(null)} style={{flex:1,background:"transparent",border:"2px solid #e8d5b0",borderRadius:10,padding:"11px",color:"#8b6340",fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,cursor:"pointer"}}>Cancel</button>
               </div>
             </div>)}
 
-            {/* â”€â”€ ADD MODE PICKER â”€â”€ */}
+            {/* ── ADD MODE PICKER ── */}
             {frAddMode==="pick"&&!frEditRecipe&&!frViewRecipe&&(<div>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-                <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?22:18,color:"#5c3317",fontWeight:700}}>ðŸ“– Add a Family Recipe</div>
-                <button onClick={()=>setFrAddMode(null)} style={{background:"transparent",border:"none",fontSize:20,cursor:"pointer",color:"#8b6340"}}>âœ•</button>
+                <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?22:18,color:"#5c3317",fontWeight:700}}>📖 Add a Family Recipe</div>
+                <button onClick={()=>setFrAddMode(null)} style={{background:"transparent",border:"none",fontSize:20,cursor:"pointer",color:"#8b6340"}}>✕</button>
               </div>
               <div style={{display:"flex",flexDirection:"column",gap:10}}>
                 <button onClick={()=>{setFrAddMode("type");setFrEditRecipe({name:"",kitchenOf:"",notes:"",servings:4,ingredients:[],steps:[],rotation:false,frequency:"4week",seasons:[],photo:null});}} style={{background:"#fffbf0",border:"2px solid #e8d5b0",borderRadius:12,padding:"16px",textAlign:"left",cursor:"pointer"}}>
-                  <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?18:15,color:"#5c3317",fontWeight:700,marginBottom:4}}>âœ Type it in</div>
+                  <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?18:15,color:"#5c3317",fontWeight:700,marginBottom:4}}>✏ Type it in</div>
                   <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?14:12,color:"#8b6340"}}>Enter the recipe name, ingredients, and steps yourself</div>
                 </button>
                 <button onClick={()=>setFrAddMode("photo")} style={{background:"#fffbf0",border:"2px solid #e8d5b0",borderRadius:12,padding:"16px",textAlign:"left",cursor:"pointer"}}>
-                  <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?18:15,color:"#5c3317",fontWeight:700,marginBottom:4}}>ðŸ“¸ Photo of a written recipe</div>
+                  <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?18:15,color:"#5c3317",fontWeight:700,marginBottom:4}}>📸 Photo of a written recipe</div>
                   <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?14:12,color:"#8b6340"}}>Take a photo of a handwritten or printed recipe and AI will read it</div>
                 </button>
                 <button onClick={()=>setFrAddMode("idea")} style={{background:"#fffbf0",border:"2px solid #e8d5b0",borderRadius:12,padding:"16px",textAlign:"left",cursor:"pointer"}}>
-                  <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?18:15,color:"#5c3317",fontWeight:700,marginBottom:4}}>ðŸ’¡ I have an idea for a recipe</div>
+                  <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?18:15,color:"#5c3317",fontWeight:700,marginBottom:4}}>💡 I have an idea for a recipe</div>
                   <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?14:12,color:"#8b6340"}}>Describe it and AI will build a full recipe card with ingredients and steps</div>
                 </button>
               </div>
             </div>)}
 
-            {/* â”€â”€ PHOTO SCAN â”€â”€ */}
+            {/* ── PHOTO SCAN ── */}
             {frAddMode==="photo"&&!frEditRecipe&&(<div>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-                <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?22:18,color:"#5c3317",fontWeight:700}}>ðŸ“¸ Photo Recipe Scan</div>
-                <button onClick={()=>{setFrAddMode("pick");setFrPhotos([]);}} style={{background:"transparent",border:"none",fontSize:20,cursor:"pointer",color:"#8b6340"}}>âœ•</button>
+                <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?22:18,color:"#5c3317",fontWeight:700}}>📸 Photo Recipe Scan</div>
+                <button onClick={()=>{setFrAddMode("pick");setFrPhotos([]);}} style={{background:"transparent",border:"none",fontSize:20,cursor:"pointer",color:"#8b6340"}}>✕</button>
               </div>
               <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?14:12,color:"#8b6340",marginBottom:10,lineHeight:1.6}}>Add as many photos as needed — front and back, multiple pages, recipe cards. AI will read them all and build one complete recipe card.</div>
               {/* Photo thumbnails */}
@@ -5711,24 +5711,24 @@ What can I substitute and do I have what I need?`,
                 {frPhotos.map((p,i)=>(
                   <div key={i} style={{position:"relative",width:72,height:72}}>
                     <img src={p.preview} style={{width:72,height:72,objectFit:"cover",borderRadius:8,border:"2px solid #e8d5b0"}} alt={"Page "+(i+1)}/>
-                    <div style={{position:"absolute",top:-6,right:-6,background:"#5c3317",color:"#fdf6ec",borderRadius:"50%",width:18,height:18,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,cursor:"pointer"}} onClick={()=>setFrPhotos(prev=>prev.filter((_,j)=>j!==i))}>âœ•</div>
+                    <div style={{position:"absolute",top:-6,right:-6,background:"#5c3317",color:"#fdf6ec",borderRadius:"50%",width:18,height:18,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,cursor:"pointer"}} onClick={()=>setFrPhotos(prev=>prev.filter((_,j)=>j!==i))}>✕</div>
                     <div style={{position:"absolute",bottom:2,left:0,right:0,textAlign:"center",fontFamily:"Georgia,serif",fontSize:9,color:"#fff",background:"rgba(92,51,23,0.6)",borderRadius:"0 0 6px 6px"}}>Photo {i+1}</div>
                   </div>
                 ))}
                 {/* Add another photo tile */}
                 <div style={{width:72,height:72,border:"2px dashed #e8d5b0",borderRadius:8,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:"pointer",background:"#fffbf0"}} onClick={()=>document.getElementById("fr-photo-gallery").click()}>
-                  <div style={{fontSize:22}}>ðŸ“·</div>
+                  <div style={{fontSize:22}}>📷</div>
                   <div style={{fontFamily:"Georgia,serif",fontSize:9,color:"#8b6340",marginTop:2}}>Add</div>
                 </div>
               </div>}
               {/* Empty state drop zone */}
               {frPhotos.length===0&&<div style={{display:"flex",gap:10,marginBottom:14}}>
                 <button onClick={()=>document.getElementById("fr-photo-camera").click()} style={{flex:1,background:"#fffbf0",border:"2px dashed #e8d5b0",borderRadius:12,padding:"20px 10px",textAlign:"center",cursor:"pointer"}}>
-                  <div style={{fontSize:36,marginBottom:6}}>ðŸ“·</div>
+                  <div style={{fontSize:36,marginBottom:6}}>📷</div>
                   <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,color:"#8b6340"}}>Take a Photo</div>
                 </button>
                 <button onClick={()=>document.getElementById("fr-photo-gallery").click()} style={{flex:1,background:"#fffbf0",border:"2px dashed #e8d5b0",borderRadius:12,padding:"20px 10px",textAlign:"center",cursor:"pointer"}}>
-                  <div style={{fontSize:36,marginBottom:6}}>ðŸ–¼</div>
+                  <div style={{fontSize:36,marginBottom:6}}>🖼</div>
                   <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,color:"#8b6340"}}>Choose from Gallery</div>
                 </button>
               </div>}
@@ -5782,15 +5782,15 @@ What can I substitute and do I have what I need?`,
                     setFrAddMode("review");
                   }catch(err){alert("Could not read recipe. Try clearer photos or better lighting.");}
                   setFrLoading(false);
-                }} disabled={frLoading} style={{flex:2,background:"#5c3317",border:"none",borderRadius:10,padding:"13px",color:"#fdf6ec",fontFamily:"Georgia,serif",fontSize:seniorMode?17:14,cursor:"pointer",fontWeight:700,opacity:frLoading?0.6:1}}>{frLoading?"Reading "+(frPhotos.length>1?"all "+frPhotos.length+" photos":"recipe")+"...":"Read Recipe â†’"+(frPhotos.length>1?" ("+frPhotos.length+" photos)":"")}</button>
+                }} disabled={frLoading} style={{flex:2,background:"#5c3317",border:"none",borderRadius:10,padding:"13px",color:"#fdf6ec",fontFamily:"Georgia,serif",fontSize:seniorMode?17:14,cursor:"pointer",fontWeight:700,opacity:frLoading?0.6:1}}>{frLoading?"Reading "+(frPhotos.length>1?"all "+frPhotos.length+" photos":"recipe")+"...":"Read Recipe →"+(frPhotos.length>1?" ("+frPhotos.length+" photos)":"")}</button>
               </div>}
             </div>)}
 
-            {/* â”€â”€ IDEA â”€â”€ */}
+            {/* ── IDEA ── */}
             {frAddMode==="idea"&&!frEditRecipe&&(<div>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-                <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?22:18,color:"#5c3317",fontWeight:700}}>ðŸ’¡ Recipe Idea</div>
-                <button onClick={()=>setFrAddMode("pick")} style={{background:"transparent",border:"none",fontSize:20,cursor:"pointer",color:"#8b6340"}}>âœ•</button>
+                <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?22:18,color:"#5c3317",fontWeight:700}}>💡 Recipe Idea</div>
+                <button onClick={()=>setFrAddMode("pick")} style={{background:"transparent",border:"none",fontSize:20,cursor:"pointer",color:"#8b6340"}}>✕</button>
               </div>
               <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?15:13,color:"#8b6340",marginBottom:10,lineHeight:1.6}}>Describe your recipe idea — as much or as little as you know. AI will create a full recipe card.</div>
               <textarea value={frIdeaInput} onChange={e=>setFrIdeaInput(e.target.value)} placeholder={'e.g. "Grandma\'s chicken casserole with cream of mushroom soup and egg noodles" or "A hearty winter beef stew"'} rows={4} style={{width:"100%",padding:"12px",borderRadius:10,border:"2px solid #e8d5b0",fontFamily:"Georgia,serif",fontSize:seniorMode?16:13,color:"#3d2008",background:"#fffbf0",boxSizing:"border-box",resize:"none",marginBottom:14}}/>
@@ -5807,19 +5807,19 @@ What can I substitute and do I have what I need?`,
                   setFrAddMode("review");
                 }catch(err){alert("Could not create recipe. Please try again.");}
                 setFrLoading(false);
-              }} disabled={!frIdeaInput.trim()||frLoading} style={{width:"100%",background:"#5c3317",border:"none",borderRadius:10,padding:"13px",color:"#fdf6ec",fontFamily:"Georgia,serif",fontSize:seniorMode?17:14,cursor:frIdeaInput.trim()&&!frLoading?"pointer":"default",fontWeight:700,opacity:frIdeaInput.trim()&&!frLoading?1:0.5}}>{frLoading?"Creating recipe...":"Create Recipe Card â†’"}</button>
+              }} disabled={!frIdeaInput.trim()||frLoading} style={{width:"100%",background:"#5c3317",border:"none",borderRadius:10,padding:"13px",color:"#fdf6ec",fontFamily:"Georgia,serif",fontSize:seniorMode?17:14,cursor:frIdeaInput.trim()&&!frLoading?"pointer":"default",fontWeight:700,opacity:frIdeaInput.trim()&&!frLoading?1:0.5}}>{frLoading?"Creating recipe...":"Create Recipe Card →"}</button>
             </div>)}
 
-            {/* â”€â”€ RECIPE LIST (home screen) â”€â”€ */}
+            {/* ── RECIPE LIST (home screen) ── */}
             {!frAddMode&&!frEditRecipe&&!frViewRecipe&&(<div>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:8}}>
-                <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?26:20,color:"#5c3317",fontWeight:700}}>ðŸ“– Family Recipes</div>
-                <button onClick={()=>{const frObj={};familyRecipes.forEach(r=>{frObj[r.name]={...r,isFamilyRecipe:true};});setShareSelected(frObj);setShareTitle("Family Recipes"+(familyProfiles[0]?.name?" from "+familyProfiles[0].name:""));setShareMode(true);setShowShareModal(true);}} style={{background:"transparent",border:"2px solid #c8963e",borderRadius:10,padding:seniorMode?"10px 16px":"7px 12px",color:"#c8963e",fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,cursor:"pointer",fontWeight:600}}>ðŸ“¤ Share All
+                <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?26:20,color:"#5c3317",fontWeight:700}}>📖 Family Recipes</div>
+                <button onClick={()=>{const frObj={};familyRecipes.forEach(r=>{frObj[r.name]={...r,isFamilyRecipe:true};});setShareSelected(frObj);setShareTitle("Family Recipes"+(familyProfiles[0]?.name?" from "+familyProfiles[0].name:""));setShareMode(true);setShowShareModal(true);}} style={{background:"transparent",border:"2px solid #c8963e",borderRadius:10,padding:seniorMode?"10px 16px":"7px 12px",color:"#c8963e",fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,cursor:"pointer",fontWeight:600}}>📤 Share All
                 </button>
-                <button onClick={()=>setFamilyRecipesOpen(false)} style={{background:"transparent",border:"none",fontSize:20,cursor:"pointer",color:"#8b6340"}}>âœ•</button>
+                <button onClick={()=>setFamilyRecipesOpen(false)} style={{background:"transparent",border:"none",fontSize:20,cursor:"pointer",color:"#8b6340"}}>✕</button>
               </div>
               {familyRecipes.length===0&&<div style={{textAlign:"center",padding:"30px 0"}}>
-                <div style={{fontSize:48,marginBottom:12}}>ðŸ«™</div>
+                <div style={{fontSize:48,marginBottom:12}}>🫙</div>
                 <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?17:14,color:"#8b6340",lineHeight:1.8}}>Your family recipe box is empty.<br/>Add your first recipe to get started.</div>
               </div>}
               <div style={{display:"flex",flexDirection:"column",gap:12,marginBottom:16}}>
@@ -5828,7 +5828,7 @@ What can I substitute and do I have what I need?`,
                     onMouseOver={e=>e.currentTarget.style.borderColor="#c8963e"}
                     onMouseOut={e=>e.currentTarget.style.borderColor="#e8d5b0"}>
                     {r.photo&&<img src={r.photo} alt={r.name} style={{width:56,height:56,borderRadius:8,objectFit:"cover",flexShrink:0,border:"1px solid #e8d5b0"}}/>}
-                    {!r.photo&&<div style={{width:56,height:56,borderRadius:8,background:"#fef3c7",display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,flexShrink:0}}>ðŸ²</div>}
+                    {!r.photo&&<div style={{width:56,height:56,borderRadius:8,background:"#fef3c7",display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,flexShrink:0}}>🍲</div>}
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?18:15,color:"#5c3317",fontWeight:700,marginBottom:2}}>{r.name}</div>
                       {r.kitchenOf&&<div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?13:11,color:"#8b6340",fontStyle:"italic",marginBottom:4}}>From the kitchen of {r.kitchenOf}</div>}
@@ -5837,7 +5837,7 @@ What can I substitute and do I have what I need?`,
                         {(r.seasons||[]).slice(0,2).map(s=><span key={s} style={{background:"#ede9fe",border:"1px solid #7c3aed",borderRadius:20,padding:"2px 8px",fontSize:10,color:"#5b21b6",fontFamily:"Georgia,serif"}}>{s}</span>)}
                       </div>
                     </div>
-                    <span style={{color:"#c8963e",fontSize:18,flexShrink:0}}>â€º</span>
+                    <span style={{color:"#c8963e",fontSize:18,flexShrink:0}}>›</span>
                   </div>
                 ))}
               </div>
@@ -5852,8 +5852,8 @@ What can I substitute and do I have what I need?`,
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:500,padding:16}}>
           <div style={{background:C.card,border:"1px solid "+C.border,borderRadius:18,padding:24,maxWidth:620,width:"100%",maxHeight:"90vh",overflowY:"auto"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-              <div style={{fontFamily:FD,fontSize:20,color:C.accent}}>ðŸ· Print Harvest Labels</div>
-              <button onClick={()=>setLabelModal(false)} style={{background:"transparent",border:"none",color:C.muted,fontSize:20,cursor:"pointer"}}>âœ•</button>
+              <div style={{fontFamily:FD,fontSize:20,color:C.accent}}>🏷 Print Harvest Labels</div>
+              <button onClick={()=>setLabelModal(false)} style={{background:"transparent",border:"none",color:C.muted,fontSize:20,cursor:"pointer"}}>✕</button>
             </div>
             {/* Format picker */}
             <div style={{marginBottom:16}}>
@@ -5891,11 +5891,11 @@ What can I substitute and do I have what I need?`,
                       return(
                         <div key={key} onClick={()=>setLabelSelected(prev=>({...prev,[key]:!prev[key]}))} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 10px",borderRadius:8,cursor:"pointer",background:checked?"#1a2e1a":C.surface,border:"1px solid "+(checked?"#4c4":C.border),marginBottom:4}}>
                           <div style={{width:16,height:16,borderRadius:4,border:"2px solid "+(checked?"#4c4":C.muted),background:checked?"#4c4":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                            {checked&&<span style={{color:"#000",fontSize:10,fontWeight:900}}>âœ“</span>}
+                            {checked&&<span style={{color:"#000",fontSize:10,fontWeight:900}}>✓</span>}
                           </div>
                           <div style={{flex:1}}>
                             <div style={{fontSize:13,fontWeight:600,color:C.text}}>{item.name}</div>
-                            <div style={{fontSize:11,color:C.muted}}>{item.qty} {item.unit}{item.harvestDate?" Â· Harvested "+item.harvestDate:""}{item.useBy?" Â· Best by "+item.useBy:""}</div>
+                            <div style={{fontSize:11,color:C.muted}}>{item.qty} {item.unit}{item.harvestDate?" · Harvested "+item.harvestDate:""}{item.useBy?" · Best by "+item.useBy:""}</div>
                           </div>
                         </div>
                       );
@@ -5907,7 +5907,7 @@ What can I substitute and do I have what I need?`,
             {/* Action buttons */}
             <div style={{display:"flex",gap:10,justifyContent:"flex-end",borderTop:"1px solid "+C.border,paddingTop:16}}>
               <button onClick={()=>setLabelModal(false)} style={{...bBtn("ghost"),padding:"10px 20px"}}>Cancel</button>
-              <button disabled={Object.values(labelSelected).filter(Boolean).length===0} onClick={printLabels} style={{...bBtn("primary"),padding:"10px 24px",fontSize:14,opacity:Object.values(labelSelected).filter(Boolean).length===0?0.4:1}}>ðŸ–¨ Print {Object.values(labelSelected).filter(Boolean).length>0?Object.values(labelSelected).filter(Boolean).length+" Label"+(Object.values(labelSelected).filter(Boolean).length>1?"s":""):"Labels"}</button>
+              <button disabled={Object.values(labelSelected).filter(Boolean).length===0} onClick={printLabels} style={{...bBtn("primary"),padding:"10px 24px",fontSize:14,opacity:Object.values(labelSelected).filter(Boolean).length===0?0.4:1}}>🖨 Print {Object.values(labelSelected).filter(Boolean).length>0?Object.values(labelSelected).filter(Boolean).length+" Label"+(Object.values(labelSelected).filter(Boolean).length>1?"s":""):"Labels"}</button>
             </div>
           </div>
         </div>
@@ -5935,11 +5935,11 @@ What can I substitute and do I have what I need?`,
       {emailSentModal&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:400,padding:16}} onClick={()=>setEmailSentModal(null)}>
           <div style={{background:C.card,border:"1px solid "+C.border,borderRadius:16,padding:28,maxWidth:400,width:"100%",textAlign:"center"}} onClick={e=>e.stopPropagation()}>
-            <div style={{fontSize:40,marginBottom:12}}>ðŸ“¬</div>
+            <div style={{fontSize:40,marginBottom:12}}>📬</div>
             <div style={{fontFamily:FD,fontSize:20,color:C.accent,marginBottom:8}}>Shopping List Sent!</div>
             <div style={{fontFamily:FM,fontSize:14,color:C.text,marginBottom:6}}>Sent to <strong>{emailSentModal}</strong></div>
             <div style={{background:C.surface,border:"1px solid "+C.accent+"44",borderRadius:10,padding:"12px 16px",marginTop:16,marginBottom:20,textAlign:"left"}}>
-              <div style={{fontFamily:FM,fontSize:12,fontWeight:700,color:C.accent,marginBottom:6}}>ðŸ“ Don't see it?</div>
+              <div style={{fontFamily:FM,fontSize:12,fontWeight:700,color:C.accent,marginBottom:6}}>📁 Don't see it?</div>
               <div style={{fontFamily:FM,fontSize:13,color:C.text,lineHeight:1.6}}>Check your <strong>Spam</strong> or <strong>Junk</strong> folder. If it's there, mark it as <strong>"Not Spam"</strong> so future lists go straight to your inbox.</div>
             </div>
             <button onClick={()=>setEmailSentModal(null)} style={{...bBtn("primary"),padding:"10px 32px",fontSize:14}}>Got it!</button>
@@ -5949,7 +5949,7 @@ What can I substitute and do I have what I need?`,
       {/* -- Guest Email Capture Banner -- */}
       {showGuestCapture&&!user&&<div style={{position:"fixed",bottom:0,left:0,right:0,background:"#1A2344",borderTop:"2px solid #C8963E",padding:"16px 20px",zIndex:800,display:"flex",flexWrap:"wrap",alignItems:"center",gap:12,justifyContent:"center"}}>
         <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:14,color:"#eceaf3",textAlign:"center",flexShrink:0}}>
-          ðŸ’› <strong>Save your progress</strong> — get your free Smart Kitchen account
+          💛 <strong>Save your progress</strong> — get your free Smart Kitchen account
         </div>
         <div style={{display:"flex",gap:8,alignItems:"center"}}>
           <input
@@ -5963,7 +5963,7 @@ What can I substitute and do I have what I need?`,
           <button onClick={submitGuestEmail} style={{padding:"8px 16px",background:"#C8963E",border:"none",borderRadius:8,color:"#0c0e14",fontWeight:700,fontSize:13,cursor:"pointer"}}>
             Save My Spot
           </button>
-          <button onClick={()=>setShowGuestCapture(false)} style={{background:"transparent",border:"none",color:"#6b728e",cursor:"pointer",fontSize:18,padding:"0 4px"}}>âœ•</button>
+          <button onClick={()=>setShowGuestCapture(false)} style={{background:"transparent",border:"none",color:"#6b728e",cursor:"pointer",fontSize:18,padding:"0 4px"}}>✕</button>
         </div>
       </div>}
 
@@ -6026,7 +6026,7 @@ What can I substitute and do I have what I need?`,
           display:"flex",alignItems:"center",justifyContent:"center",
           fontSize:22,touchAction:"none",userSelect:"none"
         }}>
-        ðŸ’¬
+        💬
       </button>
 
       {/* -- Support Chat Drawer -- */}
@@ -6034,13 +6034,13 @@ What can I substitute and do I have what I need?`,
         {/* Header */}
         <div style={{background:"#1A2344",padding:"16px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
-            <span style={{fontSize:22}}>ðŸ’¬</span>
+            <span style={{fontSize:22}}>💬</span>
             <div>
               <div style={{fontFamily:FD,fontSize:18,color:"#C8963E",fontWeight:700}}>Smart Kitchen</div>
               <div style={{fontFamily:FM,fontSize:10,color:"#888888"}}>Always here for you</div>
             </div>
           </div>
-          <button onClick={()=>setChatOpen(false)} style={{background:"transparent",border:"none",color:C.muted,fontSize:20,cursor:"pointer",padding:4}}>âœ•</button>
+          <button onClick={()=>setChatOpen(false)} style={{background:"transparent",border:"none",color:C.muted,fontSize:20,cursor:"pointer",padding:4}}>✕</button>
         </div>
         {/* Messages */}
         <div style={{flex:1,overflowY:"auto",padding:"16px 16px 8px",display:"flex",flexDirection:"column",gap:12}}>
@@ -6052,7 +6052,7 @@ What can I substitute and do I have what I need?`,
             </div>
           ))}
           {chatLoading&&<div style={{display:"flex",justifyContent:"flex-start"}}>
-            <div style={{background:C.surface,borderRadius:"16px 16px 16px 4px",padding:"10px 16px",fontFamily:FM,fontSize:seniorMode?17:13,color:C.muted}}>typingâ€¦</div>
+            <div style={{background:C.surface,borderRadius:"16px 16px 16px 4px",padding:"10px 16px",fontFamily:FM,fontSize:seniorMode?17:13,color:C.muted}}>typing…</div>
           </div>}
           <div ref={chatEndRef}/>
         </div>
@@ -6070,10 +6070,10 @@ What can I substitute and do I have what I need?`,
             value={chatInput}
             onChange={e=>setChatInput(e.target.value)}
             onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendChatMessage();}}}
-            placeholder="Type a messageâ€¦"
+            placeholder="Type a message…"
             style={{flex:1,background:C.surface,border:"1px solid "+C.border,borderRadius:10,padding:"10px 14px",color:C.text,fontFamily:FM,fontSize:seniorMode?17:13,outline:"none"}}
           />
-          <button onClick={()=>{if(voiceState==="listening"){stopListening();}else{startListening();}}} title={"Voice input — Hey "+assistantName()} style={{background:voiceState==="listening"?"#ef4444":"transparent",border:"1px solid "+(voiceState==="listening"?"#ef4444":"#C8963E"),borderRadius:10,padding:"10px 12px",color:voiceState==="listening"?"#fff":"#C8963E",cursor:"pointer",fontSize:seniorMode?18:15,flexShrink:0}}>{voiceState==="listening"?"â¹":"ðŸŽ™"}</button>
+          <button onClick={()=>{if(voiceState==="listening"){stopListening();}else{startListening();}}} title={"Voice input — Hey "+assistantName()} style={{background:voiceState==="listening"?"#ef4444":"transparent",border:"1px solid "+(voiceState==="listening"?"#ef4444":"#C8963E"),borderRadius:10,padding:"10px 12px",color:voiceState==="listening"?"#fff":"#C8963E",cursor:"pointer",fontSize:seniorMode?18:15,flexShrink:0}}>{voiceState==="listening"?"⏹":"🎙"}</button>
           <button onClick={()=>sendChatMessage()} disabled={chatLoading||!chatInput.trim()} style={{background:"#C8963E",border:"none",borderRadius:10,padding:"10px 16px",color:"#0c0e14",fontWeight:700,cursor:"pointer",fontFamily:FM,fontSize:seniorMode?17:13,opacity:chatLoading||!chatInput.trim()?0.5:1}}>
             Send
           </button>
