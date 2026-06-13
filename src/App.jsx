@@ -533,6 +533,7 @@ function NutritionDashboard({familyProfiles,user,supabase,seniorMode,C,FM,FD,ref
       .select("*")
       .eq("user_id",user.id)
       .gte("logged_at",today.toISOString())
+      .order("logged_at",{ascending:false})
       .then(({data})=>{
         setTodayLog(data||[]);
         setLoading(false);
@@ -678,6 +679,7 @@ function FoodJournal({user,supabase,familyProfiles,can,seniorMode,C,FM,FD,
       memberName:activeMember?.name||null,
       itemName:journalFoodName.trim(),
       weightG:grams||null,
+      loggedAt:journalDateTime?new Date(journalDateTime).toISOString():new Date().toISOString(),
       calories:journalNutrition?.calories||null,
       protein_g:journalNutrition?.protein_g||null,
       carbs_g:journalNutrition?.carbs_g||null,
@@ -2068,6 +2070,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
         ww_points:entry.wwPoints||null,
         source:entry.source||"scale",
         session_id:entry.sessionId||null,
+        logged_at:entry.loggedAt||new Date().toISOString(),
       }]);
     }catch(e){console.warn("Nutrition log write failed:",e);}
   };
