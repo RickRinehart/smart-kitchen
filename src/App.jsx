@@ -620,6 +620,234 @@ function NutritionDashboard({familyProfiles,user,supabase,seniorMode,C,FM,FD}){
   );
 }
 
+// -- Food Journal Component -------------------------------------------------
+function FoodJournal({user,supabase,familyProfiles,can,seniorMode,C,FM,FD,
+  journalMember,setJournalMember,journalMealType,setJournalMealType,
+  journalFoodName,setJournalFoodName,journalWeight,setJournalWeight,
+  journalWeightUnit,setJournalWeightUnit,journalDateTime,setJournalDateTime,
+  journalNutrition,setJournalNutrition,journalCalcLoading,setJournalCalcLoading,
+  journalSaving,setJournalSaving,journalSuccess,setJournalSuccess,
+  journalRecentItems,setJournalRecentItems,
+  logNutrition,callClaude,onClose
+}){
+  const allQualifying=familyProfiles.filter(p=>p.guidedPlateMode||p.medicalPlan||p.guidedPlateMode!==undefined);
+  const members=allQualifying.length>0?allQualifying:familyProfiles;
+  const activeMember=journalMember||(members[0]||null);
+  const mealTypes=["Breakfast","Morning Snack","Lunch","Afternoon Snack","Dinner","Evening Snack","Water/Hydration","Protein Shake","Other"];
+  const weightUnits=["oz","g","ml","fl oz","lbs","cups"];
+  const toGrams=(val,unit)=>{
+    const v=parseFloat(val)||0;
+    if(unit==="g") return v;
+    if(unit==="oz") return v*28.3495;
+    if(unit==="lbs") return v*453.592;
+    if(unit==="ml") return v;
+    if(unit==="fl oz") return v*29.5735;
+    if(unit==="cups") return v*236.588;
+    return v;
+  };
+  const estimateNutrition=async()=>{
+    if(!journalFoodName.trim()||!journalWeight) return;
+    setJournalCalcLoading(true);setJournalNutrition(null);
+    try{
+      const grams=toGrams(journalWeight,journalWeightUnit);
+      const raw=await callClaude({
+        system:"Nutrition AI. Return ONLY valid JSON: {calories,protein_g,carbs_g,fat_g,sat_fat_g,sugar_g,fiber_g,sodium_mg,notes}. Numbers only, no units.",
+        prompt:"Estimate nutrition for "+grams.toFixed(0)+"g ("+journalWeight+journalWeightUnit+") of "+journalFoodName.trim()+". Return JSON only.",
+        maxTokens:200
+      });
+      if(!raw){setJournalCalcLoading(false);return;}
+      const text=typeof raw==="string"?raw:Array.isArray(raw?.content)?raw.content.map(b=>b.text||"").join(""):raw?.content?.[0]?.text||"";
+      const clean=text.replace(/```json|```/g,"").trim();
+      const s=clean.indexOf("{");const e=clean.lastIndexOf("}");
+      if(s!==-1&&e!==-1){try{setJournalNutrition(JSON.parse(clean.slice(s,e+1)));}catch{}}
+    }catch{}
+    setJournalCalcLoading(false);
+  };
+  const saveEntry=async()=>{
+    if(!journalFoodName.trim()) return;
+    setJournalSaving(true);
+    const grams=toGrams(journalWeight||0,journalWeightUnit);
+    const wwBudget=activeMember?.wwPointsBudget;
+    const wwPts=wwBudget&&journalNutrition?Math.max(0,Math.round(
+      ((journalNutrition.calories||0)*0.0305)+
+      ((journalNutrition.sat_fat_g||0)*0.275)+
+      ((journalNutrition.sugar_g||0)*0.12)-
+      ((journalNutrition.protein_g||0)*0.098)
+    )):null;
+    await logNutrition({
+      memberName:activeMember?.name||null,
+      itemName:journalFoodName.trim(),
+      weightG:grams||null,
+      calories:journalNutrition?.calories||null,
+      protein_g:journalNutrition?.protein_g||null,
+      carbs_g:journalNutrition?.carbs_g||null,
+      fat_g:journalNutrition?.fat_g||null,
+      sat_fat_g:journalNutrition?.sat_fat_g||null,
+      sugar_g:journalNutrition?.sugar_g||null,
+      fiber_g:journalNutrition?.fiber_g||null,
+      sodium_mg:journalNutrition?.sodium_mg||null,
+      wwPoints:wwPts,
+      source:"food_journal",
+      sessionId:journalMealType,
+    });
+    try{
+      const recent=JSON.parse(localStorage.getItem("sk_journalRecent")||"[]");
+      const updated=[journalFoodName.trim(),...recent.filter(r=>r!==journalFoodName.trim())].slice(0,10);
+      localStorage.setItem("sk_journalRecent",JSON.stringify(updated));
+      setJournalRecentItems(updated);
+    }catch{}
+    setJournalSaving(false);
+    setJournalSuccess(true);
+    setJournalFoodName("");
+    setJournalWeight("");
+    setJournalNutrition(null);
+    setTimeout(()=>setJournalSuccess(false),2500);
+  };
+  React.useEffect(()=>{
+    try{const r=JSON.parse(localStorage.getItem("sk_journalRecent")||"[]");setJournalRecentItems(r);}catch{}
+    const now=new Date();
+    const pad=n=>String(n).padStart(2,"0");
+    setJournalDateTime(now.getFullYear()+"-"+pad(now.getMonth()+1)+"-"+pad(now.getDate())+"T"+pad(now.getHours())+":"+pad(now.getMinutes()));
+  },[]);
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:700,padding:"0 0 0 0"}} onClick={onClose}>
+      <div style={{background:C.card,borderRadius:"18px 18px 0 0",padding:24,width:"100%",maxWidth:520,maxHeight:"90vh",overflowY:"auto",boxShadow:"0 -8px 40px rgba(0,0,0,0.5)"}} onClick={e=>e.stopPropagation()}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+          <div style={{fontFamily:FD,fontSize:seniorMode?22:18,color:"#10b981",fontWeight:700}}>
+            📗 Food Journal
+          </div>
+          <button onClick={onClose} style={{background:"transparent",border:"1px solid #555",borderRadius:8,padding:"6px 14px",color:"#888",fontFamily:FM,fontSize:13,cursor:"pointer"}}>Close</button>
+        </div>
+        {members.length>1&&(
+          <div style={{marginBottom:16}}>
+            <div style={{fontFamily:FM,fontSize:10,color:"#888",marginBottom:6,letterSpacing:0.8}}>LOGGING FOR</div>
+            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+              {members.map(p=>(
+                <button key={p.id||p.name} onClick={()=>setJournalMember(p)}
+                  style={{padding:"6px 14px",borderRadius:20,border:"1px solid "+(activeMember?.name===p.name?"#10b981":"#444"),
+                  background:activeMember?.name===p.name?"#10b98122":"transparent",
+                  color:activeMember?.name===p.name?"#10b981":"#888",
+                  fontFamily:FM,fontSize:seniorMode?15:12,cursor:"pointer",fontWeight:activeMember?.name===p.name?700:400}}>
+                  {p.name||"Member"}
+                  {p.medicalPlan?" · "+p.medicalPlan:""}
+                  {p.bariatricPhase?" · "+p.bariatricPhase+" phase":""}
+                </button>
+              ))}
+            </div>
+            {activeMember?.bariatricPhase&&(
+              <div style={{background:"#dc262618",border:"1px solid #dc262644",borderRadius:8,padding:"6px 12px",marginTop:8,fontFamily:FM,fontSize:11,color:"#dc2626"}}>
+                ⚠ {activeMember.bariatricPhase} phase: max {activeMember.bariatricPhase==="Liquid"?"2 oz":activeMember.bariatricPhase==="Pureed"?"4 oz":activeMember.bariatricPhase==="Soft"?"6 oz":"8 oz"} per sitting
+              </div>
+            )}
+          </div>
+        )}
+        <div style={{marginBottom:16}}>
+          <div style={{fontFamily:FM,fontSize:10,color:"#888",marginBottom:6,letterSpacing:0.8}}>MEAL TYPE</div>
+          <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+            {mealTypes.map(mt=>(
+              <button key={mt} onClick={()=>setJournalMealType(mt)}
+                style={{padding:"4px 10px",borderRadius:16,border:"1px solid "+(journalMealType===mt?"#10b981":"#333"),
+                background:journalMealType===mt?"#10b98122":"transparent",
+                color:journalMealType===mt?"#10b981":"#666",
+                fontFamily:FM,fontSize:seniorMode?13:10,cursor:"pointer"}}>
+                {mt}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div style={{marginBottom:16}}>
+          <div style={{fontFamily:FM,fontSize:10,color:"#888",marginBottom:4,letterSpacing:0.8}}>DATE & TIME</div>
+          <input type="datetime-local" value={journalDateTime} onChange={e=>setJournalDateTime(e.target.value)}
+            style={{width:"100%",background:C.surface,border:"1px solid #444",borderRadius:8,padding:"10px 12px",color:C.text,fontFamily:FM,fontSize:seniorMode?15:13,boxSizing:"border-box"}}/>
+        </div>
+        <div style={{marginBottom:12}}>
+          <div style={{fontFamily:FM,fontSize:10,color:"#888",marginBottom:4,letterSpacing:0.8}}>WHAT DID YOU EAT OR DRINK?</div>
+          <input value={journalFoodName} onChange={e=>{setJournalFoodName(e.target.value);setJournalNutrition(null);}}
+            placeholder="e.g. Protein shake, Chicken broth, Greek yogurt..."
+            style={{width:"100%",background:C.surface,border:"1px solid #444",borderRadius:8,padding:"12px 14px",color:C.text,fontFamily:FM,fontSize:seniorMode?16:14,boxSizing:"border-box"}}/>
+          {journalRecentItems.length>0&&!journalFoodName&&(
+            <div style={{display:"flex",gap:4,flexWrap:"wrap",marginTop:6}}>
+              <span style={{fontFamily:FM,fontSize:10,color:"#555",alignSelf:"center"}}>Recent:</span>
+              {journalRecentItems.slice(0,6).map(item=>(
+                <button key={item} onClick={()=>setJournalFoodName(item)}
+                  style={{padding:"2px 8px",borderRadius:10,border:"1px solid #333",background:"transparent",color:"#666",fontFamily:FM,fontSize:10,cursor:"pointer"}}>
+                  {item}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        <div style={{marginBottom:16,display:"grid",gridTemplateColumns:"1fr auto",gap:8}}>
+          <div>
+            <div style={{fontFamily:FM,fontSize:10,color:"#888",marginBottom:4,letterSpacing:0.8}}>AMOUNT (OPTIONAL)</div>
+            <input type="number" value={journalWeight} onChange={e=>{setJournalWeight(e.target.value);setJournalNutrition(null);}}
+              placeholder="e.g. 4"
+              style={{width:"100%",background:C.surface,border:"1px solid #444",borderRadius:8,padding:"10px 12px",color:C.text,fontFamily:FM,fontSize:seniorMode?16:14,boxSizing:"border-box"}}/>
+          </div>
+          <div>
+            <div style={{fontFamily:FM,fontSize:10,color:"#888",marginBottom:4,letterSpacing:0.8}}>UNIT</div>
+            <select value={journalWeightUnit} onChange={e=>setJournalWeightUnit(e.target.value)}
+              style={{background:C.surface,border:"1px solid #444",borderRadius:8,padding:"10px 12px",color:C.text,fontFamily:FM,fontSize:seniorMode?15:13,cursor:"pointer"}}>
+              {weightUnits.map(u=>(<option key={u} value={u}>{u}</option>))}
+            </select>
+          </div>
+        </div>
+        {journalFoodName.trim()&&journalWeight&&(
+          <button onClick={estimateNutrition} disabled={journalCalcLoading}
+            style={{width:"100%",background:"#f59e0b",border:"none",borderRadius:10,padding:seniorMode?"14px":"10px",
+            color:"#000",fontFamily:FM,fontSize:seniorMode?17:13,fontWeight:700,cursor:"pointer",marginBottom:12,opacity:journalCalcLoading?0.6:1}}>
+            {journalCalcLoading?"⏳ Estimating...":"🔢 Estimate Nutrition"}
+          </button>
+        )}
+        {journalNutrition&&(
+          <div style={{background:C.surface,borderRadius:10,padding:12,marginBottom:16,border:"1px solid #444"}}>
+            <div style={{fontFamily:FM,fontSize:10,color:"#888",marginBottom:8,letterSpacing:0.8}}>ESTIMATED NUTRITION</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6}}>
+              {[["Protein",journalNutrition.protein_g,"g","#3b82f6"],
+                ["Calories",journalNutrition.calories,"cal","#f59e0b"],
+                ["Carbs",journalNutrition.carbs_g,"g","#22c55e"],
+                ["Sat. Fat",journalNutrition.sat_fat_g,"g","#dc2626"],
+                ["Sugar",journalNutrition.sugar_g,"g","#f97316"],
+                ["Fiber",journalNutrition.fiber_g,"g","#8b5cf6"]
+              ].map(([label,val,unit,color])=>(
+                <div key={label} style={{background:C.card,borderRadius:8,padding:"8px 10px",textAlign:"center"}}>
+                  <div style={{fontFamily:FM,fontSize:9,color:"#666",marginBottom:2}}>{label}</div>
+                  <div style={{fontFamily:FD,fontSize:seniorMode?18:14,color:color}}>{val??"-"}<span style={{fontSize:9,color:"#555"}}> {unit}</span></div>
+                </div>
+              ))}
+            </div>
+            {activeMember?.bariatricPhase&&journalWeight&&(()=>{
+              const oz=journalWeightUnit==="oz"?parseFloat(journalWeight):toGrams(journalWeight,journalWeightUnit)/28.3495;
+              const limit=activeMember.bariatricPhase==="Liquid"?2:activeMember.bariatricPhase==="Pureed"?4:activeMember.bariatricPhase==="Soft"?6:8;
+              return oz>limit
+                ?<div style={{background:"#dc262618",border:"1px solid #dc262644",borderRadius:6,padding:"6px 10px",marginTop:8,fontFamily:FM,fontSize:11,color:"#dc2626"}}>
+                  ⚠ {oz.toFixed(1)} oz exceeds your {activeMember.bariatricPhase} phase limit of {limit} oz per sitting
+                </div>
+                :<div style={{background:"#22c55e18",border:"1px solid #22c55e44",borderRadius:6,padding:"6px 10px",marginTop:8,fontFamily:FM,fontSize:11,color:"#22c55e"}}>
+                  ✓ {oz.toFixed(1)} oz is within your {activeMember.bariatricPhase} phase limit
+                </div>;
+            })()}
+            {journalNutrition.notes&&<div style={{fontFamily:FM,fontSize:10,color:"#666",marginTop:6,fontStyle:"italic"}}>{journalNutrition.notes}</div>}
+          </div>
+        )}
+        {journalSuccess&&(
+          <div style={{background:"#10b98122",border:"1px solid #10b98144",borderRadius:10,padding:"12px 16px",marginBottom:12,textAlign:"center",fontFamily:FM,fontSize:seniorMode?16:13,color:"#10b981",fontWeight:700}}>
+            ✅ Logged! Dashboard updated.
+          </div>
+        )}
+        <button onClick={saveEntry} disabled={!journalFoodName.trim()||journalSaving}
+          style={{width:"100%",background:journalFoodName.trim()?"#10b981":"#333",border:"none",borderRadius:10,
+          padding:seniorMode?"16px":"12px",color:journalFoodName.trim()?"#fff":"#666",
+          fontFamily:FM,fontSize:seniorMode?20:15,fontWeight:700,cursor:journalFoodName.trim()?"pointer":"default",
+          marginBottom:8,opacity:journalSaving?0.6:1}}>
+          {journalSaving?"⏳ Saving...":"📗 Log This Entry"}
+        </button>
+        <div style={{fontFamily:FM,fontSize:10,color:"#555",textAlign:"center",marginTop:4}}>For guidance only. Consult your healthcare provider for specific dietary recommendations.</div>
+      </div>
+    </div>
+  );
+}
+
 export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, user=null, viewerRole=null, onShowGuestViewer=null }){
   // -- State ------------------------------------------------------------------
   const isViewer = !!viewerRole; // true = read-only viewer of another account
@@ -791,6 +1019,20 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [canIHaveOpen,setCanIHaveOpen]=useState(false);
   const [showScaleModal,setShowScaleModal]=useState(false);
   const [scaleDevice,setScaleDevice]=useState(null);
+  // -- Food Journal state ------------------------------------------------
+  const [showJournal,setShowJournal]=useState(false);
+  const [journalMember,setJournalMember]=useState(null);
+  const [journalMealType,setJournalMealType]=useState("Meal");
+  const [journalFoodName,setJournalFoodName]=useState("");
+  const [journalWeight,setJournalWeight]=useState("");
+  const [journalWeightUnit,setJournalWeightUnit]=useState("oz");
+  const [journalDateTime,setJournalDateTime]=useState("");
+  const [journalNutrition,setJournalNutrition]=useState(null);
+  const [journalCalcLoading,setJournalCalcLoading]=useState(false);
+  const [journalSaving,setJournalSaving]=useState(false);
+  const [journalSuccess,setJournalSuccess]=useState(false);
+  const [journalRecentItems,setJournalRecentItems]=useState([]);
+
   const [plateSession,setPlateSession]=useState(null);// {active,memberName,mealName,mealDay,components:[],cumulativeG,step,sessionId}
   const [plateSuggestedComponents,setPlateSuggestedComponents]=useState([]);// [{name,category,suggestedOz,editable}]
   const [plateCurrentComponentIdx,setPlateCurrentComponentIdx]=useState(-1);
@@ -6191,6 +6433,37 @@ setScaleCalcLoading(false);setTimeout(()=>{if(scaleDevice&&scaleDevice._writeChr
         </div>
       </div>}
 
+    {can.medicalCompliance&&(
+      <button onClick={()=>setShowJournal(true)}
+        style={{position:"fixed",bottom:seniorMode?100:80,right:16,zIndex:600,
+        background:"#10b981",border:"none",borderRadius:"50%",
+        width:seniorMode?64:52,height:seniorMode?64:52,
+        boxShadow:"0 4px 16px rgba(16,185,129,0.4)",
+        display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
+        cursor:"pointer",gap:1}}>
+        <span style={{fontSize:seniorMode?22:18}}>📗</span>
+        <span style={{fontFamily:FM,fontSize:8,color:"#fff",fontWeight:700,lineHeight:1}}>LOG</span>
+      </button>
+    )}
+    {showJournal&&can.medicalCompliance&&(
+      <FoodJournal
+        user={user} supabase={supabase} familyProfiles={familyProfiles}
+        can={can} seniorMode={seniorMode} C={C} FM={FM} FD={FD}
+        journalMember={journalMember} setJournalMember={setJournalMember}
+        journalMealType={journalMealType} setJournalMealType={setJournalMealType}
+        journalFoodName={journalFoodName} setJournalFoodName={setJournalFoodName}
+        journalWeight={journalWeight} setJournalWeight={setJournalWeight}
+        journalWeightUnit={journalWeightUnit} setJournalWeightUnit={setJournalWeightUnit}
+        journalDateTime={journalDateTime} setJournalDateTime={setJournalDateTime}
+        journalNutrition={journalNutrition} setJournalNutrition={setJournalNutrition}
+        journalCalcLoading={journalCalcLoading} setJournalCalcLoading={setJournalCalcLoading}
+        journalSaving={journalSaving} setJournalSaving={setJournalSaving}
+        journalSuccess={journalSuccess} setJournalSuccess={setJournalSuccess}
+        journalRecentItems={journalRecentItems} setJournalRecentItems={setJournalRecentItems}
+        logNutrition={logNutrition} callClaude={callClaude}
+        onClose={()=>setShowJournal(false)}
+      />
+    )}
     </div>
   );
 }
