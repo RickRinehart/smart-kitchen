@@ -521,10 +521,10 @@ const VoicePicker=React.memo(()=>{
 });
 
 // -- Nutrition Dashboard Component ------------------------------------------
-function NutritionDashboard({familyProfiles,user,supabase,seniorMode,C,FM,FD}){
+function NutritionDashboard({familyProfiles,user,supabase,seniorMode,C,FM,FD,refreshKey}){
   const [todayLog,setTodayLog]=React.useState([]);
   const [loading,setLoading]=React.useState(true);
-  const [expanded,setExpanded]=React.useState(false);
+  const [expanded,setExpanded]=React.useState(true);
   const [selectedMember,setSelectedMember]=React.useState(null);// null = show all (single member) or first member; string = member name filter
   React.useEffect(()=>{
     if(!user?.id) return;
@@ -537,7 +537,7 @@ function NutritionDashboard({familyProfiles,user,supabase,seniorMode,C,FM,FD}){
         setTodayLog(data||[]);
         setLoading(false);
       });
-  },[user?.id]);
+  },[user?.id,refreshKey]);
   const allQualifying=familyProfiles.filter(p=>p.guidedPlateMode||p.medicalPlan);
   // Filter log by selected member when multiple members exist
   const filteredLog=allQualifying.length>1&&selectedMember
@@ -628,7 +628,7 @@ function FoodJournal({user,supabase,familyProfiles,can,seniorMode,C,FM,FD,
   journalNutrition,setJournalNutrition,journalCalcLoading,setJournalCalcLoading,
   journalSaving,setJournalSaving,journalSuccess,setJournalSuccess,
   journalRecentItems,setJournalRecentItems,
-  logNutrition,callClaude,onClose
+  logNutrition,callClaude,onSaved,onClose
 }){
   const allQualifying=familyProfiles.filter(p=>p.guidedPlateMode||p.medicalPlan||p.guidedPlateMode!==undefined);
   const members=allQualifying.length>0?allQualifying:familyProfiles;
@@ -698,6 +698,7 @@ function FoodJournal({user,supabase,familyProfiles,can,seniorMode,C,FM,FD,
     }catch{}
     setJournalSaving(false);
     setJournalSuccess(true);
+    if(onSaved) onSaved();
     setJournalFoodName("");
     setJournalWeight("");
     setJournalNutrition(null);
@@ -1021,6 +1022,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [scaleDevice,setScaleDevice]=useState(null);
   // -- Food Journal state ------------------------------------------------
   const [showJournal,setShowJournal]=useState(false);
+  const [dashRefreshKey,setDashRefreshKey]=useState(0);
   const [journalMember,setJournalMember]=useState(null);
   const [journalMealType,setJournalMealType]=useState("Meal");
   const [journalFoodName,setJournalFoodName]=useState("");
@@ -3482,7 +3484,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
               <span style={{fontFamily:FM,fontSize:12,color:C.accent,fontWeight:600}}>{OCCASION_EVENT_TYPES.find(e=>e.key===occasionState.eventType)?.label} · {OCCASION_AUDIENCE_TYPES.find(a=>a.key===occasionState.audienceType)?.label}{occasionState.headCount?" · "+occasionState.headCount+" people":""}</span>
               <button onClick={()=>setOccasionState({eventType:"",audienceType:"family",headCount:"",mode:"use",budget:"",guestRestrictions:"",note:""})} style={{background:"transparent",border:"none",color:C.muted,cursor:"pointer",fontSize:12,marginLeft:"auto"}}>✕ Clear</button>
             </div>}
-            {can.medicalCompliance&&user?.id&&(<NutritionDashboard familyProfiles={familyProfiles} user={user} supabase={supabase} seniorMode={seniorMode} C={C} FM={FM} FD={FD}/>)}<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18,flexWrap:"wrap",gap:10}}>
+            {can.medicalCompliance&&user?.id&&(<NutritionDashboard familyProfiles={familyProfiles} user={user} supabase={supabase} seniorMode={seniorMode} C={C} FM={FM} FD={FD} refreshKey={dashRefreshKey}/>)}<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18,flexWrap:"wrap",gap:10}}>
               <div style={{fontFamily:FD,fontSize:24}}>7-Day Dinner Plan <span style={{fontSize:13,color:C.muted,fontFamily:FB}}>· {activeProfiles.length} people</span></div>
               <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                 <button style={bBtn("ghost")} onClick={buildMealPlan} disabled={isViewer}>🔄 Regenerate</button>
@@ -6461,6 +6463,7 @@ setScaleCalcLoading(false);setTimeout(()=>{if(scaleDevice&&scaleDevice._writeChr
         journalSuccess={journalSuccess} setJournalSuccess={setJournalSuccess}
         journalRecentItems={journalRecentItems} setJournalRecentItems={setJournalRecentItems}
         logNutrition={logNutrition} callClaude={callClaude}
+        onSaved={()=>setDashRefreshKey(k=>k+1)}
         onClose={()=>setShowJournal(false)}
       />
     )}
