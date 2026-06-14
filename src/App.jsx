@@ -2909,7 +2909,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                 style={{...bBtn("ghost"),width:"100%",padding:seniorMode?14:10,fontSize:seniorMode?16:13,borderColor:"#C8963E",color:"#C8963E"}}
                 onClick={()=>setShowEmailGate(true)}
               >
-                ✨ Try Free for 30 Days — no password needed
+                ✨ Try Free for 30 Days — no credit card required
               </button>
               {onShowGuestViewer&&<button onClick={onShowGuestViewer} style={{background:"transparent",border:"none",color:"#a78bfa",fontFamily:FM,fontSize:seniorMode?15:12,cursor:"pointer",marginTop:4,textDecoration:"underline",display:"block",width:"100%",padding:"8px 0"}}>👁 Have a family code? View their kitchen</button>}
               <div style={{fontFamily:"system-ui",fontSize:seniorMode?14:11,color:C.muted,textAlign:"center",marginTop:10,lineHeight:1.6}}>30-day free trial · No credit card required · Cancel anytime</div>
