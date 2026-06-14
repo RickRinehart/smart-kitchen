@@ -997,6 +997,10 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   // -- Guest Email Capture State ------------------------------------------------
   const [showGuestCapture,setShowGuestCapture]=useState(false);
   const [guestEmail,setGuestEmail]=useState("");
+  const [showEmailGate,setShowEmailGate]=useState(false);
+  const [trialEmail,setTrialEmail]=useState("");
+  const [trialEmailError,setTrialEmailError]=useState("");
+  const [trialEmailSubmitting,setTrialEmailSubmitting]=useState(false);
   const [guestCaptured,setGuestCaptured]=useState(()=>{try{return localStorage.getItem("sk_guestCaptured")==="1";}catch{return false;}});
   const [showInventoryReminder,setShowInventoryReminder]=useState(()=>{
     try{
@@ -2899,10 +2903,10 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                 {wizardSignupLoading?"Creating account...":"Create Free Account →"}
               </button>
               <button
-                style={{...bBtn("ghost"),width:"100%",padding:seniorMode?14:10,fontSize:seniorMode?16:13}}
-                onClick={()=>setWizardStep(-2)}
+                style={{...bBtn("ghost"),width:"100%",padding:seniorMode?14:10,fontSize:seniorMode?16:13,borderColor:"#C8963E",color:"#C8963E"}}
+                onClick={()=>setShowEmailGate(true)}
               >
-                Skip for now — explore first
+                ✨ Try Free for 30 Days — no password needed
               </button>
               {onShowGuestViewer&&<button onClick={onShowGuestViewer} style={{background:"transparent",border:"none",color:"#a78bfa",fontFamily:FM,fontSize:seniorMode?15:12,cursor:"pointer",marginTop:4,textDecoration:"underline",display:"block",width:"100%",padding:"8px 0"}}>👁 Have a family code? View their kitchen</button>}
               <div style={{fontFamily:"system-ui",fontSize:seniorMode?14:11,color:C.muted,textAlign:"center",marginTop:10,lineHeight:1.6}}>30-day free trial · No credit card required · Cancel anytime</div>
@@ -6483,7 +6487,7 @@ setScaleCalcLoading(false);setTimeout(()=>{if(scaleDevice&&scaleDevice._writeChr
         onClose={()=>setShowJournal(false)}
       />
     )}
-    </div>
+    {showEmailGate&&!user&&(<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:900,padding:20}}><div style={{background:C.card,borderRadius:18,padding:28,width:"100%",maxWidth:440,border:"2px solid #C8963E",boxShadow:"0 8px 40px rgba(0,0,0,0.6)"}}><div style={{textAlign:"center",marginBottom:20}}><div style={{fontFamily:"'DM Serif Display',serif",fontSize:28,color:"#C8963E",marginBottom:6}}>\u2728 Try Smart Kitchen Free</div><div style={{fontFamily:"'DM Sans',sans-serif",fontSize:14,color:C.muted,lineHeight:1.6}}>Get full access to every feature for 30 days \u2014 no credit card, no password, no commitment.</div></div><div style={{background:C.surface,borderRadius:12,padding:"12px 16px",marginBottom:16}}><div style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,color:"#888",letterSpacing:0.8,marginBottom:8}}>YOUR 30-DAY TRIAL INCLUDES</div><div style={{display:"flex",flexDirection:"column",gap:4}}>{["\u2713 7-day AI meal planning","\u2713 Full inventory management","\u2713 Bluetooth scale + Smart Plate Mode","\u2713 Medical+ Intelligence (all conditions)","\u2713 Food Journal + Nutrition Dashboard","\u2713 Voice assistant, shopping list, and more"].map(f=>(<div key={f} style={{fontFamily:"'DM Sans',sans-serif",fontSize:13,color:C.text}}>{f}</div>))}</div></div><div style={{marginBottom:8}}><div style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:"#888",letterSpacing:0.8,marginBottom:4}}>YOUR EMAIL ADDRESS</div><input value={trialEmail} onChange={e=>{setTrialEmail(e.target.value);setTrialEmailError("");}} placeholder="you@email.com" type="email" style={{width:"100%",background:C.surface,border:"1px solid "+(trialEmailError?"#dc2626":"#C8963E"),borderRadius:10,padding:"12px 14px",color:C.text,fontFamily:"'DM Sans',sans-serif",fontSize:15,boxSizing:"border-box"}}/>{trialEmailError&&<div style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,color:"#dc2626",marginTop:4}}>{trialEmailError}</div>}</div><div style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:"#666",lineHeight:1.6,marginBottom:16,padding:"8px 12px",background:"#ffffff08",borderRadius:8,border:"1px solid #333"}}>\ud83d\udd12 <strong style={{color:"#888"}}>Privacy:</strong> Your email will only be used for necessary communications between RG Digital Labs, LLC / Smart Kitchen and you. We will never sell, share, or distribute your email address to third parties.</div><button onClick={async()=>{const email=trialEmail.trim();if(!email||!email.includes("@")){setTrialEmailError("Please enter a valid email address.");return;}setTrialEmailSubmitting(true);try{await fetch("/api/mailchimp-subscribe",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email,name:"Trial User",tags:["30-day-trial"]})}).catch(()=>{});}catch{}try{localStorage.setItem("sk_guestTrialEmail",email);localStorage.setItem("sk_guestCaptured","1");localStorage.setItem("sk_trialStart",Date.now().toString());}catch{}setGuestEmail(email);setGuestCaptured(true);setShowEmailGate(false);setTrialEmailSubmitting(false);setWizardStep(-2);}} disabled={trialEmailSubmitting} style={{width:"100%",background:"#C8963E",border:"none",borderRadius:12,padding:"14px",color:"#000",fontFamily:"'DM Sans',sans-serif",fontSize:16,fontWeight:700,cursor:"pointer",marginBottom:10,opacity:trialEmailSubmitting?0.6:1}}>{trialEmailSubmitting?"\u23f3 Starting your trial...":"\u2728 Start My 30-Day Free Trial"}</button><button onClick={()=>setShowEmailGate(false)} style={{width:"100%",background:"transparent",border:"none",color:"#888",fontFamily:"'DM Sans',sans-serif",fontSize:13,cursor:"pointer",padding:4}}>\u2190 Back \u2014 create a full account instead</button></div></div>)}    </div>
   );
 }
 
