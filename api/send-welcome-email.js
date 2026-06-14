@@ -66,12 +66,7 @@ export default async function handler(req, res) {
 
         ${tierNote}
 
-        <!-- Promo -->
-        <div style="background:#1A2344;border-radius:8px;padding:16px 20px;margin:20px 0;text-align:center;">
-          <div style="color:#C8963E;font-size:13px;font-weight:bold;letter-spacing:1px;text-transform:uppercase;">Special Offer</div>
-          <div style="color:#fff;font-size:15px;margin-top:6px;">Use code <strong style="color:#C8963E;font-size:18px;letter-spacing:2px;">SMG528</strong> at checkout</div>
-          <div style="color:#aaa;font-size:13px;margin-top:4px;">$5/month off your first 12 months</div>
-        </div>
+
 
         <!-- Documents -->
         <p style="color:#1A2344;font-weight:bold;font-size:15px;margin-bottom:10px;">📎 Your documents are attached:</p>
