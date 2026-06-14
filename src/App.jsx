@@ -3454,9 +3454,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                   <div style={{fontFamily:FM,fontSize:11,color:C.red,letterSpacing:0.8,marginBottom:10,display:"flex",alignItems:"center",gap:6}}>
                     <span>🚫</span><span>REJECTED MEALS</span>
                     <span style={{fontSize:10,color:C.muted,fontWeight:400,marginLeft:4}}>{showRejected?"Tap Restore to add back to suggestions":"Hidden"}</span>
-                    <button onClick={()=>setShowRejected(v=>{const next=!v;try{localStorage.setItem("sk_showRejected",String(next));}catch{}return next;})} style={{marginLeft:"auto",background:"transparent",border:"1px solid "+C.border,borderRadius:6,color:C.muted,cursor:"pointer",fontSize:10,padding:"2px 8px",fontFamily:FM}}>
-                      {showRejected?"✕ Hide":"▼ Show"}
-                    </button>
+                    <div style={{marginLeft:"auto",display:"flex",gap:6}}>{!showRejected&&<button onClick={()=>setShowRejected(true)} style={{background:"transparent",border:"1px solid "+C.border,borderRadius:6,color:C.muted,cursor:"pointer",fontSize:10,padding:"2px 8px",fontFamily:FM}}>▼ Show</button>}<button onClick={()=>{try{localStorage.setItem("sk_changeMealHistory","[]");const ratings=JSON.parse(localStorage.getItem("sk_recipeRatings")||"{}");const cleared=Object.fromEntries(Object.entries(ratings).filter(([,v])=>v?.rating!==1));localStorage.setItem("sk_recipeRatings",JSON.stringify(cleared));}catch{}setShowRejected(false);}} style={{background:"#2a1515",border:"1px solid #dc2626",borderRadius:6,color:"#dc2626",cursor:"pointer",fontSize:10,padding:"2px 8px",fontFamily:FM}}>✕ Dismiss All</button></div>
                   </div>
                   {showRejected&&allBanned.map(({name,reason})=>(
                     <div key={name} style={{background:C.card,border:"1px solid "+C.border,borderRadius:10,padding:"10px 14px",marginBottom:6,display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
