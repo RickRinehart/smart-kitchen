@@ -1171,9 +1171,11 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
         const sp=localStorage.getItem("sk_shopPartnerName");if(sp)setShopPartnerName(sp);
         const se=localStorage.getItem("sk_shopPartnerEmail");if(se)setShopPartnerEmail(se);
         // If setup was done on another device, suppress wizard
+        // BUT: never suppress if this is a fresh email confirmation (type=signup in URL)
         const sd=localStorage.getItem("sk_setupDone");
         const isNewSignup=sessionStorage.getItem("sk_newSignup")==="1";
-        if((sd==="1"||sd==="true")&&!isNewSignup){
+        const urlIsConfirmation=window.location.hash.includes("type=signup")||window.location.search.includes("type=signup");
+        if((sd==="1"||sd==="true")&&!isNewSignup&&!urlIsConfirmation){
           setShowWizard(false);
           setWizardStep(null);
         }
