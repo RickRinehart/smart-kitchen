@@ -1713,6 +1713,24 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     } catch(e){ alert("Scan failed — try a clearer photo."); }
     setLoading(false);
   };
+  const analyzeWhiteboard=async()=>{
+    if(!scanB64) return;
+    setScanStage("analyzing");
+    setLoading(true); setLoadMsg("Reading your list…");
+    try{
+      const raw=await callClaude({
+        system:"You are reading a handwritten or whiteboard shopping list photo. Extract every item written down, even if handwriting is messy or words are misspelled — use your best judgment to identify the intended grocery or household item. Return ONLY a valid JSON array. Each object: {name(string, cleaned up and correctly spelled product name), category(Protein|Produce|Dairy|Pantry|Grains|Frozen|Condiments|Household|Other)}. Include every item you can identify, including household and personal care items, not just food.",
+        prompt:"Read this handwritten shopping list and extract every item written on it.",
+        imageBase64:scanB64,imageType:scanMime,
+      });
+      const s=raw.indexOf("["),e=raw.lastIndexOf("]");
+      if(s===-1) throw new Error("Could not read the list");
+      const parsed=JSON.parse(raw.slice(s,e+1));
+      setScanStage("review");
+      setScanResults(parsed.map(i=>({...i,selected:true,qty:1,location:"Store",action:"whiteboard"})));
+    } catch(e){ alert("List scan failed: "+e.message); }
+    setLoading(false);
+  };
   const analyzeWeeklyAd=async()=>{
     if(!scanB64) return;
     setScanStage("analyzing");
@@ -4147,7 +4165,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
         <div style={{position:"fixed",inset:0,background:"#000c",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:16}} onClick={()=>{if(scanStage!=="review")setScanOpen(false);}}>
           <div style={{background:C.surface,border:"1px solid "+C.borderLight,borderRadius:18,padding:"12px 16px",maxWidth:540,width:"100%",maxHeight:"92vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-              <div style={{fontSize:12,fontFamily:FM,color:C.muted}}>{scanMode==="receipt"?"🧾 Receipt Scanner":scanMode==="weeklyad"?"🏷 Weekly Ad Scanner":"📷 Shelf Scanner"} · {scanStage==="review"?"Review items":"tap photo or browse"}</div>
+              <div style={{fontSize:12,fontFamily:FM,color:C.muted}}>{scanMode==="receipt"?"🧾 Receipt Scanner":scanMode==="weeklyad"?"🏷 Weekly Ad Scanner":scanMode==="whiteboard"?"📝 List Scanner":"📷 Shelf Scanner"} · {scanStage==="review"?"Review items":"tap photo or browse"}</div>
               <button onClick={()=>setScanOpen(false)} style={{background:"transparent",border:"none",color:C.muted,cursor:"pointer",fontSize:20}}>✕</button>
             </div>
             {scanStage==="upload"&&(
@@ -4164,6 +4182,10 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                   <button onClick={()=>{setScanMode("weeklyad");setScanPreview(null);setScanB64(null);}}
                     style={{flex:1,padding:"12px",borderRadius:9,border:"1px solid "+(scanMode==="weeklyad"?"#f59e0b":C.border),background:scanMode==="weeklyad"?"#f59e0b22":"transparent",color:scanMode==="weeklyad"?"#f59e0b":C.muted,cursor:"pointer",fontFamily:FM,fontSize:13,fontWeight:700}}>
                     🏷 Weekly Ad
+                  </button>
+                  <button onClick={()=>{setScanMode("whiteboard");setScanPreview(null);setScanB64(null);}}
+                    style={{flex:1,padding:"12px",borderRadius:9,border:"1px solid "+(scanMode==="whiteboard"?"#8b5cf6":C.border),background:scanMode==="whiteboard"?"#8b5cf622":"transparent",color:scanMode==="whiteboard"?"#8b5cf6":C.muted,cursor:"pointer",fontFamily:FM,fontSize:13,fontWeight:700}}>
+                    📝 List
                   </button>
                 </div>
                 {scanMode==="receipt"&&(
@@ -4186,7 +4208,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                   ):(
                     <div style={{textAlign:"center",padding:30}}>
                       <div style={{fontSize:32,marginBottom:8}}>{scanMode==="receipt"?"🧾":scanMode==="weeklyad"?"🏷":"📷"}</div>
-                      <div style={{fontFamily:FD,fontSize:16,color:C.text}}>{scanMode==="receipt"?"Tap to photograph receipt":scanMode==="weeklyad"?"Tap to screenshot weekly ad":"Tap to photograph shelf"}</div>
+                      <div style={{fontFamily:FD,fontSize:16,color:C.text}}>{scanMode==="receipt"?"Tap to photograph receipt":scanMode==="weeklyad"?"Tap to screenshot weekly ad":scanMode==="whiteboard"?"Tap to photograph your list":"Tap to photograph shelf"}</div>
                       <div style={{fontSize:12,color:C.muted,marginBottom:12}}>opens camera directly</div>
                       <button onClick={e=>{e.stopPropagation();galleryRef.current.click();}} style={{background:"transparent",border:"1px solid "+C.border,borderRadius:8,color:C.muted,cursor:"pointer",fontFamily:FM,fontSize:11,padding:"6px 14px"}}>{scanMode==="weeklyad"?"Select All Pages (multi-select OK)":"Choose from Gallery"}</button>
                     </div>
@@ -4197,8 +4219,8 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                 <div style={{display:"flex",gap:8}}>
                   <button style={{flex:1,padding:"9px",borderRadius:9,border:"1px solid "+C.border,background:"transparent",color:C.muted,cursor:"pointer",fontFamily:FM,fontSize:12,fontWeight:600}} onClick={()=>setScanOpen(false)}>Cancel</button>
                   <button style={{flex:2,padding:"9px",borderRadius:9,border:"none",background:scanB64?C.accent:C.border,color:scanB64?"#0c0e14":C.muted,cursor:scanB64?"pointer":"not-allowed",fontFamily:FM,fontSize:12,fontWeight:700,opacity:scanB64?1:0.5}}
-                    onClick={scanMode==="receipt"?analyzeReceipt:scanMode==="weeklyad"?analyzeWeeklyAd:analyzePhoto} disabled={!scanB64}>
-                    {scanMode==="receipt"?"🧾 Read Receipt":scanMode==="weeklyad"?"🏷 Extract Sale Items":"🔍 Analyze Photo"}
+                    onClick={scanMode==="receipt"?analyzeReceipt:scanMode==="weeklyad"?analyzeWeeklyAd:scanMode==="whiteboard"?analyzeWhiteboard:analyzePhoto} disabled={!scanB64}>
+                    {scanMode==="receipt"?"🧾 Read Receipt":scanMode==="weeklyad"?"🏷 Extract Sale Items":scanMode==="whiteboard"?"📝 Read My List":"🔍 Analyze Photo"}
                   </button>
                 </div>
               </div>
@@ -4244,6 +4266,11 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                   <div style={{display:"flex",gap:8,marginTop:12}}>
                     <button style={{...bBtn("ghost"),flex:1}} onClick={()=>{setScanStage("upload");setScanResults(null);}}>Rescan</button>
                     <button style={{...bBtn("green"),flex:2}} onClick={()=>{setSaleItems(scanResults.filter(i=>i.selected).map(({selected:_,...rest})=>rest));setScanOpen(false);setScanPreview(null);setScanB64(null);setScanResults(null);setScanStage("upload");alert(scanResults.filter(i=>i.selected).length+" sale items saved!");}}>Save {scanResults.filter(i=>i.selected).length} Sale Items</button>
+                  </div>
+                ):scanMode==="whiteboard"?(
+                  <div style={{display:"flex",gap:8,marginTop:12}}>
+                    <button style={{...bBtn("ghost"),flex:1}} onClick={()=>{setScanStage("upload");setScanResults(null);}}>Rescan</button>
+                    <button style={{...bBtn("green"),flex:2}} onClick={()=>{const chosen=scanResults.filter(i=>i.selected);try{const existing=JSON.parse(localStorage.getItem("sk_shoppingList")||"[]");const added=chosen.filter(c=>!existing.some(e=>e.name.toLowerCase()===c.name.toLowerCase()));localStorage.setItem("sk_shoppingList",JSON.stringify([...existing,...added.map(c=>({name:c.name,checked:false,source:"Whiteboard List"}))]));}catch{}setScanOpen(false);setScanPreview(null);setScanB64(null);setScanResults(null);setScanStage("upload");setTab("shopping");alert(chosen.length+" item"+(chosen.length!==1?"s":"")+" added to your shopping list!");}}>🛒 Add {scanResults.filter(i=>i.selected).length} to Shopping List</button>
                   </div>
                 ):(
                   <div style={{display:"flex",gap:8,marginTop:12}}>
