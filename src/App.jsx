@@ -2408,9 +2408,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     if(!user)return;
     const checkRole=async()=>{
       try{
-        const {createClient}=await import("https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm");
-        const sb=createClient(import.meta.env.VITE_SUPABASE_URL,import.meta.env.VITE_SUPABASE_KEY);
-        const {data}=await sb.from("user_data").select("account_role,owner_uid").eq("user_id",user.id).maybeSingle();
+        const {data}=await supabase.from("user_data").select("account_role,owner_uid").eq("user_id",user.id).maybeSingle();
         if(data?.account_role==="manager"){setIsManager(true);setManagerOwnerUid(data.owner_uid||null);}
       }catch(e){console.log("Role check error:",e);}
     };
