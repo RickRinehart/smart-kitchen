@@ -4184,6 +4184,9 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                     style={{flex:1,padding:"12px",borderRadius:9,border:"1px solid "+(scanMode==="whiteboard"?"#8b5cf6":C.border),background:scanMode==="whiteboard"?"#8b5cf622":"transparent",color:scanMode==="whiteboard"?"#8b5cf6":C.muted,cursor:"pointer",fontFamily:FM,fontSize:13,fontWeight:700}}>
                     📝 List
                   </button>
+                  <button onClick={()=>{setScanOpen(false);setTab("leftovers");}} style={{flex:1,padding:"12px",borderRadius:9,border:"1px solid #f97316",background:"transparent",color:"#f97316",cursor:"pointer",fontFamily:FM,fontSize:13,fontWeight:700}}>
+                    🥡 Leftover
+                  </button>
                 </div>
                 {scanMode==="receipt"&&(
                   <div style={{background:"#1a2018",borderRadius:10,padding:12,marginBottom:12,fontSize:seniorMode?16:12,color:C.muted,lineHeight:1.6}}>
