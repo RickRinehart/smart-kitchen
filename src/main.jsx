@@ -267,11 +267,11 @@ function Root() {
       setAuthReady(true);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
         setUser(session.user);
         getUserProfile(session.user.id).then(setUserProfile);
-      } else {
+      } else if (event === 'SIGNED_OUT') {
         setUser(null);
         setUserProfile(null);
       }
@@ -319,7 +319,7 @@ function Root() {
     if (!user) return;
     const interval = setInterval(() => {
       saveCloudData(user.id).catch(() => {});
-    }, 90 * 1000); // Every 90 seconds
+    }, 300 * 1000); // Every 5 minutes
     return () => clearInterval(interval);
   }, [user]);
 
