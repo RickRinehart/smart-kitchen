@@ -2403,17 +2403,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     doAccept();
   },[acceptCode,user]);
 
-  // Load manager role from Supabase on sign-in
-  useEffect(()=>{
-    if(!user)return;
-    const checkRole=async()=>{
-      try{
-        const {data,error}=await supabase.from("user_data").select("account_role,owner_uid").eq("user_id",user.id).maybeSingle();
-        if(!error&&data?.account_role==="manager"){setIsManager(true);setManagerOwnerUid(data.owner_uid||null);}
-      }catch(e){/* role column not yet in schema - skip silently */}
-    };
-    checkRole();
-  },[user]);
+  // Manager role loaded via account_roles table in main.jsx
 
 
 
