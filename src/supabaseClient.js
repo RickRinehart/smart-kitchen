@@ -376,12 +376,13 @@ export async function joinAsViewer(viewerUserId, code) {
 // Check if current user is a viewer of someone else's account
 export async function getViewerRole(userId) {
   try {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('account_roles')
       .select('*')
       .eq('viewer_user_id', userId)
       .eq('active', true)
-      .single();
+      .maybeSingle();
+    if (error) return null;
     return data || null;
   } catch(e) { return null; }
 }
