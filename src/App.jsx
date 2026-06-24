@@ -3215,7 +3215,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                   {l!=="All"?LOC_ICONS[l]+" ":""}{l}
                 </button>
               ))}
-              <select value={filterCat} onChange={e=>setFilterCat(e.target.value)} style={{...bInp,width:"auto",padding:"7px 12px",fontSize:11}}>
+              <button onClick={()=>setFilterCat(filterCat==="Wild Harvest"?"All":"Wild Harvest")} style={{...bBtn("ghost"),padding:"6px 10px",fontSize:11,background:filterCat==="Wild Harvest"?"#1a3a1a":"transparent",border:"1px solid "+(filterCat==="Wild Harvest"?"#4c4":C.border),color:filterCat==="Wild Harvest"?"#4c4":C.muted}}>🦌 Wild Harvest</button><button onClick={()=>setFilterCat(filterCat==="Home Harvest"?"All":"Home Harvest")} style={{...bBtn("ghost"),padding:"6px 10px",fontSize:11,background:filterCat==="Home Harvest"?"#1a3a1a":"transparent",border:"1px solid "+(filterCat==="Home Harvest"?"#4c4":C.border),color:filterCat==="Home Harvest"?"#4c4":C.muted}}>🌱 Home Harvest</button><select value={filterCat} onChange={e=>setFilterCat(e.target.value)} style={{...bInp,width:"auto",padding:"7px 12px",fontSize:11}}>
                 <option>All</option>{CATEGORIES.map(c=><option key={c}>{c}</option>)}
               </select>
               <button style={bBtn("ghost")} onClick={()=>setShowAdd(v=>!v)}>{showAdd?"✕ Cancel":"+ Add"}</button>
