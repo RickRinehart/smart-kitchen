@@ -3863,6 +3863,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                       <button onClick={()=>setEditingProfile(isEditing?null:profile.id)} style={{...bBtn("ghost"),padding:"5px 10px",fontSize:11}}>
                         {isEditing?"✓ Done":"✏ Edit"}
                       </button>
+                      <button onClick={()=>{if(window.confirm("Remove "+(profile.name||"this member")+" from your household? This cannot be undone.")){setFamilyProfiles(prev=>prev.filter(p=>p.id!==profile.id));setFamilySize(prev=>Math.max(1,prev-1));if(editingProfile===profile.id)setEditingProfile(null);}}} style={{...bBtn("ghost"),padding:"5px 10px",fontSize:11,border:"1px solid #dc2626",color:"#dc2626"}}>✕ Remove</button>
                     </div>
                     {isEditing&&(
                       <div style={{display:"flex",flexDirection:"column",gap:10}}>
