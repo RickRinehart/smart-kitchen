@@ -460,6 +460,8 @@ function buildOccasionContext(occ){
   if(occ.audienceType==="kids") ctx+="No alcohol pairings. Allergen flags prominent. Fun presentation encouraged. ";
   if(occ.audienceType==="adult") ctx+="Adults only (21+). Intimate dinner for 2. Suggest wine or cocktail pairing. Romantic elevated presentation. Candle-worthy plating. ";
   if(occ.audienceType==="adults") ctx+="Adults-only group party (21+). Scale for the head count. Beer, wine, and cocktail-friendly food — finger foods, shareable dishes, and crowd-pleasing options welcome. No kids meal framing. ";
+  if(occ.includeDrinks) ctx+="DRINK PAIRINGS REQUIRED: Include 2-3 specific wine, beer, or cocktail pairing suggestions that complement this meal. For each pairing name the drink style and explain in one sentence why it works. Format as a brief 'Drink Pairings' section at the end of the meal description. ";
+  if(occ.audienceType==="adult"&&!occ.includeDrinks) ctx+="This is a Date Night \xe2\x80\x94 include a wine pairing suggestion that complements the meal. ";
   return ctx;
 }
 // -- Proactive Feature Announcements Registry ---------------------------------
@@ -3524,7 +3526,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
             {occasionState.eventType&&<div style={{background:C.accent+"18",border:"1px solid "+C.accent+"44",borderRadius:10,padding:"8px 14px",marginBottom:10,display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
               <span style={{fontSize:16}}>{OCCASION_EVENT_TYPES.find(e=>e.key===occasionState.eventType)?.emoji||""}</span>
               <span style={{fontFamily:FM,fontSize:12,color:C.accent,fontWeight:600}}>{OCCASION_EVENT_TYPES.find(e=>e.key===occasionState.eventType)?.label} · {OCCASION_AUDIENCE_TYPES.find(a=>a.key===occasionState.audienceType)?.label}{occasionState.headCount?" · "+occasionState.headCount+" people":""}</span>
-              <button onClick={()=>setOccasionState({eventType:"",audienceType:"family",headCount:"",mode:"use",budget:"",guestRestrictions:"",note:""})} style={{background:"transparent",border:"none",color:C.muted,cursor:"pointer",fontSize:12,marginLeft:"auto"}}>✕ Clear</button>
+              <button onClick={()=>setOccasionState({eventType:"",audienceType:"family",headCount:"",mode:"use",budget:"",guestRestrictions:"",note:"",includeDrinks:false})} style={{background:"transparent",border:"none",color:C.muted,cursor:"pointer",fontSize:12,marginLeft:"auto"}}>✕ Clear</button>
             </div>}
             {can.medicalCompliance&&user?.id&&(<NutritionDashboard familyProfiles={familyProfiles} user={user} supabase={supabase} seniorMode={seniorMode} C={C} FM={FM} FD={FD} refreshKey={dashRefreshKey}/>)}<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18,flexWrap:"wrap",gap:10}}>
               <div style={{fontFamily:FD,fontSize:24}}>7-Day Dinner Plan <span style={{fontSize:13,color:C.muted,fontFamily:FB}}>· {activeProfiles.length} people</span></div>
@@ -5699,6 +5701,20 @@ setScaleCalcLoading(false);setTimeout(()=>{if(scaleDevice&&scaleDevice._writeChr
                     onChange={e=>setOccasionState(s=>({...s,guestRestrictions:e.target.value}))}
                     style={{width:"100%",background:C.surface,border:"1px solid "+C.border,borderRadius:8,padding:"8px 10px",color:C.text,fontFamily:FM,fontSize:13,boxSizing:"border-box"}}/>
                 </div>
+                <div style={{marginBottom:16}}>
+                  <div style={{fontFamily:FM,fontSize:12,fontWeight:600,color:C.text,marginBottom:8}}>🍷 Include Drink Pairings?</div>
+                  <div style={{display:"flex",gap:8}}>
+                    <button onClick={()=>setOccasionState(s=>({...s,includeDrinks:!s.includeDrinks}))}
+                      style={{flex:1,padding:"10px",borderRadius:10,border:"1px solid "+(occasionState.includeDrinks?"#7c3aed":C.border),
+                      background:occasionState.includeDrinks?"#7c3aed22":"transparent",
+                      color:occasionState.includeDrinks?"#7c3aed":C.muted,
+                      fontFamily:FM,fontSize:12,cursor:"pointer",textAlign:"center"}}>
+                      <div style={{fontSize:18,marginBottom:2}}>🍷</div>
+                      <div style={{fontWeight:700}}>{occasionState.includeDrinks?"Yes — Include Pairings":"Add Wine & Drink Suggestions"}</div>
+                      <div style={{fontSize:10,color:C.muted,marginTop:2}}>AI suggests drinks to match your meal</div>
+                    </button>
+                  </div>
+                </div>
                 <div style={{marginBottom:20}}>
                   <div style={{fontFamily:FM,fontSize:12,fontWeight:600,color:C.text,marginBottom:6}}>Anything else? <span style={{fontWeight:400,color:C.muted}}>(optional)</span></div>
                   <input placeholder='"Something impressive but not fussy"'
@@ -5707,7 +5723,7 @@ setScaleCalcLoading(false);setTimeout(()=>{if(scaleDevice&&scaleDevice._writeChr
                     style={{width:"100%",background:C.surface,border:"1px solid "+C.border,borderRadius:8,padding:"8px 10px",color:C.text,fontFamily:FM,fontSize:13,boxSizing:"border-box"}}/>
                 </div>
                 <div style={{display:"flex",gap:10}}>
-                  <button onClick={()=>{setOccasionState({eventType:"",audienceType:"family",headCount:"",mode:"use",budget:"",guestRestrictions:"",note:""});setOccasionCustomText("");setShowOccasionPlanner(false);}}
+                  <button onClick={()=>{setOccasionState({eventType:"",audienceType:"family",headCount:"",mode:"use",budget:"",guestRestrictions:"",note:"",includeDrinks:false});setOccasionCustomText("");setShowOccasionPlanner(false);}}
                     style={{...bBtn("ghost"),flex:1,padding:"11px"}}>Cancel</button>
                   <button onClick={planOccasionMeal} disabled={!occasionState.eventType}
                     style={{...bBtn("primary"),flex:2,padding:"11px",fontSize:14,opacity:occasionState.eventType?1:0.5}}>
