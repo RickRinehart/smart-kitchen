@@ -460,7 +460,7 @@ function buildOccasionContext(occ){
   if(occ.audienceType==="kids") ctx+="No alcohol pairings. Allergen flags prominent. Fun presentation encouraged. ";
   if(occ.audienceType==="adult") ctx+="Adults only (21+). Intimate dinner for 2. Suggest wine or cocktail pairing. Romantic elevated presentation. Candle-worthy plating. ";
   if(occ.audienceType==="adults") ctx+="Adults-only group party (21+). Scale for the head count. Beer, wine, and cocktail-friendly food — finger foods, shareable dishes, and crowd-pleasing options welcome. No kids meal framing. ";
-  if(occ.includeDrinks) ctx+="DRINK PAIRINGS REQUIRED: Include 2-3 specific wine, beer, or cocktail pairing suggestions that complement this meal. For each pairing name the drink style and explain in one sentence why it works. Format as a brief 'Drink Pairings' section at the end of the meal description. ";
+  if(occ.includeDrinks) ctx+="DRINK PAIRINGS REQUIRED: Populate the drinkPairings JSON field with 2-3 specific wine, beer, or cocktail suggestions that complement this meal, each with one sentence on why it works. Do not add drink info to description field. ";
   if(occ.audienceType==="adult"&&!occ.includeDrinks) ctx+="This is a Date Night \xe2\x80\x94 include a wine pairing suggestion that complements the meal. ";
   return ctx;
 }
@@ -2278,7 +2278,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       const invSummary=(proteinItems.length?"Proteins on hand: "+proteinItems.join(", ")+". ":"No proteins on hand — shopping required. ")+
                        (otherItems.length?"Also have: "+otherItems.join(", ")+". ":"");
       const raw=await callClaude({
-        system:"Meal planning AI. Return ONLY valid JSON — no markdown, no backticks. Return a single object with ONLY these 6 keys: meal(string), description(string, max 2 sentences), time(string like 45 min), servings(number), makeAheadTips(string or null), shoppingNeeded(array of strings, item names only — max 5 items). No other keys. Keep response under 300 tokens.",
+        system:"Meal planning AI. Return ONLY valid JSON — no markdown, no backticks. Return a single object with these keys: meal(string), description(string, max 2 sentences), time(string like 45 min), servings(number), makeAheadTips(string or null), shoppingNeeded(array of strings, item names only — max 5 items), drinkPairings(string or null — only populate if drink pairings requested, otherwise null, max 2 sentences with 2-3 specific pairings). No other keys. Keep response under 400 tokens.",
         prompt:occCtx+"Plan ONE special occasion meal for "+headCount+" people. "+(occasionState.mode==="use"?"Use proteins already on hand. "+invSummary+"shoppingNeeded = only missing items, max 5. ":"SURPRISE ME — be creative and unexpected. Do NOT use Pork Spareribs, pork ribs, or any protein already common in the household. Pick something the family would not normally make. Budget: "+(occasionState.budget||"flexible")+". Do NOT list any inventory — shop for everything needed. shoppingNeeded may include all ingredients. ")+(fs?"Dietary rules: "+fs+". ":"")+(occasionState.guestRestrictions?"Guest needs: "+occasionState.guestRestrictions+". ":"")+(occasionState.note?"Request: "+occasionState.note+". ":""),
         maxTokens:350,
       });
@@ -5785,6 +5785,12 @@ setScaleCalcLoading(false);setTimeout(()=>{if(scaleDevice&&scaleDevice._writeChr
                           <span key={i} style={bTag(C.red)}>{s.name||s}</span>
                         ))}
                       </div>
+                    </div>
+                  )}
+                  {occasionResult.drinkPairings&&(
+                    <div style={{background:"#7c3aed12",border:"1px solid #7c3aed33",borderRadius:8,padding:"8px 12px",marginTop:8}}>
+                      <div style={{fontFamily:FM,fontSize:11,fontWeight:600,color:"#7c3aed",marginBottom:3}}>🍷 Drink Pairings</div>
+                      <div style={{fontFamily:FM,fontSize:12,color:C.text,lineHeight:1.5}}>{occasionResult.drinkPairings}</div>
                     </div>
                   )}
                 </div>
