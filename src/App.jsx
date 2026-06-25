@@ -2277,10 +2277,24 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       }).slice(0,15).map(i=>i.name).filter(Boolean);
       const invSummary=(proteinItems.length?"Proteins on hand: "+proteinItems.join(", ")+". ":"No proteins on hand — shopping required. ")+
                        (otherItems.length?"Also have: "+otherItems.join(", ")+". ":"");
+      // Pull Smart Cellar inventory for "Use What I Have" + drink pairings
+      let cellarSummary="";
+      if(occasionState.mode==="use"&&occasionState.includeDrinks&&user?.id){
+        try{
+          const {data:cdata}=await supabase.from("profiles").select("sc_cloud_data").eq("id",user.id).single();
+          if(cdata?.sc_cloud_data){
+            const parsed=typeof cdata.sc_cloud_data==="string"?JSON.parse(cdata.sc_cloud_data):cdata.sc_cloud_data;
+            const bottles=(parsed.cellar||[]).filter(b=>(b.remaining_pct??100)>5);
+            if(bottles.length>0){
+              cellarSummary="Cellar/bar inventory: "+bottles.map(b=>b.name+(b.type?" ("+b.type+")":"")).join(", ")+". Pick drinkPairings ONLY from this list.";
+            }
+          }
+        }catch(e){/* cellar unavailable - use open pairings */}
+      }
       const raw=await callClaude({
         system:"Meal planning AI. Return ONLY valid JSON — no markdown, no backticks. Return a single object with these keys: meal(string), description(string, max 2 sentences), time(string like 45 min), servings(number), makeAheadTips(string or null), shoppingNeeded(array of strings, item names only — max 5 items), drinkPairings(string or null — only populate if drink pairings requested, otherwise null, max 2 sentences with 2-3 specific pairings). No other keys. Keep response under 400 tokens.",
-        prompt:occCtx+"Plan ONE special occasion meal for "+headCount+" people. "+(occasionState.mode==="use"?"Use proteins already on hand. "+invSummary+"shoppingNeeded = only missing items, max 5. ":"SURPRISE ME — be creative and unexpected. Do NOT use Pork Spareribs, pork ribs, or any protein already common in the household. Pick something the family would not normally make. Budget: "+(occasionState.budget||"flexible")+". Do NOT list any inventory — shop for everything needed. shoppingNeeded may include all ingredients. ")+(fs?"Dietary rules: "+fs+". ":"")+(occasionState.guestRestrictions?"Guest needs: "+occasionState.guestRestrictions+". ":"")+(occasionState.note?"Request: "+occasionState.note+". ":""),
-        maxTokens:350,
+        prompt:occCtx+"Plan ONE special occasion meal for "+headCount+" people. "+(occasionState.mode==="use"?"Use proteins already on hand. "+invSummary+"shoppingNeeded = only missing items, max 5. ":"SURPRISE ME — be creative and unexpected. Do NOT use Pork Spareribs, pork ribs, or any protein already common in the household. Pick something the family would not normally make. Budget: "+(occasionState.budget||"flexible")+". Do NOT list any inventory — shop for everything needed. shoppingNeeded may include all ingredients. ")+(fs?"Dietary rules: "+fs+". ":"")+(occasionState.guestRestrictions?"Guest needs: "+occasionState.guestRestrictions+". ":"")+(occasionState.note?"Request: "+occasionState.note+". ":"")+(cellarSummary?"\n\n"+cellarSummary:""),
+        maxTokens:400,
       });
       const text=typeof raw==="string"?raw:raw?.content?.[0]?.text||"";
       if(!text||!text.includes("{")) throw new Error("Empty response: "+text.slice(0,80));
