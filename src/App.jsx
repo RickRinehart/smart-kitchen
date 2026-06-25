@@ -3654,8 +3654,17 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
   {/* Not loaded yet */}
   {!pairDrinkCellar&&(
     <div style={{background:C.surface,border:"1px dashed #7c3aed44",borderRadius:8,padding:"14px 12px",fontFamily:FM,fontSize:11,color:C.muted,lineHeight:1.6,textAlign:"center"}}>
-      <div style={{fontSize:22,marginBottom:6}}>🍷</div>
-      Tap <strong style={{color:"#7c3aed"}}>Pull from Smart Cellar</strong> to load your bottle inventory,<br/>or skip to get a general style recommendation.
+      <div style={{fontSize:28,marginBottom:6}}>🍷</div>
+      <div style={{fontWeight:700,color:"#7c3aed",fontSize:13,marginBottom:4}}>Pair from Your Smart Cellar</div>
+      <div style={{marginBottom:10}}>Tap <strong style={{color:"#7c3aed"}}>Pull from Smart Cellar</strong> to see which bottles you have that pair with this meal.</div>
+      <div style={{borderTop:"1px solid #7c3aed22",paddingTop:10,marginTop:2}}>
+        <div style={{fontWeight:600,color:"#7c3aed",marginBottom:3}}>New to Smart Cellar?</div>
+        <div style={{marginBottom:8}}>Track your wine, spirits, and beer inventory and get AI pairings from what you actually have on hand.</div>
+        <a href="https://smart-cellar-rho.vercel.app" target="_blank" rel="noopener noreferrer"
+          style={{display:"inline-block",background:"#7c3aed",color:"#fff",borderRadius:8,padding:"8px 16px",fontWeight:700,fontSize:12,textDecoration:"none"}}>
+          🍾 Try Smart Cellar Free — 30 Days
+        </a>
+      </div>
     </div>
   )}
   {/* Error */}
@@ -3667,7 +3676,13 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
   {/* Empty cellar */}
   {Array.isArray(pairDrinkCellar)&&pairDrinkCellar.length===0&&(
     <div style={{background:C.surface,border:"1px solid #7c3aed44",borderRadius:8,padding:"10px 12px",fontFamily:FM,fontSize:11,color:C.muted}}>
-      Your Smart Cellar is empty. Add bottles at <a href="https://smart-cellar-rho.vercel.app" target="_blank" rel="noopener noreferrer" style={{color:"#7c3aed"}}>smart-cellar-rho.vercel.app</a>
+      <div style={{fontWeight:700,color:"#7c3aed",marginBottom:4}}>🍾 Your Smart Cellar is empty</div>
+      <div style={{marginBottom:10}}>Add your wine, spirits, and beer bottles to get AI pairings from what you actually have on hand.</div>
+      <a href="https://smart-cellar-rho.vercel.app" target="_blank" rel="noopener noreferrer"
+        style={{display:"inline-block",background:"#7c3aed",color:"#fff",borderRadius:8,padding:"8px 16px",fontWeight:700,fontSize:12,textDecoration:"none",marginBottom:6}}>
+        🍾 Add Bottles to Smart Cellar
+      </a>
+      <div style={{fontSize:10,color:C.muted,marginTop:4}}>smart-cellar-rho.vercel.app — 30-day free trial — same login as Smart Kitchen</div>
     </div>
   )}
   {/* Loaded bottles */}
