@@ -1678,13 +1678,43 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     } catch(e){ alert("Ad scan failed: "+e.message); setScanStage("upload"); }
     setLoading(false);
   };
+  async function lookupUPC(upc){
+    if(!upc||String(upc).length<8)return null
+    try{
+      const{data:cached}=await supabase.from('upc_cache').select('*').eq('upc',String(upc)).single()
+      if(cached){const age=(Date.now()-new Date(cached.last_refreshed).getTime())/(1000*60*60*24);if(age<90)return cached}
+      const res=await fetch(`https://api.upcitemdb.com/prod/trial/lookup?upc=${upc}`)
+      if(!res.ok)return cached||null
+      const data=await res.json()
+      const item=data?.items?.[0]
+      if(!item)return cached||null
+      const record={upc:String(upc),name:item.title||item.description||null,brand:item.brand||null,size:item.size||item.weight||null,category:item.category||null,image_url:item.images?.[0]||null,nutrition:item.nutrition||{},ingredients:item.ingredients||null,last_refreshed:new Date().toISOString()}
+      await supabase.from('upc_cache').upsert(record,{onConflict:'upc'})
+      return record
+    }catch(e){console.warn('UPC lookup error:',e);return null}
+  }
+  async function enrichItemsWithUPC(items){
+    const results=[]
+    for(let i=0;i<items.length;i+=5){
+      const batch=items.slice(i,i+5)
+      const enriched=await Promise.all(batch.map(async(item)=>{
+        if(!item.upc)return item
+        const u=await lookupUPC(item.upc)
+        if(!u)return item
+        return{...item,name:u.name||item.name,brand:u.brand||null,size:u.size||null,image_url:u.image_url||null,nutrition:u.nutrition||{},ingredients:u.ingredients||null,upc_enriched:true}
+      }))
+      results.push(...enriched)
+      if(i+5<items.length)await new Promise(r=>setTimeout(r,500))
+    }
+    return results
+  }
   const analyzeReceipt=async()=>{
     if(!scanB64) return;
     setScanStage("analyzing");
     setLoading(true); setLoadMsg("Reading receipt…");
     try{
       const raw=await callClaude({
-        system:"You are a grocery receipt parser specialized in Meijer store receipts. Analyze this receipt image and extract every food/grocery item purchased. Return ONLY a valid JSON array. No markdown, no preamble.\n\nRULES:\n1. DUPLICATE HANDLING: If the EXACT same product appears multiple times (same name, same price), combine into one object with summed qty. However if similar items appear with DIFFERENT SKUs or flavors (e.g. two different ice cream flavors), keep them SEPARATE but flag confidence as medium. If an item has quantity printed (e.g. '2 @ $1.99'), use that quantity.\n2. UNIT RULES: Bananas/grapes→bunch. Milk→gallon. Eggs→dozen. Bread→loaf. Meat/fish by weight→lb. Ice cream/frozen novelty→container. Produce bags (onions/potatoes)→bag. Canned goods→can. Bottles→bottle. Multi-packs→count. Default→each.\n3. LOCATION RULES (MUST follow exactly): Protein/Meat/Seafood/Poultry/Pork/Beef/Fish/Ice cream/Frozen→Freezer. Dairy/Eggs/Deli/Juice/Condiments/Dressings→Fridge. Fresh produce (bananas/apples/oranges/tomatoes/peppers)→Fridge. Bagged produce (onions/potatoes/carrots)→Pantry. Canned/Dry/Spices/Grains/Baking/Snacks/Beverages→Pantry.\n4. MEIJER SPECIFICS: Ignore PLU numbers, barcodes, discount lines (SAVE, MPERKS, COUPON, MFR), tax lines, subtotals and totals. Clean brand names (MEIJER ORG→Organic [Item], WB→Wright Brand).\n5. CONFIDENCE: high=clearly readable name+price. medium=similar items or slightly unclear. low=guessed from partial text.\n\nEach object: {name, qty(number), unit, category(Protein|Produce|Dairy|Pantry|Baking|Grains|Spices|Frozen|Condiments|Other), location(Freezer|Fridge|Pantry), isProtein(boolean), price(string), confidence(high|medium|low), expiryDays(number|null, estimated days until expiry: fresh meat=2, ground beef=2, pork=3, chicken=2, fish=1, milk=7, eggs=21, cheese=14, yogurt=10, fresh produce=5, bananas=5, bread=5, deli meat=5, frozen=180, canned=730, dry goods=365, condiments=180, null for pantry staples with very long shelf life)}. Skip non-food items.",
+        system:"You are a grocery receipt parser specialized in Meijer store receipts. Analyze this receipt image and extract every food/grocery item purchased. Return ONLY a valid JSON array. No markdown, no preamble.\n\nRULES:\n1. DUPLICATE HANDLING: If the EXACT same product appears multiple times (same name, same price), combine into one object with summed qty. However if similar items appear with DIFFERENT SKUs or flavors (e.g. two different ice cream flavors), keep them SEPARATE but flag confidence as medium. If an item has quantity printed (e.g. '2 @ $1.99'), use that quantity.\n2. UNIT RULES: Bananas/grapes→bunch. Milk→gallon. Eggs→dozen. Bread→loaf. Meat/fish by weight→lb. Ice cream/frozen novelty→container. Produce bags (onions/potatoes)→bag. Canned goods→can. Bottles→bottle. Multi-packs→count. Default→each.\n3. LOCATION RULES (MUST follow exactly): Protein/Meat/Seafood/Poultry/Pork/Beef/Fish/Ice cream/Frozen→Freezer. Dairy/Eggs/Deli/Juice/Condiments/Dressings→Fridge. Fresh produce (bananas/apples/oranges/tomatoes/peppers)→Fridge. Bagged produce (onions/potatoes/carrots)→Pantry. Canned/Dry/Spices/Grains/Baking/Snacks/Beverages→Pantry.\n4. RECEIPT SPECIFICS: Ignore PLU numbers, discount lines (SAVE, MPERKS, COUPON, MFR), tax lines, subtotals and totals. Clean brand names (MEIJER ORG→Organic [Item], WB→Wright Brand). Works with any retailer.\n5. UPC CODES: If a 12-digit UPC barcode number is visible next to an item, capture it in the upc field. Set upc to null if not visible.\n6. CONFIDENCE: high=clearly readable name+price. medium=similar items or slightly unclear. low=guessed from partial text.\n\nEach object: {name, qty(number), unit, category(Protein|Produce|Dairy|Pantry|Baking|Grains|Spices|Frozen|Condiments|Other), location(Freezer|Fridge|Pantry), isProtein(boolean), price(string), upc(string|null), confidence(high|medium|low), expiryDays(number|null, estimated days until expiry: fresh meat=2, ground beef=2, pork=3, chicken=2, fish=1, milk=7, eggs=21, cheese=14, yogurt=10, fresh produce=5, bananas=5, bread=5, deli meat=5, frozen=180, canned=730, dry goods=365, condiments=180, null for pantry staples with very long shelf life)}. Skip non-food items.",
         prompt:"Parse this grocery receipt. Extract every food item purchased with quantity and category.",
         imageBase64:scanB64,imageType:scanMime,
       });
