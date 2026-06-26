@@ -1762,8 +1762,8 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       const u=[...prev];
       chosen.forEach(si=>{
         const idx=u.findIndex(i=>i.name.toLowerCase()===si.name.toLowerCase());
-        if(idx>=0){u[idx]={...u[idx],qty:si.qty,unit:si.unit,location:si.location};}
-        else{u.push({id:Date.now()+Math.random(),name:si.name,qty:si.qty,unit:si.unit,category:si.category,location:si.location});}
+        if(idx>=0){u[idx]={...u[idx],qty:si.qty,unit:si.unit,location:si.location,upc:si.upc||u[idx].upc||null,brand:si.brand||u[idx].brand||null,size:si.size||u[idx].size||null,nutrition:Object.keys(si.nutrition||{}).length?si.nutrition:u[idx].nutrition||{},image_url:si.image_url||u[idx].image_url||null,upc_enriched:si.upc_enriched||u[idx].upc_enriched||false};}
+        else{u.push({id:Date.now()+Math.random(),name:si.brand&&si.size?`${si.brand} ${si.name} ${si.size}`.trim():si.name,qty:si.qty,unit:si.unit,category:si.category,location:si.location,isProtein:!!si.isProtein,price:si.price||null,expiryDays:si.expiryDays||null,upc:si.upc||null,brand:si.brand||null,size:si.size||null,nutrition:si.nutrition||{},image_url:si.image_url||null,upc_enriched:!!si.upc_enriched});}
       });
       return u;
     });
