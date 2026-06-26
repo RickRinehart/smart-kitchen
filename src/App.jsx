@@ -406,7 +406,7 @@ async function callClaude({system,prompt,imageBase64,imageB64,imageType,extraIma
     method:"POST",
     headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
     body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:maxTokens,system,messages:[{role:"user",content}]}),
-    signal:AbortSignal.timeout(25000),
+    signal:AbortSignal.timeout(60000),
   });
   if(!res.ok) throw new Error("API error "+res.status);
   const data=await res.json();
@@ -1721,11 +1721,22 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       const s=raw.indexOf("["),e=raw.lastIndexOf("]");
       if(s===-1) throw new Error("Could not read receipt");
       let parsed=JSON.parse(raw.slice(s,e+1));
-      if(parsed.some(i=>i.upc)){setLoadMsg("Enriching product details...");parsed=await enrichItemsWithUPC(parsed);}
+      // Strip Meijer * prefix from item codes and normalize UPCs
+      parsed=parsed.map(i=>({
+        ...i,
+        upc:i.upc?String(i.upc).replace(/[^0-9]/g,'').slice(-12)||null:null
+      }))
       const isUpd=(name)=>inventory.some(i=>i.name.toLowerCase()===name.toLowerCase());
       const smartLoc=(item)=>{if(item.location)return item.location;if(item.category==="Protein")return"Freezer";if(item.category==="Dairy")return"Fridge";if(item.category==="Condiments")return"Fridge";if(item.category==="Frozen")return"Freezer";if(item.category==="Produce")return"Fridge";return"Pantry";};
-      setScanResults(parsed.map(i=>({...i,location:smartLoc(i),action:isUpd(i.name)?"update":"add",selected:true})));
+      const initialResults=parsed.map(i=>({...i,location:smartLoc(i),action:isUpd(i.name)?"update":"add",selected:true}))
+      setScanResults(initialResults);
       setScanStage("review");
+      // Background UPC enrichment — doesn't block showing results
+      if(initialResults.some(i=>i.upc)){
+        enrichItemsWithUPC(initialResults).then(enriched=>{
+          setScanResults(enriched.map((i,idx)=>({...i,location:initialResults[idx]?.location||i.location,action:initialResults[idx]?.action||i.action,selected:initialResults[idx]?.selected??true})))
+        }).catch(e=>console.warn('Background UPC enrichment failed:',e))
+      }
     } catch(e){ alert("Receipt scan failed: "+e.message); }
     setLoading(false);
   };
