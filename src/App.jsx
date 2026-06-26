@@ -4310,7 +4310,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
               <div style={{textAlign:"center",padding:40}}>
                 <div style={{fontSize:48,marginBottom:16}}>⏳</div>
                 <div style={{fontFamily:FD,fontSize:20,color:C.accent,marginBottom:8}}>{scanMode==="receipt"?"Reading Receipt...":"Analyzing Photo..."}</div>
-                <div style={{fontFamily:FM,fontSize:12,color:C.muted,marginBottom:24}}>This may take 10-20 seconds</div>
+                <div style={{fontFamily:FM,fontSize:12,color:C.muted,marginBottom:24}}>{scanMode==="receipt"?"This may take 20–45 seconds — we're reading every item and enriching product details.":"This may take 10–20 seconds"}</div>
                 {scanPreview&&<img src={scanPreview} alt="" style={{width:"100%",borderRadius:8,maxHeight:180,objectFit:"cover",opacity:0.5}}/>}
               </div>
             )}
