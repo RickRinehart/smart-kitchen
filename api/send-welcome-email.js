@@ -12,11 +12,11 @@ export default async function handler(req, res) {
   const baseUrl = appUrl;
 
   // Stable URLs — no version number so they always point to latest
-  const manualUrl  = `${baseUrl}/SmartKitchen_UserManual.pdf`;
-  const guideUrl   = `${baseUrl}/SmartKitchen_FamilyGuide.pdf`;
+  const quickStartUrl = `${baseUrl}/SmartKitchen_QuickStart.pdf`;
+  const completeGuideUrl = `${baseUrl}/SmartKitchen_CompleteGuide.pdf`;
 
   const tierNote = tier === 'medical' 
-    ? '<p style="background:#e6f4ed;border-left:4px solid #1A7A4A;padding:12px 16px;border-radius:0 8px 8px 0;color:#1A7A4A;font-weight:bold;">Your Medical+ plan includes unlimited family profiles, medical dietary enforcement, and caregiver features coming in Phase 2.</p>'
+    ? '<p style="background:#e6f4ed;border-left:4px solid #1A7A4A;padding:12px 16px;border-radius:0 8px 8px 0;color:#1A7A4A;font-weight:bold;">Your Medical+ plan includes unlimited family profiles, medical dietary enforcement, and full caregiver features.</p>'
     : tier === 'family'
     ? '<p style="background:#EEF1F8;border-left:4px solid #1A2344;padding:12px 16px;border-radius:0 8px 8px 0;color:#1A2344;">Your Family plan includes up to 6 family profiles with per-member dietary restrictions — set them up in the Family tab.</p>'
     : '<p style="background:#EEF1F8;border-left:4px solid #1A2344;padding:12px 16px;border-radius:0 8px 8px 0;color:#1A2344;">Your Solo plan includes full AI meal planning, inventory management, and all core features.</p>';
@@ -52,27 +52,25 @@ export default async function handler(req, res) {
           </div>
           <div style="display:flex;align-items:flex-start;margin-bottom:14px;">
             <div style="background:#C8963E;color:#fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:13px;flex-shrink:0;margin-right:12px;margin-top:2px;">2</div>
-            <div><strong style="color:#1A2344;">Add what's in your kitchen</strong><br><span style="color:#555;font-size:14px;">Scan a receipt, photograph pantry shelves, or add items manually. The AI builds meals around what you have.</span></div>
+            <div><strong style="color:#1A2344;">Tell us about your kitchen</strong><br><span style="color:#555;font-size:14px;">Add what appliances you have — air fryer, Instant Pot, smoker, and more. The AI suggests cooking methods that match your equipment.</span></div>
           </div>
           <div style="display:flex;align-items:flex-start;margin-bottom:14px;">
             <div style="background:#C8963E;color:#fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:13px;flex-shrink:0;margin-right:12px;margin-top:2px;">3</div>
-            <div><strong style="color:#1A2344;">Generate your first meal plan</strong><br><span style="color:#555;font-size:14px;">Tap "Generate Meal Plan" for a personalized 7-day dinner plan built around your inventory, family, and preferences.</span></div>
+            <div><strong style="color:#1A2344;">Add what's in your kitchen</strong><br><span style="color:#555;font-size:14px;">Scan a receipt, photograph pantry shelves, or add items manually. The AI builds meals around what you have.</span></div>
           </div>
           <div style="display:flex;align-items:flex-start;">
             <div style="background:#C8963E;color:#fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:13px;flex-shrink:0;margin-right:12px;margin-top:2px;">4</div>
-            <div><strong style="color:#1A2344;">Add your family recipes</strong><br><span style="color:#555;font-size:14px;">Type them in, photograph handwritten cards, or describe an idea — the AI creates a full recipe card. Print any recipe as a PDF.</span></div>
+            <div><strong style="color:#1A2344;">Generate your first meal plan</strong><br><span style="color:#555;font-size:14px;">Tap "Build Meal Plan" for a personalized 7-day dinner plan built around your inventory, family, and kitchen setup.</span></div>
           </div>
         </div>
 
         ${tierNote}
 
-
-
         <!-- Documents -->
-        <p style="color:#1A2344;font-weight:bold;font-size:15px;margin-bottom:10px;">📎 Your documents are attached:</p>
+        <p style="color:#1A2344;font-weight:bold;font-size:15px;margin-bottom:10px;">📎 Your guides are attached:</p>
         <ul style="color:#333;font-size:14px;line-height:2;">
-          <li><strong>Smart Kitchen™ User Manual</strong> — Complete feature reference. Every feature, every button, how everything works.</li>
-          <li><strong>Smart Kitchen™ Family Guide</strong> — Quick-start guide for your household. Great to share with family members.</li>
+          <li><strong>Quick Start Guide</strong> — Six steps to your first meal plan. Start here.</li>
+          <li><strong>Complete Feature Guide</strong> — Every feature explained with screenshots. Reference this anytime.</li>
         </ul>
 
         <!-- CTA -->
@@ -87,7 +85,7 @@ export default async function handler(req, res) {
 
         <p style="color:#555;font-size:14px;margin-top:20px;">
           — Rick Rinehart<br>
-          <span style="color:#888;font-size:13px;">Creator, Smart Kitchen™ &nbsp;•&nbsp; RG Digital Labs, LLC</span>
+          <span style="color:#888;font-size:13px;">Creator, Smart Kitchen™ &nbsp;•&nbsp; RG Digital Labs, LLC &nbsp;•&nbsp; Veteran-Owned</span>
         </p>
       </div>
 
@@ -109,16 +107,16 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         from: 'Rick Rinehart — Smart Kitchen <noreply@rinehartra.com>',
         to: [email],
-        subject: 'Welcome to Smart Kitchen™ — Your documents are attached',
+        subject: 'Welcome to Smart Kitchen™ — Your guides are attached',
         html: htmlBody,
         attachments: [
           {
-            path: manualUrl,
-            filename: 'SmartKitchen_UserManual.pdf',
+            path: quickStartUrl,
+            filename: 'SmartKitchen_QuickStart.pdf',
           },
           {
-            path: guideUrl,
-            filename: 'SmartKitchen_FamilyGuide.pdf',
+            path: completeGuideUrl,
+            filename: 'SmartKitchen_CompleteGuide.pdf',
           },
         ],
       }),
