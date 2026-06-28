@@ -1562,6 +1562,19 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
       }
       return;
     }
+    // Wizard re-launch trigger
+    if(m.match(/setup|set me up|start over|redo setup|walk me through|guide me|family setup|add family|appliance|kitchen setup|restart wizard|setup wizard|onboard|welcome setup|initial setup/)){
+      setTimeout(()=>{
+        addChatMsg("assistant","Of course! Let me walk you through the full setup \u2014 family profiles, kitchen appliances, and inventory. Starting now! \uD83D\uDE0A");
+        setTimeout(()=>{
+          try{localStorage.removeItem("sk_setupDone");}catch{}
+          setWizardStep(-3);
+          setShowWizard(true);
+        },900);
+        setChatLoading(false);
+      },600);
+      return;
+    }
     // Check for escalation tags
     const tag=detectEscalation(text);
     if(tag&&tag!=="Feedback-Positive") setTimeout(()=>escalateToSupport(text,tag),2000);
@@ -1594,6 +1607,7 @@ APP KNOWLEDGE: Smart Kitchen has these features:
 - Senior Mode (Aa Off/On button): larger text, bigger tap targets, larger checkboxes on shopping list.
 - Family Recipes: tap Family Recipes button in top bar. Add, edit, delete, share individual recipes. Share All shares every family recipe at once. Cross-device sync — recipes available on all your devices.
 - Support chat, Google Calendar, Receipt scanner.
+- SETUP WIZARD: If the user asks to redo setup, add family members, set up appliances, or walk through onboarding again, the chat can relaunch the Setup Wizard automatically. Just say something like "Sure! Let me open the Setup Wizard for you now." The system will handle the rest.
 
 ESCALATION: If the user reports a bug, scanner problem, dietary concern, frustration, or upgrade objection — acknowledge it warmly and let them know the team has been notified and will follow up. If they give positive feedback — celebrate it genuinely.
 
