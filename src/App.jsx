@@ -1472,7 +1472,20 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
     addChatMsg("user",text);
     setChatLoading(true);
     const m=text.toLowerCase();
-    // Handle yes/no to tour offer
+    // Wizard re-launch trigger
+    if(m.match(/setup wizard|initial setup|redo setup|restart setup|run setup|open setup|launch setup|setup again|family setup|add family|kitchen setup|appliance setup/)){
+      setTimeout(()=>{
+        addChatMsg("assistant","Opening the Setup Wizard now! \uD83D\uDE0A We'll walk through family profiles, kitchen appliances, and your inventory.");
+        setTimeout(()=>{
+          try{localStorage.removeItem("sk_setupDone");}catch{}
+          setWizardStep(-3);
+          setShowWizard(true);
+        },800);
+        setChatLoading(false);
+      },400);
+      return;
+    }
+        // Handle yes/no to tour offer
     if(tourChoice===null){
       if(m.match(/^yes|^sure|^yeah|^yep|^absolutely|^please/)){
         const startStep=user?2:1;
@@ -1562,19 +1575,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
       }
       return;
     }
-    // Wizard re-launch trigger
-    if(m.match(/setup|set me up|start over|redo setup|walk me through|guide me|family setup|add family|appliance|kitchen setup|restart wizard|setup wizard|onboard|welcome setup|initial setup/)){
-      setTimeout(()=>{
-        addChatMsg("assistant","Of course! Let me walk you through the full setup \u2014 family profiles, kitchen appliances, and inventory. Starting now! \uD83D\uDE0A");
-        setTimeout(()=>{
-          try{localStorage.removeItem("sk_setupDone");}catch{}
-          setWizardStep(-3);
-          setShowWizard(true);
-        },900);
-        setChatLoading(false);
-      },600);
-      return;
-    }
+    
     // Check for escalation tags
     const tag=detectEscalation(text);
     if(tag&&tag!=="Feedback-Positive") setTimeout(()=>escalateToSupport(text,tag),2000);
