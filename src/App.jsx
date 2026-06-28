@@ -1437,7 +1437,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const userName=user?.user_metadata?.full_name||user?.email?.split("@")[0]||"there";
   const TOUR_STEPS=[
     {msg:"First things first — let's get you signed in so everything is saved to your account. See the **Sign In** button in the top right corner? Tap that when you're ready — it only takes a minute and there's no credit card required. I'll be right here waiting! 😊", tab:null, action:null, autoOpen:false, waitForDone:true, donePrompt:"Take your time! Once you're signed in or have created your account, just say **done** and we'll move to the next step. 😊"},
-    {msg:"Great! Let's start with your **family profile** — this tells Smart Kitchen who it's cooking for and any dietary needs. I'm opening that for you now!", tab:"family", action:"profileModalOpen", autoOpen:true, waitForDone:true, donePrompt:"Take your time setting up your family. When you're ready, just say **done** or **next** and we'll move on! And if you have any questions, just ask — I'm right here. 😊"},
+    {msg:"Great! Let's start with your **family profile** — this tells Smart Kitchen who it's cooking for and any dietary needs. I'm opening that for you now!", tab:"mealplan", action:"profileModalOpen", autoOpen:true, waitForDone:true, donePrompt:"Take your time setting up your family. When you're ready, just say **done** or **next** and we'll move on! And if you have any questions, just ask — I'm right here. 😊"},
     {msg:"Perfect. Now let's build your **inventory** — I'm taking you there now! You can scan a grocery receipt with your camera, or add items manually.", tab:"inventory", autoOpen:true, waitForDone:true, donePrompt:"Go ahead and add a few items — scan a receipt or type them in. Say **done** or **next** when you're ready to continue! And if you have any questions along the way, just ask — I'm right here. 😊"},
     {msg:"Now for the fun part — I'm opening your **Meal Plan** now! Hit **Build Meal Plan** to build your first 7-day dinner plan based on your inventory and family needs.", tab:"mealplan", autoOpen:true, waitForDone:true, donePrompt:"Hit **Build Meal Plan** to generate your first week of dinners. Say **done** or **next** when you've had a look! Any questions, just ask. 😊"},
     {msg:"Your meal plan is ready! You can push it straight to **Google Calendar** with one tap — just hit the Calendar button. Once you've done that (or if you'd like to skip), let me know!", tab:null},
@@ -1473,11 +1473,12 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
     setChatLoading(true);
     const m=text.toLowerCase();
     // Wizard re-launch trigger
-    if(m.match(/setup wizard|initial setup|redo setup|restart setup|run setup|open setup|launch setup|setup again|family setup|add family|kitchen setup|appliance setup/)){
+    if(m.match(/setup wizard|initial setup|redo setup|restart setup|run setup|open setup|launch setup|setup again|family setup|add family|kitchen setup|appliance setup|run the setup|start the setup|rerun the setup/)){
       setTimeout(()=>{
         addChatMsg("assistant","Opening the Setup Wizard now! \uD83D\uDE0A We'll walk through family profiles, kitchen appliances, and your inventory.");
         setTimeout(()=>{
           try{localStorage.removeItem("sk_setupDone");}catch{}
+          setTab("mealplan");
           setWizardStep(-3);
           setShowWizard(true);
         },800);
