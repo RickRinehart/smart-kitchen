@@ -1479,7 +1479,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
         setTimeout(()=>{
           try{localStorage.removeItem("sk_setupDone");}catch{}
           setTab("mealplan");
-          setWizardStep(-3);
+          setWizardStep(user?0:-3);
           setShowWizard(true);
         },800);
         setChatLoading(false);
