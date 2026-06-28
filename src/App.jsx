@@ -22,6 +22,20 @@ const LOCATIONS=["Pantry","Fridge","Freezer"];
 const LOC_ICONS={Pantry:"🗄",Fridge:"❄",Freezer:"🧊"};
 const LOC_COLORS={Pantry:C.accent,Fridge:C.blue,Freezer:C.purple};
 const CATEGORIES=["Protein","Produce","Dairy","Pantry","Grains","Spices","Frozen","Condiments","Snacks","Beverages","Wild Harvest","Home Harvest","Household","Cleaning","Personal Care","Pet","Other"];
+const KITCHEN_APPLIANCES=[
+  {id:"instant_pot",label:"Instant Pot / Pressure Cooker",emoji:"🫕"},
+  {id:"air_fryer",label:"Air Fryer",emoji:"🌬"},
+  {id:"slow_cooker",label:"Slow Cooker / Crockpot",emoji:"🫕"},
+  {id:"outdoor_grill",label:"Outdoor Grill",emoji:"🔥"},
+  {id:"smoker",label:"Smoker",emoji:"🌫"},
+  {id:"griddle",label:"Griddle (Blackstone / Electric)",emoji:"🍳"},
+  {id:"deep_fryer",label:"Deep Fryer",emoji:"🍟"},
+  {id:"rice_cooker",label:"Rice Cooker",emoji:"🍚"},
+  {id:"stand_mixer",label:"Stand Mixer / Bread Machine",emoji:"🥐"},
+  {id:"sous_vide",label:"Sous Vide",emoji:"🌡"},
+  {id:"waffle_iron",label:"Waffle Iron / Sandwich Press",emoji:"🧇"},
+  {id:"pizza_oven",label:"Pizza Oven (Ooni / Outdoor)",emoji:"🍕"},
+];
 const CAT_COLORS={Protein:C.red,Produce:C.green,Dairy:C.blue,Pantry:C.accent,Grains:"#c9a96e",Spices:C.purple,Frozen:"#6be3f0",Condiments:"#94a3b8",Snacks:"#f59e0b",Beverages:"#06b6d4",Household:"#84cc16",Cleaning:"#22d3ee",["Personal Care"]:"#e879f9",Pet:"#fb923c",Other:C.muted,"Wild Harvest":"#5a8a2e","Home Harvest":"#2e8a5a"};
 // -- Wild Harvest & Home Harvest -----------------------------------------------
 const WILD_SPECIES=[
