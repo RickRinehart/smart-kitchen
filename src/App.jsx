@@ -1056,6 +1056,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [emailSentModal,setEmailSentModal]=useState(null);
   const [upgradeModal,setUpgradeModal]=useState(null);
   const [labelModal,setLabelModal]=useState(false);const [labelSelected,setLabelSelected]=useState({});const [labelFormat,setLabelFormat]=useState("5163");const [labelQty,setLabelQty]=useState({});
+  const [harvestPrintCue,setHarvestPrintCue]=useState(null);
   const [makeThisModal,setMakeThisModal]=useState(false);
   const [makeThisInput,setMakeThisInput]=useState("");
   const [makeThisResult,setMakeThisResult]=useState(null);
@@ -1708,13 +1709,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     });
     setRpOpen(false);
     setTimeout(()=>{
-      if(window.confirm(itemName+": "+portions+" portions added. Print freezer labels for this batch now?")){
-        const key=itemName;
-        setLabelSelected({[key]:true});
-        setLabelQty({[key]:portions});
-        setLabelFormat("5163");
-        setLabelModal(true);
-      }
+      setHarvestPrintCue({itemName,qty:portions,unit:"portions",format:"5163",category:"Wild Harvest"});
     },400);
   };
   // Home Harvest: estimate via HARVEST_YIELD table, routes through the generalized Yield Confirm modal
@@ -4437,12 +4432,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                   });
                   const hKey=rpYieldConfirm.itemName,hUnit=rpYieldConfirm.unit,hForm=rpYieldConfirm.form;
                   setTimeout(()=>{
-                    if(window.confirm(hKey+": "+actual+" "+hUnit+" added. Print labels for this batch now?")){
-                      setLabelSelected({[hKey]:true});
-                      setLabelQty({[hKey]:actual});
-                      setLabelFormat(hForm==="Canned"?"5164":"5163");
-                      setLabelModal(true);
-                    }
+                    setHarvestPrintCue({itemName:hKey,qty:actual,unit:hUnit,format:hForm==="Canned"?"5164":"5163",category:"Home Harvest"});
                   },400);
                 } else {
                   try{
@@ -4462,6 +4452,33 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                 }
                 setRpYieldConfirm(null);setRpActualBags("");setRpOpen(false);
               }}>✓ Save {rpActualBags} {rpYieldConfirm.type==="homeHarvest"?rpYieldConfirm.unit:"Bags"}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* == HARVEST PRINT CUE == */}
+      {harvestPrintCue&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300,padding:16}} onClick={()=>setHarvestPrintCue(null)}>
+          <div style={{background:C.card,border:"1px solid "+C.green+"55",borderRadius:16,padding:26,maxWidth:380,width:"100%",textAlign:"center"}} onClick={e=>e.stopPropagation()}>
+            <div style={{fontSize:38,marginBottom:10}}>{harvestPrintCue.category==="Wild Harvest"?"🦌":"🌱"}</div>
+            <div style={{fontFamily:FD,fontSize:20,color:C.green,marginBottom:8}}>Batch Added!</div>
+            <div style={{fontSize:14,color:C.text,lineHeight:1.6,marginBottom:4}}>
+              <strong>{harvestPrintCue.itemName}</strong>
+            </div>
+            <div style={{fontSize:13,color:C.muted,lineHeight:1.6,marginBottom:22}}>
+              {harvestPrintCue.qty} {harvestPrintCue.unit} added to {harvestPrintCue.category}.
+            </div>
+            <div style={{display:"flex",gap:8}}>
+              <button style={{...bBtn("ghost"),flex:1}} onClick={()=>setHarvestPrintCue(null)}>Not Now</button>
+              <button style={{...bBtn("green"),flex:2}} onClick={()=>{
+                const key=harvestPrintCue.itemName;
+                setLabelSelected({[key]:true});
+                setLabelQty({[key]:harvestPrintCue.qty});
+                setLabelFormat(harvestPrintCue.format);
+                setLabelModal(true);
+                setHarvestPrintCue(null);
+              }}>🏷 Print Labels Now</button>
             </div>
           </div>
         </div>
