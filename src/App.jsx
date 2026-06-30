@@ -1950,8 +1950,8 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
   };
   const printLabels=()=>{
     const selectedItems=[];
-    inventory.filter(i=>labelSelected[i.id||i.name]).forEach(i=>{
-      const n=Math.max(1,parseInt(labelQty[i.id||i.name])||1);
+    inventory.filter(i=>labelSelected[i.name]).forEach(i=>{
+      const n=Math.max(1,parseInt(labelQty[i.name])||1);
       for(let k=0;k<n;k++) selectedItems.push(i);
     });
     const fmts={"5160":{cols:3,rows:10,labelW:2.625,labelH:1,marginL:0.19,marginT:0.5,gapH:0.125,gapV:0,fontSize:6.5,nameFontSize:7.5},"5163":{cols:2,rows:5,labelW:4,labelH:2,marginL:0.15,marginT:0.5,gapH:0.19,gapV:0,fontSize:8,nameFontSize:10},"5164":{cols:2,rows:3,labelW:4,labelH:3.33,marginL:0.15,marginT:0.5,gapH:0.19,gapV:0.25,fontSize:9,nameFontSize:12}};
@@ -6616,7 +6616,7 @@ setScaleCalcLoading(false);setTimeout(()=>{if(scaleDevice&&scaleDevice._writeChr
               <div style={{fontSize:11,fontFamily:FM,color:C.muted,letterSpacing:0.8,marginBottom:8}}>SELECT ITEMS TO LABEL</div>
               <div style={{fontSize:11,color:C.dim,marginBottom:8}}>Defaults to one label per package on hand — adjust the count if you don't need a label for every one.</div>
               <div style={{display:"flex",gap:6,marginBottom:8,flexWrap:"wrap"}}>
-                <button onClick={()=>{const sel={};const qty={};inventory.filter(i=>i.category==="Wild Harvest"||i.category==="Home Harvest").forEach(i=>{const k=i.id||i.name;sel[k]=true;qty[k]=Math.max(1,parseInt(i.qty)||1);});setLabelSelected(sel);setLabelQty(qty);}} style={{...bBtn("ghost"),fontSize:11,padding:"4px 10px"}}>Select All</button>
+                <button onClick={()=>{const sel={};const qty={};inventory.filter(i=>i.category==="Wild Harvest"||i.category==="Home Harvest").forEach(i=>{const k=i.name;sel[k]=true;qty[k]=Math.max(1,parseInt(i.qty)||1);});setLabelSelected(sel);setLabelQty(qty);}} style={{...bBtn("ghost"),fontSize:11,padding:"4px 10px"}}>Select All</button>
                 <button onClick={()=>{setLabelSelected({});setLabelQty({});}} style={{...bBtn("ghost"),fontSize:11,padding:"4px 10px"}}>Clear</button>
               </div>
               {["Wild Harvest","Home Harvest"].map(loc=>{
@@ -6626,7 +6626,7 @@ setScaleCalcLoading(false);setTimeout(()=>{if(scaleDevice&&scaleDevice._writeChr
                   <div key={loc} style={{marginBottom:12}}>
                     <div style={{fontSize:11,color:C.muted,fontWeight:700,marginBottom:6}}>{LOC_ICONS[loc]} {loc.toUpperCase()}</div>
                     {items.map(item=>{
-                      const key=item.id||item.name;
+                      const key=item.name;
                       const checked=!!labelSelected[key];
                       const qty=labelQty[key]||Math.max(1,parseInt(item.qty)||1);
                       return(
