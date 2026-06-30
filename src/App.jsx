@@ -1056,7 +1056,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [emailSentModal,setEmailSentModal]=useState(null);
   const [upgradeModal,setUpgradeModal]=useState(null);
   const [labelModal,setLabelModal]=useState(false);const [labelSelected,setLabelSelected]=useState({});const [labelFormat,setLabelFormat]=useState("5163");const [labelQty,setLabelQty]=useState({});
-  const [harvestPrintCue,setHarvestPrintCue]=useState(null);
+  const [batchPrintCue,setBatchPrintCue]=useState(null);
   const [makeThisModal,setMakeThisModal]=useState(false);
   const [makeThisInput,setMakeThisInput]=useState("");
   const [makeThisResult,setMakeThisResult]=useState(null);
@@ -1675,16 +1675,21 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
   const commitProtein=()=>{
     if(!rpPName||!rpPLbs) return;
     const portions=Math.floor((parseFloat(rpPLbs)*16)/rpPOz);
+    const pName=rpPName;
     setInventory(prev=>{
-      const idx=prev.findIndex(i=>i.name.toLowerCase()===rpPName.toLowerCase());
+      const idx=prev.findIndex(i=>i.name.toLowerCase()===pName.toLowerCase());
       if(idx>=0) return prev.map((i,ii)=>ii===idx?{...i,qty:i.qty+portions,isBulkProtein:true,portionOz:rpPOz}:i);
-      return [...prev,{id:Date.now(),name:rpPName,qty:portions,unit:"portions",category:"Protein",location:"Freezer",isBulkProtein:true,portionOz:rpPOz}];
+      return [...prev,{id:Date.now(),name:pName,qty:portions,unit:"portions",category:"Protein",location:"Freezer",isBulkProtein:true,portionOz:rpPOz}];
     });
     setRpOpen(false);
+    setTimeout(()=>{
+      setBatchPrintCue({itemName:pName,qty:portions,unit:"portions",format:"5163",category:"Protein"});
+    },400);
   };
   const commitVeg=()=>{
     const valid=rpVSessions.filter(s=>s.bags&&s.bags>0);
     if(!valid.length) return;
+    const totalBags=valid.reduce((s,v)=>s+v.bags,0);
     setInventory(prev=>{
       let u=[...prev];
       valid.forEach(s=>{
@@ -1695,6 +1700,9 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       return u;
     });
     setRpOpen(false);
+    setTimeout(()=>{
+      setBatchPrintCue({itemName:"Mixed Sauté Blend",qty:totalBags,unit:"2-cup bags",format:"5163",category:"SauteBlend"});
+    },400);
   };
   // Wild Harvest: deterministic weight->portion math, same formula as commitProtein, tagged to Wild Harvest category
   const commitHarvestWild=()=>{
@@ -1709,7 +1717,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     });
     setRpOpen(false);
     setTimeout(()=>{
-      setHarvestPrintCue({itemName,qty:portions,unit:"portions",format:"5163",category:"Wild Harvest"});
+      setBatchPrintCue({itemName,qty:portions,unit:"portions",format:"5163",category:"Wild Harvest"});
     },400);
   };
   // Home Harvest: estimate via HARVEST_YIELD table, routes through the generalized Yield Confirm modal
@@ -3397,7 +3405,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                 <option>All</option>{CATEGORIES.map(c=><option key={c}>{c}</option>)}
               </select>
               <button style={bBtn("ghost")} onClick={()=>setShowAdd(v=>!v)}>{showAdd?"✕ Cancel":"+ Add"}</button>
-              {inventory.filter(i=>i.category==="Wild Harvest"||i.category==="Home Harvest").length>0&&(<button style={{...bBtn("ghost"),background:"#1a3a1a",border:"1px solid #4c4",color:"#4c4"}} onClick={()=>{setLabelSelected({});setLabelModal(true);}}>🏷 Print Labels</button>)}
+              {inventory.filter(i=>i.category==="Wild Harvest"||i.category==="Home Harvest"||(i.isBulkProtein&&i.category==="Protein")||i.vegType==="sauteBlend").length>0&&(<button style={{...bBtn("ghost"),background:"#1a3a1a",border:"1px solid #4c4",color:"#4c4"}} onClick={()=>{setLabelSelected({});setLabelModal(true);}}>🏷 Print Labels</button>)}
             </div>
 
             {showAdd&&(
@@ -4432,7 +4440,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                   });
                   const hKey=rpYieldConfirm.itemName,hUnit=rpYieldConfirm.unit,hForm=rpYieldConfirm.form;
                   setTimeout(()=>{
-                    setHarvestPrintCue({itemName:hKey,qty:actual,unit:hUnit,format:hForm==="Canned"?"5164":"5163",category:"Home Harvest"});
+                    setBatchPrintCue({itemName:hKey,qty:actual,unit:hUnit,format:hForm==="Canned"?"5164":"5163",category:"Home Harvest"});
                   },400);
                 } else {
                   try{
@@ -4457,27 +4465,27 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
         </div>
       )}
 
-      {/* == HARVEST PRINT CUE == */}
-      {harvestPrintCue&&(
-        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300,padding:16}} onClick={()=>setHarvestPrintCue(null)}>
+      {/* == BATCH PRINT CUE == */}
+      {batchPrintCue&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300,padding:16}} onClick={()=>setBatchPrintCue(null)}>
           <div style={{background:C.card,border:"1px solid "+C.green+"55",borderRadius:16,padding:26,maxWidth:380,width:"100%",textAlign:"center"}} onClick={e=>e.stopPropagation()}>
-            <div style={{fontSize:38,marginBottom:10}}>{harvestPrintCue.category==="Wild Harvest"?"🦌":"🌱"}</div>
+            <div style={{fontSize:38,marginBottom:10}}>{batchPrintCue.category==="Wild Harvest"?"🦌":batchPrintCue.category==="Home Harvest"?"🌱":batchPrintCue.category==="Protein"?"🥩":"🫕"}</div>
             <div style={{fontFamily:FD,fontSize:20,color:C.green,marginBottom:8}}>Batch Added!</div>
             <div style={{fontSize:14,color:C.text,lineHeight:1.6,marginBottom:4}}>
-              <strong>{harvestPrintCue.itemName}</strong>
+              <strong>{batchPrintCue.itemName}</strong>
             </div>
             <div style={{fontSize:13,color:C.muted,lineHeight:1.6,marginBottom:22}}>
-              {harvestPrintCue.qty} {harvestPrintCue.unit} added to {harvestPrintCue.category}.
+              {batchPrintCue.qty} {batchPrintCue.unit} added to inventory.
             </div>
             <div style={{display:"flex",gap:8}}>
-              <button style={{...bBtn("ghost"),flex:1}} onClick={()=>setHarvestPrintCue(null)}>Not Now</button>
+              <button style={{...bBtn("ghost"),flex:1}} onClick={()=>setBatchPrintCue(null)}>Not Now</button>
               <button style={{...bBtn("green"),flex:2}} onClick={()=>{
-                const key=harvestPrintCue.itemName;
+                const key=batchPrintCue.itemName;
                 setLabelSelected({[key]:true});
-                setLabelQty({[key]:harvestPrintCue.qty});
-                setLabelFormat(harvestPrintCue.format);
+                setLabelQty({[key]:batchPrintCue.qty});
+                setLabelFormat(batchPrintCue.format);
                 setLabelModal(true);
-                setHarvestPrintCue(null);
+                setBatchPrintCue(null);
               }}>🏷 Print Labels Now</button>
             </div>
           </div>
@@ -6608,7 +6616,7 @@ setScaleCalcLoading(false);setTimeout(()=>{if(scaleDevice&&scaleDevice._writeChr
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:500,padding:16}}>
           <div style={{background:C.card,border:"1px solid "+C.border,borderRadius:18,padding:24,maxWidth:620,width:"100%",maxHeight:"90vh",overflowY:"auto"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-              <div style={{fontFamily:FD,fontSize:20,color:C.accent}}>🏷 Print Harvest Labels</div>
+              <div style={{fontFamily:FD,fontSize:20,color:C.accent}}>🏷 Print Labels</div>
               <button onClick={()=>setLabelModal(false)} style={{background:"transparent",border:"none",color:C.muted,fontSize:20,cursor:"pointer"}}>✕</button>
             </div>
             {/* Format picker */}
@@ -6632,45 +6640,57 @@ setScaleCalcLoading(false);setTimeout(()=>{if(scaleDevice&&scaleDevice._writeChr
             <div style={{marginBottom:16}}>
               <div style={{fontSize:11,fontFamily:FM,color:C.muted,letterSpacing:0.8,marginBottom:8}}>SELECT ITEMS TO LABEL</div>
               <div style={{fontSize:11,color:C.dim,marginBottom:8}}>Defaults to one label per package on hand — adjust the count if you don't need a label for every one.</div>
-              <div style={{display:"flex",gap:6,marginBottom:8,flexWrap:"wrap"}}>
-                <button onClick={()=>{const sel={};const qty={};inventory.filter(i=>i.category==="Wild Harvest"||i.category==="Home Harvest").forEach(i=>{const k=i.name;sel[k]=true;qty[k]=Math.max(1,parseInt(i.qty)||1);});setLabelSelected(sel);setLabelQty(qty);}} style={{...bBtn("ghost"),fontSize:11,padding:"4px 10px"}}>Select All</button>
-                <button onClick={()=>{setLabelSelected({});setLabelQty({});}} style={{...bBtn("ghost"),fontSize:11,padding:"4px 10px"}}>Clear</button>
-              </div>
-              {["Wild Harvest","Home Harvest"].map(loc=>{
-                const items=inventory.filter(i=>i.category===loc);
-                if(!items.length) return null;
-                return(
-                  <div key={loc} style={{marginBottom:12}}>
-                    <div style={{fontSize:11,color:C.muted,fontWeight:700,marginBottom:6}}>{LOC_ICONS[loc]} {loc.toUpperCase()}</div>
-                    {items.map(item=>{
-                      const key=item.name;
-                      const checked=!!labelSelected[key];
-                      const qty=labelQty[key]||Math.max(1,parseInt(item.qty)||1);
-                      return(
-                        <div key={key} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 10px",borderRadius:8,cursor:"pointer",background:checked?"#1a2e1a":C.surface,border:"1px solid "+(checked?"#4c4":C.border),marginBottom:4}}>
-                          <div onClick={()=>setLabelSelected(prev=>{const next=!prev[key];if(next)setLabelQty(q=>({...q,[key]:q[key]||Math.max(1,parseInt(item.qty)||1)}));return {...prev,[key]:next};})} style={{display:"flex",alignItems:"center",gap:10,flex:1,cursor:"pointer"}}>
-                            <div style={{width:16,height:16,borderRadius:4,border:"2px solid "+(checked?"#4c4":C.muted),background:checked?"#4c4":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                              {checked&&<span style={{color:"#000",fontSize:10,fontWeight:900}}>✓</span>}
-                            </div>
-                            <div style={{flex:1}}>
-                              <div style={{fontSize:13,fontWeight:600,color:C.text}}>{item.name}</div>
-                              <div style={{fontSize:11,color:C.muted}}>{item.qty} {item.unit}{item.harvestDate?" · Harvested "+item.harvestDate:""}{item.useBy?" · Best by "+item.useBy:""}</div>
-                            </div>
-                          </div>
-                          {checked&&(
-                            <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}} onClick={e=>e.stopPropagation()}>
-                              <button onClick={()=>setLabelQty(q=>({...q,[key]:Math.max(1,(q[key]||1)-1)}))} style={{...bBtn("ghost"),padding:"2px 8px",fontSize:13}}>−</button>
-                              <span style={{fontSize:13,fontWeight:700,color:"#4c4",minWidth:18,textAlign:"center"}}>{qty}</span>
-                              <button onClick={()=>setLabelQty(q=>({...q,[key]:(q[key]||1)+1}))} style={{...bBtn("ghost"),padding:"2px 8px",fontSize:13}}>+</button>
-                              <span style={{fontSize:10,color:C.dim}}>labels</span>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
+              {(()=>{
+                const groups=[
+                  {key:"Wild Harvest",label:"Wild Harvest",icon:"🦌",match:i=>i.category==="Wild Harvest"},
+                  {key:"Home Harvest",label:"Home Harvest",icon:"🌱",match:i=>i.category==="Home Harvest"},
+                  {key:"Protein",label:"Protein Portions",icon:"🥩",match:i=>i.isBulkProtein&&i.category==="Protein"},
+                  {key:"SauteBlend",label:"Sauté Blend",icon:"🫕",match:i=>i.vegType==="sauteBlend"},
+                ];
+                const allLabelable=inventory.filter(i=>groups.some(g=>g.match(i)));
+                return(<>
+                  <div style={{display:"flex",gap:6,marginBottom:8,flexWrap:"wrap"}}>
+                    <button onClick={()=>{const sel={};const qty={};allLabelable.forEach(i=>{sel[i.name]=true;qty[i.name]=Math.max(1,parseInt(i.qty)||1);});setLabelSelected(sel);setLabelQty(qty);}} style={{...bBtn("ghost"),fontSize:11,padding:"4px 10px"}}>Select All</button>
+                    <button onClick={()=>{setLabelSelected({});setLabelQty({});}} style={{...bBtn("ghost"),fontSize:11,padding:"4px 10px"}}>Clear</button>
                   </div>
-                );
-              })}
+                  {allLabelable.length===0&&<div style={{fontSize:12,color:C.dim,padding:"10px 0"}}>Nothing label-ready yet — process a Repackage or Harvest batch first.</div>}
+                  {groups.map(g=>{
+                    const items=inventory.filter(g.match);
+                    if(!items.length) return null;
+                    return(
+                      <div key={g.key} style={{marginBottom:12}}>
+                        <div style={{fontSize:11,color:C.muted,fontWeight:700,marginBottom:6}}>{g.icon} {g.label.toUpperCase()}</div>
+                        {items.map(item=>{
+                          const key=item.name;
+                          const checked=!!labelSelected[key];
+                          const qty=labelQty[key]||Math.max(1,parseInt(item.qty)||1);
+                          return(
+                            <div key={key} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 10px",borderRadius:8,cursor:"pointer",background:checked?"#1a2e1a":C.surface,border:"1px solid "+(checked?"#4c4":C.border),marginBottom:4}}>
+                              <div onClick={()=>setLabelSelected(prev=>{const next=!prev[key];if(next)setLabelQty(q=>({...q,[key]:q[key]||Math.max(1,parseInt(item.qty)||1)}));return {...prev,[key]:next};})} style={{display:"flex",alignItems:"center",gap:10,flex:1,cursor:"pointer"}}>
+                                <div style={{width:16,height:16,borderRadius:4,border:"2px solid "+(checked?"#4c4":C.muted),background:checked?"#4c4":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                                  {checked&&<span style={{color:"#000",fontSize:10,fontWeight:900}}>✓</span>}
+                                </div>
+                                <div style={{flex:1}}>
+                                  <div style={{fontSize:13,fontWeight:600,color:C.text}}>{item.name}</div>
+                                  <div style={{fontSize:11,color:C.muted}}>{item.qty} {item.unit}{item.harvestDate?" · Harvested "+item.harvestDate:""}{item.useBy?" · Best by "+item.useBy:""}</div>
+                                </div>
+                              </div>
+                              {checked&&(
+                                <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}} onClick={e=>e.stopPropagation()}>
+                                  <button onClick={()=>setLabelQty(q=>({...q,[key]:Math.max(1,(q[key]||1)-1)}))} style={{...bBtn("ghost"),padding:"2px 8px",fontSize:13}}>−</button>
+                                  <span style={{fontSize:13,fontWeight:700,color:"#4c4",minWidth:18,textAlign:"center"}}>{qty}</span>
+                                  <button onClick={()=>setLabelQty(q=>({...q,[key]:(q[key]||1)+1}))} style={{...bBtn("ghost"),padding:"2px 8px",fontSize:13}}>+</button>
+                                  <span style={{fontSize:10,color:C.dim}}>labels</span>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
+                </>);
+              })()}
             </div>
             {/* Action buttons */}
             <div style={{display:"flex",gap:10,justifyContent:"flex-end",borderTop:"1px solid "+C.border,paddingTop:16}}>
