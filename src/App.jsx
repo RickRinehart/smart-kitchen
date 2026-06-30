@@ -1055,7 +1055,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [printModal,setPrintModal]=useState(null);
   const [emailSentModal,setEmailSentModal]=useState(null);
   const [upgradeModal,setUpgradeModal]=useState(null);
-  const [labelModal,setLabelModal]=useState(false);const [labelSelected,setLabelSelected]=useState({});const [labelFormat,setLabelFormat]=useState("5163");
+  const [labelModal,setLabelModal]=useState(false);const [labelSelected,setLabelSelected]=useState({});const [labelFormat,setLabelFormat]=useState("5163");const [labelQty,setLabelQty]=useState({});
   const [makeThisModal,setMakeThisModal]=useState(false);
   const [makeThisInput,setMakeThisInput]=useState("");
   const [makeThisResult,setMakeThisResult]=useState(null);
@@ -1700,12 +1700,22 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     if(!rpHItem||!rpHRaw) return;
     const portions=Math.floor((parseFloat(rpHRaw)*16)/rpHOz);
     if(portions<1) return;
+    const itemName=rpHItem;
     setInventory(prev=>{
-      const idx=prev.findIndex(i=>i.name.toLowerCase()===rpHItem.toLowerCase()&&i.category==="Wild Harvest");
+      const idx=prev.findIndex(i=>i.name.toLowerCase()===itemName.toLowerCase()&&i.category==="Wild Harvest");
       if(idx>=0) return prev.map((i,ii)=>ii===idx?{...i,qty:i.qty+portions,portionOz:rpHOz}:i);
-      return [...prev,{id:Date.now(),name:rpHItem,qty:portions,unit:"portions",category:"Wild Harvest",harvestType:"Protein",location:"Freezer",isBulkProtein:true,portionOz:rpHOz}];
+      return [...prev,{id:Date.now(),name:itemName,qty:portions,unit:"portions",category:"Wild Harvest",harvestType:"Protein",location:"Freezer",isBulkProtein:true,portionOz:rpHOz}];
     });
     setRpOpen(false);
+    setTimeout(()=>{
+      if(window.confirm(itemName+": "+portions+" portions added. Print freezer labels for this batch now?")){
+        const key=itemName;
+        setLabelSelected({[key]:true});
+        setLabelQty({[key]:portions});
+        setLabelFormat("5163");
+        setLabelModal(true);
+      }
+    },400);
   };
   // Home Harvest: estimate via HARVEST_YIELD table, routes through the generalized Yield Confirm modal
   const estimateHarvestHome=()=>{
@@ -1939,30 +1949,38 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     setLoading(false);
   };
   const printLabels=()=>{
-    const selectedItems=inventory.filter(i=>labelSelected[i.id||i.name]);
+    const selectedItems=[];
+    inventory.filter(i=>labelSelected[i.id||i.name]).forEach(i=>{
+      const n=Math.max(1,parseInt(labelQty[i.id||i.name])||1);
+      for(let k=0;k<n;k++) selectedItems.push(i);
+    });
     const fmts={"5160":{cols:3,rows:10,labelW:2.625,labelH:1,marginL:0.19,marginT:0.5,gapH:0.125,gapV:0,fontSize:6.5,nameFontSize:7.5},"5163":{cols:2,rows:5,labelW:4,labelH:2,marginL:0.15,marginT:0.5,gapH:0.19,gapV:0,fontSize:8,nameFontSize:10},"5164":{cols:2,rows:3,labelW:4,labelH:3.33,marginL:0.15,marginT:0.5,gapH:0.19,gapV:0.25,fontSize:9,nameFontSize:12}};
     const fmt=fmts[labelFormat];
     const toW=(in_)=>in_*96+"px";
-    const cells=[];
-    const total=fmt.cols*fmt.rows;
-    for(let s=0;s<total;s++){
-      const item=selectedItems[s];
-      if(item){
-        const icon=item.category==="Wild Harvest"?"\uD83E\uDD8C":"\uD83C\uDF31";
-        const hLine=item.harvestDate?"Harvested: "+item.harvestDate:(item.addedAt?new Date(item.addedAt).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}):"");
-        const bestBy=item.useBy||"";
-        const srv=item.qty&&item.unit?item.qty+" "+item.unit:"";
-        const top='<div style="font-size:'+fmt.nameFontSize+'pt;font-weight:700;line-height:1.1;margin-bottom:2px;">'+icon+' '+item.name.toUpperCase()+'</div><div style="font-size:'+fmt.fontSize+'pt;color:#555;">'+item.category+'</div>';
-        const mid=labelFormat!=="5160"?'<div style="font-size:'+fmt.fontSize+'pt;color:#333;line-height:1.4;">'+(hLine?hLine+'<br/>':'')+(srv?srv+'<br/>':'')+(bestBy?'Best by: '+bestBy:'')+'</div>':'<div style="font-size:'+fmt.fontSize+'pt;color:#333;">'+(bestBy?'Best by: '+bestBy:'')+'</div>';
-        const bot='<div style="font-size:'+(labelFormat==="5160"?5:fmt.fontSize-1)+'pt;color:#999;text-align:right;">Smart Kitchen(tm)</div>';
-        cells.push('<div style="width:'+toW(fmt.labelW)+';height:'+toW(fmt.labelH)+';box-sizing:border-box;padding:'+(labelFormat==="5160"?'4px 6px':'8px 10px')+';display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;border:0.5px dashed #ccc;font-family:Arial,sans-serif;"><div>'+top+'</div>'+mid+bot+'</div>');
-      } else {
-        cells.push('<div style="width:'+toW(fmt.labelW)+';height:'+toW(fmt.labelH)+';box-sizing:border-box;border:0.5px dashed #eee;"></div>');
-      }
-    }
+    const perSheet=fmt.cols*fmt.rows;
+    const sheetCount=Math.max(1,Math.ceil(selectedItems.length/perSheet));
     const grid="display:grid;grid-template-columns:repeat("+fmt.cols+","+toW(fmt.labelW)+");gap:"+toW(fmt.gapV)+" "+toW(fmt.gapH)+";margin-left:"+toW(fmt.marginL)+";margin-top:"+toW(fmt.marginT)+";";
-    const gDiv='<div class="grid">';
-    const doc="<!DOCTYPE html>"+"<html>"+"<head>"+"<title>Smart Kitchen Labels</title>"+"<style>@media print{body{margin:0;}}.grid{"+grid+"}</style>"+"</head>"+"<body>"+gDiv+cells.join("")+"</div>"+"</body>"+"</html>";
+    const sheets=[];
+    for(let pg=0;pg<sheetCount;pg++){
+      const cells=[];
+      for(let s=0;s<perSheet;s++){
+        const item=selectedItems[pg*perSheet+s];
+        if(item){
+          const icon=item.category==="Wild Harvest"?"\uD83E\uDD8C":"\uD83C\uDF31";
+          const hLine=item.harvestDate?"Harvested: "+item.harvestDate:(item.addedAt?new Date(item.addedAt).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}):"");
+          const bestBy=item.useBy||"";
+          const srv=item.qty&&item.unit?item.qty+" "+item.unit:"";
+          const top='<div style="font-size:'+fmt.nameFontSize+'pt;font-weight:700;line-height:1.1;margin-bottom:2px;">'+icon+' '+item.name.toUpperCase()+'</div><div style="font-size:'+fmt.fontSize+'pt;color:#555;">'+item.category+'</div>';
+          const mid=labelFormat!=="5160"?'<div style="font-size:'+fmt.fontSize+'pt;color:#333;line-height:1.4;">'+(hLine?hLine+'<br/>':'')+(srv?srv+'<br/>':'')+(bestBy?'Best by: '+bestBy:'')+'</div>':'<div style="font-size:'+fmt.fontSize+'pt;color:#333;">'+(bestBy?'Best by: '+bestBy:'')+'</div>';
+          const bot='<div style="font-size:'+(labelFormat==="5160"?5:fmt.fontSize-1)+'pt;color:#999;text-align:right;">Smart Kitchen(tm)</div>';
+          cells.push('<div style="width:'+toW(fmt.labelW)+';height:'+toW(fmt.labelH)+';box-sizing:border-box;padding:'+(labelFormat==="5160"?'4px 6px':'8px 10px')+';display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;border:0.5px dashed #ccc;font-family:Arial,sans-serif;"><div>'+top+'</div>'+mid+bot+'</div>');
+        } else {
+          cells.push('<div style="width:'+toW(fmt.labelW)+';height:'+toW(fmt.labelH)+';box-sizing:border-box;border:0.5px dashed #eee;"></div>');
+        }
+      }
+      sheets.push('<div class="grid" style="'+grid+(pg<sheetCount-1?'page-break-after:always;':'')+'">'+cells.join("")+'</div>');
+    }
+    const doc="<!DOCTYPE html>"+"<html>"+"<head>"+"<title>Smart Kitchen Labels</title>"+"<style>@media print{body{margin:0;}}</style>"+"</head>"+"<body>"+sheets.join("")+"</body>"+"</html>";
     const win=window.open("","_blank","width=816,height=1056");
     win.document.write(doc);
     win.document.close();
@@ -4417,6 +4435,15 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                     if(idx>=0) return prev.map((i,ii)=>ii===idx?{...i,qty:i.qty+actual}:i);
                     return [...prev,{id:Date.now(),name:rpYieldConfirm.itemName,qty:actual,unit:rpYieldConfirm.unit,category:"Home Harvest",harvestType:"Produce",location:rpYieldConfirm.form==="Frozen"?"Freezer":rpYieldConfirm.form==="Canned"?"Pantry":"Fridge",preservedForm:rpYieldConfirm.form}];
                   });
+                  const hKey=rpYieldConfirm.itemName,hUnit=rpYieldConfirm.unit,hForm=rpYieldConfirm.form;
+                  setTimeout(()=>{
+                    if(window.confirm(hKey+": "+actual+" "+hUnit+" added. Print labels for this batch now?")){
+                      setLabelSelected({[hKey]:true});
+                      setLabelQty({[hKey]:actual});
+                      setLabelFormat(hForm==="Canned"?"5164":"5163");
+                      setLabelModal(true);
+                    }
+                  },400);
                 } else {
                   try{
                     const h=JSON.parse(localStorage.getItem("sk_yieldHistory")||"[]");
@@ -6587,9 +6614,10 @@ setScaleCalcLoading(false);setTimeout(()=>{if(scaleDevice&&scaleDevice._writeChr
             {/* Item selector */}
             <div style={{marginBottom:16}}>
               <div style={{fontSize:11,fontFamily:FM,color:C.muted,letterSpacing:0.8,marginBottom:8}}>SELECT ITEMS TO LABEL</div>
+              <div style={{fontSize:11,color:C.dim,marginBottom:8}}>Defaults to one label per package on hand — adjust the count if you don't need a label for every one.</div>
               <div style={{display:"flex",gap:6,marginBottom:8,flexWrap:"wrap"}}>
-                <button onClick={()=>{const sel={};inventory.filter(i=>i.category==="Wild Harvest"||i.category==="Home Harvest").forEach(i=>sel[i.id||i.name]=true);setLabelSelected(sel);}} style={{...bBtn("ghost"),fontSize:11,padding:"4px 10px"}}>Select All</button>
-                <button onClick={()=>setLabelSelected({})} style={{...bBtn("ghost"),fontSize:11,padding:"4px 10px"}}>Clear</button>
+                <button onClick={()=>{const sel={};const qty={};inventory.filter(i=>i.category==="Wild Harvest"||i.category==="Home Harvest").forEach(i=>{const k=i.id||i.name;sel[k]=true;qty[k]=Math.max(1,parseInt(i.qty)||1);});setLabelSelected(sel);setLabelQty(qty);}} style={{...bBtn("ghost"),fontSize:11,padding:"4px 10px"}}>Select All</button>
+                <button onClick={()=>{setLabelSelected({});setLabelQty({});}} style={{...bBtn("ghost"),fontSize:11,padding:"4px 10px"}}>Clear</button>
               </div>
               {["Wild Harvest","Home Harvest"].map(loc=>{
                 const items=inventory.filter(i=>i.category===loc);
@@ -6600,15 +6628,26 @@ setScaleCalcLoading(false);setTimeout(()=>{if(scaleDevice&&scaleDevice._writeChr
                     {items.map(item=>{
                       const key=item.id||item.name;
                       const checked=!!labelSelected[key];
+                      const qty=labelQty[key]||Math.max(1,parseInt(item.qty)||1);
                       return(
-                        <div key={key} onClick={()=>setLabelSelected(prev=>({...prev,[key]:!prev[key]}))} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 10px",borderRadius:8,cursor:"pointer",background:checked?"#1a2e1a":C.surface,border:"1px solid "+(checked?"#4c4":C.border),marginBottom:4}}>
-                          <div style={{width:16,height:16,borderRadius:4,border:"2px solid "+(checked?"#4c4":C.muted),background:checked?"#4c4":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                            {checked&&<span style={{color:"#000",fontSize:10,fontWeight:900}}>✓</span>}
+                        <div key={key} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 10px",borderRadius:8,cursor:"pointer",background:checked?"#1a2e1a":C.surface,border:"1px solid "+(checked?"#4c4":C.border),marginBottom:4}}>
+                          <div onClick={()=>setLabelSelected(prev=>{const next=!prev[key];if(next)setLabelQty(q=>({...q,[key]:q[key]||Math.max(1,parseInt(item.qty)||1)}));return {...prev,[key]:next};})} style={{display:"flex",alignItems:"center",gap:10,flex:1,cursor:"pointer"}}>
+                            <div style={{width:16,height:16,borderRadius:4,border:"2px solid "+(checked?"#4c4":C.muted),background:checked?"#4c4":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                              {checked&&<span style={{color:"#000",fontSize:10,fontWeight:900}}>✓</span>}
+                            </div>
+                            <div style={{flex:1}}>
+                              <div style={{fontSize:13,fontWeight:600,color:C.text}}>{item.name}</div>
+                              <div style={{fontSize:11,color:C.muted}}>{item.qty} {item.unit}{item.harvestDate?" · Harvested "+item.harvestDate:""}{item.useBy?" · Best by "+item.useBy:""}</div>
+                            </div>
                           </div>
-                          <div style={{flex:1}}>
-                            <div style={{fontSize:13,fontWeight:600,color:C.text}}>{item.name}</div>
-                            <div style={{fontSize:11,color:C.muted}}>{item.qty} {item.unit}{item.harvestDate?" · Harvested "+item.harvestDate:""}{item.useBy?" · Best by "+item.useBy:""}</div>
-                          </div>
+                          {checked&&(
+                            <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}} onClick={e=>e.stopPropagation()}>
+                              <button onClick={()=>setLabelQty(q=>({...q,[key]:Math.max(1,(q[key]||1)-1)}))} style={{...bBtn("ghost"),padding:"2px 8px",fontSize:13}}>−</button>
+                              <span style={{fontSize:13,fontWeight:700,color:"#4c4",minWidth:18,textAlign:"center"}}>{qty}</span>
+                              <button onClick={()=>setLabelQty(q=>({...q,[key]:(q[key]||1)+1}))} style={{...bBtn("ghost"),padding:"2px 8px",fontSize:13}}>+</button>
+                              <span style={{fontSize:10,color:C.dim}}>labels</span>
+                            </div>
+                          )}
                         </div>
                       );
                     })}
@@ -6619,8 +6658,9 @@ setScaleCalcLoading(false);setTimeout(()=>{if(scaleDevice&&scaleDevice._writeChr
             {/* Action buttons */}
             <div style={{display:"flex",gap:10,justifyContent:"flex-end",borderTop:"1px solid "+C.border,paddingTop:16}}>
               <button onClick={()=>setLabelModal(false)} style={{...bBtn("ghost"),padding:"10px 20px"}}>Cancel</button>
-              <button disabled={Object.values(labelSelected).filter(Boolean).length===0} onClick={printLabels} style={{...bBtn("primary"),padding:"10px 24px",fontSize:14,opacity:Object.values(labelSelected).filter(Boolean).length===0?0.4:1}}>🖨 Print {Object.values(labelSelected).filter(Boolean).length>0?Object.values(labelSelected).filter(Boolean).length+" Label"+(Object.values(labelSelected).filter(Boolean).length>1?"s":""):"Labels"}</button>
+              <button disabled={Object.values(labelSelected).filter(Boolean).length===0} onClick={printLabels} style={{...bBtn("primary"),padding:"10px 24px",fontSize:14,opacity:Object.values(labelSelected).filter(Boolean).length===0?0.4:1}}>🖨 Print {(()=>{const tot=Object.keys(labelSelected).filter(k=>labelSelected[k]).reduce((sum,k)=>sum+Math.max(1,parseInt(labelQty[k])||1),0);return tot>0?tot+" Label"+(tot>1?"s":""):"Labels";})()}</button>
             </div>
+
           </div>
         </div>
       )}
