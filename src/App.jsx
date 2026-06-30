@@ -111,6 +111,13 @@ const HOME_PRODUCE=[
   {name:"Other Preserved",shelfDays:365,storage:"Pantry"},
   {name:"Other Livestock",freezerMonths:6,storage:"Freezer"},
 ];
+const HARVEST_YIELD={
+  "Tomatoes (Fresh)":{rawUnit:"bushels",outputUnit:{Canned:"quart jars",Frozen:"1-lb bags",Fresh:"lb bags"},rate:{Canned:17,Frozen:38,Fresh:53}},
+  "Green Beans":{rawUnit:"bushels",outputUnit:{Canned:"pint jars",Frozen:"1-lb bags",Fresh:"lb bags"},rate:{Canned:15,Frozen:25,Fresh:30}},
+  "Sweet Corn":{rawUnit:"dozen ears",outputUnit:{Canned:"pint jars",Frozen:"quart bags",Fresh:"ears"},rate:{Canned:5,Frozen:6,Fresh:12}},
+};
+const HARVEST_YIELD_DEFAULT={rawUnit:"lbs",outputUnit:{Canned:"jars",Frozen:"1-lb bags",Fresh:"lb bags"},rate:{Canned:0.5,Frozen:1,Fresh:1}};
+const getHarvestYield=(name)=>HARVEST_YIELD[name]||HARVEST_YIELD_DEFAULT;
 const PROTEIN_TAG_COLOR=(name)=>{
   if(!name) return C.muted;
   const n=name.toLowerCase();
@@ -1128,6 +1135,11 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [rpPOz,setRpPOz]=useState(6);
   const [rpPPreview,setRpPPreview]=useState(null);
   const [rpVSessions,setRpVSessions]=useState([{id:1,preset:{name:"Mixed Sauté Blend",cupsPerUnit:3,bagCups:2,color:C.orange},count:"",bags:null}]);
+  const [rpHCat,setRpHCat]=useState("Wild Harvest");
+  const [rpHItem,setRpHItem]=useState("");
+  const [rpHRaw,setRpHRaw]=useState("");
+  const [rpHOz,setRpHOz]=useState(16);
+  const [rpHForm,setRpHForm]=useState("Canned");
   const fileRef=useRef();
   const galleryRef=useRef();
   // Migration: promote Protein items + fix corrupted portion counts > 50
@@ -1658,7 +1670,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
   },[chatMessages]);
 
   // -- Repackage helpers ------------------------------------------------------
-  const openRepack=(mode)=>{setRpMode(mode);setRpPName("");setRpPLbs("");setRpPOz(6);setRpPPreview(null);setRpOpen(true);};
+  const openRepack=(mode)=>{setRpMode(mode);setRpPName("");setRpPLbs("");setRpPOz(6);setRpPPreview(null);setRpHItem("");setRpHRaw("");setRpHOz(16);setRpOpen(true);};
   const commitProtein=()=>{
     if(!rpPName||!rpPLbs) return;
     const portions=Math.floor((parseFloat(rpPLbs)*16)/rpPOz);
@@ -1682,6 +1694,27 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       return u;
     });
     setRpOpen(false);
+  };
+  // Wild Harvest: deterministic weight->portion math, same formula as commitProtein, tagged to Wild Harvest category
+  const commitHarvestWild=()=>{
+    if(!rpHItem||!rpHRaw) return;
+    const portions=Math.floor((parseFloat(rpHRaw)*16)/rpHOz);
+    if(portions<1) return;
+    setInventory(prev=>{
+      const idx=prev.findIndex(i=>i.name.toLowerCase()===rpHItem.toLowerCase()&&i.category==="Wild Harvest");
+      if(idx>=0) return prev.map((i,ii)=>ii===idx?{...i,qty:i.qty+portions,portionOz:rpHOz}:i);
+      return [...prev,{id:Date.now(),name:rpHItem,qty:portions,unit:"portions",category:"Wild Harvest",harvestType:"Protein",location:"Freezer",isBulkProtein:true,portionOz:rpHOz}];
+    });
+    setRpOpen(false);
+  };
+  // Home Harvest: estimate via HARVEST_YIELD table, routes through the generalized Yield Confirm modal
+  const estimateHarvestHome=()=>{
+    if(!rpHItem||!rpHRaw) return;
+    const y=getHarvestYield(rpHItem);
+    const rate=y.rate[rpHForm]??y.rate.Fresh??1;
+    const estimated=Math.max(1,Math.round(parseFloat(rpHRaw)*rate));
+    setRpYieldConfirm({type:"homeHarvest",estimated,unit:y.outputUnit[rpHForm]||"units",itemName:rpHItem,form:rpHForm,rawQty:rpHRaw,rawUnit:y.rawUnit});
+    setRpActualBags(String(estimated));
   };
 
   // -- Scan -------------------------------------------------------------------
@@ -4172,10 +4205,11 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
         <div style={{position:"fixed",inset:0,background:"#000d",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:16}} onClick={()=>setRpOpen(false)}>
           <div style={{background:C.surface,border:"1px solid "+C.borderLight,borderRadius:18,padding:22,maxWidth:560,width:"100%",maxHeight:"90vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
-              <div style={{fontFamily:FD,fontSize:22,color:C.accent}}>{rpMode==="protein"?"🥩 Repackage Protein":"🫕 Prep Sauté Blend Bags"}</div>
+              <div style={{fontFamily:FD,fontSize:22,color:C.accent}}>{rpMode==="protein"?"🥩 Repackage Protein":rpMode==="veg"?"🫕 Prep Sauté Blend Bags":"🦌 Process Harvest"}</div>
               <div style={{display:"flex",gap:7}}>
                 <button onClick={()=>setRpMode("protein")} style={{...bBtn(rpMode==="protein"?"orange":"ghost"),padding:"6px 12px",fontSize:11}}>🥩</button>
                 <button onClick={()=>setRpMode("veg")} style={{...bBtn(rpMode==="veg"?"teal":"ghost"),padding:"6px 12px",fontSize:11}}>🫕</button>
+                <button onClick={()=>setRpMode("harvest")} style={{...bBtn(rpMode==="harvest"?"green":"ghost"),padding:"6px 12px",fontSize:11}}>🦌</button>
                 <button onClick={()=>setRpOpen(false)} style={{background:"transparent",border:"none",color:C.muted,cursor:"pointer",fontSize:20}}>✕</button>
               </div>
             </div>
@@ -4263,9 +4297,85 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                     const p=parseFloat(rpVSessions.find(s=>s.id==="peppers")?.count||0)||0;
                     const bags=Math.floor(((o*1.5)+(c*0.5)+(p*1.0))/2);
                     if(bags===0){alert("Not enough veg for a 2-cup bag.");return;}
-                    setRpYieldConfirm({estimated:bags,o,c,p});setRpActualBags(String(bags));
+                    setRpYieldConfirm({type:"sauteBlend",estimated:bags,o,c,p});setRpActualBags(String(bags));
                   }}>🫕 Confirm — Estimated {Math.floor(((parseFloat(rpVSessions.find(s=>s.id==="onions")?.count||0)||0)*1.5+((parseFloat(rpVSessions.find(s=>s.id==="celery")?.count||0)||0)*0.5)+((parseFloat(rpVSessions.find(s=>s.id==="peppers")?.count||0)||0)*1.0))/2)} Bags</button>
                 </div>
+              </div>
+            )}
+            {rpMode==="harvest"&&(
+              <div>
+                <div style={{background:C.surface,border:"1px solid "+C.green+"33",borderRadius:10,padding:12,marginBottom:14,fontSize:seniorMode?16:12,color:C.muted,lineHeight:1.6}}>
+                  <strong style={{color:C.green}}>Process a harvest</strong> — a whole deer, a batch of fish, a bushel of garden produce — into portions ready for inventory.
+                </div>
+                <div style={{display:"flex",gap:7,marginBottom:14}}>
+                  <button onClick={()=>{setRpHCat("Wild Harvest");setRpHItem("");setRpHRaw("");}} style={{...bBtn(rpHCat==="Wild Harvest"?"green":"ghost"),flex:1}}>🦌 Wild Harvest</button>
+                  <button onClick={()=>{setRpHCat("Home Harvest");setRpHItem("");setRpHRaw("");}} style={{...bBtn(rpHCat==="Home Harvest"?"green":"ghost"),flex:1}}>🌱 Home Harvest</button>
+                </div>
+                <div style={{marginBottom:12}}>
+                  <Label>{rpHCat==="Wild Harvest"?"SPECIES / CUT":"PRODUCE"}</Label>
+                  <select style={bInp} value={rpHItem} onChange={e=>setRpHItem(e.target.value)}>
+                    <option value="">Select...</option>
+                    {(rpHCat==="Wild Harvest"?WILD_SPECIES:HOME_PRODUCE).map(s=><option key={s.name} value={s.name}>{s.name}</option>)}
+                  </select>
+                </div>
+                {rpHCat==="Wild Harvest"?(
+                  <div>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
+                      <div><Label>TOTAL WEIGHT (lbs)</Label><input style={bInp} type="number" placeholder="e.g. 45" value={rpHRaw} onChange={e=>setRpHRaw(e.target.value)}/></div>
+                      <div>
+                        <Label>OZ PER PORTION</Label>
+                        <div style={{display:"flex",gap:6}}>
+                          {[4,5,6,8,16].map(oz=>(
+                            <button key={oz} onClick={()=>setRpHOz(oz)}
+                              style={{...bBtn("ghost"),padding:"6px 8px",fontSize:11,background:rpHOz===oz?C.green+"22":"transparent",color:rpHOz===oz?C.green:C.muted,border:"1px solid "+(rpHOz===oz?C.green:C.border)}}>
+                              {oz}oz
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    {rpHItem&&rpHRaw&&(
+                      <div style={{background:"#13231a",border:"1px solid "+C.green+"44",borderRadius:10,padding:14,marginBottom:14,textAlign:"center"}}>
+                        <div style={{fontSize:22,fontWeight:700,fontFamily:FD,color:C.green}}>{Math.floor((parseFloat(rpHRaw)*16)/rpHOz)} portions</div>
+                        <div style={{fontSize:10,color:C.muted,fontFamily:FM,marginTop:2}}>{rpHRaw} lbs ÷ {rpHOz}oz each</div>
+                      </div>
+                    )}
+                    <div style={{display:"flex",gap:8}}>
+                      <button style={{...bBtn("ghost"),flex:1}} onClick={()=>setRpOpen(false)}>Cancel</button>
+                      <button style={{...bBtn("green"),flex:2,opacity:(rpHItem&&rpHRaw)?1:0.4}} onClick={commitHarvestWild}>🦌 Add to Wild Harvest Inventory</button>
+                    </div>
+                  </div>
+                ):(
+                  <div>
+                    <div style={{marginBottom:12}}>
+                      <Label>RAW QUANTITY ({rpHItem?getHarvestYield(rpHItem).rawUnit:"lbs"})</Label>
+                      <input style={bInp} type="number" placeholder="e.g. 2" value={rpHRaw} onChange={e=>setRpHRaw(e.target.value)}/>
+                    </div>
+                    <div style={{marginBottom:12}}>
+                      <Label>PRESERVATION METHOD</Label>
+                      <div style={{display:"flex",gap:6}}>
+                        {["Canned","Frozen","Fresh"].map(f=>(
+                          <button key={f} onClick={()=>setRpHForm(f)} style={{...bBtn(rpHForm===f?"green":"ghost"),flex:1,fontSize:11}}>{f}</button>
+                        ))}
+                      </div>
+                    </div>
+                    {rpHItem&&rpHRaw&&(()=>{
+                      const y=getHarvestYield(rpHItem);
+                      const rate=y.rate[rpHForm]??y.rate.Fresh??1;
+                      const est=Math.max(1,Math.round(parseFloat(rpHRaw)*rate));
+                      return(
+                        <div style={{background:"#13231a",border:"1px solid "+C.green+"44",borderRadius:10,padding:14,marginBottom:14,textAlign:"center"}}>
+                          <div style={{fontSize:22,fontWeight:700,fontFamily:FD,color:C.green}}>~{est} {y.outputUnit[rpHForm]||"units"}</div>
+                          <div style={{fontSize:10,color:C.muted,fontFamily:FM,marginTop:2}}>estimated — you\u2019ll confirm the actual count next</div>
+                        </div>
+                      );
+                    })()}
+                    <div style={{display:"flex",gap:8}}>
+                      <button style={{...bBtn("ghost"),flex:1}} onClick={()=>setRpOpen(false)}>Cancel</button>
+                      <button style={{...bBtn("green"),flex:2,opacity:(rpHItem&&rpHRaw)?1:0.4}} onClick={estimateHarvestHome}>🌱 Confirm Yield</button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -4276,38 +4386,55 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
       {rpYieldConfirm&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300,padding:16}}>
           <div style={{background:C.card,border:"1px solid "+C.border,borderRadius:16,padding:24,maxWidth:400,width:"100%"}}>
-            <div style={{fontFamily:FD,fontSize:20,color:C.accent,marginBottom:8}}>🫕 Actual Yield?</div>
-            <div style={{fontSize:14,color:C.muted,marginBottom:20}}>Estimated <span style={{color:C.orange,fontWeight:700}}>{rpYieldConfirm.estimated} bags</span>. How many 2-cup bags did you actually get?</div>
+            <div style={{fontFamily:FD,fontSize:20,color:C.accent,marginBottom:8}}>{rpYieldConfirm.type==="homeHarvest"?"🌱 Actual Yield?":"🫕 Actual Yield?"}</div>
+            <div style={{fontSize:14,color:C.muted,marginBottom:20}}>
+              {rpYieldConfirm.type==="homeHarvest"
+                ?<>Estimated <span style={{color:C.orange,fontWeight:700}}>{rpYieldConfirm.estimated} {rpYieldConfirm.unit}</span> from {rpYieldConfirm.rawQty} {rpYieldConfirm.rawUnit} of {rpYieldConfirm.itemName}. How many {rpYieldConfirm.unit} did you actually get?</>
+                :<>Estimated <span style={{color:C.orange,fontWeight:700}}>{rpYieldConfirm.estimated} bags</span>. How many 2-cup bags did you actually get?</>}
+            </div>
             <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20}}>
               <button onClick={()=>setRpActualBags(b=>String(Math.max(1,parseInt(b||"0")-1)))} style={{...bBtn("ghost"),padding:"8px 16px",fontSize:20}}>−</button>
-              <input type="number" min="1" max="50" value={rpActualBags} onChange={e=>setRpActualBags(e.target.value)} style={{flex:1,textAlign:"center",fontSize:28,fontWeight:700,fontFamily:FD,color:C.orange,background:C.surface,border:"1px solid "+C.border,borderRadius:10,padding:"10px 0"}}/>
+              <input type="number" min="1" max="200" value={rpActualBags} onChange={e=>setRpActualBags(e.target.value)} style={{flex:1,textAlign:"center",fontSize:28,fontWeight:700,fontFamily:FD,color:C.orange,background:C.surface,border:"1px solid "+C.border,borderRadius:10,padding:"10px 0"}}/>
               <button onClick={()=>setRpActualBags(b=>String(parseInt(b||"0")+1))} style={{...bBtn("ghost"),padding:"8px 16px",fontSize:20}}>+</button>
             </div>
             {parseInt(rpActualBags)!==rpYieldConfirm.estimated&&(
               <div style={{fontSize:12,color:C.muted,marginBottom:16,textAlign:"center"}}>
-                {parseInt(rpActualBags)>rpYieldConfirm.estimated?"📈":"📉"} {Math.abs(parseInt(rpActualBags)-rpYieldConfirm.estimated)} bags {parseInt(rpActualBags)>rpYieldConfirm.estimated?"more":"fewer"} than estimated — Smart Kitchen will learn from this.
+                {parseInt(rpActualBags)>rpYieldConfirm.estimated?"📈":"📉"} {Math.abs(parseInt(rpActualBags)-rpYieldConfirm.estimated)} {rpYieldConfirm.type==="homeHarvest"?rpYieldConfirm.unit:"bags"} {parseInt(rpActualBags)>rpYieldConfirm.estimated?"more":"fewer"} than estimated — Smart Kitchen will learn from this.
               </div>
             )}
             <div style={{display:"flex",gap:8}}>
               <button style={{...bBtn("ghost"),flex:1}} onClick={()=>{setRpYieldConfirm(null);setRpActualBags("");}}>Cancel</button>
               <button style={{...bBtn("teal"),flex:2}} onClick={()=>{
                 const actual=Math.max(1,parseInt(rpActualBags)||rpYieldConfirm.estimated);
-                try{
-                  const h=JSON.parse(localStorage.getItem("sk_yieldHistory")||"[]");
-                  const ingredients=[];
-                  if(rpYieldConfirm.o>0) ingredients.push(rpYieldConfirm.o+" onions");
-                  if(rpYieldConfirm.c>0) ingredients.push(rpYieldConfirm.c+" stalks celery");
-                  if(rpYieldConfirm.p>0) ingredients.push(rpYieldConfirm.p+" peppers");
-                  h.push({type:"sauteBlend",ingredients,estimated:rpYieldConfirm.estimated,actual,unit:"2-cup bags",correctionFactor:parseFloat((actual/Math.max(1,rpYieldConfirm.estimated)).toFixed(2)),ts:Date.now()});
-                  localStorage.setItem("sk_yieldHistory",JSON.stringify(h.slice(-50)));
-                }catch{}
-                setInventory(prev=>{
-                  const idx=prev.findIndex(i=>i.vegType==="sauteBlend");
-                  if(idx>=0) return prev.map((i,ii)=>ii===idx?{...i,qty:i.qty+actual}:i);
-                  return [...prev,{id:Date.now(),name:"Mixed Sauté Blend",qty:actual,unit:"2-cup bags",category:"Produce",location:"Freezer",isDicedVeg:true,vegType:"sauteBlend",cupsPerBag:2,blendNote:"Diced onion + celery + bell pepper"}];
-                });
+                if(rpYieldConfirm.type==="homeHarvest"){
+                  try{
+                    const h=JSON.parse(localStorage.getItem("sk_yieldHistory")||"[]");
+                    h.push({type:"homeHarvest",itemName:rpYieldConfirm.itemName,form:rpYieldConfirm.form,rawQty:rpYieldConfirm.rawQty,rawUnit:rpYieldConfirm.rawUnit,estimated:rpYieldConfirm.estimated,actual,unit:rpYieldConfirm.unit,correctionFactor:parseFloat((actual/Math.max(1,rpYieldConfirm.estimated)).toFixed(2)),ts:Date.now()});
+                    localStorage.setItem("sk_yieldHistory",JSON.stringify(h.slice(-50)));
+                  }catch{}
+                  setInventory(prev=>{
+                    const idx=prev.findIndex(i=>i.name.toLowerCase()===rpYieldConfirm.itemName.toLowerCase()&&i.category==="Home Harvest");
+                    if(idx>=0) return prev.map((i,ii)=>ii===idx?{...i,qty:i.qty+actual}:i);
+                    return [...prev,{id:Date.now(),name:rpYieldConfirm.itemName,qty:actual,unit:rpYieldConfirm.unit,category:"Home Harvest",harvestType:"Produce",location:rpYieldConfirm.form==="Frozen"?"Freezer":rpYieldConfirm.form==="Canned"?"Pantry":"Fridge",preservedForm:rpYieldConfirm.form}];
+                  });
+                } else {
+                  try{
+                    const h=JSON.parse(localStorage.getItem("sk_yieldHistory")||"[]");
+                    const ingredients=[];
+                    if(rpYieldConfirm.o>0) ingredients.push(rpYieldConfirm.o+" onions");
+                    if(rpYieldConfirm.c>0) ingredients.push(rpYieldConfirm.c+" stalks celery");
+                    if(rpYieldConfirm.p>0) ingredients.push(rpYieldConfirm.p+" peppers");
+                    h.push({type:"sauteBlend",ingredients,estimated:rpYieldConfirm.estimated,actual,unit:"2-cup bags",correctionFactor:parseFloat((actual/Math.max(1,rpYieldConfirm.estimated)).toFixed(2)),ts:Date.now()});
+                    localStorage.setItem("sk_yieldHistory",JSON.stringify(h.slice(-50)));
+                  }catch{}
+                  setInventory(prev=>{
+                    const idx=prev.findIndex(i=>i.vegType==="sauteBlend");
+                    if(idx>=0) return prev.map((i,ii)=>ii===idx?{...i,qty:i.qty+actual}:i);
+                    return [...prev,{id:Date.now(),name:"Mixed Sauté Blend",qty:actual,unit:"2-cup bags",category:"Produce",location:"Freezer",isDicedVeg:true,vegType:"sauteBlend",cupsPerBag:2,blendNote:"Diced onion + celery + bell pepper"}];
+                  });
+                }
                 setRpYieldConfirm(null);setRpActualBags("");setRpOpen(false);
-              }}>✓ Save {rpActualBags} Bags</button>
+              }}>✓ Save {rpActualBags} {rpYieldConfirm.type==="homeHarvest"?rpYieldConfirm.unit:"Bags"}</button>
             </div>
           </div>
         </div>
