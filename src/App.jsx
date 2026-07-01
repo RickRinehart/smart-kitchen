@@ -1738,6 +1738,16 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     setRpActualBags(String(estimated));
   };
   // Home Harvest: deterministic math for meat/liquid/dairy/count items — same exact-arithmetic pattern as Wild Harvest, no yield guesswork needed
+  const getHarvestMeasurePref=(name)=>{
+    try{ const p=JSON.parse(localStorage.getItem("sk_harvestMeasurePrefs")||"{}"); return p[name]||null; }catch{ return null; }
+  };
+  const saveHarvestMeasurePref=(name,measure,size)=>{
+    try{
+      const p=JSON.parse(localStorage.getItem("sk_harvestMeasurePrefs")||"{}");
+      p[name]={measure,size};
+      localStorage.setItem("sk_harvestMeasurePrefs",JSON.stringify(p));
+    }catch{}
+  };
   const commitHarvestDeterministic=()=>{
     if(!rpHItem||!rpHRaw) return;
     const p=HOME_PRODUCE.find(x=>x.name===rpHItem);
@@ -4372,10 +4382,11 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                     setRpHRaw("");
                     if(rpHCat==="Home Harvest"){
                       const p=HOME_PRODUCE.find(x=>x.name===val);
-                      const measure=p&&p.unitType!=="bulk"?p.unitType:"lbs";
+                      const saved=getHarvestMeasurePref(val);
+                      const measure=saved?.measure||(p&&p.unitType!=="bulk"?p.unitType:"lbs");
                       setRpHMeasure(measure);
                       const cfg=MEASURE_CONFIG[measure];
-                      if(cfg?.defaultSize) setRpHOz(cfg.defaultSize);
+                      setRpHOz(saved?.size||cfg?.defaultSize||16);
                     }
                   }}>
                     <option value="">Select...</option>
@@ -4453,7 +4464,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                           <Label>MEASURE BY</Label>
                           <div style={{display:"flex",gap:6}}>
                             {["lbs","oz","each","dozen"].map(m=>(
-                              <button key={m} onClick={()=>{setRpHMeasure(m);const c=MEASURE_CONFIG[m];if(c.defaultSize) setRpHOz(c.defaultSize);}}
+                              <button key={m} onClick={()=>{setRpHMeasure(m);const c=MEASURE_CONFIG[m];const sz=c.defaultSize||null;if(sz) setRpHOz(sz);saveHarvestMeasurePref(rpHItem,m,sz);}}
                                 style={{...bBtn("ghost"),flex:1,fontSize:11,background:rpHMeasure===m?C.green+"22":"transparent",color:rpHMeasure===m?C.green:C.muted,border:"1px solid "+(rpHMeasure===m?C.green:C.border)}}>
                                 {m}
                               </button>
@@ -4468,7 +4479,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                             <Label>{cfg.sizeLabel}</Label>
                             <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
                               {cfg.sizeOptions.map(sz=>(
-                                <button key={sz} onClick={()=>setRpHOz(sz)}
+                                <button key={sz} onClick={()=>{setRpHOz(sz);saveHarvestMeasurePref(rpHItem,rpHMeasure,sz);}}
                                   style={{...bBtn("ghost"),padding:"6px 8px",fontSize:11,background:rpHOz===sz?C.green+"22":"transparent",color:rpHOz===sz?C.green:C.muted,border:"1px solid "+(rpHOz===sz?C.green:C.border)}}>
                                   {sz}{cfg.sizeUnit}
                                 </button>
