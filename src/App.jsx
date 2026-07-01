@@ -125,6 +125,36 @@ const HARVEST_YIELD={
 };
 const HARVEST_YIELD_DEFAULT={rawUnit:"lbs",outputUnit:{Canned:"jars",Frozen:"1-lb bags",Fresh:"lb bags"},rate:{Canned:0.5,Frozen:1,Fresh:1}};
 const getHarvestYield=(name)=>HARVEST_YIELD[name]||HARVEST_YIELD_DEFAULT;
+// Simple Levenshtein distance — used to catch near-miss typos (e.g. "Chi8ken Breast") against existing inventory item names
+const levenshtein=(a,b)=>{
+  a=a.toLowerCase();b=b.toLowerCase();
+  const m=a.length,n=b.length;
+  if(m===0) return n; if(n===0) return m;
+  const d=Array.from({length:m+1},()=>new Array(n+1).fill(0));
+  for(let i=0;i<=m;i++) d[i][0]=i;
+  for(let j=0;j<=n;j++) d[0][j]=j;
+  for(let i=1;i<=m;i++) for(let j=1;j<=n;j++){
+    const cost=a[i-1]===b[j-1]?0:1;
+    d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+cost);
+  }
+  return d[m][n];
+};
+// Returns the closest existing inventory item name if the typed name is a likely typo of it (not an exact match, but close), else null
+const findCloseInventoryMatch=(typed,inventory)=>{
+  const t=(typed||"").trim();
+  if(t.length<3) return null;
+  const tl=t.toLowerCase();
+  let best=null,bestDist=Infinity;
+  (inventory||[]).forEach(i=>{
+    const n=(i.name||"").trim();
+    if(!n||n.toLowerCase()===tl) return;
+    const dist=levenshtein(t,n);
+    const maxLen=Math.max(t.length,n.length);
+    const threshold=maxLen<=6?1:maxLen<=10?2:3;
+    if(dist<=threshold&&dist<bestDist){bestDist=dist;best=n;}
+  });
+  return best;
+};
 const PROTEIN_TAG_COLOR=(name)=>{
   if(!name) return C.muted;
   const n=name.toLowerCase();
@@ -3453,12 +3483,18 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
 
             {showAdd&&(
               <div style={{background:C.card,border:"1px solid "+C.border,borderRadius:12,padding:14,marginBottom:14}}>
-                <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr auto",gap:8,alignItems:"end",marginBottom:10}}>
+                <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr auto",gap:8,alignItems:"end",marginBottom:6}}>
                   {[{l:"Name",k:"name",ph:"Item name"},{l:"Qty",k:"qty",ph:"1",t:"number"},{l:"Unit",k:"unit",ph:"cup"}].map(f=>(
-                    <div key={f.k}><Label>{f.l}</Label><input style={bInp} placeholder={f.ph} type={f.t||"text"} value={newItem[f.k]} onChange={e=>setNewItem(p=>({...p,[f.k]:e.target.value}))}/></div>
+                    <div key={f.k}><Label>{f.l}</Label><input style={bInp} spellCheck={f.k==="name"} placeholder={f.ph} type={f.t||"text"} value={newItem[f.k]} onChange={e=>setNewItem(p=>({...p,[f.k]:e.target.value}))}/></div>
                   ))}
                   <button style={{...bBtn("primary"),whiteSpace:"nowrap",alignSelf:"flex-end"}} onClick={addItem}>Add</button>
                 </div>
+                {(()=>{ const m=findCloseInventoryMatch(newItem.name,inventory); return m&&(
+                  <div style={{marginBottom:10,fontSize:11,color:C.orange,display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+                    <span>Did you mean <strong>{m}</strong>? Typos create a separate item instead of adding to the existing one.</span>
+                    <button onClick={()=>setNewItem(p=>({...p,name:m}))} style={{...bBtn("ghost"),padding:"2px 8px",fontSize:10,border:"1px solid "+C.orange,color:C.orange}}>Use "{m}"</button>
+                  </div>
+                );})()}
                 <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
                   <span style={{fontFamily:FM,fontSize:11,color:C.muted,marginRight:2}}>Category:</span>
                   {[["Protein","#ef4444"],["Produce","#22c55e"],["Dairy","#60a5fa"],["Frozen","#a78bfa"],["Pantry","#f59e0b"],["Baking","#f472b6"],["Grains","#d97706"],["Condiments","#94a3b8"],["Other","#6b7280"],["Wild Harvest","#5a8a2e"],["Home Harvest","#2e8a5a"]].map(([cat,col])=>(
@@ -4280,7 +4316,16 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
             {rpMode==="protein"&&(
               <div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
-                  <div><Label>PROTEIN NAME</Label><input style={bInp} placeholder="e.g. Chicken Breast" value={rpPName} onChange={e=>{setRpPName(e.target.value);setRpPPreview(null);}}/></div>
+                  <div>
+                    <Label>PROTEIN NAME</Label>
+                    <input style={bInp} spellCheck="true" placeholder="e.g. Chicken Breast" value={rpPName} onChange={e=>{setRpPName(e.target.value);setRpPPreview(null);}}/>
+                    {(()=>{ const m=findCloseInventoryMatch(rpPName,inventory); return m&&(
+                      <div style={{marginTop:6,fontSize:11,color:C.orange,display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+                        <span>Did you mean <strong>{m}</strong>? Typos create a separate item instead of adding to the existing one.</span>
+                        <button onClick={()=>{setRpPName(m);setRpPPreview(null);}} style={{...bBtn("ghost"),padding:"2px 8px",fontSize:10,border:"1px solid "+C.orange,color:C.orange}}>Use "{m}"</button>
+                      </div>
+                    );})()}
+                  </div>
                   <div><Label>WEIGHT (lbs)</Label><input style={bInp} type="number" placeholder="5" value={rpPLbs} onChange={e=>{setRpPLbs(e.target.value);setRpPPreview(null);}}/></div>
                   <div>
                     <Label>OZ PER PORTION</Label>
