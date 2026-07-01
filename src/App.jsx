@@ -1064,6 +1064,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [upgradeModal,setUpgradeModal]=useState(null);
   const [labelModal,setLabelModal]=useState(false);const [labelSelected,setLabelSelected]=useState({});const [labelFormat,setLabelFormat]=useState("5163");const [labelQty,setLabelQty]=useState({});
   const [batchPrintCue,setBatchPrintCue]=useState(null);
+  const [leftoverSavedCue,setLeftoverSavedCue]=useState(null);
   const [makeThisModal,setMakeThisModal]=useState(false);
   const [makeThisInput,setMakeThisInput]=useState("");
   const [makeThisResult,setMakeThisResult]=useState(null);
@@ -4596,6 +4597,23 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
         </div>
       )}
 
+      {/* == LEFTOVER SAVED CUE == */}
+      {leftoverSavedCue&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300,padding:16}} onClick={()=>setLeftoverSavedCue(null)}>
+          <div style={{background:C.card,border:"1px solid "+C.green+"55",borderRadius:16,padding:26,maxWidth:380,width:"100%",textAlign:"center"}} onClick={e=>e.stopPropagation()}>
+            <div style={{fontSize:38,marginBottom:10}}>🍽</div>
+            <div style={{fontFamily:FD,fontSize:20,color:C.green,marginBottom:8}}>Saved to Leftovers!</div>
+            <div style={{fontSize:14,color:C.text,lineHeight:1.6,marginBottom:4}}>
+              <strong>{leftoverSavedCue.dishName}</strong>
+            </div>
+            <div style={{fontSize:13,color:C.muted,lineHeight:1.6,marginBottom:22}}>
+              Use by {leftoverSavedCue.useByDate}.
+            </div>
+            <button style={{...bBtn("green"),width:"100%"}} onClick={()=>setLeftoverSavedCue(null)}>Got It</button>
+          </div>
+        </div>
+      )}
+
       {/* == SCAN MODAL == */}
       {scanOpen&&(
         <div style={{position:"fixed",inset:0,background:"#000c",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:16}} onClick={()=>{if(scanStage!=="review")setScanOpen(false);}}>
@@ -5231,16 +5249,16 @@ useDays is days from today the food is safe to eat (cooked food: 3-4 days typica
                     canvas.width=img.width*ratio;canvas.height=img.height*ratio;
                     canvas.getContext("2d").drawImage(img,0,0,canvas.width,canvas.height);
                     saveLeftover(canvas.toDataURL("image/jpeg",0.65));
-                    alert("✅ "+dishName+" saved! Use by "+useByDate+".");
+                    setLeftoverSavedCue({dishName,useByDate});
                   };
-                  img.onerror=()=>{saveLeftover(leftoversPreview||null);alert("✅ "+dishName+" saved! Use by "+useByDate+".");};
+                  img.onerror=()=>{saveLeftover(leftoversPreview||null);setLeftoverSavedCue({dishName,useByDate});};
                   img.src="data:"+leftoversMime+";base64,"+leftoversB64;
                 } else if(leftoversPreview){
                   saveLeftover(leftoversPreview);
-                  alert("✅ "+dishName+" saved! Use by "+useByDate+".");
+                  setLeftoverSavedCue({dishName,useByDate});
                 } else {
                   saveLeftover(null);
-                  alert("✅ "+dishName+" saved! Use by "+useByDate+".");
+                  setLeftoverSavedCue({dishName,useByDate});
                 }
               }}>
                 💾 Save to Inventory
