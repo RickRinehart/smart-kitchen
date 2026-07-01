@@ -68,49 +68,55 @@ const WILD_SPECIES=[
   {name:"Other Wild Game",freezerMonths:6},
 ];
 const HOME_PRODUCE=[
-  {name:"Tomatoes (Fresh)",shelfDays:7,storage:"Counter"},
-  {name:"Zucchini",shelfDays:5,storage:"Fridge"},
-  {name:"Green Beans",shelfDays:5,storage:"Fridge"},
-  {name:"Sweet Corn",shelfDays:3,storage:"Fridge"},
-  {name:"Bell Peppers",shelfDays:7,storage:"Fridge"},
-  {name:"Cucumbers",shelfDays:7,storage:"Fridge"},
-  {name:"Butternut Squash",shelfDays:60,storage:"Cool dry"},
-  {name:"Acorn Squash",shelfDays:60,storage:"Cool dry"},
-  {name:"Kale",shelfDays:5,storage:"Fridge"},
-  {name:"Lettuce / Greens",shelfDays:5,storage:"Fridge"},
-  {name:"Herbs (Fresh)",shelfDays:7,storage:"Fridge"},
-  {name:"Eggs (Backyard)",shelfDays:35,storage:"Fridge"},
-  {name:"Garlic (Cured)",shelfDays:180,storage:"Cool dry"},
-  {name:"Onions (Cured)",shelfDays:90,storage:"Cool dry"},
-  {name:"Potatoes",shelfDays:60,storage:"Cool dark"},
-  {name:"Sweet Potatoes",shelfDays:30,storage:"Cool dry"},
-  {name:"Pumpkin",shelfDays:60,storage:"Cool dry"},
-  {name:"Canned Tomatoes",shelfDays:540,storage:"Pantry"},
-  {name:"Canned Green Beans",shelfDays:540,storage:"Pantry"},
-  {name:"Canned Salsa",shelfDays:365,storage:"Pantry"},
-  {name:"Frozen Green Beans",shelfDays:270,storage:"Freezer"},
-  {name:"Frozen Corn",shelfDays:270,storage:"Freezer"},
-  {name:"Frozen Peppers",shelfDays:270,storage:"Freezer"},
-  {name:"Broiler Chicken (Whole)",freezerMonths:12,storage:"Freezer"},
-  {name:"Broiler Chicken (Cuts)",freezerMonths:9,storage:"Freezer"},
-  {name:"Pork (Chops)",freezerMonths:6,storage:"Freezer"},
-  {name:"Pork (Roast)",freezerMonths:6,storage:"Freezer"},
-  {name:"Ground Pork",freezerMonths:3,storage:"Freezer"},
-  {name:"Pork (Belly/Bacon)",freezerMonths:4,storage:"Freezer"},
-  {name:"Beef (Steaks)",freezerMonths:9,storage:"Freezer"},
-  {name:"Beef (Roast)",freezerMonths:9,storage:"Freezer"},
-  {name:"Ground Beef",freezerMonths:4,storage:"Freezer"},
-  {name:"Goat",freezerMonths:9,storage:"Freezer"},
-  {name:"Lamb",freezerMonths:9,storage:"Freezer"},
-  {name:"Raw Milk",shelfDays:7,storage:"Fridge"},
-  {name:"Cream",shelfDays:14,storage:"Fridge"},
-  {name:"Homemade Butter",shelfDays:30,storage:"Fridge"},
-  {name:"Fresh Cheesemaking Cheese",shelfDays:7,storage:"Fridge"},
-  {name:"Aged Cheese (Homemade)",shelfDays:90,storage:"Fridge"},
-  {name:"Other Garden Produce",shelfDays:5,storage:"Fridge"},
-  {name:"Other Preserved",shelfDays:365,storage:"Pantry"},
-  {name:"Other Livestock",freezerMonths:6,storage:"Freezer"},
+  {name:"Tomatoes (Fresh)",shelfDays:7,storage:"Counter",unitType:"bulk"},
+  {name:"Zucchini",shelfDays:5,storage:"Fridge",unitType:"bulk"},
+  {name:"Green Beans",shelfDays:5,storage:"Fridge",unitType:"bulk"},
+  {name:"Sweet Corn",shelfDays:3,storage:"Fridge",unitType:"bulk"},
+  {name:"Bell Peppers",shelfDays:7,storage:"Fridge",unitType:"bulk"},
+  {name:"Cucumbers",shelfDays:7,storage:"Fridge",unitType:"bulk"},
+  {name:"Butternut Squash",shelfDays:60,storage:"Cool dry",unitType:"bulk"},
+  {name:"Acorn Squash",shelfDays:60,storage:"Cool dry",unitType:"bulk"},
+  {name:"Kale",shelfDays:5,storage:"Fridge",unitType:"bulk"},
+  {name:"Lettuce / Greens",shelfDays:5,storage:"Fridge",unitType:"bulk"},
+  {name:"Herbs (Fresh)",shelfDays:7,storage:"Fridge",unitType:"bulk"},
+  {name:"Eggs (Backyard)",shelfDays:35,storage:"Fridge",unitType:"count"},
+  {name:"Garlic (Cured)",shelfDays:180,storage:"Cool dry",unitType:"bulk"},
+  {name:"Onions (Cured)",shelfDays:90,storage:"Cool dry",unitType:"bulk"},
+  {name:"Potatoes",shelfDays:60,storage:"Cool dark",unitType:"bulk"},
+  {name:"Sweet Potatoes",shelfDays:30,storage:"Cool dry",unitType:"bulk"},
+  {name:"Pumpkin",shelfDays:60,storage:"Cool dry",unitType:"bulk"},
+  {name:"Canned Tomatoes",shelfDays:540,storage:"Pantry",unitType:"bulk"},
+  {name:"Canned Green Beans",shelfDays:540,storage:"Pantry",unitType:"bulk"},
+  {name:"Canned Salsa",shelfDays:365,storage:"Pantry",unitType:"bulk"},
+  {name:"Frozen Green Beans",shelfDays:270,storage:"Freezer",unitType:"bulk"},
+  {name:"Frozen Corn",shelfDays:270,storage:"Freezer",unitType:"bulk"},
+  {name:"Frozen Peppers",shelfDays:270,storage:"Freezer",unitType:"bulk"},
+  {name:"Broiler Chicken (Whole)",freezerMonths:12,storage:"Freezer",unitType:"meat"},
+  {name:"Broiler Chicken (Cuts)",freezerMonths:9,storage:"Freezer",unitType:"meat"},
+  {name:"Pork (Chops)",freezerMonths:6,storage:"Freezer",unitType:"meat"},
+  {name:"Pork (Roast)",freezerMonths:6,storage:"Freezer",unitType:"meat"},
+  {name:"Ground Pork",freezerMonths:3,storage:"Freezer",unitType:"meat"},
+  {name:"Pork (Belly/Bacon)",freezerMonths:4,storage:"Freezer",unitType:"meat"},
+  {name:"Beef (Steaks)",freezerMonths:9,storage:"Freezer",unitType:"meat"},
+  {name:"Beef (Roast)",freezerMonths:9,storage:"Freezer",unitType:"meat"},
+  {name:"Ground Beef",freezerMonths:4,storage:"Freezer",unitType:"meat"},
+  {name:"Goat",freezerMonths:9,storage:"Freezer",unitType:"meat"},
+  {name:"Lamb",freezerMonths:9,storage:"Freezer",unitType:"meat"},
+  {name:"Raw Milk",shelfDays:7,storage:"Fridge",unitType:"liquid"},
+  {name:"Cream",shelfDays:14,storage:"Fridge",unitType:"liquid"},
+  {name:"Homemade Butter",shelfDays:30,storage:"Fridge",unitType:"dairy"},
+  {name:"Fresh Cheesemaking Cheese",shelfDays:7,storage:"Fridge",unitType:"dairy"},
+  {name:"Aged Cheese (Homemade)",shelfDays:90,storage:"Fridge",unitType:"dairy"},
+  {name:"Other Garden Produce",shelfDays:5,storage:"Fridge",unitType:"bulk"},
+  {name:"Other Preserved",shelfDays:365,storage:"Pantry",unitType:"bulk"},
+  {name:"Other Livestock",freezerMonths:6,storage:"Freezer",unitType:"meat"},
 ];
+const HOME_UNIT_CONFIG={
+  meat:{inputLabel:"TOTAL WEIGHT (lbs)",inputPlaceholder:"e.g. 4.5",sizeLabel:"OZ PER PORTION",sizeOptions:[4,5,6,8,16],sizeUnit:"oz",defaultSize:16,calc:(raw,size)=>Math.floor((raw*16)/size),outputUnit:"portions",harvestType:"Protein",location:"Freezer",estimateLine:(raw,size,qty)=>raw+" lbs \u00f7 "+size+"oz each"},
+  liquid:{inputLabel:"TOTAL VOLUME (fl oz)",inputPlaceholder:"e.g. 128",sizeLabel:"CONTAINER SIZE",sizeOptions:[8,16,32,64],sizeUnit:"fl oz",defaultSize:32,calc:(raw,size)=>Math.floor(raw/size),outputUnit:"containers",harvestType:"Produce",location:"Fridge",estimateLine:(raw,size,qty)=>raw+" fl oz \u00f7 "+size+"fl oz each"},
+  dairy:{inputLabel:"TOTAL WEIGHT (oz)",inputPlaceholder:"e.g. 24",sizeLabel:"PACKAGE SIZE",sizeOptions:[4,8,16],sizeUnit:"oz",defaultSize:8,calc:(raw,size)=>Math.floor(raw/size),outputUnit:"packages",harvestType:"Produce",location:"Fridge",estimateLine:(raw,size,qty)=>raw+"oz \u00f7 "+size+"oz each"},
+  count:{inputLabel:"TOTAL COUNT",inputPlaceholder:"e.g. 18",sizeLabel:null,sizeOptions:null,defaultSize:null,calc:(raw)=>Math.floor(raw),outputUnit:"count",harvestType:"Produce",location:"Fridge",estimateLine:(raw)=>raw+" individually counted"},
+};
 const HARVEST_YIELD={
   "Tomatoes (Fresh)":{rawUnit:"bushels",outputUnit:{Canned:"quart jars",Frozen:"1-lb bags",Fresh:"lb bags"},rate:{Canned:17,Frozen:38,Fresh:53}},
   "Green Beans":{rawUnit:"bushels",outputUnit:{Canned:"pint jars",Frozen:"1-lb bags",Fresh:"lb bags"},rate:{Canned:15,Frozen:25,Fresh:30}},
@@ -1720,7 +1726,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       setBatchPrintCue({itemName,qty:portions,unit:"portions",format:"5163",category:"Wild Harvest"});
     },400);
   };
-  // Home Harvest: estimate via HARVEST_YIELD table, routes through the generalized Yield Confirm modal
+  // Home Harvest: estimate via HARVEST_YIELD table, routes through the generalized Yield Confirm modal (bulk produce only)
   const estimateHarvestHome=()=>{
     if(!rpHItem||!rpHRaw) return;
     const y=getHarvestYield(rpHItem);
@@ -1728,6 +1734,25 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     const estimated=Math.max(1,Math.round(parseFloat(rpHRaw)*rate));
     setRpYieldConfirm({type:"homeHarvest",estimated,unit:y.outputUnit[rpHForm]||"units",itemName:rpHItem,form:rpHForm,rawQty:rpHRaw,rawUnit:y.rawUnit});
     setRpActualBags(String(estimated));
+  };
+  // Home Harvest: deterministic math for meat/liquid/dairy/count items — same exact-arithmetic pattern as Wild Harvest, no yield guesswork needed
+  const commitHarvestDeterministic=()=>{
+    if(!rpHItem||!rpHRaw) return;
+    const p=HOME_PRODUCE.find(x=>x.name===rpHItem);
+    const cfg=HOME_UNIT_CONFIG[p?.unitType]||HOME_UNIT_CONFIG.meat;
+    const raw=parseFloat(rpHRaw);
+    const qty=cfg.sizeOptions?cfg.calc(raw,rpHOz):cfg.calc(raw);
+    if(qty<1) return;
+    const itemName=rpHItem;
+    setInventory(prev=>{
+      const idx=prev.findIndex(i=>i.name.toLowerCase()===itemName.toLowerCase()&&i.category==="Home Harvest");
+      if(idx>=0) return prev.map((i,ii)=>ii===idx?{...i,qty:i.qty+qty,portionOz:cfg.sizeOptions?rpHOz:i.portionOz}:i);
+      return [...prev,{id:Date.now(),name:itemName,qty,unit:cfg.outputUnit,category:"Home Harvest",harvestType:cfg.harvestType,location:cfg.location,isBulkProtein:cfg.harvestType==="Protein",portionOz:cfg.sizeOptions?rpHOz:undefined}];
+    });
+    setRpOpen(false);
+    setTimeout(()=>{
+      setBatchPrintCue({itemName,qty,unit:cfg.outputUnit,format:cfg.harvestType==="Protein"?"5163":"5160",category:"Home Harvest"});
+    },400);
   };
 
   // -- Scan -------------------------------------------------------------------
@@ -4337,7 +4362,16 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                 </div>
                 <div style={{marginBottom:12}}>
                   <Label>{rpHCat==="Wild Harvest"?"SPECIES / CUT":"PRODUCE"}</Label>
-                  <select style={bInp} value={rpHItem} onChange={e=>setRpHItem(e.target.value)}>
+                  <select style={bInp} value={rpHItem} onChange={e=>{
+                    const val=e.target.value;
+                    setRpHItem(val);
+                    setRpHRaw("");
+                    if(rpHCat==="Home Harvest"){
+                      const p=HOME_PRODUCE.find(x=>x.name===val);
+                      const cfg=HOME_UNIT_CONFIG[p?.unitType];
+                      if(cfg?.defaultSize) setRpHOz(cfg.defaultSize);
+                    }
+                  }}>
                     <option value="">Select...</option>
                     {(rpHCat==="Wild Harvest"?WILD_SPECIES:HOME_PRODUCE).map(s=><option key={s.name} value={s.name}>{s.name}</option>)}
                   </select>
@@ -4369,37 +4403,74 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                       <button style={{...bBtn("green"),flex:2,opacity:(rpHItem&&rpHRaw)?1:0.4}} onClick={commitHarvestWild}>🦌 Add to Wild Harvest Inventory</button>
                     </div>
                   </div>
-                ):(
-                  <div>
-                    <div style={{marginBottom:12}}>
-                      <Label>RAW QUANTITY ({rpHItem?getHarvestYield(rpHItem).rawUnit:"lbs"})</Label>
-                      <input style={bInp} type="number" placeholder="e.g. 2" value={rpHRaw} onChange={e=>setRpHRaw(e.target.value)}/>
-                    </div>
-                    <div style={{marginBottom:12}}>
-                      <Label>PRESERVATION METHOD</Label>
-                      <div style={{display:"flex",gap:6}}>
-                        {["Canned","Frozen","Fresh"].map(f=>(
-                          <button key={f} onClick={()=>setRpHForm(f)} style={{...bBtn(rpHForm===f?"green":"ghost"),flex:1,fontSize:11}}>{f}</button>
-                        ))}
+                ):(()=>{
+                  const hp=HOME_PRODUCE.find(x=>x.name===rpHItem);
+                  const unitType=hp?.unitType||"bulk";
+                  if(unitType==="bulk") return(
+                    <div>
+                      <div style={{marginBottom:12}}>
+                        <Label>RAW QUANTITY ({rpHItem?getHarvestYield(rpHItem).rawUnit:"lbs"})</Label>
+                        <input style={bInp} type="number" placeholder="e.g. 2" value={rpHRaw} onChange={e=>setRpHRaw(e.target.value)}/>
+                      </div>
+                      <div style={{marginBottom:12}}>
+                        <Label>PRESERVATION METHOD</Label>
+                        <div style={{display:"flex",gap:6}}>
+                          {["Canned","Frozen","Fresh"].map(f=>(
+                            <button key={f} onClick={()=>setRpHForm(f)} style={{...bBtn(rpHForm===f?"green":"ghost"),flex:1,fontSize:11}}>{f}</button>
+                          ))}
+                        </div>
+                      </div>
+                      {rpHItem&&rpHRaw&&(()=>{
+                        const y=getHarvestYield(rpHItem);
+                        const rate=y.rate[rpHForm]??y.rate.Fresh??1;
+                        const est=Math.max(1,Math.round(parseFloat(rpHRaw)*rate));
+                        return(
+                          <div style={{background:"#13231a",border:"1px solid "+C.green+"44",borderRadius:10,padding:14,marginBottom:14,textAlign:"center"}}>
+                            <div style={{fontSize:22,fontWeight:700,fontFamily:FD,color:C.green}}>~{est} {y.outputUnit[rpHForm]||"units"}</div>
+                            <div style={{fontSize:10,color:C.muted,fontFamily:FM,marginTop:2}}>estimated — you\u2019ll confirm the actual count next</div>
+                          </div>
+                        );
+                      })()}
+                      <div style={{display:"flex",gap:8}}>
+                        <button style={{...bBtn("ghost"),flex:1}} onClick={()=>setRpOpen(false)}>Cancel</button>
+                        <button style={{...bBtn("green"),flex:2,opacity:(rpHItem&&rpHRaw)?1:0.4}} onClick={estimateHarvestHome}>🌱 Confirm Yield</button>
                       </div>
                     </div>
-                    {rpHItem&&rpHRaw&&(()=>{
-                      const y=getHarvestYield(rpHItem);
-                      const rate=y.rate[rpHForm]??y.rate.Fresh??1;
-                      const est=Math.max(1,Math.round(parseFloat(rpHRaw)*rate));
-                      return(
+                  );
+                  const cfg=HOME_UNIT_CONFIG[unitType];
+                  const raw=parseFloat(rpHRaw)||0;
+                  const qty=rpHItem&&rpHRaw?(cfg.sizeOptions?cfg.calc(raw,rpHOz):cfg.calc(raw)):0;
+                  return(
+                    <div>
+                      <div style={cfg.sizeOptions?{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}:{marginBottom:12}}>
+                        <div><Label>{cfg.inputLabel}</Label><input style={bInp} type="number" placeholder={cfg.inputPlaceholder} value={rpHRaw} onChange={e=>setRpHRaw(e.target.value)}/></div>
+                        {cfg.sizeOptions&&(
+                          <div>
+                            <Label>{cfg.sizeLabel}</Label>
+                            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                              {cfg.sizeOptions.map(sz=>(
+                                <button key={sz} onClick={()=>setRpHOz(sz)}
+                                  style={{...bBtn("ghost"),padding:"6px 8px",fontSize:11,background:rpHOz===sz?C.green+"22":"transparent",color:rpHOz===sz?C.green:C.muted,border:"1px solid "+(rpHOz===sz?C.green:C.border)}}>
+                                  {sz}{cfg.sizeUnit}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      {rpHItem&&rpHRaw&&qty>0&&(
                         <div style={{background:"#13231a",border:"1px solid "+C.green+"44",borderRadius:10,padding:14,marginBottom:14,textAlign:"center"}}>
-                          <div style={{fontSize:22,fontWeight:700,fontFamily:FD,color:C.green}}>~{est} {y.outputUnit[rpHForm]||"units"}</div>
-                          <div style={{fontSize:10,color:C.muted,fontFamily:FM,marginTop:2}}>estimated — you\u2019ll confirm the actual count next</div>
+                          <div style={{fontSize:22,fontWeight:700,fontFamily:FD,color:C.green}}>{qty} {cfg.outputUnit}</div>
+                          <div style={{fontSize:10,color:C.muted,fontFamily:FM,marginTop:2}}>{cfg.estimateLine(rpHRaw,rpHOz,qty)}</div>
                         </div>
-                      );
-                    })()}
-                    <div style={{display:"flex",gap:8}}>
-                      <button style={{...bBtn("ghost"),flex:1}} onClick={()=>setRpOpen(false)}>Cancel</button>
-                      <button style={{...bBtn("green"),flex:2,opacity:(rpHItem&&rpHRaw)?1:0.4}} onClick={estimateHarvestHome}>🌱 Confirm Yield</button>
+                      )}
+                      <div style={{display:"flex",gap:8}}>
+                        <button style={{...bBtn("ghost"),flex:1}} onClick={()=>setRpOpen(false)}>Cancel</button>
+                        <button style={{...bBtn("green"),flex:2,opacity:(rpHItem&&rpHRaw&&qty>0)?1:0.4}} onClick={commitHarvestDeterministic}>🌱 Add to Home Harvest Inventory</button>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
               </div>
             )}
           </div>
