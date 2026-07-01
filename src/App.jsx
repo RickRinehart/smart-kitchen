@@ -79,7 +79,7 @@ const HOME_PRODUCE=[
   {name:"Kale",shelfDays:5,storage:"Fridge",unitType:"bulk"},
   {name:"Lettuce / Greens",shelfDays:5,storage:"Fridge",unitType:"bulk"},
   {name:"Herbs (Fresh)",shelfDays:7,storage:"Fridge",unitType:"bulk"},
-  {name:"Eggs (Backyard)",shelfDays:35,storage:"Fridge",unitType:"count"},
+  {name:"Eggs (Backyard)",shelfDays:35,storage:"Fridge",unitType:"dozen",hType:"Produce",hLoc:"Fridge"},
   {name:"Garlic (Cured)",shelfDays:180,storage:"Cool dry",unitType:"bulk"},
   {name:"Onions (Cured)",shelfDays:90,storage:"Cool dry",unitType:"bulk"},
   {name:"Potatoes",shelfDays:60,storage:"Cool dark",unitType:"bulk"},
@@ -91,31 +91,32 @@ const HOME_PRODUCE=[
   {name:"Frozen Green Beans",shelfDays:270,storage:"Freezer",unitType:"bulk"},
   {name:"Frozen Corn",shelfDays:270,storage:"Freezer",unitType:"bulk"},
   {name:"Frozen Peppers",shelfDays:270,storage:"Freezer",unitType:"bulk"},
-  {name:"Broiler Chicken (Whole)",freezerMonths:12,storage:"Freezer",unitType:"meat"},
-  {name:"Broiler Chicken (Cuts)",freezerMonths:9,storage:"Freezer",unitType:"meat"},
-  {name:"Pork (Chops)",freezerMonths:6,storage:"Freezer",unitType:"meat"},
-  {name:"Pork (Roast)",freezerMonths:6,storage:"Freezer",unitType:"meat"},
-  {name:"Ground Pork",freezerMonths:3,storage:"Freezer",unitType:"meat"},
-  {name:"Pork (Belly/Bacon)",freezerMonths:4,storage:"Freezer",unitType:"meat"},
-  {name:"Beef (Steaks)",freezerMonths:9,storage:"Freezer",unitType:"meat"},
-  {name:"Beef (Roast)",freezerMonths:9,storage:"Freezer",unitType:"meat"},
-  {name:"Ground Beef",freezerMonths:4,storage:"Freezer",unitType:"meat"},
-  {name:"Goat",freezerMonths:9,storage:"Freezer",unitType:"meat"},
-  {name:"Lamb",freezerMonths:9,storage:"Freezer",unitType:"meat"},
-  {name:"Raw Milk",shelfDays:7,storage:"Fridge",unitType:"liquid"},
-  {name:"Cream",shelfDays:14,storage:"Fridge",unitType:"liquid"},
-  {name:"Homemade Butter",shelfDays:30,storage:"Fridge",unitType:"dairy"},
-  {name:"Fresh Cheesemaking Cheese",shelfDays:7,storage:"Fridge",unitType:"dairy"},
-  {name:"Aged Cheese (Homemade)",shelfDays:90,storage:"Fridge",unitType:"dairy"},
+  {name:"Broiler Chicken (Whole)",freezerMonths:12,storage:"Freezer",unitType:"lbs",hType:"Protein",hLoc:"Freezer"},
+  {name:"Broiler Chicken (Cuts)",freezerMonths:9,storage:"Freezer",unitType:"lbs",hType:"Protein",hLoc:"Freezer"},
+  {name:"Pork (Chops)",freezerMonths:6,storage:"Freezer",unitType:"lbs",hType:"Protein",hLoc:"Freezer"},
+  {name:"Pork (Roast)",freezerMonths:6,storage:"Freezer",unitType:"lbs",hType:"Protein",hLoc:"Freezer"},
+  {name:"Ground Pork",freezerMonths:3,storage:"Freezer",unitType:"lbs",hType:"Protein",hLoc:"Freezer"},
+  {name:"Pork (Belly/Bacon)",freezerMonths:4,storage:"Freezer",unitType:"lbs",hType:"Protein",hLoc:"Freezer"},
+  {name:"Beef (Steaks)",freezerMonths:9,storage:"Freezer",unitType:"lbs",hType:"Protein",hLoc:"Freezer"},
+  {name:"Beef (Roast)",freezerMonths:9,storage:"Freezer",unitType:"lbs",hType:"Protein",hLoc:"Freezer"},
+  {name:"Ground Beef",freezerMonths:4,storage:"Freezer",unitType:"lbs",hType:"Protein",hLoc:"Freezer"},
+  {name:"Goat",freezerMonths:9,storage:"Freezer",unitType:"lbs",hType:"Protein",hLoc:"Freezer"},
+  {name:"Lamb",freezerMonths:9,storage:"Freezer",unitType:"lbs",hType:"Protein",hLoc:"Freezer"},
+  {name:"Raw Milk",shelfDays:7,storage:"Fridge",unitType:"oz",hType:"Produce",hLoc:"Fridge"},
+  {name:"Cream",shelfDays:14,storage:"Fridge",unitType:"oz",hType:"Produce",hLoc:"Fridge"},
+  {name:"Homemade Butter",shelfDays:30,storage:"Fridge",unitType:"oz",hType:"Produce",hLoc:"Fridge"},
+  {name:"Fresh Cheesemaking Cheese",shelfDays:7,storage:"Fridge",unitType:"oz",hType:"Produce",hLoc:"Fridge"},
+  {name:"Aged Cheese (Homemade)",shelfDays:90,storage:"Fridge",unitType:"oz",hType:"Produce",hLoc:"Fridge"},
   {name:"Other Garden Produce",shelfDays:5,storage:"Fridge",unitType:"bulk"},
   {name:"Other Preserved",shelfDays:365,storage:"Pantry",unitType:"bulk"},
-  {name:"Other Livestock",freezerMonths:6,storage:"Freezer",unitType:"meat"},
+  {name:"Other Livestock",freezerMonths:6,storage:"Freezer",unitType:"lbs",hType:"Protein",hLoc:"Freezer"},
 ];
-const HOME_UNIT_CONFIG={
-  meat:{inputLabel:"TOTAL WEIGHT (lbs)",inputPlaceholder:"e.g. 4.5",sizeLabel:"OZ PER PORTION",sizeOptions:[4,5,6,8,16],sizeUnit:"oz",defaultSize:16,calc:(raw,size)=>Math.floor((raw*16)/size),outputUnit:"portions",harvestType:"Protein",location:"Freezer",estimateLine:(raw,size,qty)=>raw+" lbs \u00f7 "+size+"oz each"},
-  liquid:{inputLabel:"TOTAL VOLUME (fl oz)",inputPlaceholder:"e.g. 128",sizeLabel:"CONTAINER SIZE",sizeOptions:[8,16,32,64],sizeUnit:"fl oz",defaultSize:32,calc:(raw,size)=>Math.floor(raw/size),outputUnit:"containers",harvestType:"Produce",location:"Fridge",estimateLine:(raw,size,qty)=>raw+" fl oz \u00f7 "+size+"fl oz each"},
-  dairy:{inputLabel:"TOTAL WEIGHT (oz)",inputPlaceholder:"e.g. 24",sizeLabel:"PACKAGE SIZE",sizeOptions:[4,8,16],sizeUnit:"oz",defaultSize:8,calc:(raw,size)=>Math.floor(raw/size),outputUnit:"packages",harvestType:"Produce",location:"Fridge",estimateLine:(raw,size,qty)=>raw+"oz \u00f7 "+size+"oz each"},
-  count:{inputLabel:"TOTAL COUNT",inputPlaceholder:"e.g. 18",sizeLabel:null,sizeOptions:null,defaultSize:null,calc:(raw)=>Math.floor(raw),outputUnit:"count",harvestType:"Produce",location:"Fridge",estimateLine:(raw)=>raw+" individually counted"},
+// Measure options for non-bulk Home Harvest items — user-selectable, unitType above is just the starting default
+const MEASURE_CONFIG={
+  lbs:{label:"TOTAL WEIGHT (lbs)",placeholder:"e.g. 4.5",sizeLabel:"OZ PER PORTION",sizeOptions:[4,5,6,8,16],sizeUnit:"oz",defaultSize:16,calc:(raw,size)=>Math.floor((raw*16)/size),outputUnit:"portions",estimateLine:(raw,size)=>raw+" lbs \u00f7 "+size+"oz each"},
+  oz:{label:"TOTAL WEIGHT (oz)",placeholder:"e.g. 24",sizeLabel:"PACKAGE SIZE",sizeOptions:[4,8,16,32],sizeUnit:"oz",defaultSize:8,calc:(raw,size)=>Math.floor(raw/size),outputUnit:"packages",estimateLine:(raw,size)=>raw+"oz \u00f7 "+size+"oz each"},
+  each:{label:"TOTAL COUNT",placeholder:"e.g. 18",sizeLabel:null,sizeOptions:null,defaultSize:null,calc:(raw)=>Math.floor(raw),outputUnit:"each",estimateLine:(raw)=>raw+" individually counted"},
+  dozen:{label:"TOTAL COUNT",placeholder:"e.g. 30",sizeLabel:null,sizeOptions:null,defaultSize:null,calc:(raw)=>Math.floor(raw/12),outputUnit:"dozen",estimateLine:(raw)=>Math.floor(raw/12)+" dozen from "+raw+" total (\u00f712)"},
 };
 const HARVEST_YIELD={
   "Tomatoes (Fresh)":{rawUnit:"bushels",outputUnit:{Canned:"quart jars",Frozen:"1-lb bags",Fresh:"lb bags"},rate:{Canned:17,Frozen:38,Fresh:53}},
@@ -1147,6 +1148,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [rpHRaw,setRpHRaw]=useState("");
   const [rpHOz,setRpHOz]=useState(16);
   const [rpHForm,setRpHForm]=useState("Canned");
+  const [rpHMeasure,setRpHMeasure]=useState("lbs");
   const fileRef=useRef();
   const galleryRef=useRef();
   // Migration: promote Protein items + fix corrupted portion counts > 50
@@ -1739,7 +1741,9 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
   const commitHarvestDeterministic=()=>{
     if(!rpHItem||!rpHRaw) return;
     const p=HOME_PRODUCE.find(x=>x.name===rpHItem);
-    const cfg=HOME_UNIT_CONFIG[p?.unitType]||HOME_UNIT_CONFIG.meat;
+    const cfg=MEASURE_CONFIG[rpHMeasure]||MEASURE_CONFIG.lbs;
+    const hType=p?.hType||"Produce";
+    const hLoc=p?.hLoc||"Fridge";
     const raw=parseFloat(rpHRaw);
     const qty=cfg.sizeOptions?cfg.calc(raw,rpHOz):cfg.calc(raw);
     if(qty<1) return;
@@ -1747,11 +1751,11 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     setInventory(prev=>{
       const idx=prev.findIndex(i=>i.name.toLowerCase()===itemName.toLowerCase()&&i.category==="Home Harvest");
       if(idx>=0) return prev.map((i,ii)=>ii===idx?{...i,qty:i.qty+qty,portionOz:cfg.sizeOptions?rpHOz:i.portionOz}:i);
-      return [...prev,{id:Date.now(),name:itemName,qty,unit:cfg.outputUnit,category:"Home Harvest",harvestType:cfg.harvestType,location:cfg.location,isBulkProtein:cfg.harvestType==="Protein",portionOz:cfg.sizeOptions?rpHOz:undefined}];
+      return [...prev,{id:Date.now(),name:itemName,qty,unit:cfg.outputUnit,category:"Home Harvest",harvestType:hType,location:hLoc,isBulkProtein:hType==="Protein",portionOz:cfg.sizeOptions?rpHOz:undefined}];
     });
     setRpOpen(false);
     setTimeout(()=>{
-      setBatchPrintCue({itemName,qty,unit:cfg.outputUnit,format:cfg.harvestType==="Protein"?"5163":"5160",category:"Home Harvest"});
+      setBatchPrintCue({itemName,qty,unit:cfg.outputUnit,format:hType==="Protein"?"5163":"5160",category:"Home Harvest"});
     },400);
   };
 
@@ -4368,7 +4372,9 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                     setRpHRaw("");
                     if(rpHCat==="Home Harvest"){
                       const p=HOME_PRODUCE.find(x=>x.name===val);
-                      const cfg=HOME_UNIT_CONFIG[p?.unitType];
+                      const measure=p&&p.unitType!=="bulk"?p.unitType:"lbs";
+                      setRpHMeasure(measure);
+                      const cfg=MEASURE_CONFIG[measure];
                       if(cfg?.defaultSize) setRpHOz(cfg.defaultSize);
                     }
                   }}>
@@ -4405,8 +4411,8 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                   </div>
                 ):(()=>{
                   const hp=HOME_PRODUCE.find(x=>x.name===rpHItem);
-                  const unitType=hp?.unitType||"bulk";
-                  if(unitType==="bulk") return(
+                  const isBulkItem=(hp?.unitType||"bulk")==="bulk";
+                  if(isBulkItem) return(
                     <div>
                       <div style={{marginBottom:12}}>
                         <Label>RAW QUANTITY ({rpHItem?getHarvestYield(rpHItem).rawUnit:"lbs"})</Label>
@@ -4437,13 +4443,26 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                       </div>
                     </div>
                   );
-                  const cfg=HOME_UNIT_CONFIG[unitType];
+                  const cfg=MEASURE_CONFIG[rpHMeasure]||MEASURE_CONFIG.lbs;
                   const raw=parseFloat(rpHRaw)||0;
                   const qty=rpHItem&&rpHRaw?(cfg.sizeOptions?cfg.calc(raw,rpHOz):cfg.calc(raw)):0;
                   return(
                     <div>
+                      {rpHItem&&(
+                        <div style={{marginBottom:12}}>
+                          <Label>MEASURE BY</Label>
+                          <div style={{display:"flex",gap:6}}>
+                            {["lbs","oz","each","dozen"].map(m=>(
+                              <button key={m} onClick={()=>{setRpHMeasure(m);const c=MEASURE_CONFIG[m];if(c.defaultSize) setRpHOz(c.defaultSize);}}
+                                style={{...bBtn("ghost"),flex:1,fontSize:11,background:rpHMeasure===m?C.green+"22":"transparent",color:rpHMeasure===m?C.green:C.muted,border:"1px solid "+(rpHMeasure===m?C.green:C.border)}}>
+                                {m}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                       <div style={cfg.sizeOptions?{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}:{marginBottom:12}}>
-                        <div><Label>{cfg.inputLabel}</Label><input style={bInp} type="number" placeholder={cfg.inputPlaceholder} value={rpHRaw} onChange={e=>setRpHRaw(e.target.value)}/></div>
+                        <div><Label>{cfg.label}</Label><input style={bInp} type="number" placeholder={cfg.placeholder} value={rpHRaw} onChange={e=>setRpHRaw(e.target.value)}/></div>
                         {cfg.sizeOptions&&(
                           <div>
                             <Label>{cfg.sizeLabel}</Label>
