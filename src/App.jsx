@@ -1988,6 +1988,9 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     win.document.write(doc);
     win.document.close();
     setTimeout(()=>win.print(),400);
+    setLabelSelected({});
+    setLabelQty({});
+    setLabelModal(false);
   };
 
   const buildPreferenceSummary=()=>{
