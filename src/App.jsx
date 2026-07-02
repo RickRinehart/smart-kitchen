@@ -2056,7 +2056,17 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       chosen.forEach(si=>{
         si={...si,name:(si.name||"").trim()};
         if(!si.name) return; // skip anything that scanned/edited down to a blank name
-        const idx=u.findIndex(i=>(i.name||"").trim().toLowerCase()===si.name.toLowerCase());
+        // Exact match first (fast path); fall back to shared-significant-word match so
+        // "Quaker Grits" and "Quaker Quick Grits" from two different scans of the same can
+        // land as one item instead of silently duplicating.
+        let idx=u.findIndex(i=>(i.name||"").trim().toLowerCase()===si.name.toLowerCase());
+        if(idx<0){
+          const siWords=significantWords(si.name).filter(w=>w.length>=4);
+          idx=u.findIndex(i=>{
+            const iWords=significantWords(i.name).filter(w=>w.length>=4);
+            return siWords.length&&iWords.length&&siWords.some(w=>iWords.includes(w));
+          });
+        }
         const paid=parsePrice(si.price);
         const today=new Date().toISOString();
         if(idx>=0){
