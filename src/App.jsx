@@ -537,6 +537,13 @@ const FEATURE_ANNOUNCEMENTS=[
     intro:(name)=>`Hey ${name}! 💬 Quick heads up — you can now text your shopping list directly to your phone or your spouse’s phone with one tap.\n\nNo email app needed. Just add a phone number in Settings and you’re all set.\n\nWant me to show you where?`,
     quickReplies:["Yes, show me","I’ll find it","Not right now"],
     tab:"shopping"
+  },
+  {
+    key:"harvestBulkRepackage",
+    title:"New: Bulk Harvest Repackage & Bulk Print Labels",
+    intro:(name)=>`Hi ${name}! 🦌 Two upgrades just landed in Harvest.\n\nWild Harvest and Home Harvest now support **bulk repackage** — process a whole batch in one pass instead of one item at a time. And once you’re done, you can **print labels in bulk** for everything you just repackaged, instead of printing one at a time.\n\nWant me to show you?`,
+    quickReplies:["Show me!","How does it work?","Maybe later"],
+    tab:"harvest"
   }
 ];
 // VOICE PICKER COMPONENT — memoized to prevent flicker on re-render
@@ -1333,15 +1340,38 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
     return ()=>clearTimeout(t);
   },[user,guestCaptured]);
 
-  // -- Proactive Feature Announcements -----------------------------------------
+  // -- Proactive Feature Announcements (per-account via Supabase, localStorage fallback for guests) --
+  const [seenAnnouncements,setSeenAnnouncements]=useState(null); // null = not loaded yet
+  useEffect(()=>{
+    if(!user?.id){
+      let local=[];
+      try{local=FEATURE_ANNOUNCEMENTS.filter(f=>localStorage.getItem("sk_seenFeature_"+f.key)==="1").map(f=>f.key);}catch{}
+      setSeenAnnouncements(local);
+      return;
+    }
+    let cancelled=false;
+    (async()=>{
+      let seen=[];
+      try{
+        const {data,error}=await supabase.from("profiles").select("sk_seen_announcements").eq("id",user.id).single();
+        if(!error&&Array.isArray(data?.sk_seen_announcements)) seen=data.sk_seen_announcements;
+      }catch{}
+      if(!cancelled) setSeenAnnouncements(seen);
+    })();
+    return ()=>{cancelled=true;};
+  },[user?.id]);
   useEffect(()=>{
     if(showWizard) return;
+    if(seenAnnouncements===null) return; // still loading seen state
     const t=setTimeout(()=>{
-      const unseen=FEATURE_ANNOUNCEMENTS.find(f=>{
-        try{return localStorage.getItem("sk_seenFeature_"+f.key)!=="1";}catch{return false;}
-      });
+      const unseen=FEATURE_ANNOUNCEMENTS.find(f=>!seenAnnouncements.includes(f.key));
       if(!unseen) return;
+      const updated=[...seenAnnouncements,unseen.key];
+      setSeenAnnouncements(updated);
       try{localStorage.setItem("sk_seenFeature_"+unseen.key,"1");}catch{}
+      if(user?.id){
+        supabase.from("profiles").update({sk_seen_announcements:updated}).eq("id",user.id).then(()=>{});
+      }
       setChatOpen(true);
       const msg=unseen.intro(userName);
       setTimeout(()=>{
@@ -1350,7 +1380,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
       },600);
     },3000);
     return ()=>clearTimeout(t);
-  },[showWizard]);
+  },[showWizard,seenAnnouncements,user?.id]);
 
   const submitGuestEmail=async()=>{
     if(!guestEmail||!guestEmail.includes("@")) return;
