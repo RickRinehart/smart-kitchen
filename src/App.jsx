@@ -3014,14 +3014,40 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     setDessertLoading(false);
   };
 
-  const cookRecipe=(r)=>{
+  const cookRecipe=async(r)=>{
     setInventory(p=>p.map(i=>{
       if(!(r.usesFromInventory||[]).includes(i.name)) return i;
       if(i.isBulkProtein||i.isDicedVeg) return {...i,qty:Math.max(0,i.qty-1)};
       return {...i,qty:Math.max(0,+(i.qty-1).toFixed(1))};
     }));
+    // -- Cellar cooking deduction: splash-size, not a full pour --
+    let cellarNote="";
+    if(r.cellarItem&&user?.id){
+      try{
+        const {data}=await supabase.from("profiles").select("sc_cloud_data").eq("id",user.id).single();
+        if(data?.sc_cloud_data){
+          const parsed=typeof data.sc_cloud_data==="string"?JSON.parse(data.sc_cloud_data):data.sc_cloud_data;
+          const bottle=(parsed.cellar||[]).find(b=>(b.name||"").toLowerCase()===r.cellarItem.toLowerCase());
+          if(bottle){
+            const SPLASH_PCT=3; // ~3% of a 750ml bottle ≈ a quarter-cup cooking splash
+            const prevPct=bottle.remaining_pct??100;
+            const newPct=Math.max(0,prevPct-SPLASH_PCT);
+            const updatedCellar=(parsed.cellar||[]).map(b=>b.id===bottle.id?{...b,remaining_pct:newPct}:b);
+            await supabase.from("profiles").update({sc_cloud_data:{...parsed,cellar:updatedCellar}}).eq("id",user.id);
+            cellarNote=" 🍷 "+bottle.name+" splash deducted from Smart Cellar.";
+            if(prevPct>=75&&newPct<75){
+              try{
+                const existing=JSON.parse(localStorage.getItem("sk_shoppingList")||"[]");
+                const alreadyOn=existing.some(e=>(e.name||"").toLowerCase()===bottle.name.toLowerCase());
+                if(!alreadyOn) localStorage.setItem("sk_shoppingList",JSON.stringify([...existing,{name:bottle.name,checked:false,source:"Smart Cellar — running low"}]));
+              }catch{}
+            }
+          }
+        }
+      }catch(e){console.error("Cellar cooking deduction error:",e);}
+    }
     setActiveRecipe(null);
-    alert("✅ \""+r.name+"\" cooked! Inventory updated.");
+    alert("✅ \""+r.name+"\" cooked! Inventory updated."+cellarNote);
   };
 
   const openMealPlanRecipe=async(day)=>{
