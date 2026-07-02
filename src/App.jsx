@@ -1184,6 +1184,8 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [rpPOz,setRpPOz]=useState(6);
   const [rpPPreview,setRpPPreview]=useState(null);
   const [rpVSessions,setRpVSessions]=useState([{id:1,preset:{name:"Mixed Sauté Blend",cupsPerUnit:3,bagCups:2,color:C.orange},count:"",bags:null}]);
+  const [rpVOnionSize,setRpVOnionSize]=useState("medium");
+  const [rpVCeleryForm,setRpVCeleryForm]=useState("sticks");
   const [rpHCat,setRpHCat]=useState("Wild Harvest");
   const [rpHItem,setRpHItem]=useState("");
   const [rpHRaw,setRpHRaw]=useState("");
@@ -4405,8 +4407,26 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                 <div style={{background:C.surface,border:"1px solid "+C.orange+"33",borderRadius:10,padding:12,marginBottom:14,fontSize:seniorMode?16:12,color:C.muted,lineHeight:1.6}}>
                   <strong style={{color:C.orange}}>Mixed Sauté Blend</strong> — diced onion + celery + bell pepper, bagged in 2-cup portions.
                 </div>
+                <div style={{display:"flex",gap:16,marginBottom:14,flexWrap:"wrap"}}>
+                  <div>
+                    <Label>Onion size</Label>
+                    <div style={{display:"flex",gap:6}}>
+                      {[["small","Small"],["medium","Medium"],["large","Large"]].map(([val,lbl])=>(
+                        <button key={val} onClick={()=>setRpVOnionSize(val)} style={{padding:"6px 12px",borderRadius:8,border:"1px solid "+(rpVOnionSize===val?C.orange:C.border),background:rpVOnionSize===val?C.orange+"22":"transparent",color:rpVOnionSize===val?C.orange:C.muted,fontFamily:FM,fontSize:11,cursor:"pointer",fontWeight:rpVOnionSize===val?700:400}}>{lbl}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Celery form</Label>
+                    <div style={{display:"flex",gap:6}}>
+                      {[["sticks","By the stick"],["stalk","Whole stalk"]].map(([val,lbl])=>(
+                        <button key={val} onClick={()=>setRpVCeleryForm(val)} style={{padding:"6px 12px",borderRadius:8,border:"1px solid "+(rpVCeleryForm===val?C.orange:C.border),background:rpVCeleryForm===val?C.orange+"22":"transparent",color:rpVCeleryForm===val?C.orange:C.muted,fontFamily:FM,fontSize:11,cursor:"pointer",fontWeight:rpVCeleryForm===val?700:400}}>{lbl}</button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:14}}>
-                  {[{label:"🧅 Onions",key:"onions",cupsEach:1.5},{label:"🥬 Celery stalks",key:"celery",cupsEach:0.5},{label:"🫑 Bell peppers",key:"peppers",cupsEach:1.0}].map(v=>{
+                  {(()=>{const onionCups=rpVOnionSize==="large"?2.0:rpVOnionSize==="small"?1.0:1.5;const celeryCups=rpVCeleryForm==="stalk"?4.0:0.5;return [{label:"🧅 Onions",key:"onions",cupsEach:onionCups},{label:rpVCeleryForm==="stalk"?"🥬 Celery (whole stalks)":"🥬 Celery (sticks)",key:"celery",cupsEach:celeryCups},{label:"🫑 Bell peppers",key:"peppers",cupsEach:1.0}];})().map(v=>{
                     const s=rpVSessions.find(s=>s.id===v.key)||{count:""};
                     return(
                       <div key={v.key}>
@@ -4428,7 +4448,9 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                   const o=parseFloat(rpVSessions.find(s=>s.id==="onions")?.count||0)||0;
                   const c=parseFloat(rpVSessions.find(s=>s.id==="celery")?.count||0)||0;
                   const p=parseFloat(rpVSessions.find(s=>s.id==="peppers")?.count||0)||0;
-                  const total=(o*1.5)+(c*0.5)+(p*1.0);
+                  const onionCupsT=rpVOnionSize==="large"?2.0:rpVOnionSize==="small"?1.0:1.5;
+                  const celeryCupsT=rpVCeleryForm==="stalk"?4.0:0.5;
+                  const total=(o*onionCupsT)+(c*celeryCupsT)+(p*1.0);
                   const bags=Math.floor(total/2);
                   if(total===0) return null;
                   return(
@@ -4447,10 +4469,12 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                     const o=parseFloat(rpVSessions.find(s=>s.id==="onions")?.count||0)||0;
                     const c=parseFloat(rpVSessions.find(s=>s.id==="celery")?.count||0)||0;
                     const p=parseFloat(rpVSessions.find(s=>s.id==="peppers")?.count||0)||0;
-                    const bags=Math.floor(((o*1.5)+(c*0.5)+(p*1.0))/2);
+                    const onionCupsC=rpVOnionSize==="large"?2.0:rpVOnionSize==="small"?1.0:1.5;
+                    const celeryCupsC=rpVCeleryForm==="stalk"?4.0:0.5;
+                    const bags=Math.floor(((o*onionCupsC)+(c*celeryCupsC)+(p*1.0))/2);
                     if(bags===0){alert("Not enough veg for a 2-cup bag.");return;}
                     setRpYieldConfirm({type:"sauteBlend",estimated:bags,o,c,p});setRpActualBags(String(bags));
-                  }}>🫕 Confirm — Estimated {Math.floor(((parseFloat(rpVSessions.find(s=>s.id==="onions")?.count||0)||0)*1.5+((parseFloat(rpVSessions.find(s=>s.id==="celery")?.count||0)||0)*0.5)+((parseFloat(rpVSessions.find(s=>s.id==="peppers")?.count||0)||0)*1.0))/2)} Bags</button>
+                  }}>🟕 Confirm — Estimated {(()=>{const oc=rpVOnionSize==="large"?2.0:rpVOnionSize==="small"?1.0:1.5;const cc=rpVCeleryForm==="stalk"?4.0:0.5;return Math.floor(((parseFloat(rpVSessions.find(s=>s.id==="onions")?.count||0)||0)*oc+((parseFloat(rpVSessions.find(s=>s.id==="celery")?.count||0)||0)*cc)+((parseFloat(rpVSessions.find(s=>s.id==="peppers")?.count||0)||0)*1.0))/2);})()} Bags</button>
                 </div>
               </div>
             )}
