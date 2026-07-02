@@ -3041,26 +3041,33 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
 
   // -- Live inventory reconciliation: recomputed on every render against current inventory,
   // so a recipe/meal-plan "missing" list never goes stale after you restock. --
+  // Word-overlap matcher: recipe ingredient text ("shrimp, peeled and deveined") rarely contains
+  // an inventory item's exact name ("Raw Shrimp") as a substring, or vice versa — so instead of
+  // requiring one string to literally contain the other, we compare their significant words and
+  // call it a match if they share at least one. This mirrors the same rule already used when the
+  // AI first generates a meal plan ("if a shoppingNeeded item name contains any word from an
+  // inventory item name, it is already owned").
+  const RECON_STOPWORDS=new Set(["and","or","the","a","an","with","without","fresh","raw","cooked","large","small","medium","peeled","deveined","boneless","skinless","shredded","grated","chopped","sliced","minced","of","for","to","tail","off","whole","half"]);
+  const significantWords=(s)=>String(s||"").toLowerCase().replace(/[^a-z0-9\s]/g," ").split(/\s+/).filter(w=>w.length>2&&!RECON_STOPWORDS.has(w));
+  const wordsOverlap=(a,b)=>{
+    const wa=significantWords(a),wb=significantWords(b);
+    if(!wa.length||!wb.length) return false;
+    return wa.some(w=>wb.includes(w));
+  };
   const liveMissing=(list)=>{
     if(!Array.isArray(list)) return [];
     return list.filter(ing=>{
-      const ingL=String(ing||"").toLowerCase().trim();
+      const ingL=String(ing||"").trim();
       if(!ingL) return false;
-      return !inventory.some(i=>{
-        const invL=(i.name||"").toLowerCase();
-        return invL&&(invL.includes(ingL)||ingL.includes(invL));
-      });
+      return !inventory.some(i=>wordsOverlap(ingL,i.name));
     });
   };
   const liveNeeded=(list)=>{
     if(!Array.isArray(list)) return [];
     return list.filter(s=>{
-      const nameL=String(s?.name||s||"").toLowerCase().trim();
+      const nameL=String(s?.name||s||"").trim();
       if(!nameL) return false;
-      return !inventory.some(i=>{
-        const invL=(i.name||"").toLowerCase();
-        return invL&&(invL.includes(nameL)||nameL.includes(invL));
-      });
+      return !inventory.some(i=>wordsOverlap(nameL,i.name));
     });
   };
   const cookRecipe=async(r)=>{
