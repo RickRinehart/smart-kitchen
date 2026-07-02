@@ -2010,19 +2010,22 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     const chosen=scanResults.filter(i=>i.selected);
     const hasProteins=chosen.some(i=>i.isProtein||i.category==="Protein");
     const parsePrice=(p)=>{if(!p)return null;const n=parseFloat(String(p).replace(/[^0-9.]/g,""));return(n&&n>0)?n:null;};
+    const avgOf=(hist)=>hist.length?+(hist.reduce((s,h)=>s+h.price,0)/hist.length).toFixed(2):null;
     setInventory(prev=>{
       const u=[...prev];
       chosen.forEach(si=>{
         const idx=u.findIndex(i=>i.name.toLowerCase()===si.name.toLowerCase());
         const paid=parsePrice(si.price);
+        const today=new Date().toISOString();
         if(idx>=0){
-          const prevAvg=u[idx].avgUnitPrice||null;
-          const prevCount=u[idx].purchaseCount||0;
-          const newCount=paid?prevCount+1:prevCount;
-          const newAvg=paid?(prevAvg?((prevAvg*prevCount)+paid)/newCount:paid):prevAvg;
-          u[idx]={...u[idx],qty:si.qty,unit:si.unit,location:si.location,upc:si.upc||u[idx].upc||null,brand:si.brand||u[idx].brand||null,size:si.size||u[idx].size||null,nutrition:Object.keys(si.nutrition||{}).length?si.nutrition:u[idx].nutrition||{},image_url:si.image_url||u[idx].image_url||null,upc_enriched:si.upc_enriched||u[idx].upc_enriched||false,avgUnitPrice:newAvg,purchaseCount:newCount,lastPrice:paid||u[idx].lastPrice||null};
+          const prevHist=u[idx].priceHistory||[];
+          const newHist=paid?[...prevHist,{price:paid,date:today}]:prevHist;
+          u[idx]={...u[idx],qty:si.qty,unit:si.unit,location:si.location,upc:si.upc||u[idx].upc||null,brand:si.brand||u[idx].brand||null,size:si.size||u[idx].size||null,nutrition:Object.keys(si.nutrition||{}).length?si.nutrition:u[idx].nutrition||{},image_url:si.image_url||u[idx].image_url||null,upc_enriched:si.upc_enriched||u[idx].upc_enriched||false,priceHistory:newHist,avgUnitPrice:avgOf(newHist)||u[idx].avgUnitPrice||null,purchaseCount:newHist.length,lastPrice:paid||u[idx].lastPrice||null};
         }
-        else{u.push({id:Date.now()+Math.random(),name:si.brand&&si.size?`${si.brand} ${si.name} ${si.size}`.trim():si.name,qty:si.qty,unit:si.unit,category:si.category,location:si.location,isProtein:!!si.isProtein,price:si.price||null,avgUnitPrice:paid,purchaseCount:paid?1:0,lastPrice:paid,expiryDays:si.expiryDays||null,upc:si.upc||null,brand:si.brand||null,size:si.size||null,nutrition:si.nutrition||{},image_url:si.image_url||null,upc_enriched:!!si.upc_enriched});}
+        else{
+          const hist=paid?[{price:paid,date:today}]:[];
+          u.push({id:Date.now()+Math.random(),name:si.brand&&si.size?`${si.brand} ${si.name} ${si.size}`.trim():si.name,qty:si.qty,unit:si.unit,category:si.category,location:si.location,isProtein:!!si.isProtein,price:si.price||null,priceHistory:hist,avgUnitPrice:avgOf(hist),purchaseCount:hist.length,lastPrice:paid,expiryDays:si.expiryDays||null,upc:si.upc||null,brand:si.brand||null,size:si.size||null,nutrition:si.nutrition||{},image_url:si.image_url||null,upc_enriched:!!si.upc_enriched});
+        }
       });
       return u;
     });
