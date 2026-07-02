@@ -3650,7 +3650,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                                 await supabase.from("profiles").update({sc_cloud_data:{...parsed,cellar:updatedCellar}}).eq("id",user.id);
                                 setCellarInvDisplay(prev=>Array.isArray(prev)?prev.map(pb=>pb.id===b.id?{...pb,excludeFromCooking:true}:pb):prev);
                               }catch(e){console.error("Exclude from cooking error:",e);}
-                            }} title="Exclude from cooking — hides this bottle from Smart Kitchen inventory" style={{background:"transparent",border:"none",cursor:"pointer",fontSize:12,padding:0,flexShrink:0,lineHeight:1}}>🚫</button>
+                            }} title="OK to cook with — tap to exclude from Smart Kitchen" style={{background:"transparent",border:"none",cursor:"pointer",fontSize:12,padding:0,flexShrink:0,lineHeight:1,opacity:0.6}}>🍳</button>
                           </div>
                           <div style={{color:C.muted,fontSize:10,marginTop:2,display:"flex",justifyContent:"space-between"}}>
                             <span>{b.category}</span>
