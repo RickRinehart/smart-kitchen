@@ -1182,6 +1182,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [rpPName,setRpPName]=useState("");
   const [rpPLbs,setRpPLbs]=useState("");
   const [rpPOz,setRpPOz]=useState(6);
+  const [rpPPrice,setRpPPrice]=useState("");
   const [rpPPreview,setRpPPreview]=useState(null);
   const [rpVSessions,setRpVSessions]=useState([{id:1,preset:{name:"Mixed Sauté Blend",cupsPerUnit:3,bagCups:2,color:C.orange},count:"",bags:null}]);
   const [rpVOnionSize,setRpVOnionSize]=useState("medium");
@@ -1755,19 +1756,21 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
   },[chatMessages]);
 
   // -- Repackage helpers ------------------------------------------------------
-  const openRepack=(mode)=>{setRpMode(mode);setRpPName("");setRpPLbs("");setRpPOz(6);setRpPPreview(null);setRpHItem("");setRpHRaw("");setRpHOz(16);setRpOpen(true);};
+  const openRepack=(mode)=>{setRpMode(mode);setRpPName("");setRpPLbs("");setRpPOz(6);setRpPPrice("");setRpPPreview(null);setRpHItem("");setRpHRaw("");setRpHOz(16);setRpOpen(true);};
   const commitProtein=()=>{
     if(!rpPName||!rpPLbs) return;
     const portions=Math.floor((parseFloat(rpPLbs)*16)/rpPOz);
     const pName=rpPName;
+    const price=parseFloat(rpPPrice)||0;
+    const costPerPortion=(price>0&&portions>0)?+(price/portions).toFixed(2):null;
     setInventory(prev=>{
       const idx=prev.findIndex(i=>i.name.toLowerCase()===pName.toLowerCase());
-      if(idx>=0) return prev.map((i,ii)=>ii===idx?{...i,qty:i.qty+portions,isBulkProtein:true,portionOz:rpPOz}:i);
-      return [...prev,{id:Date.now(),name:pName,qty:portions,unit:"portions",category:"Protein",location:"Freezer",isBulkProtein:true,portionOz:rpPOz}];
+      if(idx>=0) return prev.map((i,ii)=>ii===idx?{...i,qty:i.qty+portions,isBulkProtein:true,portionOz:rpPOz,...(costPerPortion!==null?{costPerPortion,lastPurchasePrice:price,lastPurchaseLbs:parseFloat(rpPLbs)}:{})}:i);
+      return [...prev,{id:Date.now(),name:pName,qty:portions,unit:"portions",category:"Protein",location:"Freezer",isBulkProtein:true,portionOz:rpPOz,...(costPerPortion!==null?{costPerPortion,lastPurchasePrice:price,lastPurchaseLbs:parseFloat(rpPLbs)}:{})}];
     });
     setRpOpen(false);
     setTimeout(()=>{
-      setBatchPrintCue({itemName:pName,qty:portions,unit:"portions",format:"5163",category:"Protein"});
+      setBatchPrintCue({itemName:pName,qty:portions,unit:"portions",format:"5163",category:"Protein",...(costPerPortion!==null?{costPerPortion}:{})});
     },400);
   };
   const commitVeg=()=>{
@@ -4383,14 +4386,19 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                       ))}
                     </div>
                   </div>
+                  <div style={{gridColumn:"1 / -1"}}>
+                    <Label>PURCHASE PRICE ($) — optional</Label>
+                    <input style={bInp} type="number" step="0.01" min="0" placeholder="e.g. 14.99" value={rpPPrice} onChange={e=>{setRpPPrice(e.target.value);setRpPPreview(null);}}/>
+                    <div style={{fontSize:10,color:C.muted,marginTop:3,fontFamily:FM}}>Total you paid for this batch — used to estimate cost per portion for Smart Money.</div>
+                  </div>
                   <div style={{display:"flex",alignItems:"flex-end"}}>
-                    <button style={{...bBtn("orange"),width:"100%"}} onClick={()=>{const lbs=parseFloat(rpPLbs);if(!lbs||!rpPOz)return;setRpPPreview({portions:Math.floor((lbs*16)/rpPOz),lbs,ozEach:rpPOz});}}>Calculate</button>
+                    <button style={{...bBtn("orange"),width:"100%"}} onClick={()=>{const lbs=parseFloat(rpPLbs);if(!lbs||!rpPOz)return;const portions=Math.floor((lbs*16)/rpPOz);const price=parseFloat(rpPPrice)||0;const costPerPortion=(price>0&&portions>0)?+(price/portions).toFixed(2):null;setRpPPreview({portions,lbs,ozEach:rpPOz,price:price>0?price:null,costPerPortion});}}>Calculate</button>
                   </div>
                 </div>
                 {rpPPreview&&(
                   <div style={{background:"#1a2018",border:"1px solid "+C.green+"44",borderRadius:10,padding:14,marginBottom:14}}>
-                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,textAlign:"center"}}>
-                      {[{l:"Family Pack",v:rpPPreview.lbs+" lbs",c:C.muted},{l:"Dinner Portions",v:rpPPreview.portions,c:C.green},{l:"Each",v:rpPPreview.ozEach+"oz",c:C.accent}].map(s=>(
+                    <div style={{display:"grid",gridTemplateColumns:rpPPreview.costPerPortion?"1fr 1fr 1fr 1fr":"1fr 1fr 1fr",gap:10,textAlign:"center"}}>
+                      {[{l:"Family Pack",v:rpPPreview.lbs+" lbs",c:C.muted},{l:"Dinner Portions",v:rpPPreview.portions,c:C.green},{l:"Each",v:rpPPreview.ozEach+"oz",c:C.accent},...(rpPPreview.costPerPortion?[{l:"$/Portion",v:"$"+rpPPreview.costPerPortion.toFixed(2),c:C.orange}]:[])].map(s=>(
                         <div key={s.l}><div style={{fontSize:22,fontWeight:700,fontFamily:FD,color:s.c}}>{s.v}</div><div style={{fontSize:10,color:C.muted,fontFamily:FM,marginTop:2}}>{s.l}</div></div>
                       ))}
                     </div>
@@ -4691,9 +4699,14 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
             <div style={{fontSize:14,color:C.text,lineHeight:1.6,marginBottom:4}}>
               <strong>{batchPrintCue.itemName}</strong>
             </div>
-            <div style={{fontSize:13,color:C.muted,lineHeight:1.6,marginBottom:22}}>
+            <div style={{fontSize:13,color:C.muted,lineHeight:1.6,marginBottom:batchPrintCue.costPerPortion?4:22}}>
               {batchPrintCue.qty} {batchPrintCue.unit} added to inventory.
             </div>
+            {batchPrintCue.costPerPortion&&(
+              <div style={{fontSize:13,color:C.orange,fontWeight:600,lineHeight:1.6,marginBottom:22}}>
+                ≈ ${batchPrintCue.costPerPortion.toFixed(2)} per portion
+              </div>
+            )}
             <div style={{display:"flex",gap:8}}>
               <button style={{...bBtn("ghost"),flex:1}} onClick={()=>setBatchPrintCue(null)}>Not Now</button>
               <button style={{...bBtn("green"),flex:2}} onClick={()=>{
