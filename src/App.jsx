@@ -3632,7 +3632,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
               {cellarCookingEnabled&&(
                 <div style={{marginTop:10}}>
                   {user?.id&&!cellarInvLoading&&Array.isArray(cellarInvDisplay)&&cellarInvDisplay.filter(b=>!b.excludeFromCooking).length>0&&(
-                    <div style={{fontSize:10,color:C.muted,fontFamily:FM,marginBottom:8}}>🍳 = OK to cook with — tap to exclude a bottle from Smart Kitchen suggestions</div>
+                    <div style={{fontSize:10,color:C.muted,fontFamily:FM,marginBottom:8,display:"flex",alignItems:"center",gap:5}}><span style={{background:"#22c55e18",border:"1px solid #22c55e55",borderRadius:"50%",width:14,height:14,display:"inline-flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><span style={{color:"#22c55e",fontSize:9,fontWeight:900,lineHeight:1}}>✓</span></span> = OK to cook with — tap to exclude a bottle from Smart Kitchen suggestions</div>
                   )}
                   {!user?.id&&<div style={{fontSize:11,color:C.muted,fontFamily:FM}}>Sign in to sync your Smart Cellar inventory.</div>}
                   {user?.id&&cellarInvLoading&&<div style={{fontSize:11,color:C.muted,fontFamily:FM}}>Loading Smart Cellar…</div>}
@@ -3653,7 +3653,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                                 await supabase.from("profiles").update({sc_cloud_data:{...parsed,cellar:updatedCellar}}).eq("id",user.id);
                                 setCellarInvDisplay(prev=>Array.isArray(prev)?prev.map(pb=>pb.id===b.id?{...pb,excludeFromCooking:true}:pb):prev);
                               }catch(e){console.error("Exclude from cooking error:",e);}
-                            }} title="OK to cook with — tap to exclude from Smart Kitchen" style={{background:"transparent",border:"none",cursor:"pointer",fontSize:12,padding:0,flexShrink:0,lineHeight:1,opacity:0.6}}>🍳</button>
+                            }} title="OK to cook with — tap to exclude from Smart Kitchen" style={{background:"#22c55e18",border:"1px solid #22c55e55",borderRadius:"50%",width:18,height:18,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,padding:0}}><span style={{color:"#22c55e",fontSize:11,fontWeight:900,lineHeight:1}}>✓</span></button>
                           </div>
                           <div style={{color:C.muted,fontSize:10,marginTop:2,display:"flex",justifyContent:"space-between"}}>
                             <span>{b.category}</span>
