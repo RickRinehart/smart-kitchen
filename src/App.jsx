@@ -1036,6 +1036,26 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [showSeniorPrompt,setShowSeniorPrompt]=useState(false);
   const [darkMode,setDarkMode]=useState(()=>{try{return localStorage.getItem("sk_darkMode")!=="0";}catch{return true;}});
   const [cellarCookingEnabled,setCellarCookingEnabled]=useState(()=>{try{return localStorage.getItem("sk_cellarCookingEnabled")!=="0";}catch{return true;}});
+  const [cellarInvDisplay,setCellarInvDisplay]=useState(null);
+  const [cellarInvLoading,setCellarInvLoading]=useState(false);
+  // Auto-load Smart Cellar inventory on mount/reload whenever integration is enabled
+  useEffect(()=>{
+    if(!cellarCookingEnabled||!user?.id){setCellarInvDisplay(null);return;}
+    let cancelled=false;
+    setCellarInvLoading(true);
+    (async()=>{
+      try{
+        const {data}=await supabase.from("profiles").select("sc_cloud_data").eq("id",user.id).single();
+        const parsed=data?.sc_cloud_data?(typeof data.sc_cloud_data==="string"?JSON.parse(data.sc_cloud_data):data.sc_cloud_data):{};
+        const bottles=(parsed.cellar||[]).filter(b=>(b.remaining_pct??100)>5);
+        if(!cancelled) setCellarInvDisplay(bottles);
+      }catch{
+        if(!cancelled) setCellarInvDisplay([]);
+      }
+      if(!cancelled) setCellarInvLoading(false);
+    })();
+    return ()=>{cancelled=true;};
+  },[cellarCookingEnabled,user?.id]);
   // Apply theme by toggling body class — CSS variables handle the rest
   useEffect(()=>{
     document.body.classList.toggle("sk-light",!darkMode);
@@ -3599,6 +3619,37 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
               </select>
               <button style={bBtn("ghost")} onClick={()=>setShowAdd(v=>!v)}>{showAdd?"✕ Cancel":"+ Add"}</button>
               {inventory.filter(i=>i.category==="Wild Harvest"||i.category==="Home Harvest"||(i.isBulkProtein&&i.category==="Protein")||i.vegType==="sauteBlend").length>0&&(<button style={{...bBtn("ghost"),background:"#1a3a1a",border:"1px solid #4c4",color:"#4c4"}} onClick={()=>{setLabelSelected({});setLabelModal(true);}}>🏷 Print Labels</button>)}
+            </div>
+
+            <div style={{background:C.surface,border:"1px solid #7c3aed44",borderRadius:10,padding:14,marginBottom:14}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
+                <div style={{fontFamily:FM,fontSize:12,fontWeight:600,color:"#7c3aed"}}>🍾 Integrate Smart Cellar for cooking?</div>
+                <div style={{display:"flex",gap:6}}>
+                  <button onClick={()=>{setCellarCookingEnabled(true);try{localStorage.setItem("sk_cellarCookingEnabled","1");}catch{}}} style={{padding:"5px 14px",borderRadius:8,border:"1px solid "+(cellarCookingEnabled?"#7c3aed":C.border),background:cellarCookingEnabled?"#7c3aed22":"transparent",color:cellarCookingEnabled?"#7c3aed":C.muted,fontFamily:FM,fontSize:11,fontWeight:700,cursor:"pointer"}}>Yes</button>
+                  <button onClick={()=>{setCellarCookingEnabled(false);try{localStorage.setItem("sk_cellarCookingEnabled","0");}catch{}}} style={{padding:"5px 14px",borderRadius:8,border:"1px solid "+(!cellarCookingEnabled?"#dc2626":C.border),background:!cellarCookingEnabled?"#dc262622":"transparent",color:!cellarCookingEnabled?"#dc2626":C.muted,fontFamily:FM,fontSize:11,fontWeight:700,cursor:"pointer"}}>No</button>
+                </div>
+              </div>
+              {cellarCookingEnabled&&(
+                <div style={{marginTop:10}}>
+                  {!user?.id&&<div style={{fontSize:11,color:C.muted,fontFamily:FM}}>Sign in to sync your Smart Cellar inventory.</div>}
+                  {user?.id&&cellarInvLoading&&<div style={{fontSize:11,color:C.muted,fontFamily:FM}}>Loading Smart Cellar…</div>}
+                  {user?.id&&!cellarInvLoading&&Array.isArray(cellarInvDisplay)&&cellarInvDisplay.length===0&&<div style={{fontSize:11,color:C.muted,fontFamily:FM}}>Your Smart Cellar is empty.</div>}
+                  {user?.id&&!cellarInvLoading&&Array.isArray(cellarInvDisplay)&&cellarInvDisplay.length>0&&(
+                    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))",gap:8}}>
+                      {cellarInvDisplay.map((b,i)=>(
+                        <div key={i} style={{background:C.card,border:"1px solid "+C.border,borderRadius:8,padding:"8px 10px",fontFamily:FM,fontSize:11}}>
+                          <div style={{fontWeight:600,color:C.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{b.name}</div>
+                          <div style={{color:C.muted,fontSize:10,marginTop:2,display:"flex",justifyContent:"space-between"}}>
+                            <span>{b.category}</span>
+                            <span>{Math.round(b.remaining_pct??100)}%</span>
+                          </div>
+                          {b.excludeFromCooking&&<div style={{color:"#dc2626",fontSize:9,marginTop:2}}>🚫 excluded from cooking</div>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {showAdd&&(
