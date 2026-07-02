@@ -529,21 +529,24 @@ const FEATURE_ANNOUNCEMENTS=[
     title:"New: Occasion Planner",
     intro:(name)=>`Hi ${name}! ✨ I have something exciting to show you.\n\nWe just added the **Occasion Planner** — now you can plan meals for Dinner Parties, Date Nights, Kids Parties, Quick Weeknights, and more. Just pick your event type and audience and Smart Kitchen handles the rest.\n\nWant me to walk you through it?`,
     quickReplies:["Show me!","How does it work?","Maybe later"],
-    tab:"mealPlan"
+    tab:"mealPlan",
+    digest:"**Occasion Planner** — plan meals for dinner parties, date nights, kids parties, and more"
   },
   {
     key:"smsShoppingList",
     title:"New: Text Your Shopping List",
     intro:(name)=>`Hey ${name}! 💬 Quick heads up — you can now text your shopping list directly to your phone or your spouse’s phone with one tap.\n\nNo email app needed. Just add a phone number in Settings and you’re all set.\n\nWant me to show you where?`,
     quickReplies:["Yes, show me","I’ll find it","Not right now"],
-    tab:"shopping"
+    tab:"shopping",
+    digest:"**Text your shopping list** straight to your phone or your spouse’s — one tap, no email needed"
   },
   {
     key:"harvestBulkRepackage",
     title:"New: Bulk Harvest Repackage & Bulk Print Labels",
     intro:(name)=>`Hi ${name}! 🦌 Two upgrades just landed in Harvest.\n\nWild Harvest and Home Harvest now support **bulk repackage** — process a whole batch in one pass instead of one item at a time. And once you’re done, you can **print labels in bulk** for everything you just repackaged, instead of printing one at a time.\n\nWant me to show you?`,
     quickReplies:["Show me!","How does it work?","Maybe later"],
-    tab:"harvest"
+    tab:"harvest",
+    digest:"**Bulk Harvest Repackage & Bulk Print Labels** — process a whole batch at once, print all labels together"
   }
 ];
 // VOICE PICKER COMPONENT — memoized to prevent flicker on re-render
@@ -1364,19 +1367,29 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
     if(showWizard) return;
     if(seenAnnouncements===null) return; // still loading seen state
     const t=setTimeout(()=>{
-      const unseen=FEATURE_ANNOUNCEMENTS.find(f=>!seenAnnouncements.includes(f.key));
-      if(!unseen) return;
-      const updated=[...seenAnnouncements,unseen.key];
+      const unseenList=FEATURE_ANNOUNCEMENTS.filter(f=>!seenAnnouncements.includes(f.key));
+      if(unseenList.length===0) return;
+      // Mark ALL pending announcements seen in one atomic append — nothing gets
+      // silently skipped or overwritten if more than one shipped since last session.
+      const updated=[...seenAnnouncements,...unseenList.map(f=>f.key)];
       setSeenAnnouncements(updated);
-      try{localStorage.setItem("sk_seenFeature_"+unseen.key,"1");}catch{}
+      try{unseenList.forEach(f=>localStorage.setItem("sk_seenFeature_"+f.key,"1"));}catch{}
       if(user?.id){
         supabase.from("profiles").update({sk_seen_announcements:updated}).eq("id",user.id).then(()=>{});
       }
       setChatOpen(true);
-      const msg=unseen.intro(userName);
+      let msg,replies;
+      if(unseenList.length===1){
+        msg=unseenList[0].intro(userName);
+        replies=unseenList[0].quickReplies||[];
+      }else{
+        const bullets=unseenList.map(f=>"• "+(f.digest||f.title)).join("\n");
+        msg=`Hi ${userName}! ✨ Here’s what’s new since you were last here:\n\n${bullets}\n\nWant me to show you any of these?`;
+        replies=["Show me!","Not right now"];
+      }
       setTimeout(()=>{
         addChatMsg("assistant",msg);
-        setProactiveQuickReplies(unseen.quickReplies||[]);
+        setProactiveQuickReplies(replies);
       },600);
     },3000);
     return ()=>clearTimeout(t);
