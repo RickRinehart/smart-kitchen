@@ -549,6 +549,18 @@ const FEATURE_ANNOUNCEMENTS=[
     digest:"**Bulk Harvest Repackage & Bulk Print Labels** — process a whole batch at once, print all labels together"
   }
 ];
+// -- Cellar Cooking-Use Registry — mirrors the pour-size category matching in Pair a Drink --
+const CELLAR_COOKING_USES=[
+  {match:["wine","sparkling","ros"],uses:["Deglaze","Braise","Sauce Reduction","Marinade"]},
+  {match:["beer","cider"],uses:["Braise","Batter"]},
+  {match:["whiskey","bourbon","scotch","rye","brandy","rum"],uses:["Flambé","Marinade","Sauce Finish"]},
+  {match:["vodka","gin","tequila"],uses:["Sauce Finish"]}
+];
+function cellarCookingUsesFor(category){
+  const cat=(category||"").toLowerCase();
+  const found=CELLAR_COOKING_USES.find(c=>c.match.some(m=>cat.includes(m)));
+  return found?found.uses:null;
+}
 // VOICE PICKER COMPONENT — memoized to prevent flicker on re-render
 const VoicePicker=React.memo(()=>{
   const [availVoices,setAvailVoices]=React.useState([]);
@@ -2056,9 +2068,24 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       const proteins=proteinItems.map(i=>i.name+" "+i.qty).join(", ");
       const veg=(blendItem?.qty||0)+" saute blend bags";
       const fs=familySummary();
+      // -- Cellar cooking pool: only if enabled, signed in, and items aren't excluded --
+      let cellarBlock="";
+      if(cellarCookingEnabled&&user?.id){
+        try{
+          const {data}=await supabase.from("profiles").select("sc_cloud_data").eq("id",user.id).single();
+          if(data?.sc_cloud_data){
+            const parsed=typeof data.sc_cloud_data==="string"?JSON.parse(data.sc_cloud_data):data.sc_cloud_data;
+            const eligible=(parsed.cellar||[]).filter(b=>!b.excludeFromCooking&&(b.remaining_pct??100)>5&&cellarCookingUsesFor(b.category));
+            if(eligible.length>0){
+              const list=eligible.map(b=>b.name+" ("+b.category+" — "+cellarCookingUsesFor(b.category).join("/")+")").join(", ");
+              cellarBlock=" Cellar/bar items optionally available for cooking (ONLY use one if it genuinely fits the dish, e.g. deglazing, braising, marinade, flambé — never force it): "+list+".";
+            }
+          }
+        }catch{}
+      }
       const raw=await callClaude({
-        system:"Return ONLY a JSON array of 4 dinner recipes. No other text. Start with [ end with ]. Each object has exactly these keys: id (number), name (string), time (string like 30 min), difficulty (Easy or Medium or Hard), description (one short sentence), usesFromInventory (array of 3 strings max), missingIngredients (array of strings), instructions (array of 4 short strings). Keep all strings short."+(fs?" CRITICAL DIETARY RULES — these are HARD STOPS, never violate them: "+fs:""),
-        prompt:"Proteins: "+proteins+". Saute blend bags: "+(blendItem?.qty||0)+". Make 4 simple weeknight dinners for 3 people. Vary proteins — include beef and pork not just chicken. Pantry/fridge inventory (match case-insensitively): "+inventory.map(i=>String(i.name||"")).filter(Boolean).join(", ")+". For missingIngredients only list items NOT in that inventory."+(fs?" ENFORCE these dietary rules in every recipe: "+fs:""),
+        system:"Return ONLY a JSON array of 4 dinner recipes. No other text. Start with [ end with ]. Each object has exactly these keys: id (number), name (string), time (string like 30 min), difficulty (Easy or Medium or Hard), description (one short sentence), usesFromInventory (array of 3 strings max), missingIngredients (array of strings), instructions (array of 4 short strings), cellarItem (string or null — the exact name of a cellar/bar item from the provided cellar list ONLY if it is genuinely used in this recipe, otherwise null). Keep all strings short."+(fs?" CRITICAL DIETARY RULES — these are HARD STOPS, never violate them: "+fs:""),
+        prompt:"Proteins: "+proteins+". Saute blend bags: "+(blendItem?.qty||0)+". Make 4 simple weeknight dinners for 3 people. Vary proteins — include beef and pork not just chicken. Pantry/fridge inventory (match case-insensitively): "+inventory.map(i=>String(i.name||"")).filter(Boolean).join(", ")+". For missingIngredients only list items NOT in that inventory."+cellarBlock+(fs?" ENFORCE these dietary rules in every recipe: "+fs:""),
       });
       const s=raw.indexOf("["),e=raw.lastIndexOf("]");
       if(s===-1||e===-1) throw new Error("No recipes returned");
@@ -3687,6 +3714,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                       <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
                         <span style={{...bTag(C.muted),fontSize:seniorMode?14:undefined}}>⏱ {r.time}</span>
                         <span style={bTag(C.blue)}>👨‍👩‍👧 {activeProfiles.length} people</span>
+                        {r.cellarItem&&<span style={bTag("#7c3aed")}>🍷 {r.cellarItem}</span>}
                         <span style={{...bTag(C.green),fontSize:seniorMode?14:undefined}}>✅ {(r.usesFromInventory||[]).length} on hand</span>
                         {(r.missingIngredients||[]).length>0&&<span style={{...bTag(C.red),fontSize:seniorMode?14:undefined}}>🛒 {r.missingIngredients.length} needed</span>}
                       </div>
