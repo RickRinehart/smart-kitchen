@@ -1763,10 +1763,17 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     const pName=rpPName;
     const price=parseFloat(rpPPrice)||0;
     const costPerPortion=(price>0&&portions>0)?+(price/portions).toFixed(2):null;
+    const avgOf=(hist)=>hist.length?+(hist.reduce((s,h)=>s+h.costPerPortion,0)/hist.length).toFixed(2):null;
     setInventory(prev=>{
       const idx=prev.findIndex(i=>i.name.toLowerCase()===pName.toLowerCase());
-      if(idx>=0) return prev.map((i,ii)=>ii===idx?{...i,qty:i.qty+portions,isBulkProtein:true,portionOz:rpPOz,...(costPerPortion!==null?{costPerPortion,lastPurchasePrice:price,lastPurchaseLbs:parseFloat(rpPLbs)}:{})}:i);
-      return [...prev,{id:Date.now(),name:pName,qty:portions,unit:"portions",category:"Protein",location:"Freezer",isBulkProtein:true,portionOz:rpPOz,...(costPerPortion!==null?{costPerPortion,lastPurchasePrice:price,lastPurchaseLbs:parseFloat(rpPLbs)}:{})}];
+      const today=new Date().toISOString();
+      if(idx>=0){
+        const prevHist=prev[idx].portionPriceHistory||[];
+        const newHist=costPerPortion!==null?[...prevHist,{costPerPortion,totalPrice:price,lbs:parseFloat(rpPLbs),portions,date:today}]:prevHist;
+        return prev.map((i,ii)=>ii===idx?{...i,qty:i.qty+portions,isBulkProtein:true,portionOz:rpPOz,portionPriceHistory:newHist,avgCostPerPortion:avgOf(newHist)||i.avgCostPerPortion||null,lastCostPerPortion:costPerPortion||i.lastCostPerPortion||null}:i);
+      }
+      const hist=costPerPortion!==null?[{costPerPortion,totalPrice:price,lbs:parseFloat(rpPLbs),portions,date:today}]:[];
+      return [...prev,{id:Date.now(),name:pName,qty:portions,unit:"portions",category:"Protein",location:"Freezer",isBulkProtein:true,portionOz:rpPOz,portionPriceHistory:hist,avgCostPerPortion:avgOf(hist),lastCostPerPortion:costPerPortion}];
     });
     setRpOpen(false);
     setTimeout(()=>{
@@ -3603,7 +3610,8 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                       </select>
                       {isBP&&<span style={bTag(C.red)}>{item.portionOz}oz</span>}
                       {isDV&&<span style={bTag(C.orange)}>{item.cupsPerBag}c bag</span>}
-                      {item.avgUnitPrice&&<span title={item.purchaseCount>1?"Average of "+item.purchaseCount+" purchases":"From last purchase"} style={bTag(C.green)}>avg ${item.avgUnitPrice.toFixed(2)}</span>}
+                      {isBP&&item.avgCostPerPortion&&<span title={(item.portionPriceHistory||[]).length>1?"Average of "+item.portionPriceHistory.length+" batches":"From last batch"} style={bTag(C.green)}>avg ${item.avgCostPerPortion.toFixed(2)}/portion</span>}
+                      {!isBP&&item.avgUnitPrice&&<span title={item.purchaseCount>1?"Average of "+item.purchaseCount+" purchases":"From last purchase"} style={bTag(C.green)}>avg ${item.avgUnitPrice.toFixed(2)}</span>}
                     </div>
                     <div style={{display:"flex",alignItems:"center",gap:6}}>
                       <button onClick={()=>setInventory(p=>p.map(i=>i.id===item.id?{...i,qty:Math.max(0,i.qty-1)}:i))} style={{width:seniorMode?52:24,height:seniorMode?52:24,borderRadius:8,background:C.surface,border:"2px solid "+C.border,color:C.text,cursor:"pointer",fontSize:seniorMode?26:14,display:"flex",alignItems:"center",justifyContent:"center"}}>−</button>
