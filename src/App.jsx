@@ -3034,6 +3034,30 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     setDessertLoading(false);
   };
 
+  // -- Live inventory reconciliation: recomputed on every render against current inventory,
+  // so a recipe/meal-plan "missing" list never goes stale after you restock. --
+  const liveMissing=(list)=>{
+    if(!Array.isArray(list)) return [];
+    return list.filter(ing=>{
+      const ingL=String(ing||"").toLowerCase().trim();
+      if(!ingL) return false;
+      return !inventory.some(i=>{
+        const invL=(i.name||"").toLowerCase();
+        return invL&&(invL.includes(ingL)||ingL.includes(invL));
+      });
+    });
+  };
+  const liveNeeded=(list)=>{
+    if(!Array.isArray(list)) return [];
+    return list.filter(s=>{
+      const nameL=String(s?.name||s||"").toLowerCase().trim();
+      if(!nameL) return false;
+      return !inventory.some(i=>{
+        const invL=(i.name||"").toLowerCase();
+        return invL&&(invL.includes(nameL)||nameL.includes(invL));
+      });
+    });
+  };
   const cookRecipe=async(r)=>{
     setInventory(p=>p.map(i=>{
       if(!(r.usesFromInventory||[]).includes(i.name)) return i;
@@ -3150,7 +3174,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
           day.proteinUsed?"Protein: "+day.proteinUsed:"",
           (day.sauteBagsUsed||0)>0?"Saute blend: "+day.sauteBagsUsed+" bag":"",
           day.sideUsed?"Side: "+day.sideUsed:"",
-          (day.shoppingNeeded||[]).length>0?"Need: "+day.shoppingNeeded.map(s=>s.name).join(", "):"All on hand",
+          liveNeeded(day.shoppingNeeded).length>0?"Need: "+liveNeeded(day.shoppingNeeded).map(s=>s.name).join(", "):"All on hand",
         ].filter(Boolean).join(" | ");
         return "https://calendar.google.com/calendar/render?action=TEMPLATE"+
           "&text="+encodeURIComponent("Dinner: "+day.meal)+
@@ -3808,7 +3832,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                         <span style={bTag(C.blue)}>👨‍👩‍👧 {activeProfiles.length} people</span>
                         {r.cellarItem&&<span style={bTag("#7c3aed")}>🍷 {r.cellarItem}</span>}
                         <span style={{...bTag(C.green),fontSize:seniorMode?14:undefined}}>✅ {(r.usesFromInventory||[]).length} on hand</span>
-                        {(r.missingIngredients||[]).length>0&&<span style={{...bTag(C.red),fontSize:seniorMode?14:undefined}}>🛒 {r.missingIngredients.length} needed</span>}
+                        {liveMissing(r.missingIngredients).length>0&&<span style={{...bTag(C.red),fontSize:seniorMode?14:undefined}}>🛒 {liveMissing(r.missingIngredients).length} needed</span>}
                       </div>
                       <div style={{fontSize:seniorMode?17:11,color:C.accent,fontFamily:FM,fontWeight:seniorMode?700:400}}>TAP FOR FULL RECIPE →</div>
                       <div style={{marginTop:10,display:"flex",gap:8}}>
@@ -3895,7 +3919,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                     <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
                       {r.time&&<span style={{...bTag(C.muted),fontSize:seniorMode?14:undefined}}>⏱ {r.time}</span>}
                       {(r.usesFromInventory||[]).length>0&&<span style={{...bTag(C.green),fontSize:seniorMode?14:undefined}}>✅ {r.usesFromInventory.length} on hand</span>}
-                      {(r.missingIngredients||[]).length>0&&<span style={{...bTag(C.red),fontSize:seniorMode?14:undefined}}>🛒 {r.missingIngredients.length} needed</span>}
+                      {liveMissing(r.missingIngredients).length>0&&<span style={{...bTag(C.red),fontSize:seniorMode?14:undefined}}>🛒 {liveMissing(r.missingIngredients).length} needed</span>}
                     </div>
                     <div style={{fontSize:seniorMode?19:11,color:C.accent,fontFamily:FM,fontWeight:700,marginBottom:10,letterSpacing:seniorMode?0.5:0}}>TAP FOR FULL RECIPE →</div>
                     <div style={{display:"flex",gap:8,marginBottom:8}}>
@@ -4055,16 +4079,16 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                         </div>
                       </div>
                       <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
-                        {(day.shoppingNeeded||[]).length===0
+                        {liveNeeded(day.shoppingNeeded).length===0
                           ?<span style={bTag(C.green)}>✅ Ready</span>
-                          :<div style={{width:"100%",marginBottom:4}}><div style={{fontSize:9,color:C.muted,marginBottom:3,fontFamily:FM}}>NEED</div>{(day.shoppingNeeded||[]).map((s,j)=><div key={j} style={{fontSize:seniorMode?15:13,color:C.red,marginBottom:2}}>· {s.qty} {s.unit} {s.name}</div>)}</div>}
+                          :<div style={{width:"100%",marginBottom:4}}><div style={{fontSize:9,color:C.muted,marginBottom:3,fontFamily:FM}}>NEED</div>{liveNeeded(day.shoppingNeeded).map((s,j)=><div key={j} style={{fontSize:seniorMode?15:13,color:C.red,marginBottom:2}}>· {s.qty} {s.unit} {s.name}</div>)}</div>}
                         <button onClick={()=>madeMeal(day)} style={{background:"#3ecf8e22",border:"1px solid #3ecf8e44",borderRadius:seniorMode?10:6,color:"#3ecf8e",cursor:"pointer",fontFamily:FM,fontSize:seniorMode?18:11,padding:seniorMode?"12px 20px":"8px 14px",flexShrink:0,fontWeight:seniorMode?700:400}} disabled={isViewer}>✅ Made It!</button>
                         {familyProfiles.some(p=>p.guidedPlateMode)&&(<button onClick={()=>{const qualifying=familyProfiles.filter(p=>p.guidedPlateMode||p.medicalPlan||(can.medicalCompliance&&p.medicalAllergies?.length>0));const active=qualifying.length>0?qualifying:familyProfiles.slice(0,1);setPlateStep(0);setPlateComponents([]);setPlateCumulativeG(0);setPlateSessionId(Date.now().toString());setPlateCoachNote("");setShowPlateSummary(false);setScaleCalcResult(null);setScaleError("");setPlateSuggestedComponents([]);setPlateCurrentComponentIdx(-1);setPlateComponentsLoading(true);if(active.length===1){const activeP=active[0];setPlateSession({active:true,memberName:activeP.name||"",mealName:day.meal,mealDay:day.day,activeProfile:activeP,dayObj:day});setPlatePendingMeal(null);setPlateQualifyingMembers([]);}else{setPlatePendingMeal(day);setPlateQualifyingMembers(active);setPlateSession({active:true,memberName:"",mealName:day.meal,mealDay:day.day,activeProfile:null,dayObj:day});}setShowScaleModal(true);buildComponentsFromDay(day).then(comps=>{setPlateSuggestedComponents(comps);setPlateComponentsLoading(false);}).catch(()=>setPlateComponentsLoading(false));}} style={{background:"#10b98122",border:"1px solid #10b981",borderRadius:seniorMode?10:6,color:"#10b981",cursor:"pointer",fontFamily:FM,fontSize:seniorMode?16:11,padding:seniorMode?"10px 16px":"6px 12px",flexShrink:0,fontWeight:600}} disabled={isViewer}>🍽 Build Plate</button>)}
                         <button onClick={()=>setPhotoPromptMeal(day.meal)} style={{background:"transparent",border:"1px solid "+C.border,borderRadius:seniorMode?10:6,color:C.muted,cursor:"pointer",fontFamily:FM,fontSize:seniorMode?16:12,padding:seniorMode?"10px 14px":"8px 12px",flexShrink:0}} title="Add photo" disabled={isViewer}>📸 {mealPhotos[day.meal]?"Change":"Photo"}</button>
                         <button onClick={()=>{setChangeMealModal(i);setChangeMealRequest("");}} style={{background:"transparent",border:"1px solid "+C.border,borderRadius:seniorMode?10:4,color:C.muted,fontFamily:FM,fontSize:seniorMode?18:11,padding:seniorMode?"12px 20px":"8px 14px",cursor:"pointer",flexShrink:0}} disabled={isViewer}>🔄 Change Meal</button>
                         <button onClick={()=>{setShowOccasionPlanner(true);setOccasionStep("form");setOccasionResult(null);setOccasionDate("");}} style={{background:"transparent",border:"1px solid "+C.accent,borderRadius:seniorMode?10:4,color:C.accent,fontFamily:FM,fontSize:seniorMode?18:11,padding:seniorMode?"12px 20px":"8px 14px",cursor:"pointer",flexShrink:0}}>🎉 Occasion</button>
                         <button onClick={()=>{setPairDrinkMeal(day);setPairDrinkResult(null);setPairDrinkCellar(null);setPairDrinkCellarLoading(false);}} style={{background:"transparent",border:"1px solid #7c3aed44",borderRadius:seniorMode?10:4,color:"#7c3aed",fontFamily:FM,fontSize:seniorMode?18:11,padding:seniorMode?"12px 20px":"8px 14px",cursor:"pointer",flexShrink:0}}>🍷 Pair a Drink</button>
-                        <button onClick={()=>{const today=new Date();const daysToMon=today.getDay()===0?1:8-today.getDay();const monday=new Date(today);monday.setDate(today.getDate()+daysToMon);const offsets={Monday:0,Tuesday:1,Wednesday:2,Thursday:3,Friday:4,Saturday:5,Sunday:6};const d=new Date(monday);d.setDate(monday.getDate()+(offsets[day.day]??0));const dateStr=d.toISOString().split("T")[0].replace(/-/g,"");const desc=[day.proteinUsed?"Protein: "+day.proteinUsed:"",day.sideUsed?"Side: "+day.sideUsed:"",(day.shoppingNeeded||[]).length>0?"Need: "+day.shoppingNeeded.map(s=>s.name).join(", "):"All on hand"].filter(Boolean).join(" | ");window.open("https://calendar.google.com/calendar/render?action=TEMPLATE&text="+encodeURIComponent("Dinner: "+day.meal)+"&dates="+dateStr+"/"+dateStr+"&details="+encodeURIComponent(desc),"_blank");}} style={{background:"transparent",border:"1px solid #5b9cf6",borderRadius:4,color:"#5b9cf6",fontFamily:FM,fontSize:seniorMode?14:11,padding:"8px 14px",cursor:"pointer",flexShrink:0}} disabled={isViewer}>📅 Add to Calendar</button>
+                        <button onClick={()=>{const today=new Date();const daysToMon=today.getDay()===0?1:8-today.getDay();const monday=new Date(today);monday.setDate(today.getDate()+daysToMon);const offsets={Monday:0,Tuesday:1,Wednesday:2,Thursday:3,Friday:4,Saturday:5,Sunday:6};const d=new Date(monday);d.setDate(monday.getDate()+(offsets[day.day]??0));const dateStr=d.toISOString().split("T")[0].replace(/-/g,"");const desc=[day.proteinUsed?"Protein: "+day.proteinUsed:"",day.sideUsed?"Side: "+day.sideUsed:"",liveNeeded(day.shoppingNeeded).length>0?"Need: "+liveNeeded(day.shoppingNeeded).map(s=>s.name).join(", "):"All on hand"].filter(Boolean).join(" | ");window.open("https://calendar.google.com/calendar/render?action=TEMPLATE&text="+encodeURIComponent("Dinner: "+day.meal)+"&dates="+dateStr+"/"+dateStr+"&details="+encodeURIComponent(desc),"_blank");}} style={{background:"transparent",border:"1px solid #5b9cf6",borderRadius:4,color:"#5b9cf6",fontFamily:FM,fontSize:seniorMode?14:11,padding:"8px 14px",cursor:"pointer",flexShrink:0}} disabled={isViewer}>📅 Add to Calendar</button>
                       </div>
                       </div>
                     </div>
