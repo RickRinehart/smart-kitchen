@@ -3631,6 +3631,9 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
               </div>
               {cellarCookingEnabled&&(
                 <div style={{marginTop:10}}>
+                  {user?.id&&!cellarInvLoading&&Array.isArray(cellarInvDisplay)&&cellarInvDisplay.filter(b=>!b.excludeFromCooking).length>0&&(
+                    <div style={{fontSize:10,color:C.muted,fontFamily:FM,marginBottom:8}}>🍳 = OK to cook with — tap to exclude a bottle from Smart Kitchen suggestions</div>
+                  )}
                   {!user?.id&&<div style={{fontSize:11,color:C.muted,fontFamily:FM}}>Sign in to sync your Smart Cellar inventory.</div>}
                   {user?.id&&cellarInvLoading&&<div style={{fontSize:11,color:C.muted,fontFamily:FM}}>Loading Smart Cellar…</div>}
                   {user?.id&&!cellarInvLoading&&Array.isArray(cellarInvDisplay)&&cellarInvDisplay.filter(b=>!b.excludeFromCooking).length===0&&<div style={{fontSize:11,color:C.muted,fontFamily:FM}}>{cellarInvDisplay.length>0?"All cellar bottles are excluded from cooking.":"Your Smart Cellar is empty."}</div>}
