@@ -3946,6 +3946,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                     </div>
                     <div style={{fontSize:seniorMode?19:11,color:C.accent,fontFamily:FM,fontWeight:700,marginBottom:10,letterSpacing:seniorMode?0.5:0}}>TAP FOR FULL RECIPE →</div>
                     <div style={{display:"flex",gap:8,marginBottom:8}}>
+                      <button onClick={e=>{e.stopPropagation();setAddToPlanRecipe(r);setAddToPlanDay("");}} style={{flex:1,padding:seniorMode?"14px":"8px",borderRadius:8,border:"1px solid #2aa86e",background:"#2aa86e",color:"#fff",fontFamily:FM,fontSize:seniorMode?16:11,cursor:"pointer",fontWeight:600}} disabled={isViewer}>📅 Add to Plan</button>
                       <button onClick={e=>{e.stopPropagation();const today=new Date();const dateStr=today.toISOString().split("T")[0].replace(/-/g,"");window.open("https://calendar.google.com/calendar/render?action=TEMPLATE&text="+encodeURIComponent("Dinner: "+name)+"&dates="+dateStr+"/"+dateStr,"_blank");}} style={{flex:1,padding:seniorMode?"14px":"8px",borderRadius:8,border:"1px solid #5b9cf6",background:"transparent",color:"#5b9cf6",fontFamily:FM,fontSize:seniorMode?16:11,cursor:"pointer"}} disabled={isViewer}>📅 Add to Calendar</button>
                     </div>
                     <div style={{display:"flex",gap:8}}>
@@ -6816,12 +6817,7 @@ setScaleCalcLoading(false);setTimeout(()=>{if(scaleDevice&&scaleDevice._writeChr
                   setShareMode(true);
                   setShowShareModal(true);
                 }} style={{background:"transparent",border:"2px solid #c8963e",borderRadius:10,padding:"10px 16px",color:"#c8963e",fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,cursor:"pointer",fontWeight:600}}>📤 Share</button>
-                <button onClick={()=>{
-                  if(!recipeRatings[frViewRecipe.name]){
-                    setRecipeRatings(p=>({...p,[frViewRecipe.name]:{rating:4,recipe:{...frViewRecipe,isFamilyRecipe:false}}}));
-                    alert(frViewRecipe.name+" added to Saved Recipes!");
-                  } else { alert(frViewRecipe.name+" is already in Saved Recipes."); }
-                }} style={{background:"transparent",border:"2px solid #5b9cf6",borderRadius:10,padding:"10px 16px",color:"#5b9cf6",fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,cursor:"pointer"}}>⭐ Add to Saved</button>
+                <button onClick={()=>{setAddToPlanRecipe({...frViewRecipe,usesFromInventory:frViewRecipe.usesFromInventory||frViewRecipe.ingredients||[],missingIngredients:frViewRecipe.missingIngredients||[]});setAddToPlanDay("");}} style={{background:"transparent",border:"2px solid #2aa86e",borderRadius:10,padding:"10px 16px",color:"#2aa86e",fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,cursor:"pointer",fontWeight:600}}>📅 Add to Meal Plan</button>
                 <button onClick={()=>{setFrEditRecipe({...frViewRecipe});setFrServings(frViewRecipe.servings||4);}} style={{background:"transparent",border:"2px solid #c8963e",borderRadius:10,padding:"10px 16px",color:"#5c3317",fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,cursor:"pointer"}}>✏ Edit</button>
                 <button onClick={()=>{if(window.confirm("Delete "+frViewRecipe.name+"?")){const updated=familyRecipes.filter(r=>r.id!==frViewRecipe.id);setFamilyRecipes(updated);try{localStorage.setItem("sk_familyRecipes",JSON.stringify(updated));}catch{}setFrViewRecipe(null);}}} style={{background:"transparent",border:"2px solid #dc2626",borderRadius:10,padding:"10px 16px",color:"#dc2626",fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,cursor:"pointer"}}>🗑 Delete</button>
               </div>
