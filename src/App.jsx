@@ -2054,7 +2054,9 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     setInventory(prev=>{
       const u=[...prev];
       chosen.forEach(si=>{
-        const idx=u.findIndex(i=>i.name.toLowerCase()===si.name.toLowerCase());
+        si={...si,name:(si.name||"").trim()};
+        if(!si.name) return; // skip anything that scanned/edited down to a blank name
+        const idx=u.findIndex(i=>(i.name||"").trim().toLowerCase()===si.name.toLowerCase());
         const paid=parsePrice(si.price);
         const today=new Date().toISOString();
         if(idx>=0){
@@ -2072,6 +2074,9 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     setScanStage("done");
     setTimeout(()=>{
       setScanOpen(false);setScanPreview(null);setScanB64(null);setScanResults(null);setScanStage("upload");
+      // Clear any leftover search/filter state so newly-scanned items are guaranteed visible,
+      // not silently hidden behind a search term or filter left on from before scanning.
+      setInvSearch("");setFilterCat("All");setFilterLoc("All");
       setTab("inventory");
       if(hasProteins&&scanMode==="receipt"){
         setTimeout(()=>{
