@@ -1137,6 +1137,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [upgradeModal,setUpgradeModal]=useState(null);
   const [labelModal,setLabelModal]=useState(false);const [labelSelected,setLabelSelected]=useState({});const [labelFormat,setLabelFormat]=useState("5163");const [labelQty,setLabelQty]=useState({});
   const [batchPrintCue,setBatchPrintCue]=useState(null);
+  const [cookedConfirm,setCookedConfirm]=useState(null);
   const [leftoverSavedCue,setLeftoverSavedCue]=useState(null);
   const [makeThisModal,setMakeThisModal]=useState(false);
   const [makeThisInput,setMakeThisInput]=useState("");
@@ -3113,7 +3114,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       }catch(e){console.error("Cellar cooking deduction error:",e);}
     }
     setActiveRecipe(null);
-    alert("✅ \""+r.name+"\" cooked! Inventory updated."+cellarNote);
+    setCookedConfirm({name:r.name,cellarNote});
   };
 
   const openMealPlanRecipe=async(day)=>{
@@ -4892,6 +4893,20 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
         </div>
       )}
 
+      {/* == COOKED CONFIRM == */}
+      {cookedConfirm&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300,padding:16}} onClick={()=>setCookedConfirm(null)}>
+          <div style={{background:C.card,border:"1px solid "+C.green+"55",borderRadius:16,padding:26,maxWidth:380,width:"100%",textAlign:"center"}} onClick={e=>e.stopPropagation()}>
+            <div style={{fontSize:38,marginBottom:10}}>🍳</div>
+            <div style={{fontFamily:FD,fontSize:20,color:C.green,marginBottom:8}}>Cooked!</div>
+            <div style={{fontSize:14,color:C.text,lineHeight:1.6,marginBottom:4}}>
+              <strong>{cookedConfirm.name}</strong>
+            </div>
+            <div style={{fontSize:13,color:C.muted,lineHeight:1.5,marginBottom:16}}>Inventory updated.{cookedConfirm.cellarNote}</div>
+            <button style={{...bBtn("primary"),width:"100%"}} onClick={()=>setCookedConfirm(null)}>Got it</button>
+          </div>
+        </div>
+      )}
       {/* == BATCH PRINT CUE == */}
       {batchPrintCue&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300,padding:16}} onClick={()=>setBatchPrintCue(null)}>
