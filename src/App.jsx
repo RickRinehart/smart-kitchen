@@ -3633,17 +3633,29 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                 <div style={{marginTop:10}}>
                   {!user?.id&&<div style={{fontSize:11,color:C.muted,fontFamily:FM}}>Sign in to sync your Smart Cellar inventory.</div>}
                   {user?.id&&cellarInvLoading&&<div style={{fontSize:11,color:C.muted,fontFamily:FM}}>Loading Smart Cellar…</div>}
-                  {user?.id&&!cellarInvLoading&&Array.isArray(cellarInvDisplay)&&cellarInvDisplay.length===0&&<div style={{fontSize:11,color:C.muted,fontFamily:FM}}>Your Smart Cellar is empty.</div>}
-                  {user?.id&&!cellarInvLoading&&Array.isArray(cellarInvDisplay)&&cellarInvDisplay.length>0&&(
+                  {user?.id&&!cellarInvLoading&&Array.isArray(cellarInvDisplay)&&cellarInvDisplay.filter(b=>!b.excludeFromCooking).length===0&&<div style={{fontSize:11,color:C.muted,fontFamily:FM}}>{cellarInvDisplay.length>0?"All cellar bottles are excluded from cooking.":"Your Smart Cellar is empty."}</div>}
+                  {user?.id&&!cellarInvLoading&&Array.isArray(cellarInvDisplay)&&cellarInvDisplay.filter(b=>!b.excludeFromCooking).length>0&&(
                     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))",gap:8}}>
-                      {cellarInvDisplay.map((b,i)=>(
+                      {cellarInvDisplay.filter(b=>!b.excludeFromCooking).map((b,i)=>(
                         <div key={i} style={{background:C.card,border:"1px solid "+C.border,borderRadius:8,padding:"8px 10px",fontFamily:FM,fontSize:11}}>
-                          <div style={{fontWeight:600,color:C.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{b.name}</div>
+                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:6}}>
+                            <div style={{fontWeight:600,color:C.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{b.name}</div>
+                            <button onClick={async()=>{
+                              if(!user?.id) return;
+                              try{
+                                const {data}=await supabase.from("profiles").select("sc_cloud_data").eq("id",user.id).single();
+                                if(!data?.sc_cloud_data) return;
+                                const parsed=typeof data.sc_cloud_data==="string"?JSON.parse(data.sc_cloud_data):data.sc_cloud_data;
+                                const updatedCellar=(parsed.cellar||[]).map(cb=>cb.id===b.id?{...cb,excludeFromCooking:true}:cb);
+                                await supabase.from("profiles").update({sc_cloud_data:{...parsed,cellar:updatedCellar}}).eq("id",user.id);
+                                setCellarInvDisplay(prev=>Array.isArray(prev)?prev.map(pb=>pb.id===b.id?{...pb,excludeFromCooking:true}:pb):prev);
+                              }catch(e){console.error("Exclude from cooking error:",e);}
+                            }} title="Exclude from cooking — hides this bottle from Smart Kitchen inventory" style={{background:"transparent",border:"none",cursor:"pointer",fontSize:12,padding:0,flexShrink:0,lineHeight:1}}>🚫</button>
+                          </div>
                           <div style={{color:C.muted,fontSize:10,marginTop:2,display:"flex",justifyContent:"space-between"}}>
                             <span>{b.category}</span>
                             <span>{Math.round(b.remaining_pct??100)}%</span>
                           </div>
-                          {b.excludeFromCooking&&<div style={{color:"#dc2626",fontSize:9,marginTop:2}}>🚫 excluded from cooking</div>}
                         </div>
                       ))}
                     </div>
