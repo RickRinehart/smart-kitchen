@@ -149,8 +149,12 @@ export async function loadCloudData(userId) {
         if (Array.isArray(data[dbCol])) {
           const localRaw = localStorage.getItem(lsKey);
           const localArr = localRaw ? JSON.parse(localRaw) : [];
-          // Use cloud data only if it has more items OR local is empty
-          if (data[dbCol].length > 0 || localArr.length === 0) {
+          // Use cloud data only if it actually has MORE items than local, or local is empty.
+          // (Previously this only checked cloud.length > 0, which is true almost always once
+          // there's any inventory at all — so a stale cloud snapshot would silently overwrite
+          // newer local changes, e.g. right after scanning a new item, before the debounced
+          // save to Supabase had a chance to run.)
+          if (data[dbCol].length > localArr.length || localArr.length === 0) {
             // For family_profiles: preserve Medical+ fields from local if cloud record lacks them
             if (dbCol === 'family_profiles' && localArr.length > 0) {
               const MEDICAL_FIELDS = ['medications','supplements','medicalPlan','medicalAllergies',
