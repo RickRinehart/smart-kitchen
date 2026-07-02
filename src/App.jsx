@@ -2009,12 +2009,20 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
   const commitScan=()=>{
     const chosen=scanResults.filter(i=>i.selected);
     const hasProteins=chosen.some(i=>i.isProtein||i.category==="Protein");
+    const parsePrice=(p)=>{if(!p)return null;const n=parseFloat(String(p).replace(/[^0-9.]/g,""));return(n&&n>0)?n:null;};
     setInventory(prev=>{
       const u=[...prev];
       chosen.forEach(si=>{
         const idx=u.findIndex(i=>i.name.toLowerCase()===si.name.toLowerCase());
-        if(idx>=0){u[idx]={...u[idx],qty:si.qty,unit:si.unit,location:si.location,upc:si.upc||u[idx].upc||null,brand:si.brand||u[idx].brand||null,size:si.size||u[idx].size||null,nutrition:Object.keys(si.nutrition||{}).length?si.nutrition:u[idx].nutrition||{},image_url:si.image_url||u[idx].image_url||null,upc_enriched:si.upc_enriched||u[idx].upc_enriched||false};}
-        else{u.push({id:Date.now()+Math.random(),name:si.brand&&si.size?`${si.brand} ${si.name} ${si.size}`.trim():si.name,qty:si.qty,unit:si.unit,category:si.category,location:si.location,isProtein:!!si.isProtein,price:si.price||null,expiryDays:si.expiryDays||null,upc:si.upc||null,brand:si.brand||null,size:si.size||null,nutrition:si.nutrition||{},image_url:si.image_url||null,upc_enriched:!!si.upc_enriched});}
+        const paid=parsePrice(si.price);
+        if(idx>=0){
+          const prevAvg=u[idx].avgUnitPrice||null;
+          const prevCount=u[idx].purchaseCount||0;
+          const newCount=paid?prevCount+1:prevCount;
+          const newAvg=paid?(prevAvg?((prevAvg*prevCount)+paid)/newCount:paid):prevAvg;
+          u[idx]={...u[idx],qty:si.qty,unit:si.unit,location:si.location,upc:si.upc||u[idx].upc||null,brand:si.brand||u[idx].brand||null,size:si.size||u[idx].size||null,nutrition:Object.keys(si.nutrition||{}).length?si.nutrition:u[idx].nutrition||{},image_url:si.image_url||u[idx].image_url||null,upc_enriched:si.upc_enriched||u[idx].upc_enriched||false,avgUnitPrice:newAvg,purchaseCount:newCount,lastPrice:paid||u[idx].lastPrice||null};
+        }
+        else{u.push({id:Date.now()+Math.random(),name:si.brand&&si.size?`${si.brand} ${si.name} ${si.size}`.trim():si.name,qty:si.qty,unit:si.unit,category:si.category,location:si.location,isProtein:!!si.isProtein,price:si.price||null,avgUnitPrice:paid,purchaseCount:paid?1:0,lastPrice:paid,expiryDays:si.expiryDays||null,upc:si.upc||null,brand:si.brand||null,size:si.size||null,nutrition:si.nutrition||{},image_url:si.image_url||null,upc_enriched:!!si.upc_enriched});}
       });
       return u;
     });
@@ -3592,6 +3600,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                       </select>
                       {isBP&&<span style={bTag(C.red)}>{item.portionOz}oz</span>}
                       {isDV&&<span style={bTag(C.orange)}>{item.cupsPerBag}c bag</span>}
+                      {item.avgUnitPrice&&<span title={item.purchaseCount>1?"Average of "+item.purchaseCount+" purchases":"From last purchase"} style={bTag(C.green)}>avg ${item.avgUnitPrice.toFixed(2)}</span>}
                     </div>
                     <div style={{display:"flex",alignItems:"center",gap:6}}>
                       <button onClick={()=>setInventory(p=>p.map(i=>i.id===item.id?{...i,qty:Math.max(0,i.qty-1)}:i))} style={{width:seniorMode?52:24,height:seniorMode?52:24,borderRadius:8,background:C.surface,border:"2px solid "+C.border,color:C.text,cursor:"pointer",fontSize:seniorMode?26:14,display:"flex",alignItems:"center",justifyContent:"center"}}>−</button>
