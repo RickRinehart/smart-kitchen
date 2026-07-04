@@ -4945,19 +4945,27 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
         </div>
       )}
       {/* == SALE ITEMS SAVED CUE == */}
-      {saleItemsSavedCue&&(
+      {saleItemsSavedCue&&(()=>{
+        const toShopping=typeof saleItemsSavedCue==="object"&&saleItemsSavedCue.toShopping;
+        const count=toShopping?saleItemsSavedCue.count:saleItemsSavedCue;
+        return (
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300,padding:16}} onClick={()=>setSaleItemsSavedCue(null)}>
-          <div style={{background:C.card,border:"1px solid #f59e0b55",borderRadius:16,padding:26,maxWidth:380,width:"100%",textAlign:"center"}} onClick={e=>e.stopPropagation()}>
-            <div style={{fontSize:38,marginBottom:10}}>🏷</div>
-            <div style={{fontFamily:FD,fontSize:20,color:"#f59e0b",marginBottom:8}}>{saleItemsSavedCue} sale item{saleItemsSavedCue>1?"s":""} saved!</div>
-            <div style={{fontSize:13,color:C.text,lineHeight:1.6,marginBottom:16}}>These aren’t on your shopping list yet — head to the <strong>Meal Plan</strong> tab, where they’ll show up as sale items you can build a week of dinners around.</div>
+          <div style={{background:C.card,border:"1px solid "+(toShopping?C.green:"#f59e0b")+"55",borderRadius:16,padding:26,maxWidth:380,width:"100%",textAlign:"center"}} onClick={e=>e.stopPropagation()}>
+            <div style={{fontSize:38,marginBottom:10}}>{toShopping?"🛒":"🏷"}</div>
+            <div style={{fontFamily:FD,fontSize:20,color:toShopping?C.green:"#f59e0b",marginBottom:8}}>{count} sale item{count>1?"s":""} {toShopping?"added!":"saved!"}</div>
+            <div style={{fontSize:13,color:C.text,lineHeight:1.6,marginBottom:16}}>
+              {toShopping
+                ? "They're on your Shopping List now, ready to check off."
+                : <>These aren’t on your shopping list yet — head to the <strong>Meal Plan</strong> tab, where they’ll show up as sale items you can build a week of dinners around.</>}
+            </div>
             <div style={{display:"flex",gap:8}}>
               <button style={{...bBtn("ghost"),flex:1}} onClick={()=>setSaleItemsSavedCue(null)}>Got it</button>
-              <button style={{...bBtn("primary"),flex:1}} onClick={()=>{setTab("mealplan");setSaleItemsSavedCue(null);}}>Go to Meal Plan</button>
+              <button style={{...bBtn("primary"),flex:1}} onClick={()=>{setTab(toShopping?"shopping":"mealplan");setSaleItemsSavedCue(null);}}>{toShopping?"Go to Shopping List":"Go to Meal Plan"}</button>
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
       {/* == RESTOCK CONFIRM == */}
       {restockConfirm&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300,padding:16}} onClick={()=>setRestockConfirm(null)}>
@@ -5138,9 +5146,19 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                   ))}
                 </div>
                 {scanMode==="weeklyad"?(
-                  <div style={{display:"flex",gap:8,marginTop:12}}>
-                    <button style={{...bBtn("ghost"),flex:1}} onClick={()=>{setScanStage("upload");setScanResults(null);}}>Rescan</button>
-                    <button style={{...bBtn("green"),flex:2}} onClick={()=>{const n=scanResults.filter(i=>i.selected).length;setSaleItems(scanResults.filter(i=>i.selected).map(({selected:_,...rest})=>rest));setScanOpen(false);setScanPreview(null);setScanB64(null);setScanResults(null);setScanStage("upload");setSaleItemsSavedCue(n);}}>Save {scanResults.filter(i=>i.selected).length} Sale Items</button>
+                  <div>
+                    <div style={{fontSize:11,color:C.muted,fontFamily:FM,marginBottom:8,textAlign:"center"}}>How do you want to use these sale items?</div>
+                    <div style={{display:"flex",gap:8,marginBottom:8}}>
+                      <button style={{...bBtn("ghost"),flex:1}} onClick={()=>{setScanStage("upload");setScanResults(null);}}>Rescan</button>
+                      <button style={{...bBtn("primary"),flex:2}} onClick={()=>{const n=scanResults.filter(i=>i.selected).length;setSaleItems(scanResults.filter(i=>i.selected).map(({selected:_,...rest})=>rest));setScanOpen(false);setScanPreview(null);setScanB64(null);setScanResults(null);setScanStage("upload");setSaleItemsSavedCue(n);}}>📅 Add to Meal Plan</button>
+                    </div>
+                    <button style={{...bBtn("green"),width:"100%"}} onClick={()=>{
+                      const chosen=scanResults.filter(i=>i.selected);
+                      const n=chosen.length;
+                      setShopping(p=>[...p,...chosen.map(i=>({name:i.name,qty:i.qty||1,unit:i.unit||"",category:i.category||"Pantry",checked:false,suggestBulk:false}))]);
+                      setScanOpen(false);setScanPreview(null);setScanB64(null);setScanResults(null);setScanStage("upload");
+                      setSaleItemsSavedCue({toShopping:true,count:n});
+                    }}>🛒 Add to Shopping List</button>
                   </div>
                 ):scanMode==="whiteboard"?(
                   <div style={{display:"flex",gap:8,marginTop:12}}>
