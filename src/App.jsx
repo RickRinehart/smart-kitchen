@@ -1014,6 +1014,9 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [deliveryService,setDeliveryService]=useState(()=>localStorage.getItem("sk_deliveryService")||"instacart");
   const [instacartLoading,setInstacartLoading]=useState(false);
   const [instacartCopyCue,setInstacartCopyCue]=useState(null);
+  const [editingShoppingIdx,setEditingShoppingIdx]=useState(null);
+  const [editShopDraft,setEditShopDraft]=useState({name:"",qty:"",unit:""});
+  const [restockConfirm,setRestockConfirm]=useState(null);
   const [smsSent,setSmsSent]=useState(false);
   const [showSmsHelp,setShowSmsHelp]=useState(false);
   const [desserts,setDesserts]=useState(()=>loadLocal("sk_desserts",[]));
@@ -4249,23 +4252,34 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                     </div>
                     {shopping.filter(i=>cat==="Smart Cellar"?!CATEGORIES.includes(i.category):i.category===cat).map((item)=>{
                       const gi=shopping.indexOf(item);
-                      return(
+                        const isEditing=editingShoppingIdx===gi;
+                        return isEditing?(
+                        <div key={gi} style={{background:C.card,border:"1px solid "+C.accent,borderRadius:10,padding:seniorMode?"16px 18px":"10px 14px",marginBottom:seniorMode?10:6,display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                          <input value={editShopDraft.name} onChange={e=>setEditShopDraft(d=>({...d,name:e.target.value}))} style={{flex:2,minWidth:100,padding:"6px 8px",borderRadius:6,border:"1px solid "+C.border,background:C.surface,color:C.text,fontFamily:FM,fontSize:13}} placeholder="Item name"/>
+                          <input value={editShopDraft.qty} onChange={e=>setEditShopDraft(d=>({...d,qty:e.target.value}))} style={{width:50,padding:"6px 8px",borderRadius:6,border:"1px solid "+C.border,background:C.surface,color:C.text,fontFamily:FM,fontSize:13}} placeholder="Qty"/>
+                          <input value={editShopDraft.unit} onChange={e=>setEditShopDraft(d=>({...d,unit:e.target.value}))} style={{width:70,padding:"6px 8px",borderRadius:6,border:"1px solid "+C.border,background:C.surface,color:C.text,fontFamily:FM,fontSize:13}} placeholder="Unit"/>
+                          <button onClick={()=>{setShopping(p=>p.map((si,sii)=>sii===gi?{...si,name:editShopDraft.name.trim()||si.name,qty:parseFloat(editShopDraft.qty)||si.qty,unit:editShopDraft.unit.trim()||si.unit}:si));setEditingShoppingIdx(null);}} style={{padding:"6px 12px",borderRadius:6,border:"1px solid "+C.green,background:C.green,color:"#fff",fontFamily:FM,fontSize:12,cursor:"pointer",fontWeight:600}}>Save</button>
+                          <button onClick={()=>setEditingShoppingIdx(null)} style={{padding:"6px 12px",borderRadius:6,border:"1px solid "+C.border,background:"transparent",color:C.muted,fontFamily:FM,fontSize:12,cursor:"pointer"}}>Cancel</button>
+                        </div>
+                        ):(
                         <div key={gi} onClick={()=>setShopping(p=>p.map((si,sii)=>sii===gi?{...si,checked:!si.checked}:si))}
                           style={{background:C.card,border:"1px solid "+C.border,borderRadius:10,padding:seniorMode?"16px 18px":"10px 14px",marginBottom:seniorMode?10:6,display:"flex",alignItems:"center",gap:12,cursor:"pointer",opacity:item.checked?0.45:1,transition:"opacity 0.2s"}}>
                           <div style={{width:seniorMode?28:18,height:seniorMode?28:18,borderRadius:4,border:"2px solid "+(item.checked?C.green:C.border),background:item.checked?C.green:"transparent",display:"flex",alignItems:"center",justifyContent:"center",fontSize:seniorMode?16:11,flexShrink:0}}>{item.checked&&"✓"}</div>
                           <div style={{flex:1,fontSize:seniorMode?18:13,fontWeight:seniorMode?600:400,lineHeight:1.4,textDecoration:item.checked?"line-through":"none"}}>{item.name}</div>
                           {item.suggestBulk&&<span style={bTag(C.orange)}>📦 bulk</span>}
                           <div style={{fontFamily:FM,fontSize:12,color:C.muted}}>{item.qty} {item.unit}</div>
+                          <button onClick={e=>{e.stopPropagation();setEditShopDraft({name:item.name,qty:String(item.qty??""),unit:item.unit||""});setEditingShoppingIdx(gi);}} title="Got something different? Edit before restocking" style={{background:"transparent",border:"none",cursor:"pointer",fontSize:13,padding:"2px 4px",color:C.muted,flexShrink:0}}>✏️</button>
                         </div>
-                      );
+                        );
                     })}
                   </div>
                 ))}
                 <button style={bBtn("green")} onClick={()=>{
                   const checked=shopping.filter(i=>i.checked);
+                  if(!checked.length) return;
                   setInventory(prev=>{const u=[...prev];checked.forEach(si=>{const idx=u.findIndex(i=>i.name.toLowerCase()===si.name.toLowerCase());if(idx>=0){u[idx]={...u[idx],qty:+(u[idx].qty+(si.qty||1)).toFixed(1)};}else{u.push({id:Date.now()+Math.random(),name:si.name,qty:si.qty||1,unit:si.unit,category:si.category,location:"Pantry"});}});return u;});
                   setShopping(p=>p.filter(i=>!i.checked));
-                  alert("✅ Items restocked!");
+                  setRestockConfirm({count:checked.length});
                 }}>✅ Restock Checked Items</button>
               </div>
             )}
@@ -4903,6 +4917,17 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
               <textarea readOnly value={instacartCopyCue.listText} onClick={e=>e.target.select()} style={{width:"100%",minHeight:120,padding:10,borderRadius:8,border:"1px solid "+C.border,background:C.surface,color:C.text,fontFamily:FM,fontSize:12,marginBottom:14,resize:"vertical"}}/>
             )}
             <button style={{...bBtn("primary"),width:"100%"}} onClick={()=>setInstacartCopyCue(null)}>Got it</button>
+          </div>
+        </div>
+      )}
+      {/* == RESTOCK CONFIRM == */}
+      {restockConfirm&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300,padding:16}} onClick={()=>setRestockConfirm(null)}>
+          <div style={{background:C.card,border:"1px solid "+C.green+"55",borderRadius:16,padding:26,maxWidth:380,width:"100%",textAlign:"center"}} onClick={e=>e.stopPropagation()}>
+            <div style={{fontSize:38,marginBottom:10}}>✅</div>
+            <div style={{fontFamily:FD,fontSize:20,color:C.green,marginBottom:8}}>Restocked!</div>
+            <div style={{fontSize:14,color:C.text,lineHeight:1.6,marginBottom:16}}>{restockConfirm.count} item{restockConfirm.count>1?"s":""} added to inventory.</div>
+            <button style={{...bBtn("primary"),width:"100%"}} onClick={()=>setRestockConfirm(null)}>Got it</button>
           </div>
         </div>
       )}
