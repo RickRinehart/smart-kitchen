@@ -1017,6 +1017,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [editingShoppingIdx,setEditingShoppingIdx]=useState(null);
   const [editShopDraft,setEditShopDraft]=useState({name:"",qty:"",unit:""});
   const [restockConfirm,setRestockConfirm]=useState(null);
+  const [confirmClearList,setConfirmClearList]=useState(false);
   const [smsSent,setSmsSent]=useState(false);
   const [showSmsHelp,setShowSmsHelp]=useState(false);
   const [desserts,setDesserts]=useState(()=>loadLocal("sk_desserts",[]));
@@ -4281,6 +4282,8 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                   setShopping(p=>p.filter(i=>!i.checked));
                   setRestockConfirm({count:checked.length});
                 }}>✅ Restock Checked Items</button>
+                <button style={{...bBtn("ghost"),border:"1px solid "+C.muted,color:C.muted}} onClick={()=>setConfirmClearList(true)}>🧹 Clear List</button>
+                <div style={{width:"100%",fontSize:11,color:C.muted,fontFamily:FM,marginTop:4,lineHeight:1.6}}>Heading out to shop? Clear the list once you're done — like wiping a whiteboard — then scan your receipt or shelf when you get home. That updates inventory with what you actually bought, and next time you build a shopping list it’ll only show what’s genuinely still missing.</div>
               </div>
             )}
           </div>
@@ -4913,10 +4916,25 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                 ? "We opened Instacart in a new tab. Click Cart Assistant in the sidebar, then paste (Ctrl/Cmd+V) into the chat box to build your Meijer cart."
                 : "We opened Instacart in a new tab, but couldn't copy automatically — select and copy the list below, then paste it into Cart Assistant."}
             </div>
+            <div style={{fontSize:12,color:C.muted,lineHeight:1.6,marginBottom:14,textAlign:"center",fontStyle:"italic"}}>When you're done shopping, come back and hit Clear List — then scan your receipt or shelf so inventory reflects what you actually bought.</div>
             {!instacartCopyCue.copied&&(
               <textarea readOnly value={instacartCopyCue.listText} onClick={e=>e.target.select()} style={{width:"100%",minHeight:120,padding:10,borderRadius:8,border:"1px solid "+C.border,background:C.surface,color:C.text,fontFamily:FM,fontSize:12,marginBottom:14,resize:"vertical"}}/>
             )}
             <button style={{...bBtn("primary"),width:"100%"}} onClick={()=>setInstacartCopyCue(null)}>Got it</button>
+          </div>
+        </div>
+      )}
+      {/* == CLEAR LIST CONFIRM == */}
+      {confirmClearList&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300,padding:16}} onClick={()=>setConfirmClearList(false)}>
+          <div style={{background:C.card,border:"1px solid "+C.border,borderRadius:16,padding:26,maxWidth:380,width:"100%",textAlign:"center"}} onClick={e=>e.stopPropagation()}>
+            <div style={{fontSize:38,marginBottom:10}}>🧹</div>
+            <div style={{fontFamily:FD,fontSize:20,color:C.text,marginBottom:8}}>Clear the shopping list?</div>
+            <div style={{fontSize:13,color:C.muted,lineHeight:1.6,marginBottom:16}}>This empties the whole list — it won’t touch inventory. Do this after your shopping trip, then scan your receipt or shelf to update what you actually bought.</div>
+            <div style={{display:"flex",gap:8}}>
+              <button style={{...bBtn("ghost"),flex:1}} onClick={()=>setConfirmClearList(false)}>Cancel</button>
+              <button style={{...bBtn("primary"),flex:1}} onClick={()=>{setShopping([]);setConfirmClearList(false);}}>Clear It</button>
+            </div>
           </div>
         </div>
       )}
