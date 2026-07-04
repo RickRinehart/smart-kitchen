@@ -1013,6 +1013,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [instacartStore,setInstacartStore]=useState(()=>localStorage.getItem("sk_instacartStore")||"meijer");
   const [deliveryService,setDeliveryService]=useState(()=>localStorage.getItem("sk_deliveryService")||"instacart");
   const [instacartLoading,setInstacartLoading]=useState(false);
+  const [instacartCopyCue,setInstacartCopyCue]=useState(null);
   const [smsSent,setSmsSent]=useState(false);
   const [showSmsHelp,setShowSmsHelp]=useState(false);
   const [desserts,setDesserts]=useState(()=>loadLocal("sk_desserts",[]));
@@ -2479,29 +2480,23 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       setInstacartLoading(false);
       return;
     }
-    // Instacart
+    // Instacart — no direct API access (Instacart isn't accepting new partner
+    // applications right now), so instead we build a paste-ready list and copy it
+    // to the clipboard, then open the store so the person can drop it straight
+    // into Instacart's own Cart Assistant chat.
+    const unchecked=shopping.filter(i=>!i.checked);
+    const listText=unchecked.map(i=>{
+      const qtyPart=(i.qty&&i.unit)?(i.qty+" "+i.unit+" "):(i.qty?(i.qty+" "):"");
+      return "- "+qtyPart+(i.name||"");
+    }).join("\n");
+    let copied=false;
     try{
-      const r=await fetch("/api/send-to-instacart",{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({
-          items:shopping.filter(i=>!i.checked),
-          apiKey:instacartApiKey||"",
-          title:"Smart Kitchen — "+new Date().toLocaleDateString("en-US",{month:"short",day:"numeric"})
-        })
-      });
-      const d=await r.json();
-      if(d.url){
-        window.open(d.url,"_blank");
-      } else {
-        alert("Could not connect to Instacart. Please try again.");
-      }
-    }catch(e){
-      // Direct fallback
-      const terms=shopping.slice(0,8).map(i=>encodeURIComponent(i.name||"")).filter(Boolean).join("+");
-      window.open("https://www.instacart.com/store/"+instacartStore+"/search?q="+terms,"_blank");
-    }
+      await navigator.clipboard.writeText(listText);
+      copied=true;
+    }catch(e){console.warn("Clipboard write failed:",e);}
+    window.open("https://www.instacart.com/store/"+instacartStore,"_blank");
     setInstacartLoading(false);
+    setInstacartCopyCue({copied,listText});
   };
 
 
@@ -4229,7 +4224,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
               <div style={{fontFamily:FD,fontSize:24}}>Shopping List</div>
               <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                {shopping.length>0&&<><div style={{fontFamily:FM,fontSize:seniorMode?15:11,color:C.muted,fontWeight:seniorMode?600:400}}>{shopping.filter(i=>i.checked).length}/{shopping.length} items</div><button style={{...bBtn("ghost"),padding:"6px 12px",fontSize:11}} onClick={printShopping}>🖨 Print</button>{shopPartnerEmail&&<button style={{...bBtn("ghost"),padding:"6px 12px",fontSize:11}} onClick={async()=>{const btn=document.activeElement;btn.textContent="Sending...";btn.disabled=true;try{const r=await fetch("/api/send-shopping-list",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({toEmail:shopPartnerEmail,toName:shopPartnerName,items:shopping,fromName:"Smart Kitchen"})});const d=await r.json();if(d.success){setEmailSentModal(shopPartnerEmail);}else if(d.fallback){window.location.href=d.mailtoUrl;}else{alert("Could not send email. Please try again.");}}catch(e){alert("Could not send email: "+e.message);}btn.textContent="Email to "+(shopPartnerName||shopPartnerEmail);btn.disabled=false;}}>Email to {shopPartnerName||shopPartnerEmail}</button>}{shopPhone&&<button style={{...bBtn("ghost"),padding:"6px 12px",fontSize:11,border:"1px solid #22c55e",color:"#22c55e"}} onClick={async()=>{setSmsSent(false);try{const r=await fetch("/api/send-shopping-sms",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({toPhone:shopPhone,items:shopping,fromName:shopPartnerName||"Smart Kitchen"})});const d=await r.json();if(d.success){setSmsSent(true);setTimeout(()=>setSmsSent(false),4000);}else if(d.fallback&&d.smsUrl){window.open(d.smsUrl);}else{alert("Could not send SMS. Please try again.");}}catch(e){alert("Could not send SMS: "+e.message);}}}>{smsSent?"Sent!":"Text to "+shopPhone}</button>}<button style={{...bBtn("ghost"),padding:"6px 12px",fontSize:11,background:"#00873A",border:"1px solid #00873A",color:"#ffffff",fontWeight:600}} onClick={sendToDelivery} disabled={instacartLoading}>{instacartLoading?"Opening...":"🛒 "+(deliveryService==="shipt"?"Send to Shipt":"Send to Instacart")}</button>{restockQueue.length>0&&<button style={{...bBtn("ghost"),padding:"6px 12px",fontSize:11,border:"1px solid "+C.accent,color:C.accent}} onClick={()=>{const toAdd=restockQueue.filter(name=>!shopping.some(s=>s.name.toLowerCase()===name.toLowerCase())).map(name=>({name,qty:1,unit:"",category:"Pantry",checked:false,suggestBulk:false}));if(toAdd.length>0){setShopping(p=>[...p,...toAdd]);alert(toAdd.length+" item"+(toAdd.length>1?"s":"")+" added to shopping list.");}else{alert("All restock items are already on the list.");}  }}>+ {restockQueue.length} Restock</button>}</>}
+                {shopping.length>0&&<><div style={{fontFamily:FM,fontSize:seniorMode?15:11,color:C.muted,fontWeight:seniorMode?600:400}}>{shopping.filter(i=>i.checked).length}/{shopping.length} items</div><button style={{...bBtn("ghost"),padding:"6px 12px",fontSize:11}} onClick={printShopping}>🖨 Print</button>{shopPartnerEmail&&<button style={{...bBtn("ghost"),padding:"6px 12px",fontSize:11}} onClick={async()=>{const btn=document.activeElement;btn.textContent="Sending...";btn.disabled=true;try{const r=await fetch("/api/send-shopping-list",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({toEmail:shopPartnerEmail,toName:shopPartnerName,items:shopping,fromName:"Smart Kitchen"})});const d=await r.json();if(d.success){setEmailSentModal(shopPartnerEmail);}else if(d.fallback){window.location.href=d.mailtoUrl;}else{alert("Could not send email. Please try again.");}}catch(e){alert("Could not send email: "+e.message);}btn.textContent="Email to "+(shopPartnerName||shopPartnerEmail);btn.disabled=false;}}>Email to {shopPartnerName||shopPartnerEmail}</button>}{shopPhone&&<button style={{...bBtn("ghost"),padding:"6px 12px",fontSize:11,border:"1px solid #22c55e",color:"#22c55e"}} onClick={async()=>{setSmsSent(false);try{const r=await fetch("/api/send-shopping-sms",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({toPhone:shopPhone,items:shopping,fromName:shopPartnerName||"Smart Kitchen"})});const d=await r.json();if(d.success){setSmsSent(true);setTimeout(()=>setSmsSent(false),4000);}else if(d.fallback&&d.smsUrl){window.open(d.smsUrl);}else{alert("Could not send SMS. Please try again.");}}catch(e){alert("Could not send SMS: "+e.message);}}}>{smsSent?"Sent!":"Text to "+shopPhone}</button>}<button style={{...bBtn("ghost"),padding:"6px 12px",fontSize:11,background:"#00873A",border:"1px solid #00873A",color:"#ffffff",fontWeight:600}} onClick={sendToDelivery} disabled={instacartLoading}>{instacartLoading?"Opening...":"🛒 "+(deliveryService==="shipt"?"Send to Shipt":"Copy for Instacart")}</button>{restockQueue.length>0&&<button style={{...bBtn("ghost"),padding:"6px 12px",fontSize:11,border:"1px solid "+C.accent,color:C.accent}} onClick={()=>{const toAdd=restockQueue.filter(name=>!shopping.some(s=>s.name.toLowerCase()===name.toLowerCase())).map(name=>({name,qty:1,unit:"",category:"Pantry",checked:false,suggestBulk:false}));if(toAdd.length>0){setShopping(p=>[...p,...toAdd]);alert(toAdd.length+" item"+(toAdd.length>1?"s":"")+" added to shopping list.");}else{alert("All restock items are already on the list.");}  }}>+ {restockQueue.length} Restock</button>}</>}
               </div>
             </div>
 {user&&(
@@ -4893,6 +4888,24 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
         </div>
       )}
 
+      {/* == INSTACART COPY CUE == */}
+      {instacartCopyCue&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300,padding:16}} onClick={()=>setInstacartCopyCue(null)}>
+          <div style={{background:C.card,border:"1px solid #f5710055",borderRadius:16,padding:26,maxWidth:420,width:"100%"}} onClick={e=>e.stopPropagation()}>
+            <div style={{fontSize:38,marginBottom:10,textAlign:"center"}}>🛒</div>
+            <div style={{fontFamily:FD,fontSize:20,color:"#f57100",marginBottom:8,textAlign:"center"}}>{instacartCopyCue.copied?"List copied!":"List ready to copy"}</div>
+            <div style={{fontSize:13,color:C.text,lineHeight:1.6,marginBottom:14,textAlign:"center"}}>
+              {instacartCopyCue.copied
+                ? "We opened Instacart in a new tab. Click Cart Assistant in the sidebar, then paste (Ctrl/Cmd+V) into the chat box to build your Meijer cart."
+                : "We opened Instacart in a new tab, but couldn't copy automatically — select and copy the list below, then paste it into Cart Assistant."}
+            </div>
+            {!instacartCopyCue.copied&&(
+              <textarea readOnly value={instacartCopyCue.listText} onClick={e=>e.target.select()} style={{width:"100%",minHeight:120,padding:10,borderRadius:8,border:"1px solid "+C.border,background:C.surface,color:C.text,fontFamily:FM,fontSize:12,marginBottom:14,resize:"vertical"}}/>
+            )}
+            <button style={{...bBtn("primary"),width:"100%"}} onClick={()=>setInstacartCopyCue(null)}>Got it</button>
+          </div>
+        </div>
+      )}
       {/* == COOKED CONFIRM == */}
       {cookedConfirm&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300,padding:16}} onClick={()=>setCookedConfirm(null)}>
