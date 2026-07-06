@@ -1024,7 +1024,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [desserts,setDesserts]=useState(()=>loadLocal("sk_desserts",[]));
   const [dessertRatings,setDessertRatings]=useState(()=>loadLocal("sk_dessertRatings",{}));
   const [activeDessert,setActiveDessert]=useState(null);
-  const [dessertLoading,setDessertLoading]=useState(false);
+  const [dessertLoading,setDessertLoading]=useState(false);const [dessertQuery,setDessertQuery]=useState("");const [dessertUseInventory,setDessertUseInventory]=useState(true);
   const [dessertError,setDessertError]=useState("");
   const [loading,setLoading]=useState(false);
   const [loadMsg,setLoadMsg]=useState("");
@@ -1290,7 +1290,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
         const inv=localStorage.getItem("sk_inventory");if(inv){const parsed=JSON.parse(inv);setInventory(parsed);}
         const fp=localStorage.getItem("sk_familyProfiles");if(fp)setFamilyProfiles(JSON.parse(fp));
         const fs=localStorage.getItem("sk_familySize");if(fs)setFamilySize(parseInt(fs)||2);
-        const mp=localStorage.getItem("sk_mealPlan");if(mp)setMealPlan(JSON.parse(mp));
+        const mp=localStorage.getItem("sk_mealPlan");if(mp){const parsed=JSON.parse(mp);setMealPlan(parsed);const synced=parsed.reduce((acc,d,i)=>{if(d&&d.quickMeal)acc.push(i);return acc;},[]);setSportsNights(synced);}
         const fr=localStorage.getItem("sk_familyRecipes");if(fr)setFamilyRecipes(JSON.parse(fr));
         const rr=localStorage.getItem("sk_recipeRatings");if(rr)setRecipeRatings(JSON.parse(rr));
         const dr=localStorage.getItem("sk_dessertRatings");if(dr)setDessertRatings(JSON.parse(dr));
@@ -3034,14 +3034,18 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     setLoading(false);
   };
 
-  const fetchDesserts=async()=>{
+  const fetchDesserts=async(qOverride,useInvOverride)=>{
     setDessertLoading(true); setDessertError(""); setTab("desserts");
     try{
       const fs=familySummary();
       const invList=inventory.map(i=>String(i.name||"")).filter(Boolean).join(", ");
+      const q=qOverride!==undefined?qOverride:dessertQuery;
+      const useInv=useInvOverride!==undefined?useInvOverride:dessertUseInventory;
+      const queryPart=q.trim()?" The user is craving: "+q.trim()+". Focus suggestions around this craving.":"";
+      const inventoryPart=useInv?" Use baking pantry inventory ingredients as much as possible.":" Suggest any great desserts freely.";
       const raw=await callClaude({
-        system:"Return ONLY a JSON array of 3 dessert recipes. No other text. Start with [ end with ]. Each object: {id(number),name(string),time(string),difficulty(Easy|Medium|Hard),category(Baked|No-Bake|Quick-Treat),description(one sentence),steps(array of 3 short strings),servings(number),usesFromInventory(array of ingredient names from inventory),missingIngredients(array of items NOT in inventory)}."+(fs?" CRITICAL DIETARY RULES — HARD STOPS: "+fs:""),
-        prompt:"Full pantry/fridge inventory: "+invList+". Suggest 3 easy desserts using what's on hand. Prefer ingredients already in inventory. missingIngredients must ONLY list items NOT in the inventory above."+(fs?" ENFORCE these dietary rules: "+fs:""),
+        system:"Return ONLY a JSON array of 4 dessert recipes. No other text. Start with [ end with ]. Each object: {id(number),name(string),time(string),difficulty(Easy|Medium|Hard),category(Baked|No-Bake|Quick-Treat),description(one sentence),steps(array of 3 short strings),servings(number),usesFromInventory(array of ingredient names from inventory),missingIngredients(array of items NOT in inventory)}."+(fs?" CRITICAL DIETARY RULES — HARD STOPS: "+fs:""),
+        prompt:"Full pantry/fridge inventory: "+invList+"."+queryPart+inventoryPart+" Suggest 4 desserts. missingIngredients must ONLY list items NOT in the inventory above."+(fs?" ENFORCE these dietary rules: "+fs:""),
       });
       const s=raw.indexOf("["),e=raw.lastIndexOf("]");
       if(s===-1||e===-1) throw new Error("No desserts returned");
@@ -4312,13 +4316,32 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                 <div style={{fontFamily:FD,fontSize:48,marginBottom:16}}>🍰</div>
                 <div style={{fontFamily:FD,fontSize:22,color:C.accent,marginBottom:10}}>What's for Dessert?</div>
                 <div style={{color:C.muted,marginBottom:20}}>Let AI suggest treats from your baking pantry</div>
-                <button style={{...bBtn("primary"),padding:"12px 28px"}} onClick={fetchDesserts}>🍰 Suggest Desserts</button>
+                <button style={{...bBtn("primary"),padding:"12px 28px"}} onClick={()=>fetchDesserts()}>🍰 Suggest Desserts</button>
               </div>
             ):(
               <div>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-                  <div style={{fontFamily:FD,fontSize:22}}>Desserts & Sweet Treats</div>
-                  <button style={bBtn("ghost")} onClick={fetchDesserts}>🔄 New Suggestions</button>
+                <div style={{marginBottom:16}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+                    <div style={{fontFamily:FD,fontSize:22}}>Desserts & Sweet Treats</div>
+                    <button style={bBtn("ghost")} onClick={()=>fetchDesserts()}>🔄 New Suggestions</button>
+                  </div>
+                  <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:10,flexWrap:"wrap"}}>
+                    <input
+                      value={dessertQuery}
+                      onChange={e=>setDessertQuery(e.target.value)}
+                      onKeyDown={e=>{if(e.key==="Enter"&&dessertQuery.trim())fetchDesserts(dessertQuery,dessertUseInventory);}}
+                      placeholder="What are you craving? e.g. chocolate, lemon cake, no-bake..."
+                      style={{flex:1,minWidth:180,background:C.card,border:"1px solid "+C.border,borderRadius:8,padding:"8px 12px",color:C.text,fontFamily:FM,fontSize:seniorMode?15:12,outline:"none"}}
+                    />
+                    <button
+                      style={{...bBtn("primary"),padding:"8px 16px",fontSize:seniorMode?14:12,whiteSpace:"nowrap",opacity:dessertQuery.trim()?1:0.45,cursor:dessertQuery.trim()?"pointer":"default"}}
+                      onClick={()=>{if(dessertQuery.trim())fetchDesserts(dessertQuery,dessertUseInventory);}}
+                    >🍰 Find It</button>
+                  </div>
+                  <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                    <button onClick={()=>setDessertUseInventory(true)} style={{padding:"5px 12px",borderRadius:16,border:"1px solid "+(dessertUseInventory?C.accent:C.border),background:dessertUseInventory?C.accent+"22":"transparent",color:dessertUseInventory?C.accent:C.muted,fontFamily:FM,fontSize:seniorMode?13:11,cursor:"pointer",fontWeight:dessertUseInventory?700:400}}>Use What I Have</button>
+                    <button onClick={()=>setDessertUseInventory(false)} style={{padding:"5px 12px",borderRadius:16,border:"1px solid "+((!dessertUseInventory)?C.accent:C.border),background:(!dessertUseInventory)?C.accent+"22":"transparent",color:(!dessertUseInventory)?C.accent:C.muted,fontFamily:FM,fontSize:seniorMode?13:11,cursor:"pointer",fontWeight:(!dessertUseInventory)?700:400}}>Open Exploration</button>
+                  </div>
                 </div>
                 <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(340px,1fr))",gap:14}}>
                   {desserts.map(d=>{
@@ -5744,13 +5767,13 @@ useDays is days from today the food is safe to eat (cooked food: 3-4 days typica
                         </>
                       ):(
                         <>
-                          <button style={{background:"#1a3a1a",border:"1px solid #4c4",borderRadius:6,color:"#4c4",cursor:"pointer",fontSize:seniorMode?15:10,padding:"3px 8px"}} onClick={()=>setInventory(prev=>prev.map(it=>it.id===item.id?{...it,_askMealType:true}:it))}>Used</button>
+                          <button style={{background:"#1a3a1a",border:"1px solid #4c4",borderRadius:6,color:"#4c4",cursor:"pointer",fontSize:seniorMode?15:10,padding:"3px 8px"}} onClick={()=>{const maxSrv=item.qty||1;const ans=window.prompt("How many servings did you use? ("+maxSrv+" available)",String(maxSrv));if(ans===null)return;const used=Math.max(1,Math.min(parseInt(ans)||1,maxSrv));const remaining=maxSrv-used;const log=JSON.parse(localStorage.getItem("sk_leftoverHistory")||"[]");log.push({dish:item.name,servings:used,consumedAs:"used",wasted:false,reason:null,ts:Date.now()});localStorage.setItem("sk_leftoverHistory",JSON.stringify(log));if(remaining>0){setInventory(prev=>prev.map(it=>it.id===item.id?{...it,qty:remaining,_askMealType:false}:it));}else{setInventory(prev=>prev.filter(it=>it.id!==item.id));}}}>Used</button>
                           <button style={{background:"transparent",border:"1px solid "+C.border,borderRadius:6,color:C.muted,cursor:"pointer",fontSize:seniorMode?15:10,padding:seniorMode?"5px 14px":"3px 8px"}} onClick={()=>{
                             const log=JSON.parse(localStorage.getItem("sk_leftoverHistory")||"[]");
-                            log.push({dish:item.name,servings:item.qty,consumedAs:null,wasted:true,reason:null,ts:Date.now()});
+                            log.push({dish:item.name,servings:item.qty,consumedAs:null,wasted:true,reason:"discarded",ts:Date.now()});
                             localStorage.setItem("sk_leftoverHistory",JSON.stringify(log));
                             setInventory(prev=>prev.filter(it=>it.id!==item.id));
-                          }}>Remove</button>
+                          }}>Discarded</button>
                         </>
                       )}
                     </div>
