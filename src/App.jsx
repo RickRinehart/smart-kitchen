@@ -5743,7 +5743,7 @@ useDays is days from today the food is safe to eat (cooked food: 3-4 days typica
                       {item.photo&&<img src={item.photo} alt={item.name} style={{width:seniorMode?72:56,height:seniorMode?72:56,objectFit:"cover",borderRadius:8,flexShrink:0,border:"1px solid "+C.border}} />}
                       <div>
                         <div style={{fontSize:seniorMode?20:14,fontWeight:600,color:C.text}}>{item.name}</div>
-                        <div style={{fontSize:seniorMode?16:11,color:C.muted}}>{item.qty} {item.unit}{item.useBy?" · Use by "+item.useBy:""}</div>
+                        <div style={{fontSize:seniorMode?16:11,color:C.muted}}>{item.qty} {item.unit}{item.qty!==1?"s":""}{item.useBy?" · Use by "+item.useBy:""}</div>
                         {urgent&&<span style={{fontSize:seniorMode?15:10,color:"#f66",fontWeight:700}}>⚠ Use TODAY</span>}
                         {warning&&!urgent&&<span style={{fontSize:seniorMode?15:10,color:"#fa0",fontWeight:700}}>⚠ Use SOON</span>}
                       </div>
