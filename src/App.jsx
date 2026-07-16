@@ -2035,7 +2035,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       const isUpd=(name)=>inventory.some(i=>i.name.toLowerCase()===name.toLowerCase());
       setScanResults(parsed.map(i=>({...i,location:i.location||scanLoc||smartLoc(i),action:isUpd(i.name)?"update":"add",selected:true})));
       setScanStage("review");
-    } catch(e){ alert("Scan failed — try a clearer photo."); }
+    } catch(e){ alert("Shelf scan failed: "+(e.message||"unknown error")+". If this keeps happening, try a clearer or smaller photo, or scan one item at a time."); }
     setLoading(false);
   };
   const analyzeWhiteboard=async()=>{
