@@ -28,6 +28,15 @@ async function buffer(readable) {
   return Buffer.concat(chunks);
 }
 
+// Required — without this, Vercel pre-parses the request body before this
+// handler runs, so the bytes buffer(req) reconstructs no longer match what
+// Stripe originally signed, and constructEvent() fails on every request.
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).end('Method Not Allowed');
