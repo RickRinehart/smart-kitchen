@@ -2372,15 +2372,16 @@ Respond ONLY with valid JSON, no markdown: {"name":"cut name","weightLbs":number
     const unitByte=bytes[14];
     let displayVal, unit, grams;
     if(unitByte===0x00){
+      // lb: raw/1000 (confirmed) — was previously swapped with oz below, causing lb-mode
+      // weights to be over/under-reported (e.g. a true 2.8lb item showing as 4.48lb)
+      displayVal=rawVal/1000;
+      unit="lb";
+      grams=displayVal*453.592;
+    } else if(unitByte===0x01){
       // oz: raw/100 (confirmed)
       displayVal=rawVal/100;
       unit="oz";
       grams=displayVal*28.3495;
-    } else if(unitByte===0x01){
-      // lb: raw/1000 (confirmed)
-      displayVal=rawVal/1000;
-      unit="lb";
-      grams=displayVal*453.592;
     } else if(unitByte===0x03){
       // ml: raw/10 (1ml water = 1g)
       displayVal=rawVal/10;
