@@ -364,7 +364,7 @@ function Root() {
   const tier = isAdmin ? "medical" : (userProfile?.tier || "free");
   const trialEndsAt = userProfile?.trial_ends_at || null;
   const inTrial = !isAdmin && trialEndsAt && new Date(trialEndsAt) > new Date();
-  const effectiveTier = isAdmin ? "medical" : (inTrial ? (tier === "free" || tier === "solo" ? "solo" : tier) : tier);
+  const effectiveTier = isAdmin ? "medical" : (inTrial ? "medical" : tier);
   const isActive = isAdmin || userProfile?.subscription_status === "active" || inTrial;
   const daysLeft = trialDaysRemaining(trialEndsAt);
 
@@ -387,7 +387,7 @@ function Root() {
   const tierLabel = isAdmin
     ? "Admin"
     : inTrial
-      ? effectiveTier.charAt(0).toUpperCase() + effectiveTier.slice(1) + " (Trial)"
+      ? "Full Access (30-Day Trial)"
       : effectiveTier.charAt(0).toUpperCase() + effectiveTier.slice(1);
 
   function handleUpgrade() {
@@ -488,7 +488,7 @@ function Root() {
       {showSubModal && user && (
         <SubscriptionModal
           user={user}
-          currentTier={effectiveTier}
+          currentTier={inTrial ? null : effectiveTier}
           onClose={() => setShowSubModal(false)}
           onSubscribed={(t) => {
             setUserProfile(p => ({ ...p, tier: t }));
