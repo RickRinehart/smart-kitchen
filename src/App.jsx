@@ -1246,6 +1246,9 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [rpPPrice,setRpPPrice]=useState("");
   const [rpPPreview,setRpPPreview]=useState(null);
   const [rpTargetId,setRpTargetId]=useState(null); // set when repackage is opened from a specific inventory card — commit updates this id directly, bypassing name matching entirely
+  const [rpScanLoading,setRpScanLoading]=useState(false);
+  const [rpScanError,setRpScanError]=useState("");
+  const [rpScanConfidence,setRpScanConfidence]=useState(null); // "high"|"medium"|"low" — surfaces a verify-before-committing note when the AI had to estimate
   const [rpVSessions,setRpVSessions]=useState([{id:1,preset:{name:"Mixed Sauté Blend",cupsPerUnit:3,bagCups:2,color:C.orange},count:"",bags:null}]);
   const [rpVOnionSize,setRpVOnionSize]=useState("medium");
   const [rpVCeleryForm,setRpVCeleryForm]=useState("sticks");
@@ -1825,7 +1828,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
   },[chatMessages]);
 
   // -- Repackage helpers ------------------------------------------------------
-  const openRepack=(mode)=>{setRpMode(mode);setRpPName("");setRpPLbs("");setRpPOz(6);setRpPPrice("");setRpPPreview(null);setRpHItem("");setRpHRaw("");setRpHOz(16);setRpTargetId(null);setRpOpen(true);};
+  const openRepack=(mode)=>{setRpMode(mode);setRpPName("");setRpPLbs("");setRpPOz(6);setRpPPrice("");setRpPPreview(null);setRpHItem("");setRpHRaw("");setRpHOz(16);setRpTargetId(null);setRpScanError("");setRpScanConfidence(null);setRpOpen(true);};
   // Card-initiated repackage — pre-fills from the item that's already on screen (name, weight, price,
   // portion size) and remembers its id so commitProtein updates that exact record directly instead of
   // searching inventory by name. This is what prevents a scan-then-repackage from ever creating a
@@ -1845,7 +1848,40 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     }
     setRpPOz(item.portionOz||6);
     setRpPPreview(null);
+    setRpScanError("");setRpScanConfidence(null);
     setRpOpen(true);
+  };
+  // Scan Item — for stock that never made it through a readable receipt (butcher-paper wrap, no
+  // printed line item). Works on either a labeled package (reads the sticker, like the shelf
+  // scanner) or a bare/butcher-wrapped cut with no label at all (identifies visually and reads any
+  // handwritten weight/price, like the leftovers identifier). Fills the form; never writes to
+  // inventory directly, so there's still exactly one commit path and no way to double-add.
+  const scanRepackageItem=async(file)=>{
+    if(!file) return;
+    setRpScanLoading(true); setRpScanError(""); setRpScanConfidence(null);
+    try{
+      const b64=await fileToBase64(file);
+      const raw=await callClaude({
+        system:`You are a butcher-counter item identifier. The photo shows either (a) a labeled meat package with a printed weight/price sticker, or (b) a bare or butcher-paper-wrapped cut with no label — possibly with a weight or price handwritten directly on the paper in marker.
+Identify the specific cut of protein (e.g. "Pork Loin", "Pork Chops", "Ground Beef", "Chicken Breast"). Read weight and price from any printed or handwritten text if visible; otherwise give your best visual estimate.
+Respond ONLY with valid JSON, no markdown: {"name":"cut name","weightLbs":number or null,"price":number or null,"confidence":"high"|"medium"|"low","source":"label"|"handwritten"|"visual_estimate"}`,
+        prompt:"Identify this protein item and its weight and price if visible on any label or handwriting.",
+        imageBase64:b64, imageType:file.type||"image/jpeg", maxTokens:400,
+      });
+      const text=(typeof raw==="string"?raw:raw?.content?.[0]?.text||"").replace(/```json|```/g,"").trim();
+      const m=text.match(/\{[\s\S]*\}/);
+      if(!m) throw new Error("Couldn't read a result from that photo — try again with clearer lighting.");
+      const parsed=JSON.parse(m[0]);
+      if(!parsed.name) throw new Error("Couldn't identify the item — try a clearer photo or enter it manually.");
+      setRpPName(parsed.name);
+      if(parsed.weightLbs) setRpPLbs(String(parsed.weightLbs));
+      if(parsed.price) setRpPPrice(String(parsed.price));
+      setRpPPreview(null);
+      setRpScanConfidence(parsed.confidence||(parsed.source==="visual_estimate"?"low":"high"));
+    }catch(e){
+      setRpScanError(e.message||"Scan failed — try again or enter details manually.");
+    }
+    setRpScanLoading(false);
   };
   const commitProtein=()=>{
     if(!rpPName||!rpPLbs||!rpPOz) return;
@@ -4677,6 +4713,18 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
             </div>
             {rpMode==="protein"&&(
               <div>
+                <div style={{marginBottom:12}}>
+                  <input id="rpScanInput" type="file" accept="image/*" capture="environment" style={{display:"none"}}
+                    onChange={e=>{const f=e.target.files?.[0];if(f)scanRepackageItem(f);e.target.value="";}}/>
+                  <button disabled={rpScanLoading} onClick={()=>document.getElementById("rpScanInput").click()}
+                    style={{...bBtn(rpScanLoading?"ghost":"primary"),width:"100%",fontSize:12,cursor:rpScanLoading?"not-allowed":"pointer"}}>
+                    {rpScanLoading?"🔍 Analyzing photo...":"📷 Scan Item — label or bare cut, receipt not needed"}
+                  </button>
+                  {rpScanError&&<div style={{marginTop:6,fontSize:11,color:C.red}}>{rpScanError}</div>}
+                  {rpScanConfidence&&rpScanConfidence!=="high"&&!rpScanError&&(
+                    <div style={{marginTop:6,fontSize:11,color:C.orange}}>⚠️ Estimated from the photo — double-check weight and price below before saving.</div>
+                  )}
+                </div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
                   <div>
                     <Label>PROTEIN NAME</Label>
