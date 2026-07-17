@@ -4736,7 +4736,32 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                       </div>
                     );})()}
                   </div>
-                  <div><Label>WEIGHT (lbs)</Label><input style={bInp} type="number" placeholder="5" value={rpPLbs} onChange={e=>{setRpPLbs(e.target.value);setRpPPreview(null);}}/></div>
+                  <div>
+                    <Label>WEIGHT (lbs)</Label>
+                    <input style={bInp} type="number" placeholder="5" value={rpPLbs} onChange={e=>{setRpPLbs(e.target.value);setRpPPreview(null);}}/>
+                    <div style={{marginTop:6}}>
+                      {!scaleDevice&&(
+                        <button disabled={scaleConnecting} onClick={connectScale}
+                          style={{...bBtn("ghost"),width:"100%",fontSize:11,padding:"6px 10px",border:"1px solid #3b82f6",color:"#3b82f6",cursor:scaleConnecting?"not-allowed":"pointer"}}>
+                          {scaleConnecting?"⏳ Connecting...":"⚖ Weigh on Bluetooth Scale"}
+                        </button>
+                      )}
+                      {scaleDevice&&(
+                        <div style={{background:"#3b82f611",border:"1px solid #3b82f644",borderRadius:8,padding:"8px 10px"}}>
+                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+                            <span style={{fontFamily:FM,fontSize:11,color:"#3b82f6"}}>Live: {(scaleWeightGrams/453.592).toFixed(2)} lb</span>
+                            <button onClick={()=>{if(scaleDevice?._writeChr){scaleDevice._writeChr.writeValue(new Uint8Array([0x52])).catch(()=>{});}setScaleWeight(0);setScaleWeightGrams(0);}}
+                              style={{...bBtn("ghost"),padding:"3px 8px",fontSize:10,border:"1px solid #3b82f6",color:"#3b82f6"}}>Tare</button>
+                          </div>
+                          <button onClick={()=>{setRpPLbs((scaleWeightGrams/453.592).toFixed(2));setRpPPreview(null);}}
+                            style={{...bBtn("primary"),width:"100%",fontSize:11,padding:"6px 10px",background:"#3b82f6",color:"#fff"}}>
+                            Use This Weight
+                          </button>
+                        </div>
+                      )}
+                      {scaleError&&<div style={{marginTop:4,fontSize:10,color:C.red}}>{scaleError}</div>}
+                    </div>
+                  </div>
                   <div>
                     <Label>OZ PER PORTION</Label>
                     <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:6}}>
