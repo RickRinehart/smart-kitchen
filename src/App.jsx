@@ -1441,6 +1441,12 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
       if(user?.id){
         supabase.from("profiles").update({sk_seen_announcements:updated}).eq("id",user.id).then(()=>{});
       }
+      // Brand-new accounts (fresh signup this session) have never "been here before" —
+      // silently mark every existing announcement seen instead of greeting them with a
+      // "what's new since you were last here" digest of features they've never used.
+      let isNewSignup=false;
+      try{isNewSignup=sessionStorage.getItem("sk_newSignup")==="1";}catch{}
+      if(isNewSignup) return;
       setChatOpen(true);
       let msg,replies;
       if(unseenList.length===1){
