@@ -1245,6 +1245,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [rpPOz,setRpPOz]=useState(6);
   const [rpPPrice,setRpPPrice]=useState("");
   const [rpPPreview,setRpPPreview]=useState(null);
+  const [rpTargetId,setRpTargetId]=useState(null); // set when repackage is opened from a specific inventory card — commit updates this id directly, bypassing name matching entirely
   const [rpVSessions,setRpVSessions]=useState([{id:1,preset:{name:"Mixed Sauté Blend",cupsPerUnit:3,bagCups:2,color:C.orange},count:"",bags:null}]);
   const [rpVOnionSize,setRpVOnionSize]=useState("medium");
   const [rpVCeleryForm,setRpVCeleryForm]=useState("sticks");
@@ -1824,7 +1825,28 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
   },[chatMessages]);
 
   // -- Repackage helpers ------------------------------------------------------
-  const openRepack=(mode)=>{setRpMode(mode);setRpPName("");setRpPLbs("");setRpPOz(6);setRpPPrice("");setRpPPreview(null);setRpHItem("");setRpHRaw("");setRpHOz(16);setRpOpen(true);};
+  const openRepack=(mode)=>{setRpMode(mode);setRpPName("");setRpPLbs("");setRpPOz(6);setRpPPrice("");setRpPPreview(null);setRpHItem("");setRpHRaw("");setRpHOz(16);setRpTargetId(null);setRpOpen(true);};
+  // Card-initiated repackage — pre-fills from the item that's already on screen (name, weight, price,
+  // portion size) and remembers its id so commitProtein updates that exact record directly instead of
+  // searching inventory by name. This is what prevents a scan-then-repackage from ever creating a
+  // second "Chicken Breast" card just because a retyped name didn't match character-for-character.
+  const openRepackFromItem=(item)=>{
+    setRpMode("protein");
+    setRpTargetId(item.id);
+    setRpPName(item.name);
+    if(item.isBulkProtein){
+      // Adding a fresh batch to something already portioned — new weight/price, not the old ones
+      setRpPLbs("");setRpPPrice("");
+    } else {
+      // First-time repackage of a raw item — its current qty/price came straight from the receipt scan
+      const unit=(item.unit||"").toLowerCase();
+      setRpPLbs(unit.includes("lb")?String(item.qty):"");
+      setRpPPrice(item.price?String(parseFloat(String(item.price).replace(/[^0-9.]/g,""))||""):(item.lastPrice?String(item.lastPrice):""));
+    }
+    setRpPOz(item.portionOz||6);
+    setRpPPreview(null);
+    setRpOpen(true);
+  };
   const commitProtein=()=>{
     if(!rpPName||!rpPLbs||!rpPOz) return;
     const portions=Math.floor((parseFloat(rpPLbs)*16)/rpPOz);
@@ -1832,9 +1854,32 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     const price=parseFloat(rpPPrice)||0;
     const costPerPortion=(price>0&&portions>0)?+(price/portions).toFixed(2):null;
     const avgOf=(hist)=>hist.length?+(hist.reduce((s,h)=>s+h.costPerPortion,0)/hist.length).toFixed(2):null;
+    const today=new Date().toISOString();
     setInventory(prev=>{
+      // Card-initiated repackage: update the exact item id we were opened from — no name search,
+      // no possibility of landing on the wrong row or creating a duplicate from a text mismatch.
+      if(rpTargetId!=null){
+        const idx=prev.findIndex(i=>i.id===rpTargetId);
+        if(idx<0) return prev; // item was removed from another tab/session — nothing safe to update
+        const wasAlreadyBulk=!!prev[idx].isBulkProtein;
+        const prevHist=prev[idx].portionPriceHistory||[];
+        const newHist=costPerPortion!==null?[...prevHist,{costPerPortion,totalPrice:price,lbs:parseFloat(rpPLbs),portions,date:today}]:prevHist;
+        return prev.map((i,ii)=>ii===idx?{
+          ...i,
+          name:pName,
+          // Adding a fresh batch on top of existing portions; converting a raw item replaces its
+          // lb-based qty with the portion count it was just divided into.
+          qty:wasAlreadyBulk?i.qty+portions:portions,
+          unit:"portions",
+          isBulkProtein:true,
+          portionOz:rpPOz,
+          portionPriceHistory:newHist,
+          avgCostPerPortion:avgOf(newHist)||i.avgCostPerPortion||null,
+          lastCostPerPortion:costPerPortion||i.lastCostPerPortion||null,
+        }:i);
+      }
+      // Global Repackage button — no specific item selected, fall back to name matching as before.
       const idx=prev.findIndex(i=>i.name.toLowerCase()===pName.toLowerCase());
-      const today=new Date().toISOString();
       if(idx>=0){
         const prevHist=prev[idx].portionPriceHistory||[];
         const newHist=costPerPortion!==null?[...prevHist,{costPerPortion,totalPrice:price,lbs:parseFloat(rpPLbs),portions,date:today}]:prevHist;
@@ -3820,7 +3865,8 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                       <button onClick={()=>setInventory(p=>p.map(i=>i.id===item.id?{...i,qty:i.qty+1}:i))} style={{width:seniorMode?52:24,height:seniorMode?52:24,borderRadius:8,background:C.surface,border:"2px solid "+C.border,color:C.text,cursor:"pointer",fontSize:seniorMode?26:14,display:"flex",alignItems:"center",justifyContent:"center"}}>+</button>
                       {item.qty===0&&<span style={bTag(C.red)}>OUT</span>}
                     </div>
-                    {(isBP||isDV)&&<button onClick={()=>openRepack(isBP?"protein":"veg")} style={{...bBtn("ghost"),padding:"4px 8px",fontSize:10,width:"100%"}}>{isBP?"🥩 Add Batch":"🫕 Prep More"}</button>}
+                    {(isBP||isDV)&&<button onClick={()=>isBP?openRepackFromItem(item):openRepack("veg")} style={{...bBtn("ghost"),padding:"4px 8px",fontSize:10,width:"100%"}}>{isBP?"🥩 Add Batch":"🫕 Prep More"}</button>}
+                    {!isBP&&!isDV&&item.category==="Protein"&&!item.harvestType&&<button onClick={()=>openRepackFromItem(item)} style={{...bBtn("ghost"),padding:"4px 8px",fontSize:10,width:"100%",border:"1px solid "+C.orange,color:C.orange}}>🔪 Repackage</button>}
                     <button onClick={()=>setRestockQueue(q=>{const n=item.name;const has=q.includes(n);const next=has?q.filter(x=>x!==n):[...q,n];localStorage.setItem("sk_restockQueue",JSON.stringify(next));return next;})} style={{...bBtn("ghost"),padding:"4px 8px",fontSize:10,width:"100%",marginTop:4,border:"1px solid "+(restockQueue.includes(item.name)?C.accent:C.border),color:restockQueue.includes(item.name)?C.accent:C.muted}}>{restockQueue.includes(item.name)?"Queued":"+ Restock"}</button>
                   </div>
                 );
