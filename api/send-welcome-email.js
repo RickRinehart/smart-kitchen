@@ -1,8 +1,10 @@
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
-  const { email, name, tier } = req.body;
+  const { email, name, tier, event } = req.body;
   if (!email) return res.status(400).json({ error: 'Missing email' });
+
+  const emailEvent = event === 'plan_confirmed' ? 'plan_confirmed' : 'trial_signup';
 
   const resendKey = process.env.RESEND_API_KEY;
   if (!resendKey) return res.status(500).json({ error: 'Missing RESEND_API_KEY' });
@@ -15,11 +17,19 @@ export default async function handler(req, res) {
   const quickStartUrl = `${baseUrl}/SmartKitchen_QuickStart.pdf`;
   const completeGuideUrl = `${baseUrl}/SmartKitchen_CompleteGuide.pdf`;
 
+  const trialNote = '<p style="background:#e6f4ed;border-left:4px solid #1A7A4A;padding:14px 16px;border-radius:0 8px 8px 0;color:#1A7A4A;"><strong>Your 30-day trial includes full access to everything — including Medical+.</strong><br/>' +
+    'That means unlimited family profiles, medical dietary enforcement (diabetic, renal, cardiac, bariatric, gluten-free and more), the Nutrition Dashboard, Food Journal, and medication-food interaction flags. ' +
+    'Try it all now so you can see exactly what fits your household before you pick a plan — nothing is held back during your trial.</p>';
+
   const tierNote = tier === 'medical' 
     ? '<p style="background:#e6f4ed;border-left:4px solid #1A7A4A;padding:12px 16px;border-radius:0 8px 8px 0;color:#1A7A4A;font-weight:bold;">Your Medical+ plan includes unlimited family profiles, medical dietary enforcement, and full caregiver features.</p>'
     : tier === 'family'
-    ? '<p style="background:#EEF1F8;border-left:4px solid #1A2344;padding:12px 16px;border-radius:0 8px 8px 0;color:#1A2344;">Your Family plan includes up to 6 family profiles with per-member dietary restrictions — set them up in the Family tab.</p>'
+    ? '<p style="background:#EEF1F8;border-left:4px solid #1A2344;padding:12px 16px;border-radius:0 8px 8px 0;color:#1A2344;">Your Family plan includes unlimited family profiles with per-member dietary restrictions — set them up in the Family tab.</p>'
+    : tier === 'couple'
+    ? '<p style="background:#EEF1F8;border-left:4px solid #1A2344;padding:12px 16px;border-radius:0 8px 8px 0;color:#1A2344;">Your Couple plan includes profiles for both of you, with per-person dietary restrictions — set them up in the Family tab.</p>'
     : '<p style="background:#EEF1F8;border-left:4px solid #1A2344;padding:12px 16px;border-radius:0 8px 8px 0;color:#1A2344;">Your Solo plan includes full AI meal planning, inventory management, and all core features.</p>';
+
+  const activeNote = emailEvent === 'plan_confirmed' ? tierNote : trialNote;
 
   const htmlBody = `
     <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:0;background:#f8f8f8;">
@@ -33,15 +43,21 @@ export default async function handler(req, res) {
       <!-- Body -->
       <div style="background:#fff;border:1px solid #e2e6ef;border-top:none;border-radius:0 0 10px 10px;padding:28px;">
 
-        <p style="font-size:18px;color:#1A2344;font-weight:bold;margin-top:0;">Welcome, ${firstName}! 👋</p>
-
-        <p style="color:#333;font-size:15px;line-height:1.7;">
-          Thank you for joining Smart Kitchen™. I built this app at my own kitchen table — my wife Sue was dealing with some health challenges and I took over the cooking. 
-          I needed a better system. Smart Kitchen is that system, and now it's yours.
+        <p style="font-size:18px;color:#1A2344;font-weight:bold;margin-top:0;">
+          ${emailEvent === 'plan_confirmed' ? `You're all set, ${firstName}! 🎉` : `Welcome, ${firstName}! 👋`}
         </p>
 
         <p style="color:#333;font-size:15px;line-height:1.7;">
-          Your <strong>30-day free trial</strong> is active. No credit card required. Here's how to get started:
+          ${emailEvent === 'plan_confirmed'
+            ? `Your subscription is confirmed and your plan is now active. Thank you for choosing Smart Kitchen™ — here's what's included.`
+            : `Thank you for joining Smart Kitchen™. I built this app at my own kitchen table — my wife Sue was dealing with some health challenges and I took over the cooking. 
+          I needed a better system. Smart Kitchen is that system, and now it's yours.`}
+        </p>
+
+        <p style="color:#333;font-size:15px;line-height:1.7;">
+          ${emailEvent === 'plan_confirmed'
+            ? `Here's a quick reminder of what's included on your plan, plus a few ways to make the most of it:`
+            : `Your <strong>30-day free trial</strong> is active. No credit card required. Here's how to get started:`}
         </p>
 
         <!-- Steps -->
@@ -64,7 +80,7 @@ export default async function handler(req, res) {
           </div>
         </div>
 
-        ${tierNote}
+        ${activeNote}
 
         <!-- Documents -->
         <p style="color:#1A2344;font-weight:bold;font-size:15px;margin-bottom:10px;">📎 Your guides are attached:</p>
@@ -72,6 +88,11 @@ export default async function handler(req, res) {
           <li><strong>Quick Start Guide</strong> — Six steps to your first meal plan. Start here.</li>
           <li><strong>Complete Feature Guide</strong> — Every feature explained with screenshots. Reference this anytime.</li>
         </ul>
+
+        <p style="color:#333;font-size:14px;line-height:1.7;">
+          Prefer video? Watch quick setup tutorials on our
+          <a href="https://www.youtube.com/@smartkitchenapp" style="color:#C8963E;font-weight:bold;text-decoration:none;">YouTube channel</a>.
+        </p>
 
         <!-- CTA -->
         <div style="text-align:center;margin:28px 0 16px;">
@@ -107,7 +128,9 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         from: 'Rick Rinehart — Smart Kitchen <noreply@rinehartra.com>',
         to: [email],
-        subject: 'Welcome to Smart Kitchen™ — Your guides are attached',
+        subject: emailEvent === 'plan_confirmed'
+          ? `You're on the ${tier ? tier.charAt(0).toUpperCase() + tier.slice(1) : ''} plan — here's what's included`
+          : 'Welcome to Smart Kitchen™ — Your guides are attached',
         html: htmlBody,
         attachments: [
           {
