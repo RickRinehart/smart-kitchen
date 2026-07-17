@@ -1826,7 +1826,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
   // -- Repackage helpers ------------------------------------------------------
   const openRepack=(mode)=>{setRpMode(mode);setRpPName("");setRpPLbs("");setRpPOz(6);setRpPPrice("");setRpPPreview(null);setRpHItem("");setRpHRaw("");setRpHOz(16);setRpOpen(true);};
   const commitProtein=()=>{
-    if(!rpPName||!rpPLbs) return;
+    if(!rpPName||!rpPLbs||!rpPOz) return;
     const portions=Math.floor((parseFloat(rpPLbs)*16)/rpPOz);
     const pName=rpPName;
     const price=parseFloat(rpPPrice)||0;
@@ -4645,7 +4645,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                   <div><Label>WEIGHT (lbs)</Label><input style={bInp} type="number" placeholder="5" value={rpPLbs} onChange={e=>{setRpPLbs(e.target.value);setRpPPreview(null);}}/></div>
                   <div>
                     <Label>OZ PER PORTION</Label>
-                    <div style={{display:"flex",gap:6}}>
+                    <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:6}}>
                       {[4,5,6,7,8].map(oz=>(
                         <button key={oz} onClick={()=>{setRpPOz(oz);setRpPPreview(null);}}
                           style={{...bBtn("ghost"),padding:"6px 10px",fontSize:12,background:rpPOz===oz?C.orange+"22":"transparent",color:rpPOz===oz?C.orange:C.muted,border:"1px solid "+(rpPOz===oz?C.orange:C.border)}}>
@@ -4653,6 +4653,10 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                         </button>
                       ))}
                     </div>
+                    <input style={{...bInp,width:"100%"}} type="number" min="1" placeholder="Custom (e.g. 16 for a roast, 12 for chops)"
+                      value={[4,5,6,7,8].includes(rpPOz)?"":rpPOz}
+                      onChange={e=>{const v=parseFloat(e.target.value);setRpPOz(v>0?v:"");setRpPPreview(null);}}/>
+                    <div style={{fontSize:10,color:C.muted,marginTop:3,fontFamily:FM}}>Not every cut fits a small dinner portion — enter any size for roasts, chops, or larger servings.</div>
                   </div>
                   <div style={{gridColumn:"1 / -1"}}>
                     <Label>PURCHASE PRICE ($) — optional</Label>
@@ -4674,7 +4678,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                 )}
                 <div style={{display:"flex",gap:8}}>
                   <button style={{...bBtn("ghost"),flex:1}} onClick={()=>setRpOpen(false)}>Cancel</button>
-                  <button style={{...bBtn("orange"),flex:2,opacity:(rpPName&&rpPLbs)?1:0.4}} onClick={commitProtein}>🥩 Add {rpPPreview?rpPPreview.portions+" Portions":"to Inventory"}</button>
+                  <button style={{...bBtn("orange"),flex:2,opacity:(rpPName&&rpPLbs&&rpPOz)?1:0.4}} onClick={commitProtein}>🥩 Add {rpPPreview?rpPPreview.portions+" Portions":"to Inventory"}</button>
                 </div>
               </div>
             )}
