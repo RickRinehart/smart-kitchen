@@ -78,6 +78,21 @@ export default async function handler(req, res) {
         }).eq('id', userId);
         if (error) console.error('Supabase error:', error);
         else console.log('Profile updated successfully');
+
+        // Send plan-confirmation email now that the real tier is known
+        try {
+          const customerEmail = obj.customer_email || obj.customer_details?.email;
+          const customerName = obj.customer_details?.name || '';
+          if (customerEmail) {
+            await fetch(`${process.env.VITE_APP_URL}/api/send-welcome-email`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email: customerEmail, name: customerName, tier, event: 'plan_confirmed' }),
+            });
+          }
+        } catch (e) {
+          console.warn('Plan-confirmation email failed:', e.message);
+        }
         // Send approval email if FAMILY100 was used
         if (promoCode && promoCode.toUpperCase() === 'FAMILY100') {
           const customerEmail = obj.customer_email || obj.customer_details?.email || 'unknown';
