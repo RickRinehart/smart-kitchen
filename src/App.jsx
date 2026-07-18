@@ -1237,6 +1237,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [scanMode,setScanMode]=useState("shelf");
   const [saleItems,setSaleItems]=useState(()=>{try{return JSON.parse(localStorage.getItem("sk_saleItems")||"[]");}catch{return [];}});
   const [rpOpen,setRpOpen]=useState(false);
+  const [detailItem,setDetailItem]=useState(null); // inventory item shown in the tap-to-view detail modal
   const [rpYieldConfirm,setRpYieldConfirm]=useState(null);
   const [rpActualBags,setRpActualBags]=useState("");
   const [rpMode,setRpMode]=useState("protein");
@@ -3888,7 +3889,7 @@ Respond ONLY with valid JSON, no markdown: {"name":"cut name","weightLbs":number
                 return(
                   <div key={item.id} style={{background:C.card,border:"1px solid "+item.isLow?C.red:C.border,borderRadius:12,padding:13,display:"flex",flexDirection:"column",gap:8}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                      <div style={{display:"flex",gap:8,alignItems:"flex-start"}}>
+                      <div style={{display:"flex",gap:8,alignItems:"flex-start",cursor:"pointer"}} onClick={()=>setDetailItem(item)}>
                         {item.image_url&&<img src={item.image_url} alt="" style={{width:36,height:36,borderRadius:6,objectFit:"cover",flexShrink:0,border:"1px solid "+C.border}} onError={e=>{e.target.style.display="none";}}/>}
                         <div>
                           <div style={{fontWeight:600,fontSize:seniorMode?22:13,lineHeight:1.4}}>{item.name}</div>
@@ -4715,6 +4716,73 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
       )}
 
       {/* == REPACKAGE MODAL == */}
+      {detailItem&&(()=>{
+        const di=detailItem;
+        const nutritionEntries=di.nutrition&&typeof di.nutrition==="object"?Object.entries(di.nutrition).filter(([,v])=>v!=null&&v!==""):[];
+        const hasIngredients=di.ingredients&&String(di.ingredients).trim();
+        const hasPriceInfo=di.isBulkProtein?di.avgCostPerPortion:di.avgUnitPrice;
+        const prettyLabel=(k)=>String(k).replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase());
+        return(
+          <div style={{position:"fixed",inset:0,background:"#000d",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:16}} onClick={()=>setDetailItem(null)}>
+            <div style={{background:C.surface,border:"1px solid "+C.borderLight,borderRadius:18,padding:22,maxWidth:480,width:"100%",maxHeight:"90vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
+                <div style={{display:"flex",gap:12,alignItems:"flex-start"}}>
+                  {di.image_url&&<img src={di.image_url} alt="" style={{width:64,height:64,borderRadius:10,objectFit:"cover",border:"1px solid "+C.border}} onError={e=>{e.target.style.display="none";}}/>}
+                  <div>
+                    <div style={{fontFamily:FD,fontSize:20,color:C.accent,lineHeight:1.3}}>{di.name}</div>
+                    {(di.brand||di.size)&&<div style={{fontSize:13,color:C.muted,marginTop:2}}>{[di.brand,di.size].filter(Boolean).join(" · ")}</div>}
+                  </div>
+                </div>
+                <button onClick={()=>setDetailItem(null)} style={{background:"transparent",border:"none",color:C.muted,cursor:"pointer",fontSize:20}}>✕</button>
+              </div>
+
+              <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:16}}>
+                <span style={bTag(CAT_COLORS[di.category]||C.muted)}>{di.category}</span>
+                <span style={bTag(LOC_COLORS[di.location]||C.muted)}>{LOC_ICONS[di.location]} {di.location}</span>
+                <span style={bTag(C.border)}>{di.qty} {di.unit}</span>
+                {di.isBulkProtein&&<span style={bTag(C.red)}>{di.portionOz}oz portions</span>}
+              </div>
+
+              {hasPriceInfo&&(
+                <div style={{background:C.card,borderRadius:10,padding:"10px 14px",marginBottom:16,fontSize:13}}>
+                  {di.isBulkProtein?(
+                    <div>Avg cost per portion: <b>${di.avgCostPerPortion.toFixed(2)}</b> {di.portionPriceHistory?.length>1&&<span style={{color:C.muted}}>(from {di.portionPriceHistory.length} batches)</span>}</div>
+                  ):(
+                    <div>Avg price: <b>${di.avgUnitPrice.toFixed(2)}</b> {di.purchaseCount>1&&<span style={{color:C.muted}}>(from {di.purchaseCount} purchases)</span>}</div>
+                  )}
+                </div>
+              )}
+
+              {nutritionEntries.length>0&&(
+                <div style={{marginBottom:16}}>
+                  <div style={{fontSize:12,fontWeight:600,color:C.muted,textTransform:"uppercase",letterSpacing:0.5,marginBottom:6}}>Nutrition</div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
+                    {nutritionEntries.map(([k,v])=>(
+                      <div key={k} style={{fontSize:12,background:C.card,borderRadius:6,padding:"6px 10px"}}>
+                        <span style={{color:C.muted}}>{prettyLabel(k)}:</span> <b>{String(v)}</b>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {hasIngredients&&(
+                <div style={{marginBottom:8}}>
+                  <div style={{fontSize:12,fontWeight:600,color:C.muted,textTransform:"uppercase",letterSpacing:0.5,marginBottom:6}}>Ingredients</div>
+                  <div style={{fontSize:12,color:C.text,lineHeight:1.5}}>{di.ingredients}</div>
+                </div>
+              )}
+
+              {!di.image_url&&!nutritionEntries.length&&!hasIngredients&&(
+                <div style={{fontSize:12,color:C.muted,fontStyle:"italic"}}>No additional product details available for this item yet — it may not have a UPC on file, or the barcode lookup didn't return extra data.</div>
+              )}
+
+              <button onClick={()=>setDetailItem(null)} style={{...bBtn("ghost"),width:"100%",marginTop:16}}>Close</button>
+            </div>
+          </div>
+        );
+      })()}
+
       {rpOpen&&(
         <div style={{position:"fixed",inset:0,background:"#000d",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:16}} onClick={()=>setRpOpen(false)}>
           <div style={{background:C.surface,border:"1px solid "+C.borderLight,borderRadius:18,padding:22,maxWidth:560,width:"100%",maxHeight:"90vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
