@@ -2170,14 +2170,28 @@ Respond ONLY with valid JSON, no markdown: {"name":"cut name","weightLbs":number
     const avgOf=(hist)=>hist.length?+(hist.reduce((s,h)=>s+h.price,0)/hist.length).toFixed(2):null;
     setInventory(prev=>{
       const u=[...prev];
+      const preExistingCount=u.length; // anything at/after this index was pushed by this same commit batch
       chosen.forEach(si=>{
         si={...si,name:(si.name||"").trim()};
         if(!si.name) return; // skip anything that scanned/edited down to a blank name
+        const paid=parsePrice(si.price);
         // Match against existing inventory by product, not just a loosely shared word —
         // see sameProduct() for why (Heinz vs Meijer ketchup, Peach vs Strawberry fruit
         // bars, etc. must stay as separate items even though they share generic words).
-        let idx=u.findIndex(i=>sameProduct(si.name,i.name,si.brand,i.brand));
-        const paid=parsePrice(si.price);
+        let idx=u.findIndex((i,ii)=>{
+          if(!sameProduct(si.name,i.name,si.brand,i.brand)) return false;
+          // Two lines from the SAME receipt sharing a generic, brand-less name (e.g. a
+          // register printout that just says "VINEGAR" for two different bottles) but a
+          // meaningfully different price are almost certainly different products, not a
+          // duplicate scan of the same one. Only applies to siblings just added by this
+          // commit — matching against older inventory still merges fine even if the
+          // price moved since last time, since that's normal price drift over time.
+          if(ii>=preExistingCount){
+            const otherPaid=parsePrice(u[ii].price);
+            if(paid&&otherPaid&&Math.abs(paid-otherPaid)>0.05) return false;
+          }
+          return true;
+        });
         const today=new Date().toISOString();
         if(idx>=0){
           const prevHist=u[idx].priceHistory||[];
