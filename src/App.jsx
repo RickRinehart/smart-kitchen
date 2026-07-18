@@ -2201,7 +2201,7 @@ Respond ONLY with valid JSON, no markdown: {"name":"cut name","weightLbs":number
         if(idx>=0){
           const prevHist=u[idx].priceHistory||[];
           const newHist=paid?[...prevHist,{price:paid,date:today}]:prevHist;
-          u[idx]={...u[idx],qty:si.qty,unit:si.unit,location:si.location,upc:si.upc||u[idx].upc||null,itemCode:si.itemCode||u[idx].itemCode||null,brand:si.brand||u[idx].brand||null,size:si.size||u[idx].size||null,nutrition:Object.keys(si.nutrition||{}).length?si.nutrition:u[idx].nutrition||{},image_url:si.image_url||u[idx].image_url||null,upc_enriched:si.upc_enriched||u[idx].upc_enriched||false,priceHistory:newHist,avgUnitPrice:avgOf(newHist)||u[idx].avgUnitPrice||null,purchaseCount:newHist.length,lastPrice:paid||u[idx].lastPrice||null};
+          u[idx]={...u[idx],qty:u[idx].qty+si.qty,unit:si.unit,location:si.location,upc:si.upc||u[idx].upc||null,itemCode:si.itemCode||u[idx].itemCode||null,brand:si.brand||u[idx].brand||null,size:si.size||u[idx].size||null,nutrition:Object.keys(si.nutrition||{}).length?si.nutrition:u[idx].nutrition||{},image_url:si.image_url||u[idx].image_url||null,upc_enriched:si.upc_enriched||u[idx].upc_enriched||false,priceHistory:newHist,avgUnitPrice:avgOf(newHist)||u[idx].avgUnitPrice||null,purchaseCount:newHist.length,lastPrice:paid||u[idx].lastPrice||null};
         }
         else{
           const hist=paid?[{price:paid,date:today}]:[];
