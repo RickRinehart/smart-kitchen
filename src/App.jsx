@@ -2172,17 +2172,10 @@ Respond ONLY with valid JSON, no markdown: {"name":"cut name","weightLbs":number
       chosen.forEach(si=>{
         si={...si,name:(si.name||"").trim()};
         if(!si.name) return; // skip anything that scanned/edited down to a blank name
-        // Exact match first (fast path); fall back to shared-significant-word match so
-        // "Quaker Grits" and "Quaker Quick Grits" from two different scans of the same can
-        // land as one item instead of silently duplicating.
-        let idx=u.findIndex(i=>(i.name||"").trim().toLowerCase()===si.name.toLowerCase());
-        if(idx<0){
-          const siWords=significantWords(si.name).filter(w=>w.length>=4);
-          idx=u.findIndex(i=>{
-            const iWords=significantWords(i.name).filter(w=>w.length>=4);
-            return siWords.length&&iWords.length&&siWords.some(w=>iWords.includes(w));
-          });
-        }
+        // Match against existing inventory by product, not just a loosely shared word —
+        // see sameProduct() for why (Heinz vs Meijer ketchup, Peach vs Strawberry fruit
+        // bars, etc. must stay as separate items even though they share generic words).
+        let idx=u.findIndex(i=>sameProduct(si.name,i.name,si.brand,i.brand));
         const paid=parsePrice(si.price);
         const today=new Date().toISOString();
         if(idx>=0){
@@ -3180,6 +3173,24 @@ Respond ONLY with valid JSON, no markdown: {"name":"cut name","weightLbs":number
     if(!wa.length||!wb.length) return false;
     return wa.some(w=>wb.includes(w));
   };
+  // Stricter check used specifically for receipt-to-inventory matching: a single shared
+  // generic word (e.g. "Ketchup", "Bars") used to be enough to merge two genuinely
+  // different products — Heinz and Meijer ketchup, or Peach and Strawberry fruit bars,
+  // would silently collapse into one inventory entry. Now: brands that are both known
+  // and differ never merge, and everything else needs most of its significant words to
+  // overlap, not just one.
+  const sameProduct=(nameA,nameB,brandA,brandB)=>{
+    const a=(nameA||"").trim().toLowerCase(), b=(nameB||"").trim().toLowerCase();
+    if(!a||!b) return false;
+    if(a===b) return true;
+    if(brandA&&brandB&&brandA.toLowerCase()!==brandB.toLowerCase()) return false;
+    const wa=significantWords(nameA).filter(w=>w.length>=4);
+    const wb=significantWords(nameB).filter(w=>w.length>=4);
+    if(!wa.length||!wb.length) return false;
+    const shared=wa.filter(w=>wb.includes(w)).length;
+    const smaller=Math.min(wa.length,wb.length);
+    return (shared/smaller)>=0.75;
+  };
   const liveMissing=(list)=>{
     if(!Array.isArray(list)) return [];
     return list.filter(ing=>{
@@ -3877,10 +3888,14 @@ Respond ONLY with valid JSON, no markdown: {"name":"cut name","weightLbs":number
                 return(
                   <div key={item.id} style={{background:C.card,border:"1px solid "+item.isLow?C.red:C.border,borderRadius:12,padding:13,display:"flex",flexDirection:"column",gap:8}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                      <div>
-                        <div style={{fontWeight:600,fontSize:seniorMode?22:13,lineHeight:1.4}}>{item.name}</div>
-                        {item.blendNote&&<div style={{fontSize:10,color:C.muted,marginTop:1}}>{item.blendNote}</div>}
-                        {item.isLow&&<div style={bTag(C.red)}>⚠ Low</div>}
+                      <div style={{display:"flex",gap:8,alignItems:"flex-start"}}>
+                        {item.image_url&&<img src={item.image_url} alt="" style={{width:36,height:36,borderRadius:6,objectFit:"cover",flexShrink:0,border:"1px solid "+C.border}} onError={e=>{e.target.style.display="none";}}/>}
+                        <div>
+                          <div style={{fontWeight:600,fontSize:seniorMode?22:13,lineHeight:1.4}}>{item.name}</div>
+                          {(item.brand||item.size)&&<div style={{fontSize:seniorMode?14:10,color:C.muted,marginTop:1}}>{[item.brand,item.size].filter(Boolean).join(" · ")}</div>}
+                          {item.blendNote&&<div style={{fontSize:10,color:C.muted,marginTop:1}}>{item.blendNote}</div>}
+                          {item.isLow&&<div style={bTag(C.red)}>⚠ Low</div>}
+                        </div>
                       </div>
                       <button onClick={()=>setInventory(p=>p.filter(i=>i.id!==item.id))} style={{background:"transparent",border:"none",color:C.dim,cursor:"pointer",fontSize:14,padding:2}}>✕</button>
                     </div>
