@@ -5,7 +5,7 @@ export default async function handler(req, res) {
 
   // ── Nutrition Report action ──────────────────────────────────────────────
   if (action === 'nutrition-report') {
-    const { toEmail, memberName, dateRange, dailyData, weeklyAvgs, narrative } = req.body;
+    const { toEmail, memberName, dateRange, dailyData, weeklyAvgs, narrative, bpReadings } = req.body;
     if (!toEmail) return res.status(400).json({ error: 'Missing email' });
     const resendKey = process.env.RESEND_API_KEY;
     if (!resendKey) return res.status(500).json({ error: 'Missing RESEND_API_KEY' });
@@ -19,6 +19,25 @@ export default async function handler(req, res) {
         <td style="padding:6px 10px;font-size:12px;color:#ef4444;text-align:center;">${d.sat_fat_g}g</td>
         <td style="padding:6px 10px;font-size:12px;color:#8b5cf6;text-align:center;">${d.fiber_g}g</td>
       </tr>`).join('');
+
+    const bpCatColors = { Normal: '#22c55e', Elevated: '#eab308', 'Stage 1': '#f59e0b', 'Stage 2': '#dc2626', Crisis: '#7f1d1d' };
+    const bpRowsHtml = (bpReadings||[]).map(b => `
+      <tr style="border-bottom:1px solid #eee;">
+        <td style="padding:6px 10px;font-size:12px;color:#333;">${b.date}</td>
+        <td style="padding:6px 10px;font-size:12px;color:#333;text-align:center;">${b.systolic}/${b.diastolic}${b.pulse ? ' &middot; '+b.pulse+' bpm' : ''}</td>
+        <td style="padding:6px 10px;font-size:12px;text-align:center;color:${bpCatColors[b.category]||'#333'};font-weight:bold;">${b.category||''}</td>
+      </tr>`).join('');
+    const bpSectionHtml = (bpReadings && bpReadings.length > 0) ? `
+        <div style="font-weight:bold;color:#1A2344;margin:20px 0 12px;">Blood Pressure</div>
+        <table width="100%" style="border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;border:1px solid #eee;margin-bottom:8px;">
+          <thead><tr style="background:#1A2344;">
+            <th style="padding:8px 10px;color:#fff;font-size:12px;text-align:left;">Date</th>
+            <th style="padding:8px 10px;color:#fff;font-size:12px;">Reading</th>
+            <th style="padding:8px 10px;color:#fff;font-size:12px;">Category</th>
+          </tr></thead>
+          <tbody>${bpRowsHtml}</tbody>
+        </table>
+        <p style="font-size:10px;color:#999;margin-bottom:16px;">Categories follow standard clinical ranges for informational purposes. Your physician is the final authority on your health &mdash; Smart Kitchen only assists with day-to-day implementation.</p>` : '';
 
     const html = `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;">
       <div style="background:#1A2344;padding:20px;border-radius:8px 8px 0 0;text-align:center;">
@@ -51,6 +70,7 @@ export default async function handler(req, res) {
             <td style="padding:8px 10px;font-size:12px;color:#8b5cf6;text-align:center;">${weeklyAvgs.fiber_g}g</td>
           </tr></tfoot>` : ''}
         </table>
+        ${bpSectionHtml}
         <p style="font-size:11px;color:#999;margin-top:20px;text-align:center;">Self-reported nutritional data tracked via Smart Kitchen Medical+. For guidance only. Always consult your healthcare provider. Not medical advice.</p>
         <p style="font-size:11px;color:#C8963E;text-align:center;margin-top:8px;">smart-kitchen-opal.vercel.app</p>
       </div>
