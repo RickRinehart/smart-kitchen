@@ -38,6 +38,16 @@ const KITCHEN_APPLIANCES=[
 ];
 // Auto-calculates a daily fiber target (g) from age/sex using standard clinical guidelines.
 // Manual override (fiberTargetG) always wins when set on the profile.
+// Categorizes a blood pressure reading per standard AHA-aligned ranges. Informational only \u2014 not a diagnosis.
+const bpCategory=(sys,dia)=>{
+  sys=parseFloat(sys);dia=parseFloat(dia);
+  if(!sys||!dia) return null;
+  if(sys>180||dia>120) return {label:"Crisis",color:"#7f1d1d",note:"Seek immediate medical attention"};
+  if(sys>=140||dia>=90) return {label:"Stage 2",color:"#dc2626",note:"Consult your physician"};
+  if(sys>=130||dia>=80) return {label:"Stage 1",color:"#f59e0b",note:""};
+  if(sys>=120&&dia<80) return {label:"Elevated",color:"#eab308",note:""};
+  return {label:"Normal",color:"#22c55e",note:""};
+};
 const fiberTargetFor=(p)=>{
   if(p&&p.fiberTargetG) return p.fiberTargetG;
   const age=p&&p.age?parseFloat(p.age):null;
@@ -730,9 +740,9 @@ function NutritionDashboard({familyProfiles,user,supabase,seniorMode,C,FM,FD,ref
             </div>
           ))}
           <div style={{fontFamily:FM,fontSize:10,color:C.muted,marginTop:8,borderTop:"1px solid "+C.border,paddingTop:8}}>
-            For guidance only. Consult your healthcare provider for specific dietary recommendations.
+            {(()=>{const bpRows=[...todayLog,...weekLog].filter(r=>r.systolic_mmhg&&r.diastolic_mmhg&&(!selectedMember||r.member_name===selectedMember));if(bpRows.length===0) return null;const latest=bpRows.sort((a,b)=>new Date(b.logged_at)-new Date(a.logged_at))[0];const cat=bpCategory(latest.systolic_mmhg,latest.diastolic_mmhg);return(<div style={{marginTop:10,marginBottom:10,background:C.surface,borderRadius:10,padding:12}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}><div style={{fontFamily:FM,fontSize:seniorMode?14:11,color:C.muted}}>\ud83e\udd7a Blood Pressure (latest)</div><div style={{fontFamily:FD,fontSize:seniorMode?18:15,color:cat?cat.color:C.text,fontWeight:700}}>{Math.round(latest.systolic_mmhg)}/{Math.round(latest.diastolic_mmhg)}{latest.pulse_bpm?" \u00b7 "+Math.round(latest.pulse_bpm)+" bpm":""}</div></div>{cat&&(<div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{fontFamily:FM,fontSize:11,color:cat.color,fontWeight:700}}>{cat.label}{cat.note?" \u2014 "+cat.note:""}</span><span style={{fontFamily:FM,fontSize:9,color:"#666"}}>{new Date(latest.logged_at).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</span></div>)}</div>);})()}For guidance only. Consult your healthcare provider for specific dietary recommendations.
           </div>
-          {allQualifying.length>1&&(<div style={{marginTop:12,borderTop:"1px solid "+C.border,paddingTop:10}}><div style={{fontFamily:FM,fontSize:10,color:C.muted,marginBottom:6,letterSpacing:0.8}}>PLATE ASSIST ACTIVE</div><div style={{display:"flex",flexWrap:"wrap",gap:6}}>{allQualifying.map(p=>{const pTarget=p.proteinTargetG||75;const pLogged=todayLog.filter(r=>r.member_name===p.name).reduce((a,r)=>a+(r.protein_g||0),0);const pMet=pLogged>=pTarget*0.9;const isActiveMember=!selectedMember||selectedMember===p.name;return(<button key={p.id||p.name} onClick={()=>setSelectedMember(selectedMember===p.name?null:p.name)} style={{background:pMet?"#22c55e18":"#f59e0b18",border:"2px solid "+(selectedMember===p.name?(pMet?"#22c55e":"#f59e0b"):(pMet?"#22c55e44":"#f59e0b44")),borderRadius:10,padding:"6px 10px",minWidth:120,cursor:"pointer",opacity:isActiveMember?1:0.4,textAlign:"left"}}><div style={{fontFamily:FM,fontSize:11,color:pMet?"#22c55e":"#f59e0b",fontWeight:700}}>{p.name||"Member"}</div><div style={{fontFamily:FM,fontSize:10,color:C.muted,marginTop:2}}>{Math.round(pLogged)}g / {pTarget}g protein{p.medicalPlan?" · "+p.medicalPlan:""}</div></button>);})}</div></div>)}<div style={{display:"flex",gap:8,marginTop:12}}><button onClick={()=>{setShowWeekly(w=>!w);if(!narrative&&weekLog.length>0){setNarrativeLoading(true);const mn=selectedMember||(allQualifying[0]?.name||"member");const wk=weekLog.filter(r=>!selectedMember||r.member_name===selectedMember);const days={};wk.forEach(r=>{const d=r.logged_at?.slice(0,10)||"";if(!days[d])days[d]={p:0,c:0,cal:0,s:0,f:0,n:0};days[d].p+=r.protein_g||0;days[d].cal+=r.calories||0;days[d].c+=r.carbs_g||0;days[d].s+=r.sat_fat_g||0;days[d].f+=r.fiber_g||0;days[d].n++;});const dayArr=Object.entries(days);const avgP=dayArr.length?Math.round(dayArr.reduce((a,[,v])=>a+v.p,0)/dayArr.length):0;const target=activeP?.proteinTargetG||75;const metDays=dayArr.filter(([,v])=>v.p>=target*0.9).length;setNarrative("Over the past 7 days, "+mn+" logged "+dayArr.length+" days of nutrition data. Average daily protein: "+avgP+"g (target: "+target+"g). Protein target met "+metDays+" of "+dayArr.length+" days tracked. Keep focusing on protein-first meals to stay on track.");setNarrativeLoading(false);}}} style={{flex:1,background:showWeekly?"#1A2344":"transparent",border:"1px solid #1A2344",borderRadius:8,padding:"8px 12px",color:showWeekly?"#C8963E":"#888",fontFamily:FM,fontSize:seniorMode?14:11,fontWeight:600,cursor:"pointer"}}>📈 7-Day Trend</button><button onClick={()=>{const email=user?.email||user?.user_metadata?.email||"";setReportEmail(email);setShowEmailConfirm(true);}} style={{flex:1,background:reportSent?"#10b981":"transparent",border:"1px solid "+(reportSent?"#10b981":"#C8963E"),borderRadius:8,padding:"8px 12px",color:reportSent?"#fff":"#C8963E",fontFamily:FM,fontSize:seniorMode?14:11,fontWeight:600,cursor:"pointer",opacity:reportSending?0.6:1}}>{reportSending?"⏳ Sending...":reportSent?"✅ Sent!":"📧 Email Report"}</button>{showEmailConfirm&&(<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:900,padding:24}} onClick={()=>setShowEmailConfirm(false)}><div style={{background:C.card,borderRadius:16,padding:24,width:"100%",maxWidth:400,border:"1px solid #C8963E"}} onClick={e=>e.stopPropagation()}><div style={{fontFamily:FD,fontSize:18,color:"#C8963E",marginBottom:12}}>📧 Send Nutrition Report</div><div style={{fontFamily:FM,fontSize:13,color:C.muted,marginBottom:16,lineHeight:1.6}}>Your 7-day nutrition report will be emailed to the address below. Confirm it is correct before sending.</div><div style={{fontFamily:FM,fontSize:11,color:"#888",marginBottom:4,letterSpacing:0.8}}>SEND REPORT TO</div><input value={reportEmail} onChange={e=>setReportEmail(e.target.value)} placeholder="your@email.com" style={{width:"100%",background:C.surface,border:"1px solid #C8963E",borderRadius:8,padding:"10px 14px",color:C.text,fontFamily:FM,fontSize:14,boxSizing:"border-box",marginBottom:8}}/><div style={{fontFamily:FM,fontSize:10,color:"#555",marginBottom:16}}>This report contains personal nutrition data. Only send to yourself or an authorized care provider. Smart Kitchen does not share your data with third parties.</div><div style={{display:"flex",gap:8}}><button onClick={()=>setShowEmailConfirm(false)} style={{flex:1,background:"transparent",border:"1px solid #555",borderRadius:8,padding:"10px",color:"#888",fontFamily:FM,fontSize:13,cursor:"pointer"}}>Cancel</button><button onClick={async()=>{if(!reportEmail.trim()||!reportEmail.includes("@")){alert("Please enter a valid email address.");return;}setShowEmailConfirm(false);setReportSending(true);setReportSent(false);const mn=selectedMember||(allQualifying[0]?.name||"Member");const wk2=weekLog.filter(r=>!selectedMember||r.member_name===mn);const days2={};wk2.forEach(r=>{const d=r.logged_at?.slice(0,10)||"";if(!days2[d])days2[d]={date:d,protein_g:0,calories:0,carbs_g:0,sat_fat_g:0,fiber_g:0};days2[d].protein_g+=Math.round(r.protein_g||0);days2[d].calories+=Math.round(r.calories||0);days2[d].carbs_g+=Math.round(r.carbs_g||0);days2[d].sat_fat_g+=Math.round(r.sat_fat_g||0);days2[d].fiber_g+=Math.round(r.fiber_g||0);});const dayArr2=Object.values(days2).sort((a,b)=>a.date.localeCompare(b.date));const n2=dayArr2.length||1;const avgs2={protein_g:Math.round(dayArr2.reduce((a,d)=>a+d.protein_g,0)/n2),calories:Math.round(dayArr2.reduce((a,d)=>a+d.calories,0)/n2),carbs_g:Math.round(dayArr2.reduce((a,d)=>a+d.carbs_g,0)/n2),sat_fat_g:Math.round(dayArr2.reduce((a,d)=>a+d.sat_fat_g,0)/n2),fiber_g:Math.round(dayArr2.reduce((a,d)=>a+d.fiber_g,0)/n2)};try{const resp=await fetch("/api/send-shopping-list",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"nutrition-report",toEmail:reportEmail.trim(),memberName:mn,dateRange:"Last 7 Days",dailyData:dayArr2.map(d=>({...d,date:new Date(d.date+"T12:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})})),weeklyAvgs:avgs2,narrative:narrative||""})});const rdata=await resp.json().catch(()=>({}));if(resp.ok&&rdata.success){setReportSent(true);setTimeout(()=>setReportSent(false),5000);}else{alert("Send failed: "+(rdata.error||"Server error "+resp.status)+". Please try again.");}}catch(e){alert("Network error: "+e.message);}setReportSending(false);}} style={{flex:2,background:"#C8963E",border:"none",borderRadius:8,padding:"10px",color:"#000",fontFamily:FM,fontSize:13,fontWeight:700,cursor:"pointer"}}>{reportSending?"⏳ Sending...":"Send Report ➜"}</button></div></div></div>)}</div>{showWeekly&&weekLog.length>0&&(()=>{const mn=selectedMember||(allQualifying[0]?.name||null);const wk=weekLog.filter(r=>!mn||r.member_name===mn);const days={};wk.forEach(r=>{const d=r.logged_at?.slice(0,10)||"";if(!days[d])days[d]={p:0,cal:0,c:0,s:0,f:0};days[d].p+=r.protein_g||0;days[d].cal+=r.calories||0;days[d].c+=r.carbs_g||0;days[d].s+=r.sat_fat_g||0;days[d].f+=r.fiber_g||0;});const dayArr=Object.entries(days).sort((a,b)=>a[0].localeCompare(b[0]));const maxP=Math.max(...dayArr.map(([,v])=>v.p),targets.protein_g);return(<div style={{marginTop:12,background:C.surface,borderRadius:10,padding:12}}><div style={{fontFamily:FM,fontSize:10,color:"#888",marginBottom:8,letterSpacing:0.8}}>7-DAY PROTEIN TREND</div><div style={{display:"flex",alignItems:"flex-end",gap:4,height:60}}>{dayArr.map(([date,v])=>{const pct=Math.min(100,(v.p/maxP)*100);const met=v.p>=targets.protein_g*0.9;const label=new Date(date+"T12:00:00").toLocaleDateString("en-US",{weekday:"short"});return(<div key={date} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:2}}><div style={{fontFamily:FM,fontSize:8,color:met?"#22c55e":"#888"}}>{Math.round(v.p)}g</div><div style={{width:"100%",height:pct+"%",minHeight:4,background:met?"#22c55e":"#f59e0b",borderRadius:"3px 3px 0 0",transition:"height 0.4s"}}></div><div style={{fontFamily:FM,fontSize:8,color:"#555"}}>{label}</div></div>);})}</div><div style={{borderTop:"1px dashed #333",marginTop:4,paddingTop:4,fontFamily:FM,fontSize:9,color:"#555"}}>Target: {targets.protein_g}g/day</div>{narrative&&<div style={{marginTop:10,background:"#10b98118",border:"1px solid #10b98133",borderRadius:8,padding:"8px 12px"}}><div style={{fontFamily:FM,fontSize:10,color:"#10b981",fontWeight:700,marginBottom:4}}>Weekly Summary</div><div style={{fontFamily:FM,fontSize:11,color:"#ccc",lineHeight:1.6}}>{narrativeLoading?"⏳ Generating...":narrative}</div></div>}</div>);})()}
+          {allQualifying.length>1&&(<div style={{marginTop:12,borderTop:"1px solid "+C.border,paddingTop:10}}><div style={{fontFamily:FM,fontSize:10,color:C.muted,marginBottom:6,letterSpacing:0.8}}>PLATE ASSIST ACTIVE</div><div style={{display:"flex",flexWrap:"wrap",gap:6}}>{allQualifying.map(p=>{const pTarget=p.proteinTargetG||75;const pLogged=todayLog.filter(r=>r.member_name===p.name).reduce((a,r)=>a+(r.protein_g||0),0);const pMet=pLogged>=pTarget*0.9;const isActiveMember=!selectedMember||selectedMember===p.name;return(<button key={p.id||p.name} onClick={()=>setSelectedMember(selectedMember===p.name?null:p.name)} style={{background:pMet?"#22c55e18":"#f59e0b18",border:"2px solid "+(selectedMember===p.name?(pMet?"#22c55e":"#f59e0b"):(pMet?"#22c55e44":"#f59e0b44")),borderRadius:10,padding:"6px 10px",minWidth:120,cursor:"pointer",opacity:isActiveMember?1:0.4,textAlign:"left"}}><div style={{fontFamily:FM,fontSize:11,color:pMet?"#22c55e":"#f59e0b",fontWeight:700}}>{p.name||"Member"}</div><div style={{fontFamily:FM,fontSize:10,color:C.muted,marginTop:2}}>{Math.round(pLogged)}g / {pTarget}g protein{p.medicalPlan?" · "+p.medicalPlan:""}</div></button>);})}</div></div>)}<div style={{display:"flex",gap:8,marginTop:12}}><button onClick={()=>{setShowWeekly(w=>!w);if(!narrative&&weekLog.length>0){setNarrativeLoading(true);const mn=selectedMember||(allQualifying[0]?.name||"member");const wk=weekLog.filter(r=>!selectedMember||r.member_name===selectedMember);const days={};wk.forEach(r=>{const d=r.logged_at?.slice(0,10)||"";if(!days[d])days[d]={p:0,c:0,cal:0,s:0,f:0,n:0};days[d].p+=r.protein_g||0;days[d].cal+=r.calories||0;days[d].c+=r.carbs_g||0;days[d].s+=r.sat_fat_g||0;days[d].f+=r.fiber_g||0;days[d].n++;});const dayArr=Object.entries(days);const avgP=dayArr.length?Math.round(dayArr.reduce((a,[,v])=>a+v.p,0)/dayArr.length):0;const target=activeP?.proteinTargetG||75;const metDays=dayArr.filter(([,v])=>v.p>=target*0.9).length;setNarrative("Over the past 7 days, "+mn+" logged "+dayArr.length+" days of nutrition data. Average daily protein: "+avgP+"g (target: "+target+"g). Protein target met "+metDays+" of "+dayArr.length+" days tracked. Keep focusing on protein-first meals to stay on track.");setNarrativeLoading(false);}}} style={{flex:1,background:showWeekly?"#1A2344":"transparent",border:"1px solid #1A2344",borderRadius:8,padding:"8px 12px",color:showWeekly?"#C8963E":"#888",fontFamily:FM,fontSize:seniorMode?14:11,fontWeight:600,cursor:"pointer"}}>📈 7-Day Trend</button><button onClick={()=>{const email=user?.email||user?.user_metadata?.email||"";setReportEmail(email);setShowEmailConfirm(true);}} style={{flex:1,background:reportSent?"#10b981":"transparent",border:"1px solid "+(reportSent?"#10b981":"#C8963E"),borderRadius:8,padding:"8px 12px",color:reportSent?"#fff":"#C8963E",fontFamily:FM,fontSize:seniorMode?14:11,fontWeight:600,cursor:"pointer",opacity:reportSending?0.6:1}}>{reportSending?"⏳ Sending...":reportSent?"✅ Sent!":"📧 Email Report"}</button>{showEmailConfirm&&(<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:900,padding:24}} onClick={()=>setShowEmailConfirm(false)}><div style={{background:C.card,borderRadius:16,padding:24,width:"100%",maxWidth:400,border:"1px solid #C8963E"}} onClick={e=>e.stopPropagation()}><div style={{fontFamily:FD,fontSize:18,color:"#C8963E",marginBottom:12}}>📧 Send Nutrition Report</div><div style={{fontFamily:FM,fontSize:13,color:C.muted,marginBottom:16,lineHeight:1.6}}>Your 7-day nutrition report will be emailed to the address below. Confirm it is correct before sending.</div><div style={{fontFamily:FM,fontSize:11,color:"#888",marginBottom:4,letterSpacing:0.8}}>SEND REPORT TO</div><input value={reportEmail} onChange={e=>setReportEmail(e.target.value)} placeholder="your@email.com" style={{width:"100%",background:C.surface,border:"1px solid #C8963E",borderRadius:8,padding:"10px 14px",color:C.text,fontFamily:FM,fontSize:14,boxSizing:"border-box",marginBottom:8}}/><div style={{fontFamily:FM,fontSize:10,color:"#555",marginBottom:16}}>This report contains personal nutrition data. Only send to yourself or an authorized care provider. Smart Kitchen does not share your data with third parties.</div><div style={{display:"flex",gap:8}}><button onClick={()=>setShowEmailConfirm(false)} style={{flex:1,background:"transparent",border:"1px solid #555",borderRadius:8,padding:"10px",color:"#888",fontFamily:FM,fontSize:13,cursor:"pointer"}}>Cancel</button><button onClick={async()=>{if(!reportEmail.trim()||!reportEmail.includes("@")){alert("Please enter a valid email address.");return;}setShowEmailConfirm(false);setReportSending(true);setReportSent(false);const mn=selectedMember||(allQualifying[0]?.name||"Member");const wk2=weekLog.filter(r=>!selectedMember||r.member_name===mn);const days2={};wk2.forEach(r=>{const d=r.logged_at?.slice(0,10)||"";if(!days2[d])days2[d]={date:d,protein_g:0,calories:0,carbs_g:0,sat_fat_g:0,fiber_g:0};days2[d].protein_g+=Math.round(r.protein_g||0);days2[d].calories+=Math.round(r.calories||0);days2[d].carbs_g+=Math.round(r.carbs_g||0);days2[d].sat_fat_g+=Math.round(r.sat_fat_g||0);days2[d].fiber_g+=Math.round(r.fiber_g||0);});const dayArr2=Object.values(days2).sort((a,b)=>a.date.localeCompare(b.date));const n2=dayArr2.length||1;const avgs2={protein_g:Math.round(dayArr2.reduce((a,d)=>a+d.protein_g,0)/n2),calories:Math.round(dayArr2.reduce((a,d)=>a+d.calories,0)/n2),carbs_g:Math.round(dayArr2.reduce((a,d)=>a+d.carbs_g,0)/n2),sat_fat_g:Math.round(dayArr2.reduce((a,d)=>a+d.sat_fat_g,0)/n2),fiber_g:Math.round(dayArr2.reduce((a,d)=>a+d.fiber_g,0)/n2)};try{const resp=await fetch("/api/send-shopping-list",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"nutrition-report",toEmail:reportEmail.trim(),memberName:mn,dateRange:"Last 7 Days",dailyData:dayArr2.map(d=>({...d,date:new Date(d.date+"T12:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})})),weeklyAvgs:avgs2,narrative:narrative||"",bpReadings:wk2.filter(r=>r.systolic_mmhg&&r.diastolic_mmhg).map(r=>{const cat=bpCategory(r.systolic_mmhg,r.diastolic_mmhg);return{date:new Date(r.logged_at).toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"}),systolic:Math.round(r.systolic_mmhg),diastolic:Math.round(r.diastolic_mmhg),pulse:r.pulse_bpm?Math.round(r.pulse_bpm):null,category:cat?cat.label:null};})})});const rdata=await resp.json().catch(()=>({}));if(resp.ok&&rdata.success){setReportSent(true);setTimeout(()=>setReportSent(false),5000);}else{alert("Send failed: "+(rdata.error||"Server error "+resp.status)+". Please try again.");}}catch(e){alert("Network error: "+e.message);}setReportSending(false);}} style={{flex:2,background:"#C8963E",border:"none",borderRadius:8,padding:"10px",color:"#000",fontFamily:FM,fontSize:13,fontWeight:700,cursor:"pointer"}}>{reportSending?"⏳ Sending...":"Send Report ➜"}</button></div></div></div>)}</div>{showWeekly&&weekLog.length>0&&(()=>{const mn=selectedMember||(allQualifying[0]?.name||null);const wk=weekLog.filter(r=>!mn||r.member_name===mn);const days={};wk.forEach(r=>{const d=r.logged_at?.slice(0,10)||"";if(!days[d])days[d]={p:0,cal:0,c:0,s:0,f:0};days[d].p+=r.protein_g||0;days[d].cal+=r.calories||0;days[d].c+=r.carbs_g||0;days[d].s+=r.sat_fat_g||0;days[d].f+=r.fiber_g||0;});const dayArr=Object.entries(days).sort((a,b)=>a[0].localeCompare(b[0]));const maxP=Math.max(...dayArr.map(([,v])=>v.p),targets.protein_g);return(<div style={{marginTop:12,background:C.surface,borderRadius:10,padding:12}}><div style={{fontFamily:FM,fontSize:10,color:"#888",marginBottom:8,letterSpacing:0.8}}>7-DAY PROTEIN TREND</div><div style={{display:"flex",alignItems:"flex-end",gap:4,height:60}}>{dayArr.map(([date,v])=>{const pct=Math.min(100,(v.p/maxP)*100);const met=v.p>=targets.protein_g*0.9;const label=new Date(date+"T12:00:00").toLocaleDateString("en-US",{weekday:"short"});return(<div key={date} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:2}}><div style={{fontFamily:FM,fontSize:8,color:met?"#22c55e":"#888"}}>{Math.round(v.p)}g</div><div style={{width:"100%",height:pct+"%",minHeight:4,background:met?"#22c55e":"#f59e0b",borderRadius:"3px 3px 0 0",transition:"height 0.4s"}}></div><div style={{fontFamily:FM,fontSize:8,color:"#555"}}>{label}</div></div>);})}</div><div style={{borderTop:"1px dashed #333",marginTop:4,paddingTop:4,fontFamily:FM,fontSize:9,color:"#555"}}>Target: {targets.protein_g}g/day</div>{narrative&&<div style={{marginTop:10,background:"#10b98118",border:"1px solid #10b98133",borderRadius:8,padding:"8px 12px"}}><div style={{fontFamily:FM,fontSize:10,color:"#10b981",fontWeight:700,marginBottom:4}}>Weekly Summary</div><div style={{fontFamily:FM,fontSize:11,color:"#ccc",lineHeight:1.6}}>{narrativeLoading?"⏳ Generating...":narrative}</div></div>}</div>);})()}
         </div>
       )}
     </div>
@@ -752,7 +762,10 @@ function FoodJournal({user,supabase,familyProfiles,can,seniorMode,C,FM,FD,
   const allQualifying=familyProfiles.filter(p=>p.guidedPlateMode||p.medicalPlan||p.guidedPlateMode!==undefined);
   const members=allQualifying.length>0?allQualifying:familyProfiles;
   const activeMember=journalMember||(members[0]||null);
-  const mealTypes=["Breakfast","Morning Snack","Lunch","Afternoon Snack","Dinner","Evening Snack","Water/Hydration","Protein Shake","Other"];
+  const mealTypes=["Breakfast","Morning Snack","Lunch","Afternoon Snack","Dinner","Evening Snack","Water/Hydration","Protein Shake","Other","Blood Pressure"];
+  const [journalSystolic,setJournalSystolic]=React.useState("");
+  const [journalDiastolic,setJournalDiastolic]=React.useState("");
+  const [journalPulse,setJournalPulse]=React.useState("");
   const weightUnits=["oz","g","ml","fl oz","lbs","cups"];
   const toGrams=(val,unit)=>{
     const v=parseFloat(val)||0;
@@ -783,6 +796,26 @@ function FoodJournal({user,supabase,familyProfiles,can,seniorMode,C,FM,FD,
     setJournalCalcLoading(false);
   };
   const saveEntry=async()=>{
+    if(journalMealType==="Blood Pressure"){
+      if(!journalSystolic||!journalDiastolic) return;
+      setJournalSaving(true);
+      await logNutrition({
+        memberName:activeMember?.name||null,
+        itemName:"Blood Pressure Reading",
+        loggedAt:journalDateTime?new Date(journalDateTime).toISOString():new Date().toISOString(),
+        systolic_mmhg:parseFloat(journalSystolic)||null,
+        diastolic_mmhg:parseFloat(journalDiastolic)||null,
+        pulse_bpm:journalPulse?parseFloat(journalPulse):null,
+        source:"food_journal",
+        sessionId:"Blood Pressure",
+      });
+      setJournalSaving(false);
+      setJournalSuccess(true);
+      if(onSaved) onSaved();
+      setJournalSystolic("");setJournalDiastolic("");setJournalPulse("");
+      setTimeout(()=>setJournalSuccess(false),2500);
+      return;
+    }
     if(!journalFoodName.trim()) return;
     setJournalSaving(true);
     const grams=toGrams(journalWeight||0,journalWeightUnit);
@@ -881,7 +914,7 @@ function FoodJournal({user,supabase,familyProfiles,can,seniorMode,C,FM,FD,
           <input type="datetime-local" value={journalDateTime} onChange={e=>setJournalDateTime(e.target.value)}
             style={{width:"100%",background:C.surface,border:"1px solid #444",borderRadius:8,padding:"10px 12px",color:C.text,fontFamily:FM,fontSize:seniorMode?15:13,boxSizing:"border-box"}}/>
         </div>
-        <div style={{marginBottom:12}}>
+        {journalMealType==="Blood Pressure"&&(<div style={{marginBottom:16}}><div style={{fontFamily:FM,fontSize:10,color:"#888",marginBottom:8,letterSpacing:0.8}}>BLOOD PRESSURE READING</div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:8}}><div><div style={{fontFamily:FM,fontSize:9,color:"#666",marginBottom:4}}>SYSTOLIC</div><input type="number" value={journalSystolic} onChange={e=>setJournalSystolic(e.target.value)} placeholder="120" style={{width:"100%",background:C.surface,border:"1px solid #444",borderRadius:8,padding:"10px 12px",color:C.text,fontFamily:FM,fontSize:seniorMode?16:14,boxSizing:"border-box"}}/></div><div><div style={{fontFamily:FM,fontSize:9,color:"#666",marginBottom:4}}>DIASTOLIC</div><input type="number" value={journalDiastolic} onChange={e=>setJournalDiastolic(e.target.value)} placeholder="80" style={{width:"100%",background:C.surface,border:"1px solid #444",borderRadius:8,padding:"10px 12px",color:C.text,fontFamily:FM,fontSize:seniorMode?16:14,boxSizing:"border-box"}}/></div><div><div style={{fontFamily:FM,fontSize:9,color:"#666",marginBottom:4}}>PULSE (OPTIONAL)</div><input type="number" value={journalPulse} onChange={e=>setJournalPulse(e.target.value)} placeholder="72" style={{width:"100%",background:C.surface,border:"1px solid #444",borderRadius:8,padding:"10px 12px",color:C.text,fontFamily:FM,fontSize:seniorMode?16:14,boxSizing:"border-box"}}/></div></div>{journalSystolic&&journalDiastolic&&(()=>{const cat=bpCategory(journalSystolic,journalDiastolic);if(!cat)return null;return(<div style={{background:cat.color+"18",border:"1px solid "+cat.color+"66",borderRadius:8,padding:"8px 12px",marginBottom:4}}><span style={{fontFamily:FM,fontSize:12,color:cat.color,fontWeight:700}}>{cat.label}</span>{cat.note&&<span style={{fontFamily:FM,fontSize:11,color:cat.color,marginLeft:8}}>\u2014 {cat.note}</span>}</div>);})()}<div style={{fontFamily:FM,fontSize:10,color:"#555",marginTop:4}}>Categories follow standard clinical ranges for informational purposes. Your physician is the final authority on your care \u2014 Smart Kitchen only assists with day-to-day implementation.</div></div>)}{journalMealType!=="Blood Pressure"&&(<><div style={{marginBottom:12}}>
           <div style={{fontFamily:FM,fontSize:10,color:"#888",marginBottom:4,letterSpacing:0.8}}>WHAT DID YOU EAT OR DRINK?</div>
           <input value={journalFoodName} onChange={e=>{setJournalFoodName(e.target.value);setJournalNutrition(null);}}
             placeholder="e.g. Protein shake, Chicken broth, Greek yogurt..."
@@ -951,17 +984,17 @@ function FoodJournal({user,supabase,familyProfiles,can,seniorMode,C,FM,FD,
             {journalNutrition.notes&&<div style={{fontFamily:FM,fontSize:10,color:"#666",marginTop:6,fontStyle:"italic"}}>{journalNutrition.notes}</div>}
           </div>
         )}
-        {journalSuccess&&(
+        </>)}{journalSuccess&&(
           <div style={{background:"#10b98122",border:"1px solid #10b98144",borderRadius:10,padding:"12px 16px",marginBottom:12,textAlign:"center",fontFamily:FM,fontSize:seniorMode?16:13,color:"#10b981",fontWeight:700}}>
             ✅ Logged! Dashboard updated.
           </div>
         )}
-        <button onClick={saveEntry} disabled={!journalFoodName.trim()||journalSaving}
-          style={{width:"100%",background:journalFoodName.trim()?"#10b981":"#333",border:"none",borderRadius:10,
-          padding:seniorMode?"16px":"12px",color:journalFoodName.trim()?"#fff":"#666",
-          fontFamily:FM,fontSize:seniorMode?20:15,fontWeight:700,cursor:journalFoodName.trim()?"pointer":"default",
+        <button onClick={saveEntry} disabled={journalMealType==="Blood Pressure"?(!journalSystolic||!journalDiastolic||journalSaving):(!journalFoodName.trim()||journalSaving)}
+          style={{width:"100%",background:(journalMealType==="Blood Pressure"?(journalSystolic&&journalDiastolic):journalFoodName.trim())?"#10b981":"#333",border:"none",borderRadius:10,
+          padding:seniorMode?"16px":"12px",color:(journalMealType==="Blood Pressure"?(journalSystolic&&journalDiastolic):journalFoodName.trim())?"#fff":"#666",
+          fontFamily:FM,fontSize:seniorMode?20:15,fontWeight:700,cursor:(journalMealType==="Blood Pressure"?(journalSystolic&&journalDiastolic):journalFoodName.trim())?"pointer":"default",
           marginBottom:8,opacity:journalSaving?0.6:1}}>
-          {journalSaving?"⏳ Saving...":"📗 Log This Entry"}
+          {journalSaving?"⏳ Saving...":journalMealType==="Blood Pressure"?"🩺 Log Blood Pressure":"📗 Log This Entry"}
         </button>
         <div style={{fontFamily:FM,fontSize:10,color:"#555",textAlign:"center",marginTop:4}}>For guidance only. Consult your healthcare provider for specific dietary recommendations.</div>
       </div>
@@ -1237,7 +1270,6 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [scanMode,setScanMode]=useState("shelf");
   const [saleItems,setSaleItems]=useState(()=>{try{return JSON.parse(localStorage.getItem("sk_saleItems")||"[]");}catch{return [];}});
   const [rpOpen,setRpOpen]=useState(false);
-  const [detailItem,setDetailItem]=useState(null); // inventory item shown in the tap-to-view detail modal
   const [rpYieldConfirm,setRpYieldConfirm]=useState(null);
   const [rpActualBags,setRpActualBags]=useState("");
   const [rpMode,setRpMode]=useState("protein");
@@ -1246,10 +1278,6 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [rpPOz,setRpPOz]=useState(6);
   const [rpPPrice,setRpPPrice]=useState("");
   const [rpPPreview,setRpPPreview]=useState(null);
-  const [rpTargetId,setRpTargetId]=useState(null); // set when repackage is opened from a specific inventory card — commit updates this id directly, bypassing name matching entirely
-  const [rpScanLoading,setRpScanLoading]=useState(false);
-  const [rpScanError,setRpScanError]=useState("");
-  const [rpScanConfidence,setRpScanConfidence]=useState(null); // "high"|"medium"|"low" — surfaces a verify-before-committing note when the AI had to estimate
   const [rpVSessions,setRpVSessions]=useState([{id:1,preset:{name:"Mixed Sauté Blend",cupsPerUnit:3,bagCups:2,color:C.orange},count:"",bags:null}]);
   const [rpVOnionSize,setRpVOnionSize]=useState("medium");
   const [rpVCeleryForm,setRpVCeleryForm]=useState("sticks");
@@ -1446,12 +1474,6 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
       if(user?.id){
         supabase.from("profiles").update({sk_seen_announcements:updated}).eq("id",user.id).then(()=>{});
       }
-      // Brand-new accounts (fresh signup this session) have never "been here before" —
-      // silently mark every existing announcement seen instead of greeting them with a
-      // "what's new since you were last here" digest of features they've never used.
-      let isNewSignup=false;
-      try{isNewSignup=sessionStorage.getItem("sk_newSignup")==="1";}catch{}
-      if(isNewSignup) return;
       setChatOpen(true);
       let msg,replies;
       if(unseenList.length===1){
@@ -1829,94 +1851,17 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
   },[chatMessages]);
 
   // -- Repackage helpers ------------------------------------------------------
-  const openRepack=(mode)=>{setRpMode(mode);setRpPName("");setRpPLbs("");setRpPOz(6);setRpPPrice("");setRpPPreview(null);setRpHItem("");setRpHRaw("");setRpHOz(16);setRpTargetId(null);setRpScanError("");setRpScanConfidence(null);setRpOpen(true);};
-  // Card-initiated repackage — pre-fills from the item that's already on screen (name, weight, price,
-  // portion size) and remembers its id so commitProtein updates that exact record directly instead of
-  // searching inventory by name. This is what prevents a scan-then-repackage from ever creating a
-  // second "Chicken Breast" card just because a retyped name didn't match character-for-character.
-  const openRepackFromItem=(item)=>{
-    setRpMode("protein");
-    setRpTargetId(item.id);
-    setRpPName(item.name);
-    if(item.isBulkProtein){
-      // Adding a fresh batch to something already portioned — new weight/price, not the old ones
-      setRpPLbs("");setRpPPrice("");
-    } else {
-      // First-time repackage of a raw item — its current qty/price came straight from the receipt scan
-      const unit=(item.unit||"").toLowerCase();
-      setRpPLbs(unit.includes("lb")?String(item.qty):"");
-      setRpPPrice(item.price?String(parseFloat(String(item.price).replace(/[^0-9.]/g,""))||""):(item.lastPrice?String(item.lastPrice):""));
-    }
-    setRpPOz(item.portionOz||6);
-    setRpPPreview(null);
-    setRpScanError("");setRpScanConfidence(null);
-    setRpOpen(true);
-  };
-  // Scan Item — for stock that never made it through a readable receipt (butcher-paper wrap, no
-  // printed line item). Works on either a labeled package (reads the sticker, like the shelf
-  // scanner) or a bare/butcher-wrapped cut with no label at all (identifies visually and reads any
-  // handwritten weight/price, like the leftovers identifier). Fills the form; never writes to
-  // inventory directly, so there's still exactly one commit path and no way to double-add.
-  const scanRepackageItem=async(file)=>{
-    if(!file) return;
-    setRpScanLoading(true); setRpScanError(""); setRpScanConfidence(null);
-    try{
-      const b64=await fileToBase64(file);
-      const raw=await callClaude({
-        system:`You are a butcher-counter item identifier. The photo shows either (a) a labeled meat package with a printed weight/price sticker, or (b) a bare or butcher-paper-wrapped cut with no label — possibly with a weight or price handwritten directly on the paper in marker.
-Identify the specific cut of protein (e.g. "Pork Loin", "Pork Chops", "Ground Beef", "Chicken Breast"). Read weight and price from any printed or handwritten text if visible; otherwise give your best visual estimate.
-Respond ONLY with valid JSON, no markdown: {"name":"cut name","weightLbs":number or null,"price":number or null,"confidence":"high"|"medium"|"low","source":"label"|"handwritten"|"visual_estimate"}`,
-        prompt:"Identify this protein item and its weight and price if visible on any label or handwriting.",
-        imageBase64:b64, imageType:file.type||"image/jpeg", maxTokens:400,
-      });
-      const text=(typeof raw==="string"?raw:raw?.content?.[0]?.text||"").replace(/```json|```/g,"").trim();
-      const m=text.match(/\{[\s\S]*\}/);
-      if(!m) throw new Error("Couldn't read a result from that photo — try again with clearer lighting.");
-      const parsed=JSON.parse(m[0]);
-      if(!parsed.name) throw new Error("Couldn't identify the item — try a clearer photo or enter it manually.");
-      setRpPName(parsed.name);
-      if(parsed.weightLbs) setRpPLbs(String(parsed.weightLbs));
-      if(parsed.price) setRpPPrice(String(parsed.price));
-      setRpPPreview(null);
-      setRpScanConfidence(parsed.confidence||(parsed.source==="visual_estimate"?"low":"high"));
-    }catch(e){
-      setRpScanError(e.message||"Scan failed — try again or enter details manually.");
-    }
-    setRpScanLoading(false);
-  };
+  const openRepack=(mode)=>{setRpMode(mode);setRpPName("");setRpPLbs("");setRpPOz(6);setRpPPrice("");setRpPPreview(null);setRpHItem("");setRpHRaw("");setRpHOz(16);setRpOpen(true);};
   const commitProtein=()=>{
-    if(!rpPName||!rpPLbs||!rpPOz) return;
+    if(!rpPName||!rpPLbs) return;
     const portions=Math.floor((parseFloat(rpPLbs)*16)/rpPOz);
     const pName=rpPName;
     const price=parseFloat(rpPPrice)||0;
     const costPerPortion=(price>0&&portions>0)?+(price/portions).toFixed(2):null;
     const avgOf=(hist)=>hist.length?+(hist.reduce((s,h)=>s+h.costPerPortion,0)/hist.length).toFixed(2):null;
-    const today=new Date().toISOString();
     setInventory(prev=>{
-      // Card-initiated repackage: update the exact item id we were opened from — no name search,
-      // no possibility of landing on the wrong row or creating a duplicate from a text mismatch.
-      if(rpTargetId!=null){
-        const idx=prev.findIndex(i=>i.id===rpTargetId);
-        if(idx<0) return prev; // item was removed from another tab/session — nothing safe to update
-        const wasAlreadyBulk=!!prev[idx].isBulkProtein;
-        const prevHist=prev[idx].portionPriceHistory||[];
-        const newHist=costPerPortion!==null?[...prevHist,{costPerPortion,totalPrice:price,lbs:parseFloat(rpPLbs),portions,date:today}]:prevHist;
-        return prev.map((i,ii)=>ii===idx?{
-          ...i,
-          name:pName,
-          // Adding a fresh batch on top of existing portions; converting a raw item replaces its
-          // lb-based qty with the portion count it was just divided into.
-          qty:wasAlreadyBulk?i.qty+portions:portions,
-          unit:"portions",
-          isBulkProtein:true,
-          portionOz:rpPOz,
-          portionPriceHistory:newHist,
-          avgCostPerPortion:avgOf(newHist)||i.avgCostPerPortion||null,
-          lastCostPerPortion:costPerPortion||i.lastCostPerPortion||null,
-        }:i);
-      }
-      // Global Repackage button — no specific item selected, fall back to name matching as before.
       const idx=prev.findIndex(i=>i.name.toLowerCase()===pName.toLowerCase());
+      const today=new Date().toISOString();
       if(idx>=0){
         const prevHist=prev[idx].portionPriceHistory||[];
         const newHist=costPerPortion!==null?[...prevHist,{costPerPortion,totalPrice:price,lbs:parseFloat(rpPLbs),portions,date:today}]:prevHist;
@@ -2080,7 +2025,7 @@ Respond ONLY with valid JSON, no markdown: {"name":"cut name","weightLbs":number
     setLoading(true); setLoadMsg("Reading receipt…");
     try{
       const raw=await callClaude({
-        system:"You are a grocery receipt parser specialized in Meijer store receipts. Analyze this receipt image and extract every food/grocery item purchased. Return ONLY a valid JSON array. No markdown, no preamble.\n\nRULES:\n1. DUPLICATE HANDLING: Combine two lines into one object with summed qty ONLY if they have the SAME item/SKU code, or if neither line has a visible item code AND both the name and price are identical. If two lines have DIFFERENT item/SKU codes, ALWAYS keep them as separate objects — even if the printed name is the exact same word (e.g. two lines both printed as 'VINEGAR' with different item codes, like 4125094760 and 4125094763, are different products; keep them separate, do not sum their quantities or prices, flag confidence as medium). If an item has quantity printed (e.g. '2 @ $1.99'), use that quantity.\n2. UNIT RULES: Bananas/grapes→bunch. Milk→gallon. Eggs→dozen. Bread→loaf. Meat/fish by weight→lb. Ice cream/frozen novelty→container. Produce bags (onions/potatoes)→bag. Canned goods→can. Bottles→bottle. Multi-packs→count. Default→each.\n3. LOCATION RULES (MUST follow exactly): Protein/Meat/Seafood/Poultry/Pork/Beef/Fish/Ice cream/Frozen→Freezer. Dairy/Eggs/Deli/Juice/Condiments/Dressings→Fridge. Fresh produce (bananas/apples/oranges/tomatoes/peppers)→Fridge. Bagged produce (onions/potatoes/carrots)→Pantry. Canned/Dry/Spices/Grains/Baking/Snacks/Beverages→Pantry.\n4. RECEIPT SPECIFICS: Ignore discount lines (SAVE, MPERKS, COUPON, MFR), tax lines, subtotals and totals. Clean brand names (MEIJER ORG→Organic [Item], WB→Wright Brand). Works with any retailer. Capture the store's own item/SKU number printed to the left of each item name (typically 10-11 digits, e.g. '4125094760') in the itemCode field — this is a store-internal code, NOT a real product UPC, and won't be used for barcode lookups. It exists to distinguish two lines that print the exact same generic name but are actually different products (e.g. two lines both just say 'VINEGAR' with different item codes because they're different bottles). Set itemCode to null if no such number is visible.\n5. UPC CODES: If a genuine 12-digit UPC barcode number is visible next to an item (separate from the store's own item/SKU number), capture it in the upc field. Set upc to null if not visible.\n6. CONFIDENCE: high=clearly readable name+price. medium=similar items or slightly unclear. low=guessed from partial text.\n\nEach object: {name, qty(number), unit, category(Protein|Produce|Dairy|Pantry|Baking|Grains|Spices|Frozen|Condiments|Other), location(Freezer|Fridge|Pantry), isProtein(boolean), price(string), upc(string|null), itemCode(string|null), confidence(high|medium|low), expiryDays(number|null, estimated days until expiry: fresh meat=2, ground beef=2, pork=3, chicken=2, fish=1, milk=7, eggs=21, cheese=14, yogurt=10, fresh produce=5, bananas=5, bread=5, deli meat=5, frozen=180, canned=730, dry goods=365, condiments=180, null for pantry staples with very long shelf life)}. Skip non-food items.",
+        system:"You are a grocery receipt parser specialized in Meijer store receipts. Analyze this receipt image and extract every food/grocery item purchased. Return ONLY a valid JSON array. No markdown, no preamble.\n\nRULES:\n1. DUPLICATE HANDLING: If the EXACT same product appears multiple times (same name, same price), combine into one object with summed qty. However if similar items appear with DIFFERENT SKUs or flavors (e.g. two different ice cream flavors), keep them SEPARATE but flag confidence as medium. If an item has quantity printed (e.g. '2 @ $1.99'), use that quantity.\n2. UNIT RULES: Bananas/grapes→bunch. Milk→gallon. Eggs→dozen. Bread→loaf. Meat/fish by weight→lb. Ice cream/frozen novelty→container. Produce bags (onions/potatoes)→bag. Canned goods→can. Bottles→bottle. Multi-packs→count. Default→each.\n3. LOCATION RULES (MUST follow exactly): Protein/Meat/Seafood/Poultry/Pork/Beef/Fish/Ice cream/Frozen→Freezer. Dairy/Eggs/Deli/Juice/Condiments/Dressings→Fridge. Fresh produce (bananas/apples/oranges/tomatoes/peppers)→Fridge. Bagged produce (onions/potatoes/carrots)→Pantry. Canned/Dry/Spices/Grains/Baking/Snacks/Beverages→Pantry.\n4. RECEIPT SPECIFICS: Ignore PLU numbers, discount lines (SAVE, MPERKS, COUPON, MFR), tax lines, subtotals and totals. Clean brand names (MEIJER ORG→Organic [Item], WB→Wright Brand). Works with any retailer.\n5. UPC CODES: If a 12-digit UPC barcode number is visible next to an item, capture it in the upc field. Set upc to null if not visible.\n6. CONFIDENCE: high=clearly readable name+price. medium=similar items or slightly unclear. low=guessed from partial text.\n\nEach object: {name, qty(number), unit, category(Protein|Produce|Dairy|Pantry|Baking|Grains|Spices|Frozen|Condiments|Other), location(Freezer|Fridge|Pantry), isProtein(boolean), price(string), upc(string|null), confidence(high|medium|low), expiryDays(number|null, estimated days until expiry: fresh meat=2, ground beef=2, pork=3, chicken=2, fish=1, milk=7, eggs=21, cheese=14, yogurt=10, fresh produce=5, bananas=5, bread=5, deli meat=5, frozen=180, canned=730, dry goods=365, condiments=180, null for pantry staples with very long shelf life)}. Skip non-food items.",
         prompt:"Parse this grocery receipt. Extract every food item purchased with quantity and category.",
         imageBase64:scanB64,imageType:scanMime,
       });
@@ -2170,42 +2115,30 @@ Respond ONLY with valid JSON, no markdown: {"name":"cut name","weightLbs":number
     const avgOf=(hist)=>hist.length?+(hist.reduce((s,h)=>s+h.price,0)/hist.length).toFixed(2):null;
     setInventory(prev=>{
       const u=[...prev];
-      const preExistingCount=u.length; // anything at/after this index was pushed by this same commit batch
       chosen.forEach(si=>{
         si={...si,name:(si.name||"").trim()};
         if(!si.name) return; // skip anything that scanned/edited down to a blank name
+        // Exact match first (fast path); fall back to shared-significant-word match so
+        // "Quaker Grits" and "Quaker Quick Grits" from two different scans of the same can
+        // land as one item instead of silently duplicating.
+        let idx=u.findIndex(i=>(i.name||"").trim().toLowerCase()===si.name.toLowerCase());
+        if(idx<0){
+          const siWords=significantWords(si.name).filter(w=>w.length>=4);
+          idx=u.findIndex(i=>{
+            const iWords=significantWords(i.name).filter(w=>w.length>=4);
+            return siWords.length&&iWords.length&&siWords.some(w=>iWords.includes(w));
+          });
+        }
         const paid=parsePrice(si.price);
-        // Match against existing inventory by product, not just a loosely shared word —
-        // see sameProduct() for why (Heinz vs Meijer ketchup, Peach vs Strawberry fruit
-        // bars, etc. must stay as separate items even though they share generic words).
-        let idx=u.findIndex((i,ii)=>{
-          if(!sameProduct(si.name,i.name,si.brand,i.brand)) return false;
-          // A store item/SKU code is the clearest possible signal two same-named lines
-          // are different products — e.g. Meijer prints both bottles as "VINEGAR" but
-          // with different internal codes (4125094760 vs 4125094763). If both sides have
-          // one and they differ, that settles it regardless of price.
-          if(si.itemCode&&u[ii].itemCode&&si.itemCode!==u[ii].itemCode) return false;
-          // Two lines from the SAME receipt sharing a generic, brand-less name (e.g. a
-          // register printout that just says "VINEGAR" for two different bottles) but a
-          // meaningfully different price are almost certainly different products, not a
-          // duplicate scan of the same one. Only applies to siblings just added by this
-          // commit — matching against older inventory still merges fine even if the
-          // price moved since last time, since that's normal price drift over time.
-          if(ii>=preExistingCount){
-            const otherPaid=parsePrice(u[ii].price);
-            if(paid&&otherPaid&&Math.abs(paid-otherPaid)>0.05) return false;
-          }
-          return true;
-        });
         const today=new Date().toISOString();
         if(idx>=0){
           const prevHist=u[idx].priceHistory||[];
           const newHist=paid?[...prevHist,{price:paid,date:today}]:prevHist;
-          u[idx]={...u[idx],qty:u[idx].qty+si.qty,unit:si.unit,location:si.location,upc:si.upc||u[idx].upc||null,itemCode:si.itemCode||u[idx].itemCode||null,brand:si.brand||u[idx].brand||null,size:si.size||u[idx].size||null,nutrition:Object.keys(si.nutrition||{}).length?si.nutrition:u[idx].nutrition||{},image_url:si.image_url||u[idx].image_url||null,upc_enriched:si.upc_enriched||u[idx].upc_enriched||false,priceHistory:newHist,avgUnitPrice:avgOf(newHist)||u[idx].avgUnitPrice||null,purchaseCount:newHist.length,lastPrice:paid||u[idx].lastPrice||null};
+          u[idx]={...u[idx],qty:si.qty,unit:si.unit,location:si.location,upc:si.upc||u[idx].upc||null,brand:si.brand||u[idx].brand||null,size:si.size||u[idx].size||null,nutrition:Object.keys(si.nutrition||{}).length?si.nutrition:u[idx].nutrition||{},image_url:si.image_url||u[idx].image_url||null,upc_enriched:si.upc_enriched||u[idx].upc_enriched||false,priceHistory:newHist,avgUnitPrice:avgOf(newHist)||u[idx].avgUnitPrice||null,purchaseCount:newHist.length,lastPrice:paid||u[idx].lastPrice||null};
         }
         else{
           const hist=paid?[{price:paid,date:today}]:[];
-          u.push({id:Date.now()+Math.random(),name:si.brand&&si.size?`${si.brand} ${si.name} ${si.size}`.trim():si.name,qty:si.qty,unit:si.unit,category:si.category,location:si.location,isProtein:!!si.isProtein,price:si.price||null,priceHistory:hist,avgUnitPrice:avgOf(hist),purchaseCount:hist.length,lastPrice:paid,expiryDays:si.expiryDays||null,upc:si.upc||null,itemCode:si.itemCode||null,brand:si.brand||null,size:si.size||null,nutrition:si.nutrition||{},image_url:si.image_url||null,upc_enriched:!!si.upc_enriched});
+          u.push({id:Date.now()+Math.random(),name:si.brand&&si.size?`${si.brand} ${si.name} ${si.size}`.trim():si.name,qty:si.qty,unit:si.unit,category:si.category,location:si.location,isProtein:!!si.isProtein,price:si.price||null,priceHistory:hist,avgUnitPrice:avgOf(hist),purchaseCount:hist.length,lastPrice:paid,expiryDays:si.expiryDays||null,upc:si.upc||null,brand:si.brand||null,size:si.size||null,nutrition:si.nutrition||{},image_url:si.image_url||null,upc_enriched:!!si.upc_enriched});
         }
       });
       return u;
@@ -2385,16 +2318,15 @@ Respond ONLY with valid JSON, no markdown: {"name":"cut name","weightLbs":number
     const unitByte=bytes[14];
     let displayVal, unit, grams;
     if(unitByte===0x00){
-      // lb: raw/1000 (confirmed) — was previously swapped with oz below, causing lb-mode
-      // weights to be over/under-reported (e.g. a true 2.8lb item showing as 4.48lb)
-      displayVal=rawVal/1000;
-      unit="lb";
-      grams=displayVal*453.592;
-    } else if(unitByte===0x01){
       // oz: raw/100 (confirmed)
       displayVal=rawVal/100;
       unit="oz";
       grams=displayVal*28.3495;
+    } else if(unitByte===0x01){
+      // lb: raw/1000 (confirmed)
+      displayVal=rawVal/1000;
+      unit="lb";
+      grams=displayVal*453.592;
     } else if(unitByte===0x03){
       // ml: raw/10 (1ml water = 1g)
       displayVal=rawVal/10;
@@ -2590,6 +2522,9 @@ Respond ONLY with valid JSON, no markdown: {"name":"cut name","weightLbs":number
         fiber_g:entry.fiber_g||null,
         sodium_mg:entry.sodium_mg||null,
         ww_points:entry.wwPoints||null,
+        systolic_mmhg:entry.systolic_mmhg||null,
+        diastolic_mmhg:entry.diastolic_mmhg||null,
+        pulse_bpm:entry.pulse_bpm||null,
         source:entry.source||"scale",
         session_id:entry.sessionId||null,
         logged_at:entry.loggedAt||new Date().toISOString(),
@@ -3192,24 +3127,6 @@ Respond ONLY with valid JSON, no markdown: {"name":"cut name","weightLbs":number
     const wa=significantWords(a),wb=significantWords(b);
     if(!wa.length||!wb.length) return false;
     return wa.some(w=>wb.includes(w));
-  };
-  // Stricter check used specifically for receipt-to-inventory matching: a single shared
-  // generic word (e.g. "Ketchup", "Bars") used to be enough to merge two genuinely
-  // different products — Heinz and Meijer ketchup, or Peach and Strawberry fruit bars,
-  // would silently collapse into one inventory entry. Now: brands that are both known
-  // and differ never merge, and everything else needs most of its significant words to
-  // overlap, not just one.
-  const sameProduct=(nameA,nameB,brandA,brandB)=>{
-    const a=(nameA||"").trim().toLowerCase(), b=(nameB||"").trim().toLowerCase();
-    if(!a||!b) return false;
-    if(a===b) return true;
-    if(brandA&&brandB&&brandA.toLowerCase()!==brandB.toLowerCase()) return false;
-    const wa=significantWords(nameA).filter(w=>w.length>=4);
-    const wb=significantWords(nameB).filter(w=>w.length>=4);
-    if(!wa.length||!wb.length) return false;
-    const shared=wa.filter(w=>wb.includes(w)).length;
-    const smaller=Math.min(wa.length,wb.length);
-    return (shared/smaller)>=0.75;
   };
   const liveMissing=(list)=>{
     if(!Array.isArray(list)) return [];
@@ -3908,14 +3825,10 @@ Respond ONLY with valid JSON, no markdown: {"name":"cut name","weightLbs":number
                 return(
                   <div key={item.id} style={{background:C.card,border:"1px solid "+item.isLow?C.red:C.border,borderRadius:12,padding:13,display:"flex",flexDirection:"column",gap:8}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                      <div style={{display:"flex",gap:8,alignItems:"flex-start",cursor:"pointer"}} onClick={()=>setDetailItem(item)}>
-                        {item.image_url&&<img src={item.image_url} alt="" style={{width:36,height:36,borderRadius:6,objectFit:"cover",flexShrink:0,border:"1px solid "+C.border}} onError={e=>{e.target.style.display="none";}}/>}
-                        <div>
-                          <div style={{fontWeight:600,fontSize:seniorMode?22:13,lineHeight:1.4}}>{item.name}</div>
-                          {(item.brand||item.size)&&<div style={{fontSize:seniorMode?14:10,color:C.muted,marginTop:1}}>{[item.brand,item.size].filter(Boolean).join(" · ")}</div>}
-                          {item.blendNote&&<div style={{fontSize:10,color:C.muted,marginTop:1}}>{item.blendNote}</div>}
-                          {item.isLow&&<div style={bTag(C.red)}>⚠ Low</div>}
-                        </div>
+                      <div>
+                        <div style={{fontWeight:600,fontSize:seniorMode?22:13,lineHeight:1.4}}>{item.name}</div>
+                        {item.blendNote&&<div style={{fontSize:10,color:C.muted,marginTop:1}}>{item.blendNote}</div>}
+                        {item.isLow&&<div style={bTag(C.red)}>⚠ Low</div>}
                       </div>
                       <button onClick={()=>setInventory(p=>p.filter(i=>i.id!==item.id))} style={{background:"transparent",border:"none",color:C.dim,cursor:"pointer",fontSize:14,padding:2}}>✕</button>
                     </div>
@@ -3937,8 +3850,7 @@ Respond ONLY with valid JSON, no markdown: {"name":"cut name","weightLbs":number
                       <button onClick={()=>setInventory(p=>p.map(i=>i.id===item.id?{...i,qty:i.qty+1}:i))} style={{width:seniorMode?52:24,height:seniorMode?52:24,borderRadius:8,background:C.surface,border:"2px solid "+C.border,color:C.text,cursor:"pointer",fontSize:seniorMode?26:14,display:"flex",alignItems:"center",justifyContent:"center"}}>+</button>
                       {item.qty===0&&<span style={bTag(C.red)}>OUT</span>}
                     </div>
-                    {(isBP||isDV)&&<button onClick={()=>isBP?openRepackFromItem(item):openRepack("veg")} style={{...bBtn("ghost"),padding:"4px 8px",fontSize:10,width:"100%"}}>{isBP?"🥩 Add Batch":"🫕 Prep More"}</button>}
-                    {!isBP&&!isDV&&item.category==="Protein"&&!item.harvestType&&<button onClick={()=>openRepackFromItem(item)} style={{...bBtn("ghost"),padding:"4px 8px",fontSize:10,width:"100%",border:"1px solid "+C.orange,color:C.orange}}>🔪 Repackage</button>}
+                    {(isBP||isDV)&&<button onClick={()=>openRepack(isBP?"protein":"veg")} style={{...bBtn("ghost"),padding:"4px 8px",fontSize:10,width:"100%"}}>{isBP?"🥩 Add Batch":"🫕 Prep More"}</button>}
                     <button onClick={()=>setRestockQueue(q=>{const n=item.name;const has=q.includes(n);const next=has?q.filter(x=>x!==n):[...q,n];localStorage.setItem("sk_restockQueue",JSON.stringify(next));return next;})} style={{...bBtn("ghost"),padding:"4px 8px",fontSize:10,width:"100%",marginTop:4,border:"1px solid "+(restockQueue.includes(item.name)?C.accent:C.border),color:restockQueue.includes(item.name)?C.accent:C.muted}}>{restockQueue.includes(item.name)?"Queued":"+ Restock"}</button>
                   </div>
                 );
@@ -4735,73 +4647,6 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
       )}
 
       {/* == REPACKAGE MODAL == */}
-      {detailItem&&(()=>{
-        const di=detailItem;
-        const nutritionEntries=di.nutrition&&typeof di.nutrition==="object"?Object.entries(di.nutrition).filter(([,v])=>v!=null&&v!==""):[];
-        const hasIngredients=di.ingredients&&String(di.ingredients).trim();
-        const hasPriceInfo=di.isBulkProtein?di.avgCostPerPortion:di.avgUnitPrice;
-        const prettyLabel=(k)=>String(k).replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase());
-        return(
-          <div style={{position:"fixed",inset:0,background:"#000d",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:16}} onClick={()=>setDetailItem(null)}>
-            <div style={{background:C.surface,border:"1px solid "+C.borderLight,borderRadius:18,padding:22,maxWidth:480,width:"100%",maxHeight:"90vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
-                <div style={{display:"flex",gap:12,alignItems:"flex-start"}}>
-                  {di.image_url&&<img src={di.image_url} alt="" style={{width:64,height:64,borderRadius:10,objectFit:"cover",border:"1px solid "+C.border}} onError={e=>{e.target.style.display="none";}}/>}
-                  <div>
-                    <div style={{fontFamily:FD,fontSize:20,color:C.accent,lineHeight:1.3}}>{di.name}</div>
-                    {(di.brand||di.size)&&<div style={{fontSize:13,color:C.muted,marginTop:2}}>{[di.brand,di.size].filter(Boolean).join(" · ")}</div>}
-                  </div>
-                </div>
-                <button onClick={()=>setDetailItem(null)} style={{background:"transparent",border:"none",color:C.muted,cursor:"pointer",fontSize:20}}>✕</button>
-              </div>
-
-              <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:16}}>
-                <span style={bTag(CAT_COLORS[di.category]||C.muted)}>{di.category}</span>
-                <span style={bTag(LOC_COLORS[di.location]||C.muted)}>{LOC_ICONS[di.location]} {di.location}</span>
-                <span style={bTag(C.border)}>{di.qty} {di.unit}</span>
-                {di.isBulkProtein&&<span style={bTag(C.red)}>{di.portionOz}oz portions</span>}
-              </div>
-
-              {hasPriceInfo&&(
-                <div style={{background:C.card,borderRadius:10,padding:"10px 14px",marginBottom:16,fontSize:13}}>
-                  {di.isBulkProtein?(
-                    <div>Avg cost per portion: <b>${di.avgCostPerPortion.toFixed(2)}</b> {di.portionPriceHistory?.length>1&&<span style={{color:C.muted}}>(from {di.portionPriceHistory.length} batches)</span>}</div>
-                  ):(
-                    <div>Avg price: <b>${di.avgUnitPrice.toFixed(2)}</b> {di.purchaseCount>1&&<span style={{color:C.muted}}>(from {di.purchaseCount} purchases)</span>}</div>
-                  )}
-                </div>
-              )}
-
-              {nutritionEntries.length>0&&(
-                <div style={{marginBottom:16}}>
-                  <div style={{fontSize:12,fontWeight:600,color:C.muted,textTransform:"uppercase",letterSpacing:0.5,marginBottom:6}}>Nutrition</div>
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
-                    {nutritionEntries.map(([k,v])=>(
-                      <div key={k} style={{fontSize:12,background:C.card,borderRadius:6,padding:"6px 10px"}}>
-                        <span style={{color:C.muted}}>{prettyLabel(k)}:</span> <b>{String(v)}</b>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {hasIngredients&&(
-                <div style={{marginBottom:8}}>
-                  <div style={{fontSize:12,fontWeight:600,color:C.muted,textTransform:"uppercase",letterSpacing:0.5,marginBottom:6}}>Ingredients</div>
-                  <div style={{fontSize:12,color:C.text,lineHeight:1.5}}>{di.ingredients}</div>
-                </div>
-              )}
-
-              {!di.image_url&&!nutritionEntries.length&&!hasIngredients&&(
-                <div style={{fontSize:12,color:C.muted,fontStyle:"italic"}}>No additional product details available for this item yet — it may not have a UPC on file, or the barcode lookup didn't return extra data.</div>
-              )}
-
-              <button onClick={()=>setDetailItem(null)} style={{...bBtn("ghost"),width:"100%",marginTop:16}}>Close</button>
-            </div>
-          </div>
-        );
-      })()}
-
       {rpOpen&&(
         <div style={{position:"fixed",inset:0,background:"#000d",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:16}} onClick={()=>setRpOpen(false)}>
           <div style={{background:C.surface,border:"1px solid "+C.borderLight,borderRadius:18,padding:22,maxWidth:560,width:"100%",maxHeight:"90vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
@@ -4816,18 +4661,6 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
             </div>
             {rpMode==="protein"&&(
               <div>
-                <div style={{marginBottom:12}}>
-                  <input id="rpScanInput" type="file" accept="image/*" capture="environment" style={{display:"none"}}
-                    onChange={e=>{const f=e.target.files?.[0];if(f)scanRepackageItem(f);e.target.value="";}}/>
-                  <button disabled={rpScanLoading} onClick={()=>document.getElementById("rpScanInput").click()}
-                    style={{...bBtn(rpScanLoading?"ghost":"primary"),width:"100%",fontSize:12,cursor:rpScanLoading?"not-allowed":"pointer"}}>
-                    {rpScanLoading?"🔍 Analyzing photo...":"📷 Scan Item — label or bare cut, receipt not needed"}
-                  </button>
-                  {rpScanError&&<div style={{marginTop:6,fontSize:11,color:C.red}}>{rpScanError}</div>}
-                  {rpScanConfidence&&rpScanConfidence!=="high"&&!rpScanError&&(
-                    <div style={{marginTop:6,fontSize:11,color:C.orange}}>⚠️ Estimated from the photo — double-check weight and price below before saving.</div>
-                  )}
-                </div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
                   <div>
                     <Label>PROTEIN NAME</Label>
@@ -4839,35 +4672,10 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                       </div>
                     );})()}
                   </div>
-                  <div>
-                    <Label>WEIGHT (lbs)</Label>
-                    <input style={bInp} type="number" placeholder="5" value={rpPLbs} onChange={e=>{setRpPLbs(e.target.value);setRpPPreview(null);}}/>
-                    <div style={{marginTop:6}}>
-                      {!scaleDevice&&(
-                        <button disabled={scaleConnecting} onClick={connectScale}
-                          style={{...bBtn("ghost"),width:"100%",fontSize:11,padding:"6px 10px",border:"1px solid #3b82f6",color:"#3b82f6",cursor:scaleConnecting?"not-allowed":"pointer"}}>
-                          {scaleConnecting?"⏳ Connecting...":"⚖ Weigh on Bluetooth Scale"}
-                        </button>
-                      )}
-                      {scaleDevice&&(
-                        <div style={{background:"#3b82f611",border:"1px solid #3b82f644",borderRadius:8,padding:"8px 10px"}}>
-                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-                            <span style={{fontFamily:FM,fontSize:11,color:"#3b82f6"}}>Live: {(scaleWeightGrams/453.592).toFixed(2)} lb</span>
-                            <button onClick={()=>{if(scaleDevice?._writeChr){scaleDevice._writeChr.writeValue(new Uint8Array([0x52])).catch(()=>{});}setScaleWeight(0);setScaleWeightGrams(0);}}
-                              style={{...bBtn("ghost"),padding:"3px 8px",fontSize:10,border:"1px solid #3b82f6",color:"#3b82f6"}}>Tare</button>
-                          </div>
-                          <button onClick={()=>{setRpPLbs((scaleWeightGrams/453.592).toFixed(2));setRpPPreview(null);}}
-                            style={{...bBtn("primary"),width:"100%",fontSize:11,padding:"6px 10px",background:"#3b82f6",color:"#fff"}}>
-                            Use This Weight
-                          </button>
-                        </div>
-                      )}
-                      {scaleError&&<div style={{marginTop:4,fontSize:10,color:C.red}}>{scaleError}</div>}
-                    </div>
-                  </div>
+                  <div><Label>WEIGHT (lbs)</Label><input style={bInp} type="number" placeholder="5" value={rpPLbs} onChange={e=>{setRpPLbs(e.target.value);setRpPPreview(null);}}/></div>
                   <div>
                     <Label>OZ PER PORTION</Label>
-                    <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:6}}>
+                    <div style={{display:"flex",gap:6}}>
                       {[4,5,6,7,8].map(oz=>(
                         <button key={oz} onClick={()=>{setRpPOz(oz);setRpPPreview(null);}}
                           style={{...bBtn("ghost"),padding:"6px 10px",fontSize:12,background:rpPOz===oz?C.orange+"22":"transparent",color:rpPOz===oz?C.orange:C.muted,border:"1px solid "+(rpPOz===oz?C.orange:C.border)}}>
@@ -4875,10 +4683,6 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                         </button>
                       ))}
                     </div>
-                    <input style={{...bInp,width:"100%"}} type="number" min="1" placeholder="Custom (e.g. 16 for a roast, 12 for chops)"
-                      value={[4,5,6,7,8].includes(rpPOz)?"":rpPOz}
-                      onChange={e=>{const v=parseFloat(e.target.value);setRpPOz(v>0?v:"");setRpPPreview(null);}}/>
-                    <div style={{fontSize:10,color:C.muted,marginTop:3,fontFamily:FM}}>Not every cut fits a small dinner portion — enter any size for roasts, chops, or larger servings.</div>
                   </div>
                   <div style={{gridColumn:"1 / -1"}}>
                     <Label>PURCHASE PRICE ($) — optional</Label>
@@ -4900,7 +4704,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                 )}
                 <div style={{display:"flex",gap:8}}>
                   <button style={{...bBtn("ghost"),flex:1}} onClick={()=>setRpOpen(false)}>Cancel</button>
-                  <button style={{...bBtn("orange"),flex:2,opacity:(rpPName&&rpPLbs&&rpPOz)?1:0.4}} onClick={commitProtein}>🥩 Add {rpPPreview?rpPPreview.portions+" Portions":"to Inventory"}</button>
+                  <button style={{...bBtn("orange"),flex:2,opacity:(rpPName&&rpPLbs)?1:0.4}} onClick={commitProtein}>🥩 Add {rpPPreview?rpPPreview.portions+" Portions":"to Inventory"}</button>
                 </div>
               </div>
             )}
