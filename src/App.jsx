@@ -3094,7 +3094,11 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       });
       const s=raw.indexOf("["),e=raw.lastIndexOf("]");
       if(s===-1||e===-1) throw new Error("No list returned");
-      setShopping(JSON.parse(raw.slice(s,e+1)));
+      const newItems=JSON.parse(raw.slice(s,e+1));
+      setShopping(prev=>{
+        const added=newItems.filter(ni=>!prev.some(pi=>(pi.name||"").toLowerCase()===(ni.name||"").toLowerCase()));
+        return [...prev,...added.map(ni=>({...ni,source:ni.source||"Meal Plan"}))];
+      });
       setTab("shopping");
     } catch(err){ alert("Could not generate shopping list: "+err.message); }
     setLoading(false);
