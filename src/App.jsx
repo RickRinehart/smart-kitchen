@@ -638,7 +638,7 @@ function NutritionDashboard({familyProfiles,user,supabase,seniorMode,C,FM,FD,ref
   const [todayLog,setTodayLog]=React.useState([]);
   const [weekLog,setWeekLog]=React.useState([]);
   const [loading,setLoading]=React.useState(true);
-  const [expanded,setExpanded]=React.useState(true);
+  const [expanded,setExpanded]=React.useState(false);
   const [showWeekly,setShowWeekly]=React.useState(false);
   const [narrative,setNarrative]=React.useState("");
   const [narrativeLoading,setNarrativeLoading]=React.useState(false);
