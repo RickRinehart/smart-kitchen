@@ -1046,7 +1046,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [recipeError,setRecipeError]=useState("");
   const [mealPlan,setMealPlan]=useState(()=>loadLocal("sk_mealPlan",[]));
   const [sportsNights,setSportsNights]=useState(()=>loadLocal('sk_sportsNights',[]));
-  const [shopping,setShopping]=useState([]);
+  const [shopping,setShopping]=useState(()=>loadLocal("sk_shoppingList",[]));
   const [restockQueue,setRestockQueue]=useState(()=>{try{return JSON.parse(localStorage.getItem("sk_restockQueue")||"[]")}catch{return []}});
   const [shopPartnerName,setShopPartnerName]=useState(()=>localStorage.getItem("sk_shopPartnerName")||"");
   const [shopPartnerEmail,setShopPartnerEmail]=useState(()=>localStorage.getItem("sk_shopPartnerEmail")||"");
@@ -1330,6 +1330,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
       },10000);
     }
   },[mealPlan]);
+  useEffect(()=>{try{localStorage.setItem("sk_shoppingList",JSON.stringify(shopping));}catch{}},[shopping]);
   useEffect(()=>{try{localStorage.setItem("sk_saleItems",JSON.stringify(saleItems));}catch{}},[saleItems]);
   useEffect(()=>{try{localStorage.setItem("sk_familySize",JSON.stringify(familySize));}catch{}},[familySize]);
   useEffect(()=>{try{localStorage.setItem("sk_familyProfiles",JSON.stringify(familyProfiles));}catch{}},[familyProfiles]);
