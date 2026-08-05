@@ -1681,10 +1681,10 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const addChatMsg=(role,text)=>setChatMessages(prev=>[...prev,{role,text,id:Date.now()}]);
   const escalateToSupport=(userMsg,tag)=>{
     const profile=familySummary();
-    fetch("/api/send-escalation-email",{
+    fetch("/api/send-shopping-list",{
       method:"POST",
       headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({userName,tier,tag,userMsg,profile})
+      body:JSON.stringify({action:"escalation",userName,tier,tag,userMsg,profile})
     }).then(r=>r.json()).then(d=>{
       if(!d.success){
         console.error("Escalation email failed:",d.error);
