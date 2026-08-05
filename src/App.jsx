@@ -1658,9 +1658,23 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const addChatMsg=(role,text)=>setChatMessages(prev=>[...prev,{role,text,id:Date.now()}]);
   const escalateToSupport=(userMsg,tag)=>{
     const profile=familySummary();
-    const subject=`Smart Kitchen ${tag} — ${userName} (${tier})`;
-    const body=`User: ${userName}%0ATier: ${tier}%0ATag: ${tag}%0A%0AMessage:%0A"${userMsg}"%0A%0AProfile:%0A${profile}`;
-    window.open(`mailto:thesmartkitchenapp@gmail.com?subject=${encodeURIComponent(subject)}&body=${body}`);
+    fetch("/api/send-escalation-email",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({userName,tier,tag,userMsg,profile})
+    }).then(r=>r.json()).then(d=>{
+      if(!d.success){
+        console.error("Escalation email failed:",d.error);
+        const subject=`Smart Kitchen ${tag} — ${userName} (${tier})`;
+        const body=`User: ${userName}%0ATier: ${tier}%0ATag: ${tag}%0A%0AMessage:%0A"${userMsg}"%0A%0AProfile:%0A${profile}`;
+        window.open(`mailto:thesmartkitchenapp@gmail.com?subject=${encodeURIComponent(subject)}&body=${body}`);
+      }
+    }).catch(e=>{
+      console.error("Escalation email error:",e.message);
+      const subject=`Smart Kitchen ${tag} — ${userName} (${tier})`;
+      const body=`User: ${userName}%0ATier: ${tier}%0ATag: ${tag}%0A%0AMessage:%0A"${userMsg}"%0A%0AProfile:%0A${profile}`;
+      window.open(`mailto:thesmartkitchenapp@gmail.com?subject=${encodeURIComponent(subject)}&body=${body}`);
+    });
   };
   const detectEscalation=(msg)=>{
     const m=msg.toLowerCase();
