@@ -1082,6 +1082,8 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const showAlert=(msg)=>setAppAlert(String(msg));
   const [appConfirm,setAppConfirm]=useState(null);
   const showConfirm=(message,onConfirm)=>setAppConfirm({message,onConfirm});
+  const [appPrompt,setAppPrompt]=useState(null);
+  const showPrompt=(message,defaultValue,onConfirm)=>setAppPrompt({message,value:defaultValue!=null?String(defaultValue):"",onConfirm});
   const [saleItemsSavedCue,setSaleItemsSavedCue]=useState(null);
   const [smsSent,setSmsSent]=useState(false);
   const [showSmsHelp,setShowSmsHelp]=useState(false);
@@ -5079,6 +5081,19 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
           </div>
         </div>
       )}
+      {/* == APP PROMPT (replaces native window.prompt()) == */}
+      {appPrompt&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:3000,padding:16}} onClick={()=>setAppPrompt(null)}>
+          <div style={{background:C.card,border:"1px solid "+C.border,borderRadius:16,padding:26,maxWidth:380,width:"100%",textAlign:"center"}} onClick={e=>e.stopPropagation()}>
+            <div style={{fontSize:seniorMode?17:13,color:C.text,lineHeight:1.6,marginBottom:14,whiteSpace:"pre-wrap"}}>{appPrompt.message}</div>
+            <input type="number" autoFocus value={appPrompt.value} onChange={e=>setAppPrompt(prev=>({...prev,value:e.target.value}))} onKeyDown={e=>{if(e.key==="Enter"){const fn=appPrompt.onConfirm;const val=appPrompt.value;setAppPrompt(null);if(fn)fn(val);}}} style={{width:"100%",padding:"10px 12px",borderRadius:8,border:"1px solid "+C.border,background:C.surface,color:C.text,fontFamily:FM,fontSize:16,textAlign:"center",boxSizing:"border-box",marginBottom:18}}/>
+            <div style={{display:"flex",gap:8}}>
+              <button style={{...bBtn("ghost"),flex:1}} onClick={()=>setAppPrompt(null)}>Cancel</button>
+              <button style={{...bBtn("primary"),flex:1}} onClick={()=>{const fn=appPrompt.onConfirm;const val=appPrompt.value;setAppPrompt(null);if(fn)fn(val);}}>OK</button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* == SALE ITEMS SAVED CUE == */}
       {saleItemsSavedCue&&(()=>{
         const toShopping=typeof saleItemsSavedCue==="object"&&saleItemsSavedCue.toShopping;
@@ -5881,7 +5896,7 @@ useDays is days from today the food is safe to eat (cooked food: 3-4 days typica
                         </>
                       ):(
                         <>
-                          <button style={{background:"#1a3a1a",border:"1px solid #4c4",borderRadius:6,color:"#4c4",cursor:"pointer",fontSize:seniorMode?15:10,padding:"3px 8px"}} onClick={()=>{const maxSrv=item.qty||1;const ans=window.prompt("How many servings did you use? ("+maxSrv+" available)",String(maxSrv));if(ans===null)return;const used=Math.max(1,Math.min(parseInt(ans)||1,maxSrv));const remaining=maxSrv-used;const log=JSON.parse(localStorage.getItem("sk_leftoverHistory")||"[]");log.push({dish:item.name,servings:used,consumedAs:"used",wasted:false,reason:null,ts:Date.now()});localStorage.setItem("sk_leftoverHistory",JSON.stringify(log));if(remaining>0){setInventory(prev=>prev.map(it=>it.id===item.id?{...it,qty:remaining,_askMealType:false}:it));}else{setInventory(prev=>prev.filter(it=>it.id!==item.id));}}}>Used</button>
+                          <button style={{background:"#1a3a1a",border:"1px solid #4c4",borderRadius:6,color:"#4c4",cursor:"pointer",fontSize:seniorMode?15:10,padding:"3px 8px"}} onClick={()=>{const maxSrv=item.qty||1;showPrompt("How many servings did you use? ("+maxSrv+" available)",maxSrv,(ans)=>{if(ans===null||ans===undefined||ans==="")return;const used=Math.max(1,Math.min(parseInt(ans)||1,maxSrv));const remaining=maxSrv-used;const log=JSON.parse(localStorage.getItem("sk_leftoverHistory")||"[]");log.push({dish:item.name,servings:used,consumedAs:"used",wasted:false,reason:null,ts:Date.now()});localStorage.setItem("sk_leftoverHistory",JSON.stringify(log));if(remaining>0){setInventory(prev=>prev.map(it=>it.id===item.id?{...it,qty:remaining,_askMealType:false}:it));}else{setInventory(prev=>prev.filter(it=>it.id!==item.id));}});}}>Used</button>
                           <button style={{background:"transparent",border:"1px solid "+C.border,borderRadius:6,color:C.muted,cursor:"pointer",fontSize:seniorMode?15:10,padding:seniorMode?"5px 14px":"3px 8px"}} onClick={()=>{
                             const log=JSON.parse(localStorage.getItem("sk_leftoverHistory")||"[]");
                             log.push({dish:item.name,servings:item.qty,consumedAs:null,wasted:true,reason:"discarded",ts:Date.now()});
