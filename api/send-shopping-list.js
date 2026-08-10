@@ -30,9 +30,9 @@ export default async function handler(req, res) {
     )).slice(0, 12);
 
     try {
-      // 1. Pull recent food recalls from openFDA (last 14 days, food-only endpoint)
-      const since = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10).replace(/-/g, '');
-      const fdaUrl = `https://api.fda.gov/food/enforcement.json?search=recall_initiation_date:[${since}+TO+99991231]&limit=100&sort=recall_initiation_date:desc`;
+      // 1. Pull recent food recalls from openFDA (60 days, matching the lookback window used for matching below)
+      const since = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10).replace(/-/g, '');
+      const fdaUrl = `https://api.fda.gov/food/enforcement.json?search=recall_initiation_date:[${since}+TO+99991231]&limit=200&sort=recall_initiation_date:desc`;
       const fdaRes = await fetch(fdaUrl);
       const fdaData = await fdaRes.json();
       const records = fdaData.results || [];
