@@ -1159,6 +1159,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [showInstallBanner,setShowInstallBanner]=useState(()=>{try{return localStorage.getItem("sk_installDismissed")!=="1";}catch{return true;}});
   // -- Food Recall Alerts State --------------------------------------------------
   const [recallAlerts,setRecallAlerts]=useState([]);
+  const [shoppingListRecallAlerts,setShoppingListRecallAlerts]=useState([]);
   const [recallSensitivity,setRecallSensitivity]=useState("broad");
   const [showRecallBanner,setShowRecallBanner]=useState(true);
   const [activeRecallDetail,setActiveRecallDetail]=useState(null);
@@ -2853,11 +2854,14 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       try{
         const {data,error}=await supabase
           .from("user_recall_alerts")
-          .select("id,recall_id,matched_item_name,severity,created_at,recalls(product_description,reason_for_recall,classification,recall_initiation_date)")
+          .select("id,recall_id,matched_item_name,severity,list_type,created_at,recalls(product_description,reason_for_recall,classification,recall_initiation_date)")
           .eq("user_id",user.id)
           .eq("read",false)
           .order("created_at",{ascending:false});
-        if(!error&&data) setRecallAlerts(data);
+        if(!error&&data){
+          setRecallAlerts(data.filter(a=>(a.list_type||"inventory")==="inventory"));
+          setShoppingListRecallAlerts(data.filter(a=>a.list_type==="shopping_list"));
+        }
       }catch{}
       try{
         const {data:ud}=await supabase.from("user_data").select("recall_match_sensitivity").eq("user_id",user.id).single();
@@ -2868,6 +2872,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
 
   const dismissRecallAlert=(alertId)=>{
     setRecallAlerts(prev=>prev.filter(a=>a.id!==alertId));
+    setShoppingListRecallAlerts(prev=>prev.filter(a=>a.id!==alertId));
     supabase.from("user_recall_alerts").update({read:true}).eq("id",alertId).then(()=>{}).catch(()=>{});
   };
 
@@ -4464,6 +4469,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                           style={{background:C.card,border:"1px solid "+C.border,borderRadius:10,padding:seniorMode?"16px 18px":"10px 14px",marginBottom:seniorMode?10:6,display:"flex",alignItems:"center",gap:12,cursor:"pointer",opacity:item.checked?0.45:1,transition:"opacity 0.2s"}}>
                           <div style={{width:seniorMode?28:18,height:seniorMode?28:18,borderRadius:4,border:"2px solid "+(item.checked?C.green:C.border),background:item.checked?C.green:"transparent",display:"flex",alignItems:"center",justifyContent:"center",fontSize:seniorMode?16:11,flexShrink:0}}>{item.checked&&"✓"}</div>
                           <div style={{flex:1,fontSize:seniorMode?18:13,fontWeight:seniorMode?600:400,lineHeight:1.4,textDecoration:item.checked?"line-through":"none"}}>{item.name}</div>
+                          {(()=>{const recallMatch=shoppingListRecallAlerts.find(a=>(a.matched_item_name||"").toLowerCase()===(item.name||"").toLowerCase());if(!recallMatch)return null;const isCritical=recallMatch.severity==="critical";return(<span onClick={e=>{e.stopPropagation();setActiveRecallDetail([recallMatch]);}} title="Possible FDA recall match — tap for details" style={{fontSize:11,fontWeight:700,padding:"3px 8px",borderRadius:20,background:isCritical?"#4a0e0e":"#3a2a0e",color:isCritical?"#fecaca":"#fde68a",border:"1px solid "+(isCritical?"#ef4444":"#d97706"),cursor:"pointer",flexShrink:0}}>{isCritical?"🚨":"⚠️"} recall?</span>);})()}
                           {item.suggestBulk&&<span style={bTag(C.orange)}>📦 bulk</span>}
                           <div style={{fontFamily:FM,fontSize:12,color:C.muted}}>{item.qty} {item.unit}</div>
                           <button onClick={e=>{e.stopPropagation();setEditShopDraft({name:item.name,qty:String(item.qty??""),unit:item.unit||""});setEditingShoppingIdx(gi);}} title="Got something different? Edit before restocking" style={{background:"transparent",border:"none",cursor:"pointer",fontSize:13,padding:"2px 4px",color:C.muted,flexShrink:0}}>✏️</button>
@@ -5187,7 +5193,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
               <div style={{fontFamily:FD,fontSize:18,fontWeight:700,color:C.text}}>🚨 FDA Food Recall Alerts</div>
               <button onClick={()=>setActiveRecallDetail(null)} style={{background:"transparent",border:"none",color:C.muted,fontSize:20,cursor:"pointer"}}>✕</button>
             </div>
-            {recallAlerts.map(a=>{
+            {activeRecallDetail.map(a=>{
               const r=a.recalls||{};
               const isCritical=a.severity==="critical";
               return (
@@ -5204,7 +5210,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
               );
             })}
             <div style={{fontSize:11,color:C.muted,fontFamily:FM,textAlign:"center",marginTop:6,paddingTop:10,borderTop:"1px solid "+C.border}}>
-              Based on FDA Food Enforcement data, matched against your inventory by product name. Always check packaging lot numbers against the official FDA recall notice before discarding or continuing to use a product.
+              Based on FDA Food Enforcement data, matched by product name. Always check packaging lot numbers against the official FDA recall notice before discarding or continuing to use a product.
             </div>
             <div style={{fontSize:11,color:C.accent,fontFamily:FM,textAlign:"center",marginTop:8}}>
               💬 Have a question about one of these recalls? Ask in chat or "Hey {assistantName()}" for more details.
