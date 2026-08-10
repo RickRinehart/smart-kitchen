@@ -1868,7 +1868,7 @@ APP KNOWLEDGE: Smart Kitchen has these features:
 
 ESCALATION: If the user reports a bug, scanner problem, dietary concern, frustration, or upgrade objection — acknowledge it warmly and let them know the team has been notified and will follow up. If they give positive feedback — celebrate it genuinely.
 
-FOOD RECALLS: If the user asks about a food recall (their own, or in general), and you have ACTIVE FDA FOOD RECALL ALERTS in their context above, use that real data to answer specifically — what was recalled, why, and the severity (Class I is most serious). Always tell them to check the lot number/UPC on their actual package against the official FDA recall notice before discarding or continuing to use it — the app matches by product name only, not exact lot number. Never tell them it's definitely safe or definitely unsafe to eat; that's not something you can determine from a name match alone. If they have no active alerts and ask about recalls, let them know nothing in their current inventory matches a recent FDA recall, based on the last automatic check.
+FOOD RECALLS: If the user asks about a food recall (their own, or in general), and you have ACTIVE FDA FOOD RECALL ALERTS in their context above, be clear about what these actually are: automatic word-based matches between an item's name and a recalled product's name — not a confirmed match on the exact brand, package, or lot number. Never open with a flat "Yes" as if their item is confirmed recalled. Use hedged, uncertain language throughout — "possibly," "may be related to," "worth double-checking," "flagged as a possible match" — not "matches," "has 3 matches," or other definitive framing. For each one, name the item, the recalled product it was matched to, why it was recalled, and the severity (Class I is most serious) — but frame it as something to verify, not a fact. Always tell them to check the actual brand and lot number/UPC on their package against the official FDA recall notice, since many matches will turn out to be a different brand or product entirely that just shares a common word. Never tell them it's definitely safe or definitely unsafe to eat. If they have no active alerts and ask about recalls, let them know nothing in their current inventory matches a recent FDA recall, based on the last automatic check.
 
 FEEDBACK: You actively want to hear feedback — good, bad, and ugly. If someone seems hesitant or disengaged, gently ask what's not working for them. If they mention not upgrading, ask what would make it worth it. Always listen first.
 
@@ -2971,9 +2971,9 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     if(t.match(/recall|recalled/)){
       if(recallAlerts.length===0){speak("Good news — nothing in your inventory currently matches a recent FDA food recall, based on the last check.");return;}
       const critical=recallAlerts.filter(a=>a.severity==="critical");
-      const lead=critical.length>0?"You have "+critical.length+" critical recall alert"+(critical.length!==1?"s":"")+".":"You have "+recallAlerts.length+" recall notice"+(recallAlerts.length!==1?"s":"")+".";
-      const details=recallAlerts.slice(0,3).map(a=>a.matched_item_name+", matching a "+(a.recalls?.classification||"")+" recall. "+(a.recalls?.reason_for_recall||"")).join(" ");
-      speak(lead+" "+details+" Check the packaging lot number against the official FDA notice before deciding whether to keep or discard it. You can see full details in the app.");
+      const lead=critical.length>0?critical.length+" of your items possibly relate to a critical recall — worth double-checking.":recallAlerts.length+" of your items possibly relate to a recent recall notice.";
+      const details=recallAlerts.slice(0,3).map(a=>a.matched_item_name+" was flagged as a possible match to a "+(a.recalls?.classification||"")+" recall. "+(a.recalls?.reason_for_recall||"")).join(" ");
+      speak(lead+" "+details+" These are name-based matches, not confirmed — check the actual brand and lot number on your package against the official FDA notice. You can see full details in the app.");
       return;
     }
     if(t.match(/shopping list|what.*need.*buy/)){
@@ -3727,7 +3727,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
             <div style={{display:"flex",alignItems:"center",gap:10,cursor:"pointer"}} onClick={()=>setActiveRecallDetail(recallAlerts)}>
               <span style={{fontSize:20}}>{hasCritical?"🚨":"⚠️"}</span>
               <span style={{fontFamily:"Arial,sans-serif",fontSize:14,color:hasCritical?"#fecaca":"#fde68a",fontWeight:700}}>
-                {hasCritical?"FDA Food Safety Alert":"FDA Food Recall Notice"} — {recallAlerts.length} item{recallAlerts.length!==1?"s":""} in your inventory {recallAlerts.length!==1?"match":"matches"} a recent recall. Tap for details.
+                {hasCritical?"FDA Food Safety Alert":"FDA Food Recall Notice"} — {recallAlerts.length} item{recallAlerts.length!==1?"s":""} in your inventory possibly {recallAlerts.length!==1?"match":"matches"} a recent recall by name. Tap for details.
               </span>
             </div>
             <button onClick={()=>setShowRecallBanner(false)} style={{background:"transparent",border:"1px solid "+(hasCritical?"#ef4444":"#d97706"),borderRadius:8,color:hasCritical?"#fecaca":"#fde68a",cursor:"pointer",fontFamily:"Arial",fontSize:12,padding:"6px 12px"}}>Dismiss</button>
@@ -5194,7 +5194,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                 <div key={a.id} style={{background:C.surface,border:"1px solid "+(isCritical?"#ef4444":"#d97706"),borderRadius:10,padding:14,marginBottom:12}}>
                   <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
                     <span style={{fontSize:11,fontWeight:700,padding:"3px 10px",borderRadius:20,background:isCritical?"#4a0e0e":"#3a2a0e",color:isCritical?"#fecaca":"#fde68a"}}>{r.classification||(isCritical?"Class I":"Class II/III")}</span>
-                    <span style={{fontSize:12,color:C.muted,fontFamily:FM}}>Matched: <strong style={{color:C.text}}>{a.matched_item_name}</strong></span>
+                    <span style={{fontSize:12,color:C.muted,fontFamily:FM}}>Possible match: <strong style={{color:C.text}}>{a.matched_item_name}</strong></span>
                   </div>
                   <div style={{fontSize:13,color:C.text,fontWeight:600,marginBottom:4}}>{r.product_description||"Recalled product"}</div>
                   <div style={{fontSize:12,color:C.muted,lineHeight:1.5,marginBottom:8}}>{r.reason_for_recall||"See FDA recall notice for details."}</div>
