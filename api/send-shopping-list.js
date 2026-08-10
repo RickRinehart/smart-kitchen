@@ -80,27 +80,24 @@ export default async function handler(req, res) {
         .select('id,product_description,classification,keywords,recall_initiation_date')
         .gte('recall_initiation_date', matchSince);
 
-      // 3. Match against every user's current inventory, collecting all matches to write in one batch
+      // 3. Match against every user's current inventory AND shopping list, collecting all matches to write in one batch
       const { data: users } = await supabaseAdmin
         .from('user_data')
-        .select('user_id,inventory,recall_match_sensitivity');
+        .select('user_id,inventory,shopping_list,recall_match_sensitivity');
 
       const NON_FOOD_CATEGORIES = new Set(['household','cleaning','personal care','pet']);
-      const bestMatches = new Map(); // key: user_id::itemName -> best candidate
-      for (const u of (users || [])) {
-        const inventory = Array.isArray(u.inventory) ? u.inventory : [];
-        if (inventory.length === 0) continue;
-        const sensitivity = u.recall_match_sensitivity || 'broad';
 
-        for (const item of inventory) {
+      const findBestMatchesForList = (userId, list, sensitivity, listType, bestMatches) => {
+        if (!Array.isArray(list) || list.length === 0) return;
+        for (const item of list) {
           if (NON_FOOD_CATEGORIES.has(String(item.category || '').toLowerCase().trim())) continue;
           const itemName = String(item.name || '').toLowerCase().trim();
           if (!itemName) continue;
           const itemWords = itemName.split(/\s+/).filter(w => w.length > 2);
-          const key = u.user_id + '::' + itemName;
+          const key = userId + '::' + listType + '::' + itemName;
 
           for (const recall of (activeRecalls || [])) {
-            let matchScore = 0; // count of overlapping distinguishing words — higher = more specific match
+            let matchScore = 0;
             const desc = String(recall.product_description || '').toLowerCase();
             if (sensitivity === 'broad') {
               matchScore = (recall.keywords || []).filter(kw => !GENERIC_FOOD_WORDS.has(kw) && wordMatch(kw, itemName)).length;
@@ -111,10 +108,11 @@ export default async function handler(req, res) {
             if (matchScore === 0) continue;
 
             const candidate = {
-              user_id: u.user_id,
+              user_id: userId,
               recall_id: recall.id,
               matched_item_name: item.name,
               severity: recall.classification === 'Class I' ? 'critical' : 'informational',
+              list_type: listType,
               _score: matchScore,
               _isCritical: recall.classification === 'Class I',
               _date: recall.recall_initiation_date || '',
@@ -129,23 +127,30 @@ export default async function handler(req, res) {
             }
           }
         }
+      };
+
+      const bestMatches = new Map(); // key: user_id::listType::itemName -> best candidate
+      for (const u of (users || [])) {
+        const sensitivity = u.recall_match_sensitivity || 'broad';
+        findBestMatchesForList(u.user_id, u.inventory, sensitivity, 'inventory', bestMatches);
+        findBestMatchesForList(u.user_id, u.shopping_list, sensitivity, 'shopping_list', bestMatches);
       }
 
-      const matchRows = Array.from(bestMatches.values()).map(({ user_id, recall_id, matched_item_name, severity }) => ({ user_id, recall_id, matched_item_name, severity }));
+      const matchRows = Array.from(bestMatches.values()).map(({ user_id, recall_id, matched_item_name, severity, list_type }) => ({ user_id, recall_id, matched_item_name, severity, list_type }));
 
       let alertsCreated = 0;
       if (matchRows.length > 0) {
-        const { error: matchErr } = await supabaseAdmin.from('user_recall_alerts').upsert(matchRows, { onConflict: 'user_id,recall_id,matched_item_name', ignoreDuplicates: true });
+        const { error: matchErr } = await supabaseAdmin.from('user_recall_alerts').upsert(matchRows, { onConflict: 'user_id,recall_id,matched_item_name,list_type', ignoreDuplicates: true });
         if (!matchErr) alertsCreated = matchRows.length;
         else console.error('user_recall_alerts batch upsert error:', matchErr.message);
       }
 
-      // Clear stale alerts for items that no longer have a best match (e.g. sensitivity changed, item removed)
-      const currentKeys = new Set(Array.from(bestMatches.values()).map(m => m.user_id + '::' + m.recall_id + '::' + m.matched_item_name));
+      // Clear stale alerts for items that no longer have a best match (e.g. sensitivity changed, item removed, bought and checked off)
+      const currentKeys = new Set(Array.from(bestMatches.values()).map(m => m.user_id + '::' + m.list_type + '::' + m.recall_id + '::' + m.matched_item_name));
       for (const u of (users || [])) {
-        const { data: existingAlerts } = await supabaseAdmin.from('user_recall_alerts').select('id,recall_id,matched_item_name').eq('user_id', u.user_id);
+        const { data: existingAlerts } = await supabaseAdmin.from('user_recall_alerts').select('id,recall_id,matched_item_name,list_type').eq('user_id', u.user_id);
         const staleIds = (existingAlerts || [])
-          .filter(a => !currentKeys.has(u.user_id + '::' + a.recall_id + '::' + a.matched_item_name))
+          .filter(a => !currentKeys.has(u.user_id + '::' + (a.list_type || 'inventory') + '::' + a.recall_id + '::' + a.matched_item_name))
           .map(a => a.id);
         if (staleIds.length > 0) await supabaseAdmin.from('user_recall_alerts').delete().in('id', staleIds);
       }
