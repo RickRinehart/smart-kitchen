@@ -21,13 +21,15 @@ export default async function handler(req, res) {
       process.env.SUPABASE_SERVICE_ROLE_KEY
     );
 
-    const STOPWORDS = new Set(['the','and','or','of','in','a','an','for','to','with','due','because','possible','presence','undeclared','recall','product','products','contains','may','contain','recalled','company','inc','llc','co','corp','oz','lb','lbs','count','pack','ct']);
+    const STOPWORDS = new Set(['the','and','or','of','in','a','an','for','to','with','due','because','possible','presence','undeclared','recall','product','products','contains','may','contain','recalled','company','inc','llc','co','corp','oz','lb','lbs','count','pack','ct','net','wt','per','each','case','cases','box','boxes','bag','bags','can','cans','jar','jars','pouch','pouches','package','packages','packaged','distributed','sold','manufactured','upc','sku','code','plastic','glass','container','retail','label','declares','ingredients','keep','frozen','refrigerated','store','sale','units','unit','size','serving','weight','gross','ml','kg','kgs','g','grams','gallon','gal']);
     const extractKeywords = (desc) => Array.from(new Set(
       String(desc || '').toLowerCase()
         .replace(/[^a-z0-9\s]/g, ' ')
         .split(/\s+/)
-        .filter(w => w.length > 2 && !STOPWORDS.has(w) && !/^\d+$/.test(w))
+        .filter(w => w.length > 3 && !STOPWORDS.has(w) && !/^\d+$/.test(w))
     )).slice(0, 12);
+
+    const wordMatch = (word, text) => new RegExp(`\\b${word.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}\\b`).test(text);
 
     try {
       // 1. Pull recent food recalls from openFDA (60 days, matching the lookback window used for matching below)
@@ -80,15 +82,15 @@ export default async function handler(req, res) {
         for (const item of inventory) {
           const itemName = String(item.name || '').toLowerCase().trim();
           if (!itemName) continue;
+          const itemWords = itemName.split(/\s+/).filter(w => w.length > 2);
 
           for (const recall of (activeRecalls || [])) {
             let isMatch = false;
+            const desc = String(recall.product_description || '').toLowerCase();
             if (sensitivity === 'broad') {
-              isMatch = (recall.keywords || []).some(kw => itemName.includes(kw) || kw.includes(itemName));
+              isMatch = (recall.keywords || []).some(kw => wordMatch(kw, itemName));
             } else {
-              const desc = String(recall.product_description || '').toLowerCase();
-              const itemWords = itemName.split(/\s+/).filter(w => w.length > 2);
-              isMatch = itemWords.length > 0 && itemWords.every(w => new RegExp(`\\b${w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}\\b`).test(desc));
+              isMatch = itemWords.length > 0 && itemWords.every(w => wordMatch(w, desc));
             }
             if (isMatch) {
               matchRows.push({
