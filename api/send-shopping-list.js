@@ -118,7 +118,7 @@ export default async function handler(req, res) {
 
   // ── Nutrition Report action ──────────────────────────────────────────────
   if (action === 'nutrition-report') {
-    const { toEmail, memberName, dateRange, dailyData, weeklyAvgs, narrative, bpReadings } = req.body;
+    const { toEmail, memberName, dateRange, dailyData, weeklyAvgs, narrative, bpReadings, recallAlerts } = req.body;
     if (!toEmail) return res.status(400).json({ error: 'Missing email' });
     const resendKey = process.env.RESEND_API_KEY;
     if (!resendKey) return res.status(500).json({ error: 'Missing RESEND_API_KEY' });
@@ -152,6 +152,17 @@ export default async function handler(req, res) {
         </table>
         <p style="font-size:10px;color:#999;margin-bottom:16px;">Categories follow standard clinical ranges for informational purposes. Your physician is the final authority on your health &mdash; Smart Kitchen only assists with day-to-day implementation.</p>` : '';
 
+    const recallRowsHtml = (recallAlerts||[]).map(a => `
+      <div style="background:${a.severity==='critical'?'#fef2f2':'#fffbeb'};border-left:4px solid ${a.severity==='critical'?'#dc2626':'#d97706'};padding:12px 14px;border-radius:0 6px 6px 0;margin-bottom:10px;">
+        <div style="font-weight:bold;color:${a.severity==='critical'?'#991b1b':'#92400e'};font-size:13px;margin-bottom:3px;">${a.severity==='critical'?'&#128680; Critical' : '&#9888;&#65039; Notice'} &mdash; Matched: ${a.item}</div>
+        <div style="color:#333;font-size:13px;font-weight:600;margin-bottom:3px;">${a.description||''}</div>
+        <div style="color:#555;font-size:12px;">${a.reason||''}</div>
+      </div>`).join('');
+    const recallSectionHtml = (recallAlerts && recallAlerts.length > 0) ? `
+        <div style="font-weight:bold;color:#1A2344;margin:0 0 12px;">&#128680; FDA Food Recall Alerts</div>
+        ${recallRowsHtml}
+        <p style="font-size:10px;color:#999;margin-bottom:20px;">Based on FDA Food Enforcement data, matched against inventory by product name. Always verify against the official FDA recall notice before discarding or continuing to use a product.</p>` : '';
+
     const html = `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;">
       <div style="background:#1A2344;padding:20px;border-radius:8px 8px 0 0;text-align:center;">
         <div style="color:#C8963E;font-size:24px;font-weight:bold;">Smart Kitchen&#8482;</div>
@@ -159,6 +170,7 @@ export default async function handler(req, res) {
         <div style="color:#aaa;font-size:13px;margin-top:4px;">${memberName||'Member'} &bull; ${dateRange||''}</div>
       </div>
       <div style="background:#f9f9f9;border:1px solid #eee;border-top:none;padding:20px;border-radius:0 0 8px 8px;">
+        ${recallSectionHtml}
         ${narrative ? `<div style="background:#e8f5e9;border-left:4px solid #10b981;padding:14px 16px;border-radius:0 8px 8px 0;margin-bottom:20px;">
           <div style="font-weight:bold;color:#10b981;margin-bottom:6px;">Weekly Summary</div>
           <div style="color:#333;font-size:14px;line-height:1.6;">${narrative}</div>
