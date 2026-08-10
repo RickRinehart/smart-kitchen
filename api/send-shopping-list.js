@@ -1,7 +1,120 @@
-export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).end();
+import { createClient } from '@supabase/supabase-js';
 
-  const { action } = req.body;
+export default async function handler(req, res) {
+  const cronAction = req.method === 'GET' ? req.query.action : null;
+  if (req.method !== 'POST' && cronAction !== 'check-recalls') return res.status(405).end();
+
+  const action = cronAction || (req.body && req.body.action);
+
+  // ── Food Recall Check action (triggered by Vercel Cron, daily) ──────────
+  if (action === 'check-recalls') {
+    // Verify this is actually Vercel's cron scheduler, not an open public trigger
+    if (req.method === 'GET') {
+      const authHeader = req.headers['authorization'] || '';
+      if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+    }
+
+    const supabaseAdmin = createClient(
+      process.env.VITE_SUPABASE_URL || 'https://wnlqvmedocpgjawmwivd.supabase.co',
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    );
+
+    const STOPWORDS = new Set(['the','and','or','of','in','a','an','for','to','with','due','because','possible','presence','undeclared','recall','product','products','contains','may','contain','recalled','company','inc','llc','co','corp','oz','lb','lbs','count','pack','ct']);
+    const extractKeywords = (desc) => Array.from(new Set(
+      String(desc || '').toLowerCase()
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .split(/\s+/)
+        .filter(w => w.length > 2 && !STOPWORDS.has(w) && !/^\d+$/.test(w))
+    )).slice(0, 12);
+
+    try {
+      // 1. Pull recent food recalls from openFDA (last 14 days, food-only endpoint)
+      const since = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10).replace(/-/g, '');
+      const fdaUrl = `https://api.fda.gov/food/enforcement.json?search=recall_initiation_date:[${since}+TO+99991231]&limit=100&sort=recall_initiation_date:desc`;
+      const fdaRes = await fetch(fdaUrl);
+      const fdaData = await fdaRes.json();
+      const records = fdaData.results || [];
+
+      const recallRows = records.filter(r => r.recall_number).map(r => ({
+        id: r.recall_number,
+        product_description: r.product_description || '',
+        reason_for_recall: r.reason_for_recall || '',
+        classification: r.classification || null,
+        recall_initiation_date: r.recall_initiation_date
+          ? `${r.recall_initiation_date.slice(0,4)}-${r.recall_initiation_date.slice(4,6)}-${r.recall_initiation_date.slice(6,8)}`
+          : null,
+        distribution_pattern: r.distribution_pattern || '',
+        status: r.status || '',
+        voluntary_mandated: r.voluntary_mandated || '',
+        keywords: extractKeywords(r.product_description),
+        fetched_at: new Date().toISOString(),
+      }));
+
+      let recallsUpserted = 0;
+      if (recallRows.length > 0) {
+        const { error: batchErr } = await supabaseAdmin.from('recalls').upsert(recallRows, { onConflict: 'id' });
+        if (!batchErr) recallsUpserted = recallRows.length;
+        else console.error('recalls batch upsert error:', batchErr.message);
+      }
+
+      // 2. Pull active recalls from the last 60 days for matching against inventory
+      const matchSince = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+      const { data: activeRecalls } = await supabaseAdmin
+        .from('recalls')
+        .select('id,product_description,classification,keywords')
+        .gte('recall_initiation_date', matchSince);
+
+      // 3. Match against every user's current inventory, collecting all matches to write in one batch
+      const { data: users } = await supabaseAdmin
+        .from('user_data')
+        .select('user_id,inventory,recall_match_sensitivity');
+
+      const matchRows = [];
+      for (const u of (users || [])) {
+        const inventory = Array.isArray(u.inventory) ? u.inventory : [];
+        if (inventory.length === 0) continue;
+        const sensitivity = u.recall_match_sensitivity || 'broad';
+
+        for (const item of inventory) {
+          const itemName = String(item.name || '').toLowerCase().trim();
+          if (!itemName) continue;
+
+          for (const recall of (activeRecalls || [])) {
+            let isMatch = false;
+            if (sensitivity === 'broad') {
+              isMatch = (recall.keywords || []).some(kw => itemName.includes(kw) || kw.includes(itemName));
+            } else {
+              const desc = String(recall.product_description || '').toLowerCase();
+              const itemWords = itemName.split(/\s+/).filter(w => w.length > 2);
+              isMatch = itemWords.length > 0 && itemWords.every(w => new RegExp(`\\b${w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}\\b`).test(desc));
+            }
+            if (isMatch) {
+              matchRows.push({
+                user_id: u.user_id,
+                recall_id: recall.id,
+                matched_item_name: item.name,
+                severity: recall.classification === 'Class I' ? 'critical' : 'informational',
+              });
+            }
+          }
+        }
+      }
+
+      let alertsCreated = 0;
+      if (matchRows.length > 0) {
+        const { error: matchErr } = await supabaseAdmin.from('user_recall_alerts').upsert(matchRows, { onConflict: 'user_id,recall_id,matched_item_name', ignoreDuplicates: true });
+        if (!matchErr) alertsCreated = matchRows.length;
+        else console.error('user_recall_alerts batch upsert error:', matchErr.message);
+      }
+
+      return res.status(200).json({ success: true, recallsUpserted, alertsCreated, usersScanned: (users || []).length });
+    } catch (e) {
+      console.error('check-recalls error:', e.message);
+      return res.status(500).json({ error: e.message });
+    }
+  }
 
   // ── Nutrition Report action ──────────────────────────────────────────────
   if (action === 'nutrition-report') {
