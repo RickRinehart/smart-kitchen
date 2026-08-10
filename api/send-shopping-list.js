@@ -21,12 +21,12 @@ export default async function handler(req, res) {
       process.env.SUPABASE_SERVICE_ROLE_KEY
     );
 
-    const STOPWORDS = new Set(['the','and','or','of','in','a','an','for','to','with','due','because','possible','presence','undeclared','recall','product','products','contains','may','contain','recalled','company','inc','llc','co','corp','oz','lb','lbs','count','pack','ct','net','wt','per','each','case','cases','box','boxes','bag','bags','can','cans','jar','jars','pouch','pouches','package','packages','packaged','distributed','sold','manufactured','upc','sku','code','plastic','glass','container','retail','label','declares','ingredients','keep','frozen','refrigerated','store','sale','units','unit','size','serving','weight','gross','ml','kg','kgs','g','grams','gallon','gal','organic','whole','brand','fresh','natural','original','classic','premium','select','choice','pure','all','new','plus','deluxe','max','supreme','gourmet','extra','special','signature','ultra','chunk','chunks','dark','light','brown','spicy','hot','mild','sweet','bitter','sour','thin','thick','small','large','big','mini','giant','jumbo','style','flavored','flavor','flavors','ready','bake']);
+    const STOPWORDS = new Set(['the','and','or','of','in','a','an','for','to','with','due','because','possible','presence','undeclared','recall','product','products','contains','may','contain','recalled','company','inc','llc','co','corp','oz','lb','lbs','count','pack','ct','net','wt','per','each','case','cases','box','boxes','bag','bags','can','cans','jar','jars','pouch','pouches','package','packages','packaged','distributed','sold','manufactured','upc','sku','code','plastic','glass','container','retail','label','declares','ingredients','keep','frozen','refrigerated','store','sale','units','unit','size','serving','weight','gross','ml','kg','kgs','g','grams','gallon','gal','organic','whole','brand','fresh','natural','original','classic','premium','select','choice','pure','all','new','plus','deluxe','max','supreme','gourmet','extra','special','signature','ultra','chunk','chunks','dark','light','brown','spicy','hot','mild','sweet','bitter','sour','thin','thick','small','large','big','mini','giant','jumbo','style','flavored','flavor','flavors','ready','bake','recalls','recall','issues','issued','expands','expanding','voluntary','voluntarily','made','products','alert','alerts','allergy']);
     const extractKeywords = (desc) => {
       let core = String(desc || '');
       // Recall descriptions consistently lead with the product name, then packaging/size/UPC details.
       // Cut at the first such marker so we only extract keywords from the actual product name.
-      const cutMatch = core.match(/^(.*?)(?:\d+(?:\.\d+)?\s*(?:oz|ounce|ounces|lb|lbs|pound|pounds|kg|kgs|mg|g|gram|grams|ml|gal|gallon)\b|\bnet\s*wt\.?\b|\bnet\s*weight\b|\bupc\b|\bsku\b|\bdistributed\s*by\b|\bserving\s*size\b|\(\s*\d)/i);
+      const cutMatch = core.match(/^(.*?)(?:\d+(?:\.\d+)?\s*(?:oz|ounce|ounces|lb|lbs|pound|pounds|kg|kgs|mg|g|gram|grams|ml|gal|gallon)\b|\bnet\s*wt\.?\b|\bnet\s*weight\b|\bupc\b|\bsku\b|\bdistributed\s*by\b|\bserving\s*size\b|\bbecause\s*of\b|\bdue\s*to\b|\(\s*\d)/i);
       if (cutMatch && cutMatch[1] && cutMatch[1].trim().length > 3) core = cutMatch[1];
       return Array.from(new Set(
         core.toLowerCase()
@@ -44,7 +44,7 @@ export default async function handler(req, res) {
     const GENERIC_FOOD_WORDS = new Set(['sausage','sausages','patty','patties','burger','burgers','hamburger','hamburgers','chicken','beef','pork','bacon','turkey','ham','meat','meatball','meatballs','bread','rolls','roll','loaf','bun','buns','cheese','milk','soup','soups','sauce','sauces','syrup','powder','rice','sugar','flour','dough','cookie','cookies','cracker','crackers','chip','chips','bar','bars','snack','snacks','mix','juice','drink','drinks','beverage','beverages','water','tea','coffee','egg','eggs','butter','cream','yogurt','dip','spread','jam','jelly','candy','pasta','noodle','noodles','salad','vegetable','vegetables','fruit','fruits','seafood','fish','shrimp','meal','meals','dinner','breakfast','lunch']);
 
     try {
-      // 1. Pull recent food recalls from openFDA (60 days, matching the lookback window used for matching below)
+      // 1a. Pull recent food recalls from openFDA (60 days, matching the lookback window used for matching below)
       const since = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10).replace(/-/g, '');
       const fdaUrl = `https://api.fda.gov/food/enforcement.json?search=recall_initiation_date:[${since}+TO+99991231]&limit=200&sort=recall_initiation_date:desc`;
       const fdaRes = await fetch(fdaUrl);
@@ -64,12 +64,56 @@ export default async function handler(req, res) {
         voluntary_mandated: r.voluntary_mandated || '',
         keywords: extractKeywords(r.product_description),
         fetched_at: new Date().toISOString(),
+        source: 'enforcement',
       }));
 
+      // 1b. Pull FDA's Food Safety Recalls RSS feed — a faster, earlier-warning source.
+      // Press releases post here as soon as FDA announces them, well before the formal
+      // Class I/II/III classification lands in the Enforcement dataset above.
+      let rssRows = [];
+      try {
+        const rssRes = await fetch('https://www.fda.gov/about-fda/contact-fda/stay-informed/rss-feeds/food-safety-recalls/rss.xml');
+        const rssText = await rssRes.text();
+        const decodeEntities = (s) => String(s || '')
+          .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/, '$1')
+          .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+          .replace(/&quot;/g, '"').replace(/&#0?39;/g, "'").trim();
+        const extractTag = (block, tag) => {
+          const m = block.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)</${tag}>`));
+          return m ? decodeEntities(m[1]) : '';
+        };
+        const itemBlocks = rssText.match(/<item>[\s\S]*?<\/item>/g) || [];
+        for (const block of itemBlocks) {
+          const title = extractTag(block, 'title');
+          const link = extractTag(block, 'link');
+          const description = extractTag(block, 'description');
+          const pubDate = extractTag(block, 'pubDate');
+          if (!title || !link) continue;
+          const dateObj = pubDate ? new Date(pubDate) : null;
+          const dateStr = dateObj && !isNaN(dateObj) ? dateObj.toISOString().slice(0, 10) : null;
+          rssRows.push({
+            id: link,
+            product_description: title,
+            reason_for_recall: description,
+            classification: null, // not yet classified — that's the whole point of this early-warning source
+            recall_initiation_date: dateStr,
+            distribution_pattern: '',
+            status: '',
+            voluntary_mandated: '',
+            keywords: extractKeywords(title),
+            fetched_at: new Date().toISOString(),
+            source: 'rss',
+          });
+        }
+      } catch (rssErr) {
+        console.error('RSS feed fetch/parse error:', rssErr.message);
+      }
+
+      const allRecallRows = [...recallRows, ...rssRows];
       let recallsUpserted = 0;
-      if (recallRows.length > 0) {
-        const { error: batchErr } = await supabaseAdmin.from('recalls').upsert(recallRows, { onConflict: 'id' });
-        if (!batchErr) recallsUpserted = recallRows.length;
+      if (allRecallRows.length > 0) {
+        const { error: batchErr } = await supabaseAdmin.from('recalls').upsert(allRecallRows, { onConflict: 'id' });
+        if (!batchErr) recallsUpserted = allRecallRows.length;
         else console.error('recalls batch upsert error:', batchErr.message);
       }
 
@@ -111,7 +155,7 @@ export default async function handler(req, res) {
               user_id: userId,
               recall_id: recall.id,
               matched_item_name: item.name,
-              severity: recall.classification === 'Class I' ? 'critical' : 'informational',
+              severity: recall.classification === 'Class I' ? 'critical' : (recall.classification ? 'informational' : 'pending'),
               list_type: listType,
               _score: matchScore,
               _isCritical: recall.classification === 'Class I',
