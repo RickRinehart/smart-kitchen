@@ -1849,6 +1849,7 @@ USER CONTEXT:
 - Inventory: ${invSummary}
 - ${mealSummary}
 - Senior Mode: ${seniorMode?"ON":"OFF"}
+${recallAlerts.length>0?`- ACTIVE FDA FOOD RECALL ALERTS (${recallAlerts.length}): ${recallAlerts.map(a=>`"${a.matched_item_name}" matches a recall — ${a.recalls?.classification||"unclassified"}: ${a.recalls?.product_description||""}. Reason: ${a.recalls?.reason_for_recall||"see FDA notice"}.`).join(" | ")}`:""}
 
 APP KNOWLEDGE: Smart Kitchen has these features:
 - Inventory: scan receipts or add manually. Wild Harvest and Home Harvest categories with label printing.
@@ -1866,6 +1867,8 @@ APP KNOWLEDGE: Smart Kitchen has these features:
 - SETUP WIZARD: If the user asks to redo setup, add family members, set up appliances, or walk through onboarding again, the chat can relaunch the Setup Wizard automatically. Just say something like "Sure! Let me open the Setup Wizard for you now." The system will handle the rest.
 
 ESCALATION: If the user reports a bug, scanner problem, dietary concern, frustration, or upgrade objection — acknowledge it warmly and let them know the team has been notified and will follow up. If they give positive feedback — celebrate it genuinely.
+
+FOOD RECALLS: If the user asks about a food recall (their own, or in general), and you have ACTIVE FDA FOOD RECALL ALERTS in their context above, use that real data to answer specifically — what was recalled, why, and the severity (Class I is most serious). Always tell them to check the lot number/UPC on their actual package against the official FDA recall notice before discarding or continuing to use it — the app matches by product name only, not exact lot number. Never tell them it's definitely safe or definitely unsafe to eat; that's not something you can determine from a name match alone. If they have no active alerts and ask about recalls, let them know nothing in their current inventory matches a recent FDA recall, based on the last automatic check.
 
 FEEDBACK: You actively want to hear feedback — good, bad, and ugly. If someone seems hesitant or disengaged, gently ask what's not working for them. If they mention not upgrading, ask what would make it worth it. Always listen first.
 
@@ -2963,6 +2966,14 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     if(t.match(/what.*(meal plan|whole week|this week|all week)/)){
       if(mealDays.length===0){speak("You don't have a meal plan yet.");return;}
       speak("Here's your week. "+mealDays.map(d=>d.day+": "+d.meal).join(". "));
+      return;
+    }
+    if(t.match(/recall|recalled/)){
+      if(recallAlerts.length===0){speak("Good news — nothing in your inventory currently matches a recent FDA food recall, based on the last check.");return;}
+      const critical=recallAlerts.filter(a=>a.severity==="critical");
+      const lead=critical.length>0?"You have "+critical.length+" critical recall alert"+(critical.length!==1?"s":"")+".":"You have "+recallAlerts.length+" recall notice"+(recallAlerts.length!==1?"s":"")+".";
+      const details=recallAlerts.slice(0,3).map(a=>a.matched_item_name+", matching a "+(a.recalls?.classification||"")+" recall. "+(a.recalls?.reason_for_recall||"")).join(" ");
+      speak(lead+" "+details+" Check the packaging lot number against the official FDA notice before deciding whether to keep or discard it. You can see full details in the app.");
       return;
     }
     if(t.match(/shopping list|what.*need.*buy/)){
@@ -5194,6 +5205,9 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
             })}
             <div style={{fontSize:11,color:C.muted,fontFamily:FM,textAlign:"center",marginTop:6,paddingTop:10,borderTop:"1px solid "+C.border}}>
               Based on FDA Food Enforcement data, matched against your inventory by product name. Always check packaging lot numbers against the official FDA recall notice before discarding or continuing to use a product.
+            </div>
+            <div style={{fontSize:11,color:C.accent,fontFamily:FM,textAlign:"center",marginTop:8}}>
+              💬 Have a question about one of these recalls? Ask in chat or "Hey {assistantName()}" for more details.
             </div>
           </div>
         </div>
