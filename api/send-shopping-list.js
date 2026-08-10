@@ -22,12 +22,19 @@ export default async function handler(req, res) {
     );
 
     const STOPWORDS = new Set(['the','and','or','of','in','a','an','for','to','with','due','because','possible','presence','undeclared','recall','product','products','contains','may','contain','recalled','company','inc','llc','co','corp','oz','lb','lbs','count','pack','ct','net','wt','per','each','case','cases','box','boxes','bag','bags','can','cans','jar','jars','pouch','pouches','package','packages','packaged','distributed','sold','manufactured','upc','sku','code','plastic','glass','container','retail','label','declares','ingredients','keep','frozen','refrigerated','store','sale','units','unit','size','serving','weight','gross','ml','kg','kgs','g','grams','gallon','gal']);
-    const extractKeywords = (desc) => Array.from(new Set(
-      String(desc || '').toLowerCase()
-        .replace(/[^a-z0-9\s]/g, ' ')
-        .split(/\s+/)
-        .filter(w => w.length > 3 && !STOPWORDS.has(w) && !/^\d+$/.test(w))
-    )).slice(0, 12);
+    const extractKeywords = (desc) => {
+      let core = String(desc || '');
+      // Recall descriptions consistently lead with the product name, then packaging/size/UPC details.
+      // Cut at the first such marker so we only extract keywords from the actual product name.
+      const cutMatch = core.match(/^(.*?)(?:\d+(?:\.\d+)?\s*(?:oz|ounce|ounces|lb|lbs|pound|pounds|kg|kgs|mg|g|gram|grams|ml|gal|gallon)\b|\bnet\s*wt\.?\b|\bnet\s*weight\b|\bupc\b|\bsku\b|\(\s*\d)/i);
+      if (cutMatch && cutMatch[1] && cutMatch[1].trim().length > 3) core = cutMatch[1];
+      return Array.from(new Set(
+        core.toLowerCase()
+          .replace(/[^a-z0-9\s]/g, ' ')
+          .split(/\s+/)
+          .filter(w => w.length > 3 && !STOPWORDS.has(w) && !/^\d+$/.test(w))
+      )).slice(0, 10);
+    };
 
     const wordMatch = (word, text) => new RegExp(`\\b${word.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}\\b`).test(text);
 
