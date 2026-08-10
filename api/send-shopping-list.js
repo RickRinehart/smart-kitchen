@@ -26,7 +26,7 @@ export default async function handler(req, res) {
       let core = String(desc || '');
       // Recall descriptions consistently lead with the product name, then packaging/size/UPC details.
       // Cut at the first such marker so we only extract keywords from the actual product name.
-      const cutMatch = core.match(/^(.*?)(?:\d+(?:\.\d+)?\s*(?:oz|ounce|ounces|lb|lbs|pound|pounds|kg|kgs|mg|g|gram|grams|ml|gal|gallon)\b|\bnet\s*wt\.?\b|\bnet\s*weight\b|\bupc\b|\bsku\b|\(\s*\d)/i);
+      const cutMatch = core.match(/^(.*?)(?:\d+(?:\.\d+)?\s*(?:oz|ounce|ounces|lb|lbs|pound|pounds|kg|kgs|mg|g|gram|grams|ml|gal|gallon)\b|\bnet\s*wt\.?\b|\bnet\s*weight\b|\bupc\b|\bsku\b|\bdistributed\s*by\b|\bserving\s*size\b|\(\s*\d)/i);
       if (cutMatch && cutMatch[1] && cutMatch[1].trim().length > 3) core = cutMatch[1];
       return Array.from(new Set(
         core.toLowerCase()
