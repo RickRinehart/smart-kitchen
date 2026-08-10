@@ -21,7 +21,7 @@ export default async function handler(req, res) {
       process.env.SUPABASE_SERVICE_ROLE_KEY
     );
 
-    const STOPWORDS = new Set(['the','and','or','of','in','a','an','for','to','with','due','because','possible','presence','undeclared','recall','product','products','contains','may','contain','recalled','company','inc','llc','co','corp','oz','lb','lbs','count','pack','ct','net','wt','per','each','case','cases','box','boxes','bag','bags','can','cans','jar','jars','pouch','pouches','package','packages','packaged','distributed','sold','manufactured','upc','sku','code','plastic','glass','container','retail','label','declares','ingredients','keep','frozen','refrigerated','store','sale','units','unit','size','serving','weight','gross','ml','kg','kgs','g','grams','gallon','gal']);
+    const STOPWORDS = new Set(['the','and','or','of','in','a','an','for','to','with','due','because','possible','presence','undeclared','recall','product','products','contains','may','contain','recalled','company','inc','llc','co','corp','oz','lb','lbs','count','pack','ct','net','wt','per','each','case','cases','box','boxes','bag','bags','can','cans','jar','jars','pouch','pouches','package','packages','packaged','distributed','sold','manufactured','upc','sku','code','plastic','glass','container','retail','label','declares','ingredients','keep','frozen','refrigerated','store','sale','units','unit','size','serving','weight','gross','ml','kg','kgs','g','grams','gallon','gal','organic','whole','brand','fresh','natural','original','classic','premium','select','choice','pure','all','new']);
     const extractKeywords = (desc) => {
       let core = String(desc || '');
       // Recall descriptions consistently lead with the product name, then packaging/size/UPC details.
