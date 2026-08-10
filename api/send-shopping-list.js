@@ -38,6 +38,11 @@ export default async function handler(req, res) {
 
     const wordMatch = (word, text) => new RegExp(`\\b${word.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}\\b`).test(text);
 
+    // Real food words, but too generic on their own to mean a genuine product match —
+    // "sausage" or "patties" alone shouldn't fire an alert against every sausage or every patty in the house.
+    // A match still counts if it also shares a more specific word (brand, distinguishing ingredient, flavor, etc).
+    const GENERIC_FOOD_WORDS = new Set(['sausage','sausages','patty','patties','burger','burgers','hamburger','hamburgers','chicken','beef','pork','bacon','turkey','ham','meat','meatball','meatballs','bread','rolls','roll','loaf','bun','buns','cheese','milk','soup','soups','sauce','sauces','syrup','powder','rice','sugar','flour','dough','cookie','cookies','cracker','crackers','chip','chips','bar','bars','snack','snacks','mix','juice','drink','drinks','beverage','beverages','water','tea','coffee','egg','eggs','butter','cream','yogurt','dip','spread','jam','jelly','candy','pasta','noodle','noodles','salad','vegetable','vegetables','fruit','fruits','seafood','fish','shrimp','meal','meals','dinner','breakfast','lunch']);
+
     try {
       // 1. Pull recent food recalls from openFDA (60 days, matching the lookback window used for matching below)
       const since = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10).replace(/-/g, '');
@@ -97,7 +102,7 @@ export default async function handler(req, res) {
             let isMatch = false;
             const desc = String(recall.product_description || '').toLowerCase();
             if (sensitivity === 'broad') {
-              isMatch = (recall.keywords || []).some(kw => wordMatch(kw, itemName));
+              isMatch = (recall.keywords || []).some(kw => !GENERIC_FOOD_WORDS.has(kw) && wordMatch(kw, itemName));
             } else {
               isMatch = itemWords.length > 0 && itemWords.every(w => wordMatch(w, desc));
             }
