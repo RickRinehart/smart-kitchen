@@ -1266,7 +1266,6 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [activeRecipe,setActiveRecipe]=useState(null);
   const [activeRecipeServings,setActiveRecipeServings]=useState(4);
   useEffect(()=>{if(activeRecipe)setActiveRecipeServings(activeRecipe.servings||activeProfiles.length||4);},[activeRecipe]);
-  useEffect(()=>{setWeighedIngredients({});setWeighingIngredientIdx(null);},[activeRecipe?.name,activeDessert?.name,frViewRecipe?.name]);
   const [familySize,setFamilySize]=useState(()=>loadLocal("sk_familySize",3));
   const [familyProfiles,setFamilyProfiles]=useState(()=>loadLocal("sk_familyProfiles",DEFAULT_PROFILES));
   const [tempProfiles,setTempProfiles]=useState(()=>loadLocal("sk_tempProfiles",[]));
@@ -1463,6 +1462,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   // internally, via scaleWeightGrams) regardless of what unit the scale is currently displaying.
   const [weighingIngredientIdx,setWeighingIngredientIdx]=useState(null);
   const [weighedIngredients,setWeighedIngredients]=useState({});
+  useEffect(()=>{setWeighedIngredients({});setWeighingIngredientIdx(null);},[activeRecipe?.name,activeDessert?.name,frViewRecipe?.name]);
   const [scaleUnit,setScaleUnit]=useState("g");
   const [scaleWeightGrams,setScaleWeightGrams]=useState(0);
   const [scaleRawBytes,setScaleRawBytes]=useState("");
