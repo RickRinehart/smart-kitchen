@@ -6036,7 +6036,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
             {(activeRecipe.ingredients||[]).length>0&&(()=>{
               const scale=activeRecipeServings/(activeRecipe.servings||4);
               return (<div style={{marginBottom:16}}>
-                <div style={{fontFamily:FM,fontSize:10,color:C.muted,letterSpacing:1,marginBottom:10}}>INGREDIENTS{scaleDevice&&<span style={{fontWeight:400,textTransform:"none",letterSpacing:0,color:"#3b82f6"}}> — ⚖ scale connected, tap Weigh on any line for mise en place</span>}</div>
+                <div style={{fontFamily:FM,fontSize:10,color:C.muted,letterSpacing:1,marginBottom:10,display:"flex",alignItems:"center",flexWrap:"wrap",gap:6}}>INGREDIENTS{scaleDevice?<span style={{fontWeight:400,textTransform:"none",letterSpacing:0,color:"#3b82f6"}}>— ⚖ scale connected, tap Weigh on any line for mise en place</span>:<button onClick={connectScale} disabled={scaleConnecting} style={{fontWeight:600,textTransform:"none",letterSpacing:0,background:"transparent",border:"1px solid #3b82f6",borderRadius:6,padding:"2px 8px",color:"#3b82f6",fontSize:10,fontFamily:FM,cursor:scaleConnecting?"default":"pointer"}}>⚖ {scaleConnecting?"Connecting…":"Connect a scale to weigh ingredients precisely"}</button>}</div>
                 {activeRecipe.ingredients.map((ing,i)=>{
                   if(!ing||!(typeof ing==="object"?ing.name:ing.trim())) return null;
                   return (<div key={i} style={{fontSize:13,color:C.text,padding:"4px 0",borderBottom:"1px dotted "+C.borderLight,display:"flex",alignItems:"center",flexWrap:"wrap"}}>
@@ -6099,7 +6099,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
             {(activeDessert.ingredients||[]).length>0&&(()=>{
               const scale=activeDessertServings/(activeDessert.servings||4);
               return (<div style={{marginBottom:16}}>
-                <div style={{fontFamily:FM,fontSize:10,color:C.muted,letterSpacing:1,marginBottom:10}}>INGREDIENTS{scaleDevice&&<span style={{fontWeight:400,textTransform:"none",letterSpacing:0,color:"#3b82f6"}}> — ⚖ scale connected, tap Weigh on any line for mise en place</span>}</div>
+                <div style={{fontFamily:FM,fontSize:10,color:C.muted,letterSpacing:1,marginBottom:10,display:"flex",alignItems:"center",flexWrap:"wrap",gap:6}}>INGREDIENTS{scaleDevice?<span style={{fontWeight:400,textTransform:"none",letterSpacing:0,color:"#3b82f6"}}>— ⚖ scale connected, tap Weigh on any line for mise en place</span>:<button onClick={connectScale} disabled={scaleConnecting} style={{fontWeight:600,textTransform:"none",letterSpacing:0,background:"transparent",border:"1px solid #3b82f6",borderRadius:6,padding:"2px 8px",color:"#3b82f6",fontSize:10,fontFamily:FM,cursor:scaleConnecting?"default":"pointer"}}>⚖ {scaleConnecting?"Connecting…":"Connect a scale to weigh ingredients precisely"}</button>}</div>
                 {activeDessert.ingredients.map((ing,i)=>{
                   if(!ing||!(typeof ing==="object"?ing.name:ing.trim())) return null;
                   return (<div key={i} style={{fontSize:13,color:C.text,padding:"4px 0",borderBottom:"1px dotted "+C.borderLight,display:"flex",alignItems:"center",flexWrap:"wrap"}}>
@@ -7487,7 +7487,7 @@ setScaleCalcLoading(false);setTimeout(()=>{if(scaleDevice&&scaleDevice._writeChr
                 {(frViewRecipe.seasons||[]).map(s=><span key={s} style={{background:"#ede9fe",border:"1px solid #7c3aed",borderRadius:20,padding:"4px 10px",fontSize:12,color:"#5b21b6",fontFamily:"Georgia,serif"}}>{s}</span>)}
               </div>
               <div style={{background:"#fffbf0",border:"1px solid #e8d5b0",borderRadius:10,padding:14,marginBottom:14}}>
-                <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?16:13,fontWeight:700,color:"#5c3317",marginBottom:8,borderBottom:"1px dashed #e8d5b0",paddingBottom:6}}>Ingredients{scaleDevice&&<span style={{fontWeight:400,color:"#3b82f6",fontSize:11}}> — ⚖ scale connected</span>}</div>
+                <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?16:13,fontWeight:700,color:"#5c3317",marginBottom:8,borderBottom:"1px dashed #e8d5b0",paddingBottom:6,display:"flex",alignItems:"center",flexWrap:"wrap",gap:6}}>Ingredients{scaleDevice?<span style={{fontWeight:400,color:"#3b82f6",fontSize:11}}>— ⚖ scale connected</span>:<button onClick={connectScale} disabled={scaleConnecting} style={{fontWeight:600,background:"transparent",border:"1px solid #3b82f6",borderRadius:6,padding:"2px 8px",color:"#3b82f6",fontSize:10,fontFamily:"Georgia,serif",cursor:scaleConnecting?"default":"pointer"}}>⚖ {scaleConnecting?"Connecting…":"Connect a scale to weigh ingredients"}</button>}</div>
                 {(()=>{
                   const base=frViewRecipe.servings||4;
                   const scale=frServings/base;
