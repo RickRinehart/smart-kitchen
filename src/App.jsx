@@ -667,7 +667,7 @@ function IngredientWeighWidget({idx,scaleDevice,weighingIngredientIdx,setWeighin
       <span style={{fontSize:13,color,fontFamily:"monospace",fontWeight:700,transition:"color 0.2s"}}>{scaleWeight?.toFixed(1)||"0.0"}{scaleUnit}</span>
       {targetGrams&&<span title="Target assumes standard spooned & leveled measurement — packed/compressed will weigh more" style={{fontSize:10,color:"#888",fontFamily:"monospace"}}>/ {targetGrams>=453.592?(targetGrams/453.592).toFixed(2)+"lb":targetGrams.toFixed(0)+"g"} target</span>}
       {statusLabel&&<span style={{fontSize:9,color,fontWeight:700,textTransform:"uppercase",letterSpacing:0.5}}>{statusLabel}</span>}
-      <button onClick={()=>{setWeighedIngredients(p=>({...p,[idx]:scaleWeightGrams}));setWeighingIngredientIdx(null);}} style={{background:"#10b981",border:"none",borderRadius:6,padding:"2px 8px",color:"#fff",fontSize:10,fontFamily:"monospace",cursor:"pointer",fontWeight:700}}>✓ Log</button>
+      <button onClick={()=>{setWeighedIngredients(p=>({...p,[idx]:scaleWeightGrams}));setWeighingIngredientIdx(null);if(scaleDevice?._writeChr){scaleDevice._writeChr.writeValue(new Uint8Array([0x52])).catch(()=>{});}}} style={{background:"#10b981",border:"none",borderRadius:6,padding:"2px 8px",color:"#fff",fontSize:10,fontFamily:"monospace",cursor:"pointer",fontWeight:700}}>✓ Log</button>
       <button onClick={()=>setWeighingIngredientIdx(null)} style={{background:"transparent",border:"none",color:"#888",fontSize:10,fontFamily:"monospace",cursor:"pointer"}}>✕</button>
     </span>);
   }
