@@ -1462,7 +1462,43 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   // internally, via scaleWeightGrams) regardless of what unit the scale is currently displaying.
   const [weighingIngredientIdx,setWeighingIngredientIdx]=useState(null);
   const [weighedIngredients,setWeighedIngredients]=useState({});
-  useEffect(()=>{setWeighedIngredients({});setWeighingIngredientIdx(null);},[activeRecipe?.name,activeDessert?.name,frViewRecipe?.name]);
+  // Restore any in-progress weighing when reopening a recipe — protects against the modal closing
+  // unintentionally (accidental backdrop tap while scrolling) or a mobile browser reloading the tab
+  // mid-cook. Survives because it's sessionStorage, not just in-memory state.
+  useEffect(()=>{
+    const open=activeDessert||activeRecipe||frViewRecipe;
+    setWeighingIngredientIdx(null);
+    if(!open){setWeighedIngredients({});return;}
+    const key="sk_weighProgress_"+(open.id||open.name||"");
+    try{
+      const saved=sessionStorage.getItem(key);
+      if(saved){
+        const parsed=JSON.parse(saved);
+        setWeighedIngredients(parsed.weighedIngredients||{});
+        if(parsed.servings){
+          if(activeDessert)setActiveDessertServings(parsed.servings);
+          else if(activeRecipe)setActiveRecipeServings(parsed.servings);
+          else if(frViewRecipe)setFrServings(parsed.servings);
+        }
+      }else{
+        setWeighedIngredients({});
+      }
+    }catch{setWeighedIngredients({});}
+  },[activeRecipe?.name,activeDessert?.name,frViewRecipe?.name]);
+  // Save weighing progress as it happens, not just on close, so a mid-cook interruption never loses it.
+  useEffect(()=>{
+    const open=activeDessert||activeRecipe||frViewRecipe;
+    if(!open) return;
+    const key="sk_weighProgress_"+(open.id||open.name||"");
+    const servings=activeDessert?activeDessertServings:activeRecipe?activeRecipeServings:frServings;
+    try{
+      if(Object.keys(weighedIngredients).length>0){
+        sessionStorage.setItem(key,JSON.stringify({weighedIngredients,servings}));
+      }else{
+        sessionStorage.removeItem(key);
+      }
+    }catch{}
+  },[weighedIngredients]);
   const [scaleUnit,setScaleUnit]=useState("g");
   const [scaleWeightGrams,setScaleWeightGrams]=useState(0);
   const [scaleRawBytes,setScaleRawBytes]=useState("");
@@ -3460,6 +3496,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
   const deductInventoryForRecipe=(r,currentServings)=>{
     const scale=currentServings&&r.servings?currentServings/r.servings:1;
     let restockAdds=[];
+    let deductionSummary=[];
     setInventory(p=>p.map(i=>{
       if(i.isBulkItem&&Array.isArray(r.ingredients)){
         const iname=(i.name||"").toLowerCase().trim();
@@ -3473,6 +3510,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
           // recipe's stated quantity — a real weigh-in is more accurate than any recipe estimate.
           const weighedGrams=weighedIngredients[matchIdx];
           let usedInBulkUnit=weighedGrams!=null?gramsToBulkUnit(weighedGrams,i.name,i.bulkUnit):null;
+          const wasWeighed=usedInBulkUnit!=null;
           if(usedInBulkUnit==null&&match.unit&&BULK_UNIT_TO_CUPS[match.unit]&&BULK_UNIT_TO_CUPS[i.bulkUnit]){
             usedInBulkUnit=convertBulkUnits((match.qty||0)*scale,match.unit,i.bulkUnit);
           }
@@ -3480,6 +3518,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
             const newRemaining=Math.max(0,+(i.bulkQtyRemaining-usedInBulkUnit).toFixed(2));
             const prevPct=i.bulkTotalUnits?(i.bulkQtyRemaining/i.bulkTotalUnits*100):100;
             const newPct=i.bulkTotalUnits?(newRemaining/i.bulkTotalUnits*100):100;
+            deductionSummary.push({name:i.name,method:wasWeighed?"weighed":"estimated",amount:usedInBulkUnit.toFixed(2),unit:i.bulkUnit,remaining:newRemaining});
             if(i.bulkTrackingMode!=="estimate"&&prevPct>(i.bulkLowStockPct||20)&&newPct<=(i.bulkLowStockPct||20)){
               restockAdds.push({name:i.name,qty:1,unit:"package",category:i.category||"Pantry",checked:false,suggestBulk:true,source:i.name+" — running low"});
             }
@@ -3498,9 +3537,13 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
         return [...prev,...toAdd];
       });
     }
+    // Weighing progress has now been consumed — clear the saved snapshot for this recipe so it
+    // doesn't get restored again as if it were still in-progress next time it's opened.
+    try{sessionStorage.removeItem("sk_weighProgress_"+(r.id||r.name||""));}catch{}
+    return deductionSummary;
   };
   const cookRecipe=async(r,currentServings)=>{
-    deductInventoryForRecipe(r,currentServings);
+    const deductionSummary=deductInventoryForRecipe(r,currentServings);
     // -- Cellar cooking deduction: splash-size, not a full pour --
     let cellarNote="";
     if(r.cellarItem&&user?.id){
@@ -3528,7 +3571,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       }catch(e){console.error("Cellar cooking deduction error:",e);}
     }
     setActiveRecipe(null);
-    setCookedConfirm({name:r.name,cellarNote});
+    setCookedConfirm({name:r.name,cellarNote,deductionSummary});
   };
 
   const openMealPlanRecipe=async(day)=>{
@@ -5582,13 +5625,27 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
       {/* == COOKED CONFIRM == */}
       {cookedConfirm&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300,padding:16}} onClick={()=>setCookedConfirm(null)}>
-          <div style={{background:C.card,border:"1px solid "+C.green+"55",borderRadius:16,padding:26,maxWidth:380,width:"100%",textAlign:"center"}} onClick={e=>e.stopPropagation()}>
+          <div style={{background:C.card,border:"1px solid "+C.green+"55",borderRadius:16,padding:26,maxWidth:380,width:"100%",textAlign:"center",maxHeight:"85vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
             <div style={{fontSize:38,marginBottom:10}}>🍳</div>
             <div style={{fontFamily:FD,fontSize:20,color:C.green,marginBottom:8}}>Cooked!</div>
             <div style={{fontSize:14,color:C.text,lineHeight:1.6,marginBottom:4}}>
               <strong>{cookedConfirm.name}</strong>
             </div>
-            <div style={{fontSize:13,color:C.muted,lineHeight:1.5,marginBottom:16}}>Inventory updated.{cookedConfirm.cellarNote}</div>
+            <div style={{fontSize:13,color:C.muted,lineHeight:1.5,marginBottom:(cookedConfirm.deductionSummary||[]).length?10:16}}>Inventory updated.{cookedConfirm.cellarNote}</div>
+            {(cookedConfirm.deductionSummary||[]).length>0&&(
+              <div style={{background:C.surface,borderRadius:10,padding:12,marginBottom:16,textAlign:"left"}}>
+                <div style={{fontFamily:FM,fontSize:10,color:C.muted,letterSpacing:0.8,marginBottom:8}}>BULK ITEMS DEDUCTED</div>
+                {cookedConfirm.deductionSummary.map((d,i)=>(
+                  <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"4px 0",borderBottom:i<cookedConfirm.deductionSummary.length-1?"1px dotted "+C.borderLight:"none"}}>
+                    <span style={{fontSize:12,color:C.text}}>{d.name}</span>
+                    <span style={{display:"flex",alignItems:"center",gap:6}}>
+                      {d.method==="weighed"?<span title="Used your scale weigh-in" style={{fontSize:10,color:"#3b82f6",fontWeight:700}}>⚖ weighed</span>:<span title="Used recipe's stated amount" style={{fontSize:10,color:C.muted}}>~ estimated</span>}
+                      <span style={{fontSize:11,color:C.muted,fontFamily:FM}}>−{d.amount} {d.unit} · {d.remaining} left</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
             <button style={{...bBtn("primary"),width:"100%"}} onClick={()=>setCookedConfirm(null)}>Got it</button>
           </div>
         </div>
@@ -6020,7 +6077,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
         </div>
       </div>}
             {activeRecipe&&(
-        <div style={{position:"fixed",inset:0,background:"#000b",display:"flex",alignItems:"center",justifyContent:"center",zIndex:500,padding:16}} onClick={()=>setActiveRecipe(null)}>
+        <div style={{position:"fixed",inset:0,background:"#000b",display:"flex",alignItems:"center",justifyContent:"center",zIndex:500,padding:16}} onClick={()=>{if(Object.keys(weighedIngredients).length===0)setActiveRecipe(null);}}>
           <div style={{background:C.surface,border:"1px solid "+C.borderLight,borderRadius:16,padding:22,maxWidth:500,width:"100%",maxHeight:"88vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
             <div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}>
               <div style={{fontFamily:FD,fontSize:24,lineHeight:1.3,flex:1}}>{activeRecipe.name}</div>
@@ -6079,7 +6136,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
 
       {/* == DESSERT MODAL == */}
       {activeDessert&&(
-        <div style={{position:"fixed",inset:0,background:"#000b",display:"flex",alignItems:"center",justifyContent:"center",zIndex:500,padding:16}} onClick={()=>setActiveDessert(null)}>
+        <div style={{position:"fixed",inset:0,background:"#000b",display:"flex",alignItems:"center",justifyContent:"center",zIndex:500,padding:16}} onClick={()=>{if(Object.keys(weighedIngredients).length===0)setActiveDessert(null);}}>
           <div style={{background:C.surface,border:"1px solid "+C.accent+"66",borderRadius:16,padding:22,maxWidth:500,width:"100%",maxHeight:"88vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
             <div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}>
               <div style={{fontFamily:FD,fontSize:24,lineHeight:1.3,flex:1,color:C.accent}}>{activeDessert.name}</div>
@@ -6146,9 +6203,10 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                 }}>🛒 Add Missing to List</button>}
               <button style={{...bBtn("primary"),flex:2,padding:12,background:"#f472b6",color:"#0c0e14"}}
                 onClick={()=>{
-                  deductInventoryForRecipe(activeDessert,activeDessertServings);
+                  const deductionSummary=deductInventoryForRecipe(activeDessert,activeDessertServings);
+                  const name=activeDessert.name;
                   setActiveDessert(null);
-                  showAlert("✅ \""+activeDessert.name+"\" made! Inventory updated.");
+                  setCookedConfirm({name,cellarNote:"",deductionSummary});
                 }}>🍰 I Made This — Update Inventory</button>
             </div>
           </div>
