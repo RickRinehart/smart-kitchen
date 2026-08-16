@@ -5594,7 +5594,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
         </div>
       )}
       {showScaleConnectPrimer&&(
-        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300,padding:16}} onClick={()=>setShowScaleConnectPrimer(false)}>
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:700,padding:16}} onClick={()=>setShowScaleConnectPrimer(false)}>
           <div style={{background:C.card,border:"1px solid #3b82f655",borderRadius:16,padding:26,maxWidth:380,width:"100%",textAlign:"center"}} onClick={e=>e.stopPropagation()}>
             <div style={{fontSize:38,marginBottom:10}}>⚖</div>
             <div style={{fontFamily:FD,fontSize:20,color:"#3b82f6",marginBottom:8}}>Connect Your Scale</div>
