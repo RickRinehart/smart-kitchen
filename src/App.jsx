@@ -651,6 +651,22 @@ const FEATURE_ANNOUNCEMENTS=[
     quickReplies:["Show me!","How does it work?","Maybe later"],
     tab:"harvest",
     digest:"**Bulk Harvest Repackage & Bulk Print Labels** — process a whole batch at once, print all labels together"
+  },
+  {
+    key:"servingScaling",
+    title:"New: Scale Any Recipe's Serving Size",
+    intro:(name)=>`Hi ${name}! 🍽 Big one just shipped — every recipe now scales.\n\nOpen any meal in your Meal Plan, any Recipes card, or a Family Recipe, and you'll see a **Serves** counter with +/- buttons. Adjust it and both the ingredients AND the step-by-step instructions update together automatically — perfect for guests, planned leftovers, or just cooking a bigger or smaller batch without changing your household's default. Printing respects it too.\n\nWant me to show you?`,
+    quickReplies:["Show me!","How does it work?","Maybe later"],
+    tab:"mealPlan",
+    digest:"**Scale any recipe's servings** — a Serves counter on every recipe updates ingredients and instructions together"
+  },
+  {
+    key:"recipeRemix",
+    title:"New: Remix a Family Recipe",
+    intro:(name)=>`Hi ${name}! 🔀 Quick one for your Family Recipes.\n\nOpen any saved family recipe and you'll see a new **Remix** button. Describe what you'd want to change — swap an ingredient, add something, change how it's served — and Smart Kitchen builds a whole new recipe card for you to review and save. Your original recipe is never touched.\n\nWant me to show you?`,
+    quickReplies:["Show me!","How does it work?","Maybe later"],
+    tab:null,
+    digest:"**Remix a Family Recipe** — describe changes to a saved recipe and get a new variation, original stays untouched"
   }
 ];
 // -- Cellar Cooking-Use Registry — mirrors the pour-size category matching in Pair a Drink --
