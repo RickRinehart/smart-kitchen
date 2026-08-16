@@ -259,6 +259,31 @@ const renderStepText=(stepText,ingredients,scale)=>{
     return [scaledQty,p.unit,p.name].filter(Boolean).join(" ");
   });
 };
+// -- Bulk Item Estimator: weight-to-volume conversion is the only place ingredient density matters.
+// Everything downstream (deducting cups/tbsp/tsp/floz as recipes use the item) is a fixed volume
+// ratio and needs no per-ingredient lookup. This table is a starting suggestion only — always
+// user-editable at setup, since real bag density varies by brand/grind/etc.
+const BULK_CUPS_PER_LB={
+  "flour":3.6,"all-purpose flour":3.6,"bread flour":3.6,"cake flour":4.3,"whole wheat flour":3.7,
+  "sugar":2.25,"granulated sugar":2.25,"brown sugar":2.4,"powdered sugar":4,"confectioners sugar":4,
+  "rice":2.4,"white rice":2.4,"brown rice":2.2,"cornmeal":3,"oats":5.5,"rolled oats":5.5,
+  "cocoa powder":4,"baking soda":2,"baking powder":2,"salt":1.5,"kosher salt":2.7,
+  "bread crumbs":4,"panko":6,"powdered milk":4.5
+};
+const suggestBulkCups=(itemName,weightLb)=>{
+  const n=(itemName||"").toLowerCase().trim();
+  if(!n||!weightLb) return null;
+  const match=Object.keys(BULK_CUPS_PER_LB).find(k=>n.includes(k));
+  if(!match) return null;
+  return +(BULK_CUPS_PER_LB[match]*parseFloat(weightLb)).toFixed(2);
+};
+// Fixed volume-unit conversion ratios — always exact, no density involved.
+const BULK_UNIT_TO_CUPS={cup:1,tbsp:1/16,tsp:1/48,floz:1/8};
+const convertBulkUnits=(amount,fromUnit,toUnit)=>{
+  if(fromUnit===toUnit) return amount;
+  const inCups=amount*(BULK_UNIT_TO_CUPS[fromUnit]||1);
+  return inCups/(BULK_UNIT_TO_CUPS[toUnit]||1);
+};
 const PROTEIN_TAG_COLOR=(name)=>{
   if(!name) return C.muted;
   const n=name.toLowerCase();
@@ -667,6 +692,14 @@ const FEATURE_ANNOUNCEMENTS=[
     quickReplies:["Show me!","How does it work?","Maybe later"],
     tab:null,
     digest:"**Remix a Family Recipe** — describe changes to a saved recipe and get a new variation, original stays untouched"
+  },
+  {
+    key:"bulkItemTracking",
+    title:"New: Track Bulk Staples Precisely",
+    intro:(name)=>`Hi ${name}! 🪣 One for your pantry staples.\n\nWhen adding flour, sugar, rice, seasonings, or oil to Inventory, you can now toggle **Track as Bulk Item** — tell it the package size and it tracks exactly how much is left as you cook, instead of just "have it / don't have it." It'll even nudge you to restock when you're running low. And "I Cooked This" now deducts the real amount used from these items, not just a generic estimate.\n\nWant me to show you?`,
+    quickReplies:["Show me!","How does it work?","Maybe later"],
+    tab:"inventory",
+    digest:"**Bulk item tracking** — precise remaining amounts for staples like flour and sugar, with low-stock alerts"
   }
 ];
 // -- Cellar Cooking-Use Registry — mirrors the pour-size category matching in Pair a Drink --
@@ -1189,7 +1222,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [filterLoc,setFilterLoc]=useState("All");
   const [showAdd,setShowAdd]=useState(false);
   const [showRejected,setShowRejected]=useState(()=>{try{const v=localStorage.getItem("sk_showRejected");return v===null?true:v==="true";}catch{return true;}});
-  const [newItem,setNewItem]=useState({name:"",qty:"",unit:"",category:"Pantry",location:"Pantry",harvestType:""});
+  const [newItem,setNewItem]=useState({name:"",qty:"",unit:"",category:"Pantry",location:"Pantry",harvestType:"",isBulkItem:false,bulkUnit:"cup",bulkTrackingMode:"measured",bulkPackageWeight:"",bulkPackageWeightUnit:"lb",bulkPackageCupsOverride:"",bulkPackagePrice:"",bulkLowStockPct:20,bulkEstimatePct:100});
   const [activeRecipe,setActiveRecipe]=useState(null);
   const [activeRecipeServings,setActiveRecipeServings]=useState(4);
   useEffect(()=>{if(activeRecipe)setActiveRecipeServings(activeRecipe.servings||activeProfiles.length||4);},[activeRecipe]);
@@ -1975,6 +2008,7 @@ APP KNOWLEDGE: Smart Kitchen has these features:
 - Meal Plan: 7-day AI dinner plan. Regenerate or Change individual meals. Occasion Planner (🎉 Plan Occasion button) for special events — Dinner Party, Date Night, Birthday Dinner, BBQ, Kids Party — generates one occasion meal, picks a date, slots into meal plan or pushes to Google Calendar.
 - Recipes & Saved: AI recipe suggestions. Star-rate meals. 5-star = Keeper on rotation.
 - SERVING SIZE SCALING: Every recipe detail view (tap any meal in Meal Plan, any Recipes tab card, Make This results, Family Recipes, and Desserts) has a "Serves" stepper with +/- buttons. Adjusting it live-scales both the ingredients list and the numbered instructions together — e.g. going from 4 to 8 servings doubles every amount in the ingredients AND updates the amounts written into the steps. Printing a recipe also respects whatever serving count is currently selected. Great for guests, planned leftovers, or just a bigger/smaller batch of one specific meal without changing your household's default family size.
+- BULK ITEM TRACKING: When adding an inventory item, there's a "🪣 Track as Bulk Item" toggle — for staples like flour, sugar, rice, seasonings, or cooking oil. User picks a tracking unit (cups, tbsp, tsp, or fl oz for liquids), enters the package weight (or total fl oz for liquids), and the app suggests how many of that unit the package holds (editable — the suggestion is a starting estimate, not exact for every brand). Two modes: Measured (the app deducts the exact amount used every time a recipe is cooked) or Estimate (user manually adjusts a percentage-remaining slider instead). When a bulk item drops below its low-stock threshold, it's automatically added to the shopping list. "I Cooked This" / "I Made This" now deducts real bulk-item amounts (matched to the recipe's ingredients and current serving size) instead of a flat generic deduction, wherever a bulk item and a recipe ingredient are matched with compatible units.
 - RECIPE SHARING: Share button on Saved tab and Family Recipes modal. Select any recipes, tap Share, get a 6-character code. Text or email the code to anyone. They tap Import on their Saved tab, enter the code, see a preview, and tap "Add All to My Kitchen." Family Recipes import directly to Family Recipes; Saved recipes go to Saved. Codes valid 90 days. Deep link also works — tapping the link auto-opens the import modal with the code pre-filled.
 - MOVING RECIPES: On any Saved recipe card, tap "📖 Add to Family" to move it to Family Recipes. Inside a Family Recipe view, tap "⭐ Add to Saved" to copy it to Saved Recipes.
 - Shopping List: auto-builds from meal plan. Email, SMS (Text to... button — add phone in Settings), and Send to Instacart (opens Meijer/ALDI/Kroger/etc with items ready to shop — set preferred store in Settings).
@@ -3372,12 +3406,43 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       return !inventory.some(i=>wordsOverlap(nameL,i.name));
     });
   };
-  const cookRecipe=async(r)=>{
+  // Shared inventory deduction — used by cookRecipe (Meal Plan/Recipes/Make This) and the Desserts
+  // handler, so both stay in sync instead of drifting into two half-correct implementations.
+  const deductInventoryForRecipe=(r,currentServings)=>{
+    const scale=currentServings&&r.servings?currentServings/r.servings:1;
+    let restockAdds=[];
     setInventory(p=>p.map(i=>{
+      if(i.isBulkItem&&Array.isArray(r.ingredients)){
+        const iname=(i.name||"").toLowerCase().trim();
+        const match=r.ingredients.find(ing=>{
+          const n=(typeof ing==="object"?ing.name:ing||"").toLowerCase().trim();
+          return n&&iname&&(n.includes(iname)||iname.includes(n));
+        });
+        if(match&&typeof match==="object"&&match.unit&&BULK_UNIT_TO_CUPS[match.unit]&&BULK_UNIT_TO_CUPS[i.bulkUnit]){
+          const usedInBulkUnit=convertBulkUnits((match.qty||0)*scale,match.unit,i.bulkUnit);
+          const newRemaining=Math.max(0,+(i.bulkQtyRemaining-usedInBulkUnit).toFixed(2));
+          const prevPct=i.bulkTotalUnits?(i.bulkQtyRemaining/i.bulkTotalUnits*100):100;
+          const newPct=i.bulkTotalUnits?(newRemaining/i.bulkTotalUnits*100):100;
+          if(i.bulkTrackingMode!=="estimate"&&prevPct>(i.bulkLowStockPct||20)&&newPct<=(i.bulkLowStockPct||20)){
+            restockAdds.push({name:i.name,qty:1,unit:"package",category:i.category||"Pantry",checked:false,suggestBulk:true,source:i.name+" — running low"});
+          }
+          return {...i,bulkQtyRemaining:newRemaining};
+        }
+        return i; // bulk item but no unit-compatible match this cook — leave as-is rather than guess
+      }
       if(!(r.usesFromInventory||[]).includes(i.name)) return i;
       if(i.isBulkProtein||i.isDicedVeg) return {...i,qty:Math.max(0,i.qty-1)};
       return {...i,qty:Math.max(0,+(i.qty-1).toFixed(1))};
     }));
+    if(restockAdds.length){
+      setShopping(prev=>{
+        const toAdd=restockAdds.filter(m=>!prev.some(p=>(p.name||"").toLowerCase()===m.name.toLowerCase()));
+        return [...prev,...toAdd];
+      });
+    }
+  };
+  const cookRecipe=async(r,currentServings)=>{
+    deductInventoryForRecipe(r,currentServings);
     // -- Cellar cooking deduction: splash-size, not a full pour --
     let cellarNote="";
     if(r.cellarItem&&user?.id){
@@ -3438,8 +3503,25 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     const item={...newItem,id:Date.now(),qty:parseFloat(newItem.qty)};
     if(isProtein){item.isBulkProtein=true;if(!newItem.location||newItem.location==="Pantry")item.location="Freezer";if(!item.unit)item.unit="portions";if(!item.portionOz)item.portionOz=6;}
     if(isHarvestProtein){item.isBulkProtein=true;if(!item.unit)item.unit="lbs";if(!item.portionOz)item.portionOz=6;}
+    if(newItem.isBulkItem){
+      // Total tracking-unit capacity: manual override wins; otherwise for volume-tracked dry goods,
+      // suggest from package weight via the density table (always in cups, converted to bulkUnit).
+      // Fl oz (liquids) skip density entirely — user enters the container's total fl oz directly.
+      let totalUnits=parseFloat(newItem.bulkPackageCupsOverride)||0;
+      if(!totalUnits&&newItem.bulkUnit!=="floz"&&newItem.bulkPackageWeight){
+        const weightLb=newItem.bulkPackageWeightUnit==="oz"?parseFloat(newItem.bulkPackageWeight)/16:parseFloat(newItem.bulkPackageWeight);
+        const cupsSuggested=suggestBulkCups(newItem.name,weightLb);
+        if(cupsSuggested) totalUnits=convertBulkUnits(cupsSuggested,"cup",newItem.bulkUnit);
+      }
+      const startPct=newItem.bulkTrackingMode==="estimate"?(parseFloat(newItem.bulkEstimatePct)||100):100;
+      item.bulkTotalUnits=+totalUnits.toFixed(2);
+      item.bulkQtyRemaining=+(totalUnits*(startPct/100)).toFixed(2);
+      item.bulkLowStockPct=parseFloat(newItem.bulkLowStockPct)||20;
+      item.bulkPackagePrice=parseFloat(newItem.bulkPackagePrice)||0;
+      item.bulkCostPerUnit=item.bulkPackagePrice&&item.bulkTotalUnits?+(item.bulkPackagePrice/item.bulkTotalUnits).toFixed(4):0;
+    }
     setInventory(p=>[...p,item]);
-    setNewItem({name:"",qty:"",unit:"",category:"Pantry",location:"Pantry",harvestType:""});
+    setNewItem({name:"",qty:"",unit:"",category:"Pantry",location:"Pantry",harvestType:"",isBulkItem:false,bulkUnit:"cup",bulkTrackingMode:"measured",bulkPackageWeight:"",bulkPackageWeightUnit:"lb",bulkPackageCupsOverride:"",bulkPackagePrice:"",bulkLowStockPct:20,bulkEstimatePct:100});
     setShowAdd(false);
   };
 
@@ -4062,6 +4144,49 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                     {!newItem.harvestType&&<span style={{fontSize:10,color:C.dim,marginLeft:4}}>Select a type to count toward protein or produce</span>}
                   </div>
                 )}
+                <div style={{marginTop:8,paddingTop:8,borderTop:"1px solid "+C.border}}>
+                  <button onClick={()=>setNewItem(p=>({...p,isBulkItem:!p.isBulkItem}))} style={{display:"flex",alignItems:"center",gap:6,padding:"5px 12px",borderRadius:20,border:"2px solid "+(newItem.isBulkItem?"#f59e0b":C.border),background:newItem.isBulkItem?"#f59e0b22":"transparent",color:newItem.isBulkItem?"#f59e0b":C.muted,fontFamily:FM,fontSize:11,fontWeight:600,cursor:"pointer"}}>
+                    🪣 Track as Bulk Item{newItem.isBulkItem?" ✓":""}
+                  </button>
+                  {!newItem.isBulkItem&&<span style={{fontSize:10,color:C.dim,marginLeft:8}}>For staples like flour, sugar, rice, seasonings, cooking oil — tracks precise amount remaining as recipes use it</span>}
+                  {newItem.isBulkItem&&(()=>{
+                    const isVolume=newItem.bulkUnit!=="floz";
+                    const weightLb=newItem.bulkPackageWeightUnit==="oz"?parseFloat(newItem.bulkPackageWeight||0)/16:parseFloat(newItem.bulkPackageWeight||0);
+                    const suggested=isVolume?suggestBulkCups(newItem.name,weightLb):null;
+                    const suggestedInUnit=suggested?convertBulkUnits(suggested,"cup",newItem.bulkUnit):null;
+                    return (<div style={{background:"#f59e0b0d",border:"1px solid #f59e0b33",borderRadius:10,padding:12,marginTop:8}}>
+                      <div style={{display:"flex",gap:6,alignItems:"center",marginBottom:8,flexWrap:"wrap"}}>
+                        <span style={{fontFamily:FM,fontSize:11,color:C.muted}}>Track in:</span>
+                        {[["cup","Cups"],["tbsp","Tbsp"],["tsp","Tsp"],["floz","Fl Oz (liquids)"]].map(([u,label])=>(
+                          <button key={u} onClick={()=>setNewItem(p=>({...p,bulkUnit:u}))} style={{padding:"3px 10px",borderRadius:16,border:"1px solid "+(newItem.bulkUnit===u?"#f59e0b":C.border),background:newItem.bulkUnit===u?"#f59e0b22":"transparent",color:newItem.bulkUnit===u?"#f59e0b":C.muted,fontFamily:FM,fontSize:10,cursor:"pointer"}}>{label}</button>
+                        ))}
+                      </div>
+                      {isVolume?(<div style={{display:"flex",gap:6,alignItems:"end",flexWrap:"wrap",marginBottom:8}}>
+                        <div><Label>Package Weight</Label><input style={{...bInp,width:80}} type="number" placeholder="10" value={newItem.bulkPackageWeight} onChange={e=>setNewItem(p=>({...p,bulkPackageWeight:e.target.value}))}/></div>
+                        <div style={{display:"flex",gap:4}}>
+                          {["lb","oz"].map(u=>(<button key={u} onClick={()=>setNewItem(p=>({...p,bulkPackageWeightUnit:u}))} style={{padding:"6px 10px",borderRadius:6,border:"1px solid "+(newItem.bulkPackageWeightUnit===u?"#f59e0b":C.border),background:newItem.bulkPackageWeightUnit===u?"#f59e0b22":"transparent",color:newItem.bulkPackageWeightUnit===u?"#f59e0b":C.muted,fontFamily:FM,fontSize:11,cursor:"pointer"}}>{u}</button>))}
+                        </div>
+                        <div><Label>{"Total "+newItem.bulkUnit+"s"+(suggestedInUnit?" (suggested)":" (enter manually)")}</Label><input style={{...bInp,width:100}} type="number" placeholder={suggestedInUnit?suggestedInUnit.toFixed(1):"e.g. 32"} value={newItem.bulkPackageCupsOverride} onChange={e=>setNewItem(p=>({...p,bulkPackageCupsOverride:e.target.value}))}/></div>
+                      </div>):(
+                        <div style={{marginBottom:8}}><Label>{"Total fl oz in container"}</Label><input style={{...bInp,width:100}} type="number" placeholder="e.g. 128" value={newItem.bulkPackageCupsOverride} onChange={e=>setNewItem(p=>({...p,bulkPackageCupsOverride:e.target.value}))}/></div>
+                      )}
+                      {suggestedInUnit&&!newItem.bulkPackageCupsOverride&&<div style={{fontSize:10,color:"#f59e0b",marginBottom:8}}>Suggested from typical density — check the field above if it looks off for your specific product, then confirm.</div>}
+                      <div style={{display:"flex",gap:6,alignItems:"center",marginBottom:8,flexWrap:"wrap"}}>
+                        <span style={{fontFamily:FM,fontSize:11,color:C.muted}}>Mode:</span>
+                        {[["measured","Measured — deduct exact amounts"],["estimate","Estimate — I'll adjust % myself"]].map(([m,label])=>(
+                          <button key={m} onClick={()=>setNewItem(p=>({...p,bulkTrackingMode:m}))} style={{padding:"3px 10px",borderRadius:16,border:"1px solid "+(newItem.bulkTrackingMode===m?"#f59e0b":C.border),background:newItem.bulkTrackingMode===m?"#f59e0b22":"transparent",color:newItem.bulkTrackingMode===m?"#f59e0b":C.muted,fontFamily:FM,fontSize:10,cursor:"pointer"}}>{label}</button>
+                        ))}
+                      </div>
+                      {newItem.bulkTrackingMode==="estimate"&&(
+                        <div style={{marginBottom:8}}><Label>{"Currently about "+newItem.bulkEstimatePct+"% full"}</Label><input type="range" min="0" max="100" value={newItem.bulkEstimatePct} onChange={e=>setNewItem(p=>({...p,bulkEstimatePct:e.target.value}))} style={{width:200}}/></div>
+                      )}
+                      <div style={{display:"flex",gap:6,alignItems:"end",flexWrap:"wrap"}}>
+                        <div><Label>Price (optional, for cost tracking)</Label><input style={{...bInp,width:90}} type="number" placeholder="e.g. 4.99" value={newItem.bulkPackagePrice} onChange={e=>setNewItem(p=>({...p,bulkPackagePrice:e.target.value}))}/></div>
+                        <div><Label>{"Alert me under"}</Label><input style={{...bInp,width:70}} type="number" value={newItem.bulkLowStockPct} onChange={e=>setNewItem(p=>({...p,bulkLowStockPct:e.target.value}))}/><span style={{fontSize:11,color:C.muted,marginLeft:4}}>%</span></div>
+                      </div>
+                    </div>);
+                  })()}
+                </div>
               </div>
             )}
 
@@ -4088,6 +4213,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                       </select>
                       {isBP&&<span style={bTag(C.red)}>{item.portionOz}oz</span>}
                       {isDV&&<span style={bTag(C.orange)}>{item.cupsPerBag}c bag</span>}
+                      {item.isBulkItem&&<span title={item.bulkTrackingMode==="estimate"?"Estimated remaining":"Measured remaining"} style={bTag(item.bulkTotalUnits&&(item.bulkQtyRemaining/item.bulkTotalUnits*100)<=(item.bulkLowStockPct||20)?C.red:"#f59e0b")}>🪣 {item.bulkQtyRemaining} {item.bulkUnit}{item.bulkTotalUnits?" / "+item.bulkTotalUnits:""}</span>}
                       {isBP&&item.avgCostPerPortion&&<span title={(item.portionPriceHistory||[]).length>1?"Average of "+item.portionPriceHistory.length+" batches":"From last batch"} style={bTag(C.green)}>avg ${item.avgCostPerPortion.toFixed(2)}/portion</span>}
                       {!isBP&&item.avgUnitPrice&&<span title={item.purchaseCount>1?"Average of "+item.purchaseCount+" purchases":"From last purchase"} style={bTag(C.green)}>avg ${item.avgUnitPrice.toFixed(2)}</span>}
                     </div>
@@ -5871,7 +5997,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
             })()}
             <div style={{display:"flex",gap:8,marginTop:10}}>
               <button style={{...bBtn("ghost"),flex:1,padding:10,fontSize:12}} onClick={()=>printRecipeCard(activeRecipe,mealPhotos[activeRecipe.name],activeRecipeServings)}>&#128424; Print</button>
-              <button style={{...bBtn("primary"),flex:3,padding:12}} onClick={()=>cookRecipe(activeRecipe)}>🍳 I Cooked This — Update Inventory</button>
+              <button style={{...bBtn("primary"),flex:3,padding:12}} onClick={()=>cookRecipe(activeRecipe,activeRecipeServings)}>🍳 I Cooked This — Update Inventory</button>
             </div>
         </div>
       </div>
@@ -5942,10 +6068,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                 }}>🛒 Add Missing to List</button>}
               <button style={{...bBtn("primary"),flex:2,padding:12,background:"#f472b6",color:"#0c0e14"}}
                 onClick={()=>{
-                  setInventory(p=>p.map(i=>{
-                    if(!(activeDessert.usesFromInventory||[]).some(u=>u.toLowerCase()===i.name.toLowerCase()))return i;
-                    return {...i,qty:Math.max(0,+(i.qty-1).toFixed(1))};
-                  }));
+                  deductInventoryForRecipe(activeDessert,activeDessertServings);
                   setActiveDessert(null);
                   showAlert("✅ \""+activeDessert.name+"\" made! Inventory updated.");
                 }}>🍰 I Made This — Update Inventory</button>
