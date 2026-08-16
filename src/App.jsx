@@ -186,6 +186,79 @@ const findCloseInventoryMatch=(typed,inventory)=>{
   });
   return best;
 };
+// ── Recipe serving-scale helpers (shared by Family Recipes view + print) ──
+// Parses a quantity token, correctly handling whole numbers, decimals, simple fractions ("1/2"),
+// and mixed numbers ("1 1/2"). Unlike parseFloat, "1/2" correctly returns 0.5, not 1.
+const parseQtyValue=(raw)=>{
+  const s=String(raw||"").trim();
+  if(!s) return null;
+  const mixed=s.match(/^(\d+)\s+(\d+)\s*\/\s*(\d+)$/);
+  if(mixed) return parseInt(mixed[1])+(parseInt(mixed[2])/parseInt(mixed[3]));
+  const frac=s.match(/^(\d+)\s*\/\s*(\d+)$/);
+  if(frac) return parseInt(frac[1])/parseInt(frac[2]);
+  const dec=s.match(/^\d+\.?\d*$/);
+  if(dec) return parseFloat(s);
+  return null;
+};
+// Formats a scaled numeric quantity back into a friendly recipe-card string using common cooking fractions
+// (nearest 1/8) instead of ugly decimals like 1.33.
+const formatScaledQty=(n)=>{
+  if(n===null||n===undefined||isNaN(n)) return "";
+  const whole=Math.floor(n);
+  const rem=n-whole;
+  const eighths=Math.round(rem*8);
+  const FRACS={1:"\u215B",2:"\u00BC",3:"\u215C",4:"\u00BD",5:"\u215D",6:"\u00BE",7:"\u215E"};
+  if(eighths===0) return String(whole||0);
+  if(eighths===8) return String(whole+1);
+  return (whole>0?whole+" ":"")+FRACS[eighths];
+};
+// Parses a free-text ingredient line ("1 1/2 cups flour") into {qty,unit,name,note}. Shared by legacy-format
+// scaling, shopping-list matching, and the ingredient editor.
+const parseIngredientLine=(raw)=>{
+  let line=String(raw||"").trim();
+  let note="";
+  const parenMatch=line.match(/^(.*?)\s*\(([^)]*)\)\s*$/);
+  if(parenMatch){ line=parenMatch[1].trim(); note=parenMatch[2]; }
+  const qtyUnitMatch=line.match(/^(\d+\s+\d+\s*\/\s*\d+|\d+\s*\/\s*\d+|\d+\.\d+|\d+)\s*([a-zA-Z]+\.?)?\s*(.+)$/);
+  let qty=1,unit="",name=line;
+  if(qtyUnitMatch&&qtyUnitMatch[3]){
+    const parsedQty=parseQtyValue(qtyUnitMatch[1]);
+    qty=parsedQty!==null?parsedQty:1;
+    unit=(qtyUnitMatch[2]||"").replace(/\.$/,"").trim();
+    name=qtyUnitMatch[3].trim();
+  }
+  return {name:name||line,qty,unit,note};
+};
+// Scales one ingredient (structured {name,qty,unit} OR legacy free-text string) by `scale` and returns
+// a display string. Structured ingredients scale precisely; legacy strings are parsed on the fly.
+const scaleIngredientDisplay=(ing,scale)=>{
+  if(ing&&typeof ing==="object"){
+    const scaledQty=formatScaledQty((ing.qty||0)*scale);
+    return [scaledQty,ing.unit,ing.name].filter(Boolean).join(" ")+(ing.note?" ("+ing.note+")":"");
+  }
+  const p=parseIngredientLine(ing);
+  const scaledQty=formatScaledQty(p.qty*scale);
+  return [scaledQty,p.unit,p.name].filter(Boolean).join(" ")+(p.note?" ("+p.note+")":"");
+};
+// Renders a step's text at the current scale. New-format steps contain {{ing:N}} placeholders that get
+// substituted with the live scaled amount for ingredients[N]. Legacy steps (plain text, no placeholders)
+// render unchanged — they were written for a fixed serving count and can't be scaled after the fact.
+const renderStepText=(stepText,ingredients,scale)=>{
+  const text=typeof stepText==="object"?(stepText.text||""):String(stepText||"");
+  if(!text.includes("{{ing:")) return text;
+  return text.replace(/\{\{ing:(\d+)\}\}/g,(m,idxStr)=>{
+    const idx=parseInt(idxStr);
+    const ing=(ingredients||[])[idx];
+    if(!ing) return m;
+    if(typeof ing==="object"){
+      const scaledQty=formatScaledQty((ing.qty||0)*scale);
+      return [scaledQty,ing.unit,ing.name].filter(Boolean).join(" ");
+    }
+    const p=parseIngredientLine(ing);
+    const scaledQty=formatScaledQty(p.qty*scale);
+    return [scaledQty,p.unit,p.name].filter(Boolean).join(" ");
+  });
+};
 const PROTEIN_TAG_COLOR=(name)=>{
   if(!name) return C.muted;
   const n=name.toLowerCase();
@@ -1255,6 +1328,8 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [frPhotoB64,setFrPhotoB64]=useState(null);
   const [frPhotos,setFrPhotos]=useState([]);
   const [frIdeaInput,setFrIdeaInput]=useState("");
+  const [frRemixInput,setFrRemixInput]=useState("");
+  const [frRemixBase,setFrRemixBase]=useState(null);
   const [frServings,setFrServings]=useState(4);
   const [frDraft,setFrDraft]=useState({name:"",kitchenOf:"",notes:"",servings:4,ingredients:[],steps:[],rotation:false,frequency:"4week",seasons:[],photo:null});
   const [canIHaveOpen,setCanIHaveOpen]=useState(false);
@@ -7139,17 +7214,23 @@ setScaleCalcLoading(false);setTimeout(()=>{if(scaleDevice&&scaleDevice._writeChr
               </div>
               <div style={{background:"#fffbf0",border:"1px solid #e8d5b0",borderRadius:10,padding:14,marginBottom:14}}>
                 <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?16:13,fontWeight:700,color:"#5c3317",marginBottom:8,borderBottom:"1px dashed #e8d5b0",paddingBottom:6}}>Ingredients</div>
-                {(frViewRecipe.ingredients||[]).filter(ing=>ing&&ing.trim()).map((ing,i)=>{
+                {(()=>{
                   const base=frViewRecipe.servings||4;
                   const scale=frServings/base;
-                  const match=ing.match(/^([\d.\/]+)\s*(.*)/);
-                  const scaled=match?((parseFloat(match[1])*scale)%1===0?(parseFloat(match[1])*scale).toString():(parseFloat(match[1])*scale).toFixed(1))+" "+match[2]:ing;
-                  return <div key={i} style={{fontFamily:"Georgia,serif",fontSize:seniorMode?16:13,color:"#3d2008",padding:"4px 0",borderBottom:"1px dotted #e8d5b0"}}>• {scaled}</div>;
-                })}
+                  return (frViewRecipe.ingredients||[]).filter(ing=>ing&&(typeof ing==="object"?ing.name:ing.trim())).map((ing,i)=>
+                    <div key={i} style={{fontFamily:"Georgia,serif",fontSize:seniorMode?16:13,color:"#3d2008",padding:"4px 0",borderBottom:"1px dotted #e8d5b0"}}>• {scaleIngredientDisplay(ing,scale)}</div>
+                  );
+                })()}
               </div>
               <div style={{background:"#fffbf0",border:"1px solid #e8d5b0",borderRadius:10,padding:14,marginBottom:14}}>
                 <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?16:13,fontWeight:700,color:"#5c3317",marginBottom:8,borderBottom:"1px dashed #e8d5b0",paddingBottom:6}}>Instructions</div>
-                {(frViewRecipe.steps||[]).filter(step=>step&&step.trim()).map((step,i)=><div key={i} style={{fontFamily:"Georgia,serif",fontSize:seniorMode?16:13,color:"#3d2008",marginBottom:8,display:"flex",gap:8,lineHeight:1.6}}><span style={{fontWeight:700,color:"#c8963e",flexShrink:0}}>{i+1}.</span><span>{step}</span></div>)}
+                {(()=>{
+                  const base=frViewRecipe.servings||4;
+                  const scale=frServings/base;
+                  return (frViewRecipe.steps||[]).filter(step=>step&&(typeof step==="object"?step.text:step.trim())).map((step,i)=>
+                    <div key={i} style={{fontFamily:"Georgia,serif",fontSize:seniorMode?16:13,color:"#3d2008",marginBottom:8,display:"flex",gap:8,lineHeight:1.6}}><span style={{fontWeight:700,color:"#c8963e",flexShrink:0}}>{i+1}.</span><span>{renderStepText(step,frViewRecipe.ingredients,scale)}</span></div>
+                  );
+                })()}
               </div>
               {frViewRecipe.notes&&<div style={{background:"#fef9f0",border:"1px dashed #c8963e",borderRadius:10,padding:12,marginBottom:14,fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,color:"#8b6340",fontStyle:"italic"}}>💛 {frViewRecipe.notes}</div>}
               <div style={{position:"sticky",bottom:0,background:"#fdf6ec",paddingTop:10,paddingBottom:4,marginTop:4}}>
@@ -7159,18 +7240,13 @@ setScaleCalcLoading(false);setTimeout(()=>{if(scaleDevice&&scaleDevice._writeChr
                 <button onClick={()=>{
                   const r=frViewRecipe;
                   const scale=frServings/(r.servings||4);
-                  const scaledIngs=(r.ingredients||[]).filter(i=>i&&i.trim()).map(ing=>{
-                    const m=ing.match(/^([0-9./]+)\s*(.*)/);
-                    if(!m)return ing;
-                    const n=parseFloat(m[1])*scale;
-                    return (n%1===0?n:n.toFixed(1))+" "+m[2];
-                  });
+                  const scaledIngs=(r.ingredients||[]).filter(i=>i&&(typeof i==="object"?i.name:i.trim())).map(ing=>scaleIngredientDisplay(ing,scale));
                   const css="@page{margin:2cm;size:portrait;}body{font-family:Georgia,serif;padding:40px 48px;color:#3d2008;margin:0;background:#fffdf8;}.header{border-bottom:3px solid #c8963e;padding-bottom:16px;margin-bottom:20px;}.title{font-size:34px;font-weight:700;color:#5c3317;margin:0 0 6px 0;line-height:1.2;}.kitchen-of{font-size:15px;font-style:italic;color:#8b6340;margin:0 0 10px 0;}.meta{display:flex;gap:12px;font-size:13px;color:#8b6340;margin-bottom:4px;flex-wrap:wrap;}.meta span{background:#fef3c7;border:1px solid #f59e0b;border-radius:20px;padding:3px 12px;}.photo{width:100%;max-height:220px;object-fit:cover;border-radius:10px;margin-bottom:20px;border:2px solid #e8d5b0;}.section{margin-bottom:20px;}.section-title{font-size:15px;font-weight:700;color:#5c3317;text-transform:uppercase;letter-spacing:1px;border-bottom:1px dashed #e8d5b0;padding-bottom:6px;margin-bottom:10px;}.ingredient{font-size:14px;color:#3d2008;padding:5px 0;border-bottom:1px dotted #e8d5b0;}.step{font-size:14px;color:#3d2008;margin-bottom:10px;display:flex;gap:10px;line-height:1.6;}.step-num{font-size:15px;font-weight:700;color:#c8963e;flex-shrink:0;min-width:20px;}.notes{background:#fef9f0;border:1px dashed #c8963e;border-radius:8px;padding:12px 16px;font-size:13px;font-style:italic;color:#8b6340;margin-bottom:20px;}.footer{border-top:2px solid #e8d5b0;padding-top:12px;margin-top:24px;display:flex;justify-content:space-between;}.brand{font-size:13px;color:#c8963e;font-weight:700;}.url{font-size:11px;color:#aaa;}@media print{body{background:white;padding:0;}}";
                   const photo=r.photo?"<img class='photo' src='"+r.photo+"'/>":"";
                   const kitchenOf=r.kitchenOf?"<div class='kitchen-of'>From the kitchen of "+r.kitchenOf+"</div>":"";
                   const seasons=(r.seasons||[]).map(s=>"<span>"+s+"</span>").join("");
                   const ings=scaledIngs.map(i=>"<div class='ingredient'>&#8226; "+i+"</div>").join("");
-                  const steps=(r.steps||[]).filter(s=>s&&s.trim()).map((s,i)=>"<div class='step'><span class='step-num'>"+(i+1)+".</span><span>"+s+"</span></div>").join("");
+                  const steps=(r.steps||[]).filter(s=>s&&(typeof s==="object"?s.text:s.trim())).map((s,i)=>"<div class='step'><span class='step-num'>"+(i+1)+".</span><span>"+renderStepText(s,r.ingredients,scale)+"</span></div>").join("");
                   const notes=r.notes?"<div class='notes'>"+r.notes+"</div>":"";
                   const html="<!DOCTYPE html><html><head><title>"+r.name+"</title><meta charset='utf-8'/><style>"+css+"</style></head><body>"
                     +"<div class='header'><div class='title'>"+r.name+"</div>"+kitchenOf
@@ -7202,22 +7278,6 @@ setScaleCalcLoading(false);setTimeout(()=>{if(scaleDevice&&scaleDevice._writeChr
                   }
                 }} style={{flex:1,background:"#5c3317",border:"none",borderRadius:10,padding:"12px",color:"#fdf6ec",fontFamily:"Georgia,serif",fontSize:seniorMode?16:13,cursor:"pointer",fontWeight:700}}>🖨 Print Recipe</button>
                 <button onClick={()=>{
-                  const parseIngredient=(raw)=>{
-                    let line=String(raw||"").trim();
-                    let note="";
-                    const parenMatch=line.match(/^(.*?)\s*\(([^)]*)\)\s*$/);
-                    if(parenMatch){ line=parenMatch[1].trim(); note=parenMatch[2]; }
-                    const qtyUnitMatch=line.match(/^(\d+\s*\/\s*\d+|\d+\.\d+|\d+)\s*([a-zA-Z]+\.?)?\s*(.+)$/);
-                    let qty=1,unit="",name=line;
-                    if(qtyUnitMatch&&qtyUnitMatch[3]){
-                      const qtyRaw=qtyUnitMatch[1]||"";
-                      if(qtyRaw.includes("/")){const[n,d]=qtyRaw.split("/").map(s=>parseFloat(s.trim()));qty=(n&&d)?+(n/d).toFixed(2):1;}
-                      else qty=parseFloat(qtyRaw)||1;
-                      unit=(qtyUnitMatch[2]||"").replace(/\.$/,"").trim();
-                      name=qtyUnitMatch[3].trim();
-                    }
-                    return {name:name||line,qty,unit,note};
-                  };
                   const inInventory=(name)=>{
                     const n=name.toLowerCase().trim();
                     return inventory.some(i=>{
@@ -7226,7 +7286,7 @@ setScaleCalcLoading(false);setTimeout(()=>{if(scaleDevice&&scaleDevice._writeChr
                       return n.includes(iname)||iname.includes(n);
                     });
                   };
-                  const parsed=(frViewRecipe.ingredients||[]).map(parseIngredient);
+                  const parsed=(frViewRecipe.ingredients||[]).map(ing=>typeof ing==="object"?{name:ing.name||"",qty:ing.qty||1,unit:ing.unit||"",note:ing.note||""}:parseIngredientLine(ing));
                   const missing=parsed.filter(p=>!inInventory(p.name));
                   if(missing.length===0){showAlert("You have all the ingredients on hand!");}
                   else{
@@ -7243,8 +7303,9 @@ setScaleCalcLoading(false);setTimeout(()=>{if(scaleDevice&&scaleDevice._writeChr
                   setShareMode(true);
                   setShowShareModal(true);
                 }} style={{background:"transparent",border:"2px solid #c8963e",borderRadius:10,padding:"10px 16px",color:"#c8963e",fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,cursor:"pointer",fontWeight:600}}>📤 Share</button>
-                <button onClick={()=>{setAddToPlanRecipe({...frViewRecipe,usesFromInventory:frViewRecipe.usesFromInventory||frViewRecipe.ingredients||[],missingIngredients:frViewRecipe.missingIngredients||[]});setAddToPlanDay("");}} style={{background:"transparent",border:"2px solid #2aa86e",borderRadius:10,padding:"10px 16px",color:"#2aa86e",fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,cursor:"pointer",fontWeight:600}}>📅 Add to Meal Plan</button>
+                <button onClick={()=>{const scale=frServings/(frViewRecipe.servings||4);const ingDisplay=(frViewRecipe.ingredients||[]).map(ing=>scaleIngredientDisplay(ing,scale));setAddToPlanRecipe({...frViewRecipe,usesFromInventory:frViewRecipe.usesFromInventory||ingDisplay,missingIngredients:frViewRecipe.missingIngredients||[]});setAddToPlanDay("");}} style={{background:"transparent",border:"2px solid #2aa86e",borderRadius:10,padding:"10px 16px",color:"#2aa86e",fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,cursor:"pointer",fontWeight:600}}>📅 Add to Meal Plan</button>
                 <button onClick={()=>{setFrEditRecipe({...frViewRecipe});setFrServings(frViewRecipe.servings||4);}} style={{background:"transparent",border:"2px solid #c8963e",borderRadius:10,padding:"10px 16px",color:"#5c3317",fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,cursor:"pointer"}}>✏ Edit</button>
+                <button onClick={()=>{setFrRemixBase(frViewRecipe);setFrRemixInput("");setFrViewRecipe(null);setFrAddMode("remix");}} style={{background:"transparent",border:"2px solid #7c3aed",borderRadius:10,padding:"10px 16px",color:"#7c3aed",fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,cursor:"pointer",fontWeight:600}}>🔀 Remix</button>
                 <button onClick={()=>{showConfirm("Delete "+frViewRecipe.name+"?",()=>{const updated=familyRecipes.filter(r=>r.id!==frViewRecipe.id);setFamilyRecipes(updated);try{localStorage.setItem("sk_familyRecipes",JSON.stringify(updated));}catch{}setFrViewRecipe(null);});}} style={{background:"transparent",border:"2px solid #dc2626",borderRadius:10,padding:"10px 16px",color:"#dc2626",fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,cursor:"pointer"}}>🗑 Delete</button>
               </div>
             </div>)}
@@ -7252,7 +7313,7 @@ setScaleCalcLoading(false);setTimeout(()=>{if(scaleDevice&&scaleDevice._writeChr
             {/* ── EDIT / REVIEW RECIPE ── */}
             {frEditRecipe&&(<div>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-                <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?22:18,color:"#5c3317",fontWeight:700}}>✏ Edit Recipe</div>
+                <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?22:18,color:"#5c3317",fontWeight:700}}>{familyRecipes.some(r=>r.id===frEditRecipe.id)?"✏ Edit Recipe":"✨ Review New Recipe — not saved yet"}</div>
                 <button onClick={()=>setFrEditRecipe(null)} style={{background:"transparent",border:"none",fontSize:20,cursor:"pointer",color:"#8b6340"}}>✕</button>
               </div>
               {[["Recipe Name","name"],["From the Kitchen of (optional)","kitchenOf"],["Family Notes (optional)","notes"]].map(([label,field])=>(
@@ -7267,11 +7328,13 @@ setScaleCalcLoading(false);setTimeout(()=>{if(scaleDevice&&scaleDevice._writeChr
               </div>
               <div style={{marginBottom:10}}>
                 <div style={{fontFamily:"Georgia,serif",fontSize:12,color:"#8b6340",marginBottom:6}}>Ingredients (one per line)</div>
-                <textarea value={(frEditRecipe.ingredients||[]).join("\n")} onChange={e=>setFrEditRecipe(r=>({...r,ingredients:e.target.value.split("\n")}))} rows={5} style={{width:"100%",padding:"10px 12px",borderRadius:8,border:"1px solid #e8d5b0",fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,color:"#3d2008",background:"#fffbf0",boxSizing:"border-box",resize:"vertical"}}/>
+                <textarea value={(frEditRecipe.ingredients||[]).map(ing=>typeof ing==="object"?[formatScaledQty(ing.qty),ing.unit,ing.name].filter(Boolean).join(" ")+(ing.note?" ("+ing.note+")":""):ing).join("\n")} onChange={e=>setFrEditRecipe(r=>({...r,ingredients:e.target.value.split("\n").map(line=>{const p=parseIngredientLine(line);return {name:p.name,qty:p.qty,unit:p.unit,note:p.note};})}))} rows={5} style={{width:"100%",padding:"10px 12px",borderRadius:8,border:"1px solid #e8d5b0",fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,color:"#3d2008",background:"#fffbf0",boxSizing:"border-box",resize:"vertical"}}/>
+                <div style={{fontFamily:"Georgia,serif",fontSize:11,color:"#8b6340",marginTop:4,fontStyle:"italic"}}>One per line, e.g. "1 1/2 cups flour" — saved with precise amounts so this recipe can scale by serving size.</div>
               </div>
               <div style={{marginBottom:14}}>
                 <div style={{fontFamily:"Georgia,serif",fontSize:12,color:"#8b6340",marginBottom:6}}>Steps (one per line)</div>
                 <textarea value={(frEditRecipe.steps||[]).join("\n")} onChange={e=>setFrEditRecipe(r=>({...r,steps:e.target.value.split("\n")}))} rows={6} style={{width:"100%",padding:"10px 12px",borderRadius:8,border:"1px solid #e8d5b0",fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,color:"#3d2008",background:"#fffbf0",boxSizing:"border-box",resize:"vertical"}}/>
+                <div style={{fontFamily:"Georgia,serif",fontSize:11,color:"#8b6340",marginTop:4,fontStyle:"italic"}}>AI-generated steps use {"{{ing:0}}"}, {"{{ing:1}}"}... placeholders that auto-update with serving size — 0 is the first ingredient line above, 1 is the second, and so on. If you reorder or delete an ingredient line, double-check the placeholder numbers in the steps still point to the right one.</div>
               </div>
               <div style={{background:"#fef9f0",border:"1px solid #e8d5b0",borderRadius:10,padding:14,marginBottom:14}}>
                 <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
@@ -7398,7 +7461,7 @@ setScaleCalcLoading(false);setTimeout(()=>{if(scaleDevice&&scaleDevice._writeChr
                   setFrLoading(true);
                   try{
                     const photoDesc=frPhotos.map((p,i)=>"Photo "+(i+1)).join(", ");
-                    const prompt="I am sending you "+(frPhotos.length>1?frPhotos.length+" photos of a recipe ("+photoDesc+"). Read all photos together and combine into one complete recipe.":"a photo of a recipe. Read it and extract all details.")+" Return ONLY valid JSON with no markdown: {name,kitchenOf,servings,ingredients:[strings with amounts],steps:[strings],notes}. kitchenOf is the person's name if written on the recipe — empty string if not present. Combine all pages into one complete recipe.";
+                    const prompt="I am sending you "+(frPhotos.length>1?frPhotos.length+" photos of a recipe ("+photoDesc+"). Read all photos together and combine into one complete recipe.":"a photo of a recipe. Read it and extract all details.")+" Return ONLY valid JSON with no markdown: {name,kitchenOf,servings,ingredients:[{name,qty,unit} objects — qty is a NUMBER (use decimals for fractions, e.g. 0.5 for 1/2 cup, 0.25 for 1/4 tsp), unit is a short string like \"cup\",\"tsp\",\"tbsp\",\"oz\",\"lb\" or \"\" for countable items like eggs],steps:[strings — CRITICAL: every step that references a measured ingredient MUST use a {{ing:N}} placeholder instead of typing a number, where N is that ingredient's zero-based index in the ingredients array (e.g. if ingredients[2] is {name:\"granulated sugar\",qty:1,unit:\"cup\"}, write \"Cream {{ing:2}} with the butter\", NEVER \"Cream 1 cup sugar with the butter\"). Never type a literal quantity or unit in a step for a measured ingredient — always use the placeholder so amounts stay accurate when the recipe is scaled to a different serving size.],notes}. kitchenOf is the person's name if written on the recipe — empty string if not present. Combine all pages into one complete recipe.";
                     const res=await callClaude({
                       system:"You are a recipe reader. Extract recipes from images and return ONLY valid JSON, no markdown, no backticks.",
                       prompt,
@@ -7432,7 +7495,7 @@ setScaleCalcLoading(false);setTimeout(()=>{if(scaleDevice&&scaleDevice._writeChr
                 if(!frIdeaInput.trim())return;
                 setFrLoading(true);
                 try{
-                  const res=await callClaude({system:"You are a recipe creator. Create a complete family-style recipe and return ONLY valid JSON with no markdown: {name,kitchenOf,servings,ingredients:[strings with amounts],steps:[strings],notes}. kitchenOf should be empty string. Make it warm, homey, and practical.",prompt:"Create a complete recipe for: "+frIdeaInput.trim()+". Inventory available: "+inventory.map(i=>i.name).filter(Boolean).join(", "),maxTokens:1200});
+                  const res=await callClaude({system:"You are a recipe creator. Create a complete family-style recipe and return ONLY valid JSON with no markdown: {name,kitchenOf,servings,ingredients:[{name,qty,unit} objects — qty is a NUMBER (use decimals for fractions, e.g. 0.5 for 1/2 cup, 0.25 for 1/4 tsp), unit is a short string like \"cup\",\"tsp\",\"tbsp\",\"oz\",\"lb\" or \"\" for countable items like eggs],steps:[strings — CRITICAL: every step that references a measured ingredient MUST use a {{ing:N}} placeholder instead of typing a number, where N is that ingredient's zero-based index in the ingredients array (e.g. if ingredients[2] is {name:\"granulated sugar\",qty:1,unit:\"cup\"}, write \"Cream {{ing:2}} with the butter\", NEVER \"Cream 1 cup sugar with the butter\"). Never type a literal quantity or unit in a step for a measured ingredient — always use the placeholder so amounts stay accurate when the recipe is scaled to a different serving size.],notes}. kitchenOf should be empty string. Make it warm, homey, and practical.",prompt:"Create a complete recipe for: "+frIdeaInput.trim()+". Inventory available: "+inventory.map(i=>i.name).filter(Boolean).join(", "),maxTokens:1200});
                   const raw=(typeof res==="string"?res:res?.content?.[0]?.text||"").replace(/```json|```/g,"").trim();
                   const s=raw.indexOf("{"),e=raw.lastIndexOf("}");
                   const parsed=JSON.parse(raw.slice(s,e+1));
@@ -7442,6 +7505,45 @@ setScaleCalcLoading(false);setTimeout(()=>{if(scaleDevice&&scaleDevice._writeChr
                 }catch(err){showAlert("Could not create recipe. Please try again.");}
                 setFrLoading(false);
               }} disabled={!frIdeaInput.trim()||frLoading} style={{width:"100%",background:"#5c3317",border:"none",borderRadius:10,padding:"13px",color:"#fdf6ec",fontFamily:"Georgia,serif",fontSize:seniorMode?17:14,cursor:frIdeaInput.trim()&&!frLoading?"pointer":"default",fontWeight:700,opacity:frIdeaInput.trim()&&!frLoading?1:0.5}}>{frLoading?"Creating recipe...":"Create Recipe Card →"}</button>
+            </div>)}
+
+            {/* ── REMIX (edit-with-changes, saves as a new recipe by default) ── */}
+            {frAddMode==="remix"&&frRemixBase&&!frEditRecipe&&(<div>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+                <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?22:18,color:"#5c3317",fontWeight:700}}>🔀 Remix Recipe</div>
+                <button onClick={()=>{setFrAddMode(null);setFrViewRecipe(frRemixBase);setFrRemixBase(null);}} style={{background:"transparent",border:"none",fontSize:20,cursor:"pointer",color:"#8b6340"}}>✕</button>
+              </div>
+              <div style={{background:"#fffbf0",border:"1px solid #e8d5b0",borderRadius:10,padding:"10px 14px",marginBottom:14}}>
+                <div style={{fontFamily:"Georgia,serif",fontSize:11,color:"#8b6340",textTransform:"uppercase",letterSpacing:0.5}}>Starting from</div>
+                <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?17:15,color:"#5c3317",fontWeight:700}}>{frRemixBase.name}</div>
+              </div>
+              <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?15:13,color:"#8b6340",marginBottom:10,lineHeight:1.6}}>Describe what you want to change — add, swap, or remove ingredients, change how it's served, adjust the flavor profile. The original recipe stays untouched; this creates a new one you can rename before saving.</div>
+              <textarea value={frRemixInput} onChange={e=>setFrRemixInput(e.target.value)} placeholder={'e.g. "Add frozen sweet corn, chorizo sausage, and seasoned ground beef. Make it servable over tortilla chips or as a dip instead of on the cob."'} rows={4} style={{width:"100%",padding:"12px",borderRadius:10,border:"2px solid #e8d5b0",fontFamily:"Georgia,serif",fontSize:seniorMode?16:13,color:"#3d2008",background:"#fffbf0",boxSizing:"border-box",resize:"none",marginBottom:14}}/>
+              <button onClick={async()=>{
+                if(!frRemixInput.trim())return;
+                setFrLoading(true);
+                try{
+                  const baseIngredients=(frRemixBase.ingredients||[]).map(ing=>"- "+scaleIngredientDisplay(ing,1)).join("\n");
+                  const baseSteps=(frRemixBase.steps||[]).map((s,i)=>(i+1)+". "+renderStepText(s,frRemixBase.ingredients,1)).join("\n");
+                  const baseText="BASE RECIPE — \""+frRemixBase.name+"\" (serves "+(frRemixBase.servings||4)+")\nIngredients:\n"+baseIngredients+"\nSteps:\n"+baseSteps+(frRemixBase.notes?"\nNotes: "+frRemixBase.notes:"");
+                  const res=await callClaude({
+                    system:"You are a recipe creator helping remix an existing family recipe into a new variation. Keep what already works about the base recipe and apply ONLY the requested changes. Return ONLY valid JSON with no markdown: {name,kitchenOf,servings,ingredients:[{name,qty,unit} objects — qty is a NUMBER (use decimals for fractions, e.g. 0.5 for 1/2 cup, 0.25 for 1/4 tsp), unit is a short string like \\\"cup\\\",\\\"tsp\\\",\\\"tbsp\\\",\\\"oz\\\",\\\"lb\\\" or \\\"\\\" for countable items like eggs],steps:[strings — CRITICAL: every step that references a measured ingredient MUST use a {{ing:N}} placeholder instead of typing a number, where N is that ingredient's zero-based index in the ingredients array. Never type a literal quantity or unit for a measured ingredient — always use the placeholder.],notes}. Give it a NEW name that reflects what changed (e.g. base \"Elote en Salsa\" + added chorizo and beef, served as a dip \u2192 \"Elote en Salsa Dip with Chorizo & Beef\"). kitchenOf should carry over from the base recipe if it had one, otherwise empty string.",
+                    prompt:baseText+"\n\nREQUESTED CHANGES: "+frRemixInput.trim()+"\n\nCreate the new variation as a complete, standalone recipe card.",
+                    maxTokens:1400
+                  });
+                  const raw=(typeof res==="string"?res:res?.content?.[0]?.text||"").replace(/```json|```/g,"").trim();
+                  const s=raw.indexOf("{"),e=raw.lastIndexOf("}");
+                  const parsed=JSON.parse(raw.slice(s,e+1));
+                  const parsedServings=parseInt(parsed.servings)||frRemixBase.servings||4;
+                  setFrEditRecipe({...parsed,id:Date.now(),servings:parsedServings,rotation:false,frequency:"4week",seasons:[],photo:null});
+                  setFrServings(parsedServings);
+                  setFrRemixInput("");
+                  setFrRemixBase(null);
+                  setFrAddMode("review");
+                }catch(err){showAlert("Could not create the remix. Try describing the changes differently.");}
+                setFrLoading(false);
+              }} disabled={!frRemixInput.trim()||frLoading} style={{width:"100%",background:"#7c3aed",border:"none",borderRadius:10,padding:"13px",color:"#fdf6ec",fontFamily:"Georgia,serif",fontSize:seniorMode?17:14,cursor:frRemixInput.trim()&&!frLoading?"pointer":"default",fontWeight:700,opacity:frRemixInput.trim()&&!frLoading?1:0.5}}>{frLoading?"Remixing...":"🔀 Create Remixed Recipe →"}</button>
+              <div style={{fontFamily:"Georgia,serif",fontSize:11,color:"#8b6340",marginTop:8,textAlign:"center",fontStyle:"italic"}}>You'll be able to review, rename, and adjust before saving. "{frRemixBase.name}" won't be changed.</div>
             </div>)}
 
             {/* ── RECIPE LIST (home screen) ── */}
