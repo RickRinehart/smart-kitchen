@@ -1467,6 +1467,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [scaleWeightGrams,setScaleWeightGrams]=useState(0);
   const [scaleRawBytes,setScaleRawBytes]=useState("");
   const [scaleConnecting,setScaleConnecting]=useState(false);
+  const [showScaleConnectPrimer,setShowScaleConnectPrimer]=useState(false);
   const [scaleFoodName,setScaleFoodName]=useState("");
   const [scaleCalcResult,setScaleCalcResult]=useState(null);
   const [scaleCalcLoading,setScaleCalcLoading]=useState(false);
@@ -2640,6 +2641,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
         const writeChr=await svc.getCharacteristic(SCALE_CHR_WRITE);
         dev._writeChr=writeChr;
       }catch(e){console.log("Write chr not available:",e.message);}
+      showAlert("⚖ "+(dev.name||"Scale")+" connected! You can now weigh ingredients right from any recipe.");
     }catch(err){
       if(err.name==="NotFoundError") setScaleError("No scale found. Make sure the Etekcity scale is on and nearby.");
       else setScaleError("Could not connect: "+err.message);
@@ -5591,6 +5593,17 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
           </div>
         </div>
       )}
+      {showScaleConnectPrimer&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300,padding:16}} onClick={()=>setShowScaleConnectPrimer(false)}>
+          <div style={{background:C.card,border:"1px solid #3b82f655",borderRadius:16,padding:26,maxWidth:380,width:"100%",textAlign:"center"}} onClick={e=>e.stopPropagation()}>
+            <div style={{fontSize:38,marginBottom:10}}>⚖</div>
+            <div style={{fontFamily:FD,fontSize:20,color:"#3b82f6",marginBottom:8}}>Connect Your Scale</div>
+            <div style={{fontSize:13,color:C.muted,lineHeight:1.6,marginBottom:18}}>Your browser will show a list of nearby Bluetooth devices — look for <strong style={{color:C.text}}>"Etekcity Nutrition Scale"</strong> and tap <strong style={{color:C.text}}>Pair</strong>. Make sure your scale is powered on and nearby first.</div>
+            <button style={{width:"100%",background:"#3b82f6",border:"none",borderRadius:10,padding:12,color:"#fff",fontFamily:FM,fontSize:14,fontWeight:700,cursor:"pointer",marginBottom:8}} onClick={()=>{setShowScaleConnectPrimer(false);connectScale();}}>Continue</button>
+            <button style={{width:"100%",background:"transparent",border:"none",color:C.muted,fontFamily:FM,fontSize:12,cursor:"pointer",padding:6}} onClick={()=>setShowScaleConnectPrimer(false)}>Cancel</button>
+          </div>
+        </div>
+      )}
       {/* == BATCH PRINT CUE == */}
       {batchPrintCue&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300,padding:16}} onClick={()=>setBatchPrintCue(null)}>
@@ -6036,7 +6049,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
             {(activeRecipe.ingredients||[]).length>0&&(()=>{
               const scale=activeRecipeServings/(activeRecipe.servings||4);
               return (<div style={{marginBottom:16}}>
-                <div style={{fontFamily:FM,fontSize:10,color:C.muted,letterSpacing:1,marginBottom:10,display:"flex",alignItems:"center",flexWrap:"wrap",gap:6}}>INGREDIENTS{scaleDevice?<span style={{fontWeight:400,textTransform:"none",letterSpacing:0,color:"#3b82f6"}}>— ⚖ scale connected, tap Weigh on any line for mise en place</span>:<button onClick={connectScale} disabled={scaleConnecting} style={{fontWeight:600,textTransform:"none",letterSpacing:0,background:"transparent",border:"1px solid #3b82f6",borderRadius:6,padding:"2px 8px",color:"#3b82f6",fontSize:10,fontFamily:FM,cursor:scaleConnecting?"default":"pointer"}}>⚖ {scaleConnecting?"Connecting…":"Connect a scale to weigh ingredients precisely"}</button>}</div>
+                <div style={{fontFamily:FM,fontSize:10,color:C.muted,letterSpacing:1,marginBottom:10,display:"flex",alignItems:"center",flexWrap:"wrap",gap:6}}>INGREDIENTS{scaleDevice?<span style={{fontWeight:400,textTransform:"none",letterSpacing:0,color:"#3b82f6"}}>— ⚖ scale connected, tap Weigh on any line for mise en place</span>:<button onClick={()=>setShowScaleConnectPrimer(true)} disabled={scaleConnecting} style={{fontWeight:600,textTransform:"none",letterSpacing:0,background:"transparent",border:"1px solid #3b82f6",borderRadius:6,padding:"2px 8px",color:"#3b82f6",fontSize:10,fontFamily:FM,cursor:scaleConnecting?"default":"pointer"}}>⚖ {scaleConnecting?"Connecting…":"Connect a scale to weigh ingredients precisely"}</button>}</div>
                 {activeRecipe.ingredients.map((ing,i)=>{
                   if(!ing||!(typeof ing==="object"?ing.name:ing.trim())) return null;
                   return (<div key={i} style={{fontSize:13,color:C.text,padding:"4px 0",borderBottom:"1px dotted "+C.borderLight,display:"flex",alignItems:"center",flexWrap:"wrap"}}>
@@ -6099,7 +6112,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
             {(activeDessert.ingredients||[]).length>0&&(()=>{
               const scale=activeDessertServings/(activeDessert.servings||4);
               return (<div style={{marginBottom:16}}>
-                <div style={{fontFamily:FM,fontSize:10,color:C.muted,letterSpacing:1,marginBottom:10,display:"flex",alignItems:"center",flexWrap:"wrap",gap:6}}>INGREDIENTS{scaleDevice?<span style={{fontWeight:400,textTransform:"none",letterSpacing:0,color:"#3b82f6"}}>— ⚖ scale connected, tap Weigh on any line for mise en place</span>:<button onClick={connectScale} disabled={scaleConnecting} style={{fontWeight:600,textTransform:"none",letterSpacing:0,background:"transparent",border:"1px solid #3b82f6",borderRadius:6,padding:"2px 8px",color:"#3b82f6",fontSize:10,fontFamily:FM,cursor:scaleConnecting?"default":"pointer"}}>⚖ {scaleConnecting?"Connecting…":"Connect a scale to weigh ingredients precisely"}</button>}</div>
+                <div style={{fontFamily:FM,fontSize:10,color:C.muted,letterSpacing:1,marginBottom:10,display:"flex",alignItems:"center",flexWrap:"wrap",gap:6}}>INGREDIENTS{scaleDevice?<span style={{fontWeight:400,textTransform:"none",letterSpacing:0,color:"#3b82f6"}}>— ⚖ scale connected, tap Weigh on any line for mise en place</span>:<button onClick={()=>setShowScaleConnectPrimer(true)} disabled={scaleConnecting} style={{fontWeight:600,textTransform:"none",letterSpacing:0,background:"transparent",border:"1px solid #3b82f6",borderRadius:6,padding:"2px 8px",color:"#3b82f6",fontSize:10,fontFamily:FM,cursor:scaleConnecting?"default":"pointer"}}>⚖ {scaleConnecting?"Connecting…":"Connect a scale to weigh ingredients precisely"}</button>}</div>
                 {activeDessert.ingredients.map((ing,i)=>{
                   if(!ing||!(typeof ing==="object"?ing.name:ing.trim())) return null;
                   return (<div key={i} style={{fontSize:13,color:C.text,padding:"4px 0",borderBottom:"1px dotted "+C.borderLight,display:"flex",alignItems:"center",flexWrap:"wrap"}}>
@@ -6799,7 +6812,7 @@ setScaleCalcLoading(false);setTimeout(()=>{if(scaleDevice&&scaleDevice._writeChr
                 <div style={{fontFamily:FM,fontSize:11,color:C.muted,marginBottom:16}}>
                   Compatible: <strong style={{color:C.text}}>Etekcity Nutrition Scale</strong> (ENS-L221S) · Service 0xFFF0
                 </div>
-                <button onClick={connectScale} disabled={scaleConnecting||!navigator.bluetooth}
+                <button onClick={()=>setShowScaleConnectPrimer(true)} disabled={scaleConnecting||!navigator.bluetooth}
                   style={{...bBtn("primary"),padding:"12px 24px",fontSize:14,opacity:(!navigator.bluetooth)?0.5:1}}>
                   {scaleConnecting?"Searching...":"Connect Scale"}
                 </button>
@@ -7487,7 +7500,7 @@ setScaleCalcLoading(false);setTimeout(()=>{if(scaleDevice&&scaleDevice._writeChr
                 {(frViewRecipe.seasons||[]).map(s=><span key={s} style={{background:"#ede9fe",border:"1px solid #7c3aed",borderRadius:20,padding:"4px 10px",fontSize:12,color:"#5b21b6",fontFamily:"Georgia,serif"}}>{s}</span>)}
               </div>
               <div style={{background:"#fffbf0",border:"1px solid #e8d5b0",borderRadius:10,padding:14,marginBottom:14}}>
-                <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?16:13,fontWeight:700,color:"#5c3317",marginBottom:8,borderBottom:"1px dashed #e8d5b0",paddingBottom:6,display:"flex",alignItems:"center",flexWrap:"wrap",gap:6}}>Ingredients{scaleDevice?<span style={{fontWeight:400,color:"#3b82f6",fontSize:11}}>— ⚖ scale connected</span>:<button onClick={connectScale} disabled={scaleConnecting} style={{fontWeight:600,background:"transparent",border:"1px solid #3b82f6",borderRadius:6,padding:"2px 8px",color:"#3b82f6",fontSize:10,fontFamily:"Georgia,serif",cursor:scaleConnecting?"default":"pointer"}}>⚖ {scaleConnecting?"Connecting…":"Connect a scale to weigh ingredients"}</button>}</div>
+                <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?16:13,fontWeight:700,color:"#5c3317",marginBottom:8,borderBottom:"1px dashed #e8d5b0",paddingBottom:6,display:"flex",alignItems:"center",flexWrap:"wrap",gap:6}}>Ingredients{scaleDevice?<span style={{fontWeight:400,color:"#3b82f6",fontSize:11}}>— ⚖ scale connected</span>:<button onClick={()=>setShowScaleConnectPrimer(true)} disabled={scaleConnecting} style={{fontWeight:600,background:"transparent",border:"1px solid #3b82f6",borderRadius:6,padding:"2px 8px",color:"#3b82f6",fontSize:10,fontFamily:"Georgia,serif",cursor:scaleConnecting?"default":"pointer"}}>⚖ {scaleConnecting?"Connecting…":"Connect a scale to weigh ingredients"}</button>}</div>
                 {(()=>{
                   const base=frViewRecipe.servings||4;
                   const scale=frServings/base;
