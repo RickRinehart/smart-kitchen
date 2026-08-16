@@ -295,6 +295,26 @@ const gramsToBulkUnit=(grams,itemName,bulkUnit)=>{
   if(cups===null) return null;
   return convertBulkUnits(cups,"cup",bulkUnit);
 };
+// Target weight (grams) for a recipe ingredient's stated amount — reuses the SAME density table as
+// the bulk-item conversion above rather than a second table that could drift out of sync. Assumes
+// standard spooned-and-leveled measurement (the baking-reference convention), not compressed/packed —
+// worth a visible note in the UI since e.g. packed flour weighs meaningfully more than spooned flour
+// for the same "1 cup". Returns null when there's no reliable density (unknown ingredient, non-mass
+// unit like a whole egg) so callers can fall back to a plain live reading with no target comparison.
+const targetWeightGrams=(name,qty,unit)=>{
+  if(!qty||!unit) return null;
+  if(unit==="lb") return qty*453.592;
+  if(unit==="oz") return qty*28.3495;
+  if(BULK_UNIT_TO_CUPS[unit]){
+    const cups=qty*BULK_UNIT_TO_CUPS[unit];
+    const n=(name||"").toLowerCase();
+    const match=Object.keys(BULK_CUPS_PER_LB).find(k=>n.includes(k));
+    if(!match) return null;
+    const gramsPerCup=453.592/BULK_CUPS_PER_LB[match];
+    return cups*gramsPerCup;
+  }
+  return null;
+};
 const PROTEIN_TAG_COLOR=(name)=>{
   if(!name) return C.muted;
   const n=name.toLowerCase();
@@ -625,7 +645,10 @@ function LoadingDots(){
 // the Desserts modal, and Family Recipes. Only renders when a scale is connected. Tare-on-tap,
 // live weight while placing the ingredient, confirm to log. Confirmed weights are stored in grams
 // regardless of what unit the scale is currently displaying (scaleWeightGrams is always grams).
-function IngredientWeighWidget({idx,scaleDevice,weighingIngredientIdx,setWeighingIngredientIdx,weighedIngredients,setWeighedIngredients,scaleWeight,scaleWeightGrams,scaleUnit}){
+// Color-coded against a target weight (when one is computable): blue = idle, yellow = below target,
+// green = at target, red = over target — visual confirmation of correct measurement technique,
+// useful for teaching proper portioning (e.g. culinary program use).
+function IngredientWeighWidget({idx,scaleDevice,weighingIngredientIdx,setWeighingIngredientIdx,weighedIngredients,setWeighedIngredients,scaleWeight,scaleWeightGrams,scaleUnit,targetGrams}){
   if(!scaleDevice) return null;
   const confirmed=weighedIngredients[idx];
   const isWeighing=weighingIngredientIdx===idx;
@@ -633,8 +656,17 @@ function IngredientWeighWidget({idx,scaleDevice,weighingIngredientIdx,setWeighin
     return <span onClick={()=>setWeighedIngredients(p=>{const n={...p};delete n[idx];return n;})} title="Tap to re-weigh" style={{fontSize:11,color:"#10b981",fontFamily:"monospace",marginLeft:8,cursor:"pointer",fontWeight:700}}>✓ {confirmed.toFixed(0)}g weighed</span>;
   }
   if(isWeighing){
-    return (<span style={{display:"inline-flex",alignItems:"center",gap:6,marginLeft:8}}>
-      <span style={{fontSize:12,color:"#3b82f6",fontFamily:"monospace",fontWeight:700}}>{scaleWeight?.toFixed(1)||"0.0"}{scaleUnit}</span>
+    let color="#3b82f6",statusLabel="";
+    if(targetGrams&&scaleWeightGrams>0){
+      const tolerance=Math.max(targetGrams*0.05,2);
+      if(scaleWeightGrams<targetGrams-tolerance){color="#eab308";statusLabel="below";}
+      else if(scaleWeightGrams>targetGrams+tolerance){color="#ef4444";statusLabel="over";}
+      else{color="#22c55e";statusLabel="✓ target met";}
+    }
+    return (<span style={{display:"inline-flex",alignItems:"center",gap:6,marginLeft:8,flexWrap:"wrap"}}>
+      <span style={{fontSize:13,color,fontFamily:"monospace",fontWeight:700,transition:"color 0.2s"}}>{scaleWeight?.toFixed(1)||"0.0"}{scaleUnit}</span>
+      {targetGrams&&<span title="Target assumes standard spooned & leveled measurement — packed/compressed will weigh more" style={{fontSize:10,color:"#888",fontFamily:"monospace"}}>/ {targetGrams>=453.592?(targetGrams/453.592).toFixed(2)+"lb":targetGrams.toFixed(0)+"g"} target</span>}
+      {statusLabel&&<span style={{fontSize:9,color,fontWeight:700,textTransform:"uppercase",letterSpacing:0.5}}>{statusLabel}</span>}
       <button onClick={()=>{setWeighedIngredients(p=>({...p,[idx]:scaleWeightGrams}));setWeighingIngredientIdx(null);}} style={{background:"#10b981",border:"none",borderRadius:6,padding:"2px 8px",color:"#fff",fontSize:10,fontFamily:"monospace",cursor:"pointer",fontWeight:700}}>✓ Log</button>
       <button onClick={()=>setWeighingIngredientIdx(null)} style={{background:"transparent",border:"none",color:"#888",fontSize:10,fontFamily:"monospace",cursor:"pointer"}}>✕</button>
     </span>);
@@ -2092,7 +2124,7 @@ APP KNOWLEDGE: Smart Kitchen has these features:
 - Recipes & Saved: AI recipe suggestions. Star-rate meals. 5-star = Keeper on rotation.
 - SERVING SIZE SCALING: Every recipe detail view (tap any meal in Meal Plan, any Recipes tab card, Make This results, Family Recipes, and Desserts) has a "Serves" stepper with +/- buttons. Adjusting it live-scales both the ingredients list and the numbered instructions together — e.g. going from 4 to 8 servings doubles every amount in the ingredients AND updates the amounts written into the steps. Printing a recipe also respects whatever serving count is currently selected. Great for guests, planned leftovers, or just a bigger/smaller batch of one specific meal without changing your household's default family size.
 - BULK ITEM TRACKING: When adding an inventory item, there's a "🪣 Track as Bulk Item" toggle — for staples like flour, sugar, rice, seasonings, or cooking oil. User picks a tracking unit (cups, tbsp, tsp, or fl oz for liquids), enters the package weight (or total fl oz for liquids), and the app suggests how many of that unit the package holds (editable — the suggestion is a starting estimate, not exact for every brand). Two modes: Measured (the app deducts the exact amount used every time a recipe is cooked) or Estimate (user manually adjusts a percentage-remaining slider instead). When a bulk item drops below its low-stock threshold, it's automatically added to the shopping list. "I Cooked This" / "I Made This" now deducts real bulk-item amounts (matched to the recipe's ingredients and current serving size) instead of a flat generic deduction, wherever a bulk item and a recipe ingredient are matched with compatible units.
-- MISE EN PLACE SCALE WEIGHING: Whenever a Bluetooth scale is connected, every recipe's ingredient list (Meal Plan, Recipes tab, Make This, Desserts, and Family Recipes) shows a "⚖ Weigh" button next to each ingredient line. Tapping it tares the scale and shows the live weight; tapping "✓ Log" confirms that ingredient's actual weighed amount. If that ingredient matches a bulk-tracked pantry item, the confirmed weighed amount is used for inventory deduction instead of the recipe's stated amount when "I Cooked This" is tapped — a real weigh-in is more accurate than any recipe estimate. Not available in Family Recipes yet since there's no "Made It" action there currently.
+- MISE EN PLACE SCALE WEIGHING: Whenever a Bluetooth scale is connected, every recipe's ingredient list (Meal Plan, Recipes tab, Make This, Desserts, and Family Recipes) shows a "⚖ Weigh" button next to each ingredient line. Tapping it tares the scale and shows the live weight color-coded against a target: blue while idle, yellow while below the target weight, green once the target is reached, red if over — visual confirmation of correct measurement, useful for teaching proper portioning technique. The target assumes standard spooned-and-leveled measurement, not packed/compressed (e.g. packed flour weighs more than spooned flour for the same "1 cup"). Tapping "✓ Log" confirms that ingredient's actual weighed amount. If that ingredient matches a bulk-tracked pantry item, the confirmed weighed amount is used for inventory deduction instead of the recipe's stated amount when "I Cooked This" is tapped — a real weigh-in is more accurate than any recipe estimate. The "Cooked!"/"Made This" confirmation shows an itemized breakdown of which ingredients used a weighed amount versus an estimate. Not available in Family Recipes yet since there's no "Made It" action there currently.
 - RECIPE SHARING: Share button on Saved tab and Family Recipes modal. Select any recipes, tap Share, get a 6-character code. Text or email the code to anyone. They tap Import on their Saved tab, enter the code, see a preview, and tap "Add All to My Kitchen." Family Recipes import directly to Family Recipes; Saved recipes go to Saved. Codes valid 90 days. Deep link also works — tapping the link auto-opens the import modal with the code pre-filled.
 - MOVING RECIPES: On any Saved recipe card, tap "📖 Add to Family" to move it to Family Recipes. Inside a Family Recipe view, tap "⭐ Add to Saved" to copy it to Saved Recipes.
 - Shopping List: auto-builds from meal plan. Email, SMS (Text to... button — add phone in Settings), and Send to Instacart (opens Meijer/ALDI/Kroger/etc with items ready to shop — set preferred store in Settings).
@@ -6111,7 +6143,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                   if(!ing||!(typeof ing==="object"?ing.name:ing.trim())) return null;
                   return (<div key={i} style={{fontSize:13,color:C.text,padding:"4px 0",borderBottom:"1px dotted "+C.borderLight,display:"flex",alignItems:"center",flexWrap:"wrap"}}>
                     <span>• {scaleIngredientDisplay(ing,scale)}</span>
-                    <IngredientWeighWidget idx={i} scaleDevice={scaleDevice} weighingIngredientIdx={weighingIngredientIdx} setWeighingIngredientIdx={setWeighingIngredientIdx} weighedIngredients={weighedIngredients} setWeighedIngredients={setWeighedIngredients} scaleWeight={scaleWeight} scaleWeightGrams={scaleWeightGrams} scaleUnit={scaleUnit}/>
+                    <IngredientWeighWidget idx={i} scaleDevice={scaleDevice} weighingIngredientIdx={weighingIngredientIdx} setWeighingIngredientIdx={setWeighingIngredientIdx} weighedIngredients={weighedIngredients} setWeighedIngredients={setWeighedIngredients} scaleWeight={scaleWeight} scaleWeightGrams={scaleWeightGrams} scaleUnit={scaleUnit} targetGrams={targetWeightGrams(typeof ing==="object"?ing.name:ing,(typeof ing==="object"?ing.qty:0)*scale,typeof ing==="object"?ing.unit:null)}/>
                   </div>);
                 })}
               </div>);
@@ -6174,7 +6206,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                   if(!ing||!(typeof ing==="object"?ing.name:ing.trim())) return null;
                   return (<div key={i} style={{fontSize:13,color:C.text,padding:"4px 0",borderBottom:"1px dotted "+C.borderLight,display:"flex",alignItems:"center",flexWrap:"wrap"}}>
                     <span>• {scaleIngredientDisplay(ing,scale)}</span>
-                    <IngredientWeighWidget idx={i} scaleDevice={scaleDevice} weighingIngredientIdx={weighingIngredientIdx} setWeighingIngredientIdx={setWeighingIngredientIdx} weighedIngredients={weighedIngredients} setWeighedIngredients={setWeighedIngredients} scaleWeight={scaleWeight} scaleWeightGrams={scaleWeightGrams} scaleUnit={scaleUnit}/>
+                    <IngredientWeighWidget idx={i} scaleDevice={scaleDevice} weighingIngredientIdx={weighingIngredientIdx} setWeighingIngredientIdx={setWeighingIngredientIdx} weighedIngredients={weighedIngredients} setWeighedIngredients={setWeighedIngredients} scaleWeight={scaleWeight} scaleWeightGrams={scaleWeightGrams} scaleUnit={scaleUnit} targetGrams={targetWeightGrams(typeof ing==="object"?ing.name:ing,(typeof ing==="object"?ing.qty:0)*scale,typeof ing==="object"?ing.unit:null)}/>
                   </div>);
                 })}
               </div>);
@@ -7566,7 +7598,7 @@ setScaleCalcLoading(false);setTimeout(()=>{if(scaleDevice&&scaleDevice._writeChr
                     if(!ing||!(typeof ing==="object"?ing.name:ing.trim())) return null;
                     return (<div key={i} style={{fontFamily:"Georgia,serif",fontSize:seniorMode?16:13,color:"#3d2008",padding:"4px 0",borderBottom:"1px dotted #e8d5b0",display:"flex",alignItems:"center",flexWrap:"wrap"}}>
                       <span>• {scaleIngredientDisplay(ing,scale)}</span>
-                      <IngredientWeighWidget idx={i} scaleDevice={scaleDevice} weighingIngredientIdx={weighingIngredientIdx} setWeighingIngredientIdx={setWeighingIngredientIdx} weighedIngredients={weighedIngredients} setWeighedIngredients={setWeighedIngredients} scaleWeight={scaleWeight} scaleWeightGrams={scaleWeightGrams} scaleUnit={scaleUnit}/>
+                      <IngredientWeighWidget idx={i} scaleDevice={scaleDevice} weighingIngredientIdx={weighingIngredientIdx} setWeighingIngredientIdx={setWeighingIngredientIdx} weighedIngredients={weighedIngredients} setWeighedIngredients={setWeighedIngredients} scaleWeight={scaleWeight} scaleWeightGrams={scaleWeightGrams} scaleUnit={scaleUnit} targetGrams={targetWeightGrams(typeof ing==="object"?ing.name:ing,(typeof ing==="object"?ing.qty:0)*scale,typeof ing==="object"?ing.unit:null)}/>
                     </div>);
                   });
                 })()}
