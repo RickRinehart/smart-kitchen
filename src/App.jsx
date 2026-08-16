@@ -1852,13 +1852,19 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
       const isDone=text.toLowerCase().match(/done|next|ready|finished|complete|moved on|got it|continue|signed in|logged in|created/);
       // If step requires completing an action, wait for done signal
       if(step.waitForDone&&!isDone){
-        // Auto-open tab or auth if not already done
-        if(step.autoOpen){
-          if(step.action==="openAuth"&&!user) onUpgrade();
-          else if(step.tab){ setTab(step.tab); if(step.action==="profileModalOpen") setProfileModalOpen(true); }
+        const looksLikeRealQuestion=text.trim().split(/\s+/).length>4||/\?/.test(text);
+        if(!looksLikeRealQuestion){
+          // Auto-open tab or auth if not already done
+          if(step.autoOpen){
+            if(step.action==="openAuth"&&!user) onUpgrade();
+            else if(step.tab){ setTab(step.tab); if(step.action==="profileModalOpen") setProfileModalOpen(true); }
+          }
+          setTimeout(()=>{addChatMsg("assistant",step.donePrompt||"No rush! Just say **done** or **next** when you're ready to continue.");setChatLoading(false);},700);
+          return;
         }
-        setTimeout(()=>{addChatMsg("assistant",step.donePrompt||"No rush! Just say **done** or **next** when you're ready to continue.");setChatLoading(false);},700);
-        return;
+        // Message reads like a genuine question, not a short acknowledgment — fall through to the
+        // real AI assistant below instead of repeating the canned tour reminder. Tour stays paused
+        // at the current step until the user says done/next.
       }
       // Advance tour
       const nextStep=tourStep+1;
@@ -1943,6 +1949,7 @@ APP KNOWLEDGE: Smart Kitchen has these features:
 - Leftovers scanner (photo identifies dish, estimates servings, sets use-by date — if unrecognized shows "I'm not sure what this is" prompt), Substitute tool, Weekly Ad scanner, Desserts, Busy Night flag (⚡).
 - Senior Mode (Aa Off/On button): larger text, bigger tap targets, larger checkboxes on shopping list.
 - Family Recipes: tap Family Recipes button in top bar. Add, edit, delete, share individual recipes. Share All shares every family recipe at once. Cross-device sync — recipes available on all your devices.
+- CROSS-DEVICE SYNC: Data syncs to the cloud automatically every 5 minutes and whenever you switch apps or tabs, but only while signed in. If two devices show different data (e.g. phone and computer showing different meal plans or Family Recipes), the fix is in Settings → 🌐 Cloud Sync. On the device with the data you trust/most recent, tap "Save to Cloud Now" to push it up FIRST. Then on the other device, tap "Load from Cloud" to pull that version down. Doing it in the wrong order (loading before saving) will overwrite the good data with the stale version, so always push from the correct device before pulling on the other one. There's also a "Restore from Backup" button if something still looks wrong after syncing.
 - Support chat, Google Calendar, Receipt scanner.
 - SETUP WIZARD: If the user asks to redo setup, add family members, set up appliances, or walk through onboarding again, the chat can relaunch the Setup Wizard automatically. Just say something like "Sure! Let me open the Setup Wizard for you now." The system will handle the rest.
 
