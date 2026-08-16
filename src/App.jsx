@@ -1850,10 +1850,14 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
     if(tourChoice==="yes"&&tourStep>0&&tourStep<=TOUR_STEPS.length){
       const step=TOUR_STEPS[tourStep-1];
       const isDone=text.toLowerCase().match(/done|next|ready|finished|complete|moved on|got it|continue|signed in|logged in|created/);
+      // A message that reads like a genuine question — at ANY tour step, whether or not that step
+      // waits for "done" — should reach the real assistant instead of being swallowed by a canned
+      // tour message. Previously only waitForDone steps checked this, so later free-flowing steps
+      // (Calendar, Busy Button) would advance to the next canned message on literally any input.
+      const looksLikeRealQuestion=!isDone&&(text.trim().split(/\s+/).length>4||/\?/.test(text));
+      if(!looksLikeRealQuestion){
       // If step requires completing an action, wait for done signal
       if(step.waitForDone&&!isDone){
-        const looksLikeRealQuestion=text.trim().split(/\s+/).length>4||/\?/.test(text);
-        if(!looksLikeRealQuestion){
           // If the underlying task already looks complete (e.g. they set up their family, added
           // inventory, or built a meal plan through the app directly instead of following the
           // tour step-by-step), don't just repeat the canned reminder — ask instead of assume.
@@ -1868,10 +1872,6 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
           }
           setTimeout(()=>{addChatMsg("assistant",step.donePrompt||"No rush! Just say **done** or **next** when you're ready to continue.");setChatLoading(false);},700);
           return;
-        }
-        // Message reads like a genuine question, not a short acknowledgment — fall through to the
-        // real AI assistant below instead of repeating the canned tour reminder. Tour stays paused
-        // at the current step until the user says done/next.
       }
       // Advance tour
       const nextStep=tourStep+1;
@@ -1922,6 +1922,9 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
         setTimeout(()=>{addChatMsg("assistant","You're all set! I'm always here if you need anything. 💛");setChatLoading(false);},700);
       }
       return;
+      }
+      // Message reads like a genuine question — fall through to the real AI assistant below.
+      // Tour stays paused at the current step until the user says done/next.
     }
     
     // Check for escalation tags
