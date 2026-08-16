@@ -284,6 +284,17 @@ const convertBulkUnits=(amount,fromUnit,toUnit)=>{
   const inCups=amount*(BULK_UNIT_TO_CUPS[fromUnit]||1);
   return inCups/(BULK_UNIT_TO_CUPS[toUnit]||1);
 };
+// A scale gives weight (grams), bulk items track volume (cups/tbsp/tsp) — converts a scale reading
+// into the item's tracked unit by reusing the same density table setup already uses. Returns null
+// if the ingredient name isn't in the density table (no reliable conversion possible), so callers
+// can fall back to the recipe's stated amount instead of guessing.
+const gramsToBulkUnit=(grams,itemName,bulkUnit)=>{
+  if(bulkUnit==="floz") return null; // liquids: scale weight isn't a reliable stand-in for fl oz without density too
+  const lb=grams/453.592;
+  const cups=suggestBulkCups(itemName,lb);
+  if(cups===null) return null;
+  return convertBulkUnits(cups,"cup",bulkUnit);
+};
 const PROTEIN_TAG_COLOR=(name)=>{
   if(!name) return C.muted;
   const n=name.toLowerCase();
@@ -610,6 +621,27 @@ function LoadingDots(){
   return <span style={{fontFamily:"monospace",color:C.accent,fontSize:18,letterSpacing:2}}>{"...".slice(0,(tick%3)+1).padEnd(3,"\u00a0")}</span>;
 }
 
+// Mise en place ingredient weighing widget — reused across the Meal Plan/Recipes/Make This modal,
+// the Desserts modal, and Family Recipes. Only renders when a scale is connected. Tare-on-tap,
+// live weight while placing the ingredient, confirm to log. Confirmed weights are stored in grams
+// regardless of what unit the scale is currently displaying (scaleWeightGrams is always grams).
+function IngredientWeighWidget({idx,scaleDevice,weighingIngredientIdx,setWeighingIngredientIdx,weighedIngredients,setWeighedIngredients,scaleWeight,scaleWeightGrams,scaleUnit}){
+  if(!scaleDevice) return null;
+  const confirmed=weighedIngredients[idx];
+  const isWeighing=weighingIngredientIdx===idx;
+  if(confirmed!=null){
+    return <span onClick={()=>setWeighedIngredients(p=>{const n={...p};delete n[idx];return n;})} title="Tap to re-weigh" style={{fontSize:11,color:"#10b981",fontFamily:"monospace",marginLeft:8,cursor:"pointer",fontWeight:700}}>✓ {confirmed.toFixed(0)}g weighed</span>;
+  }
+  if(isWeighing){
+    return (<span style={{display:"inline-flex",alignItems:"center",gap:6,marginLeft:8}}>
+      <span style={{fontSize:12,color:"#3b82f6",fontFamily:"monospace",fontWeight:700}}>{scaleWeight?.toFixed(1)||"0.0"}{scaleUnit}</span>
+      <button onClick={()=>{setWeighedIngredients(p=>({...p,[idx]:scaleWeightGrams}));setWeighingIngredientIdx(null);}} style={{background:"#10b981",border:"none",borderRadius:6,padding:"2px 8px",color:"#fff",fontSize:10,fontFamily:"monospace",cursor:"pointer",fontWeight:700}}>✓ Log</button>
+      <button onClick={()=>setWeighingIngredientIdx(null)} style={{background:"transparent",border:"none",color:"#888",fontSize:10,fontFamily:"monospace",cursor:"pointer"}}>✕</button>
+    </span>);
+  }
+  return <button onClick={()=>{if(scaleDevice?._writeChr){scaleDevice._writeChr.writeValue(new Uint8Array([0x52])).catch(()=>{});}setWeighingIngredientIdx(idx);}} style={{background:"transparent",border:"1px solid #3b82f6",borderRadius:6,padding:"1px 8px",color:"#3b82f6",fontSize:10,fontFamily:"monospace",cursor:"pointer",marginLeft:8,fontWeight:600}}>⚖ Weigh</button>;
+}
+
 // =============================================================================
 const loadLocal=(k,fb)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):fb;}catch{return fb;}};
 
@@ -700,6 +732,14 @@ const FEATURE_ANNOUNCEMENTS=[
     quickReplies:["Show me!","How does it work?","Maybe later"],
     tab:"inventory",
     digest:"**Bulk item tracking** — precise remaining amounts for staples like flour and sugar, with low-stock alerts"
+  },
+  {
+    key:"scaleMiseEnPlace",
+    title:"New: Weigh Ingredients Right From the Recipe Card",
+    intro:(name)=>`Hi ${name}! ⚖ If you've got your Bluetooth scale connected, this one's for you.\n\nEvery ingredient line on a recipe now has a **Weigh** button. Tap it, place the ingredient on the scale, tap Log — and if it's a bulk-tracked pantry item, that real weighed amount is what gets deducted from your inventory instead of just the recipe's estimate. More accurate mise en place, more accurate tracking.\n\nWant me to show you?`,
+    quickReplies:["Show me!","How does it work?","Maybe later"],
+    tab:"mealPlan",
+    digest:"**Weigh ingredients from the recipe card** — connect your scale and get exact mise en place amounts feeding straight into inventory tracking"
   }
 ];
 // -- Cellar Cooking-Use Registry — mirrors the pour-size category matching in Pair a Drink --
@@ -1226,6 +1266,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [activeRecipe,setActiveRecipe]=useState(null);
   const [activeRecipeServings,setActiveRecipeServings]=useState(4);
   useEffect(()=>{if(activeRecipe)setActiveRecipeServings(activeRecipe.servings||activeProfiles.length||4);},[activeRecipe]);
+  useEffect(()=>{setWeighedIngredients({});setWeighingIngredientIdx(null);},[activeRecipe?.name,activeDessert?.name,frViewRecipe?.name]);
   const [familySize,setFamilySize]=useState(()=>loadLocal("sk_familySize",3));
   const [familyProfiles,setFamilyProfiles]=useState(()=>loadLocal("sk_familyProfiles",DEFAULT_PROFILES));
   const [tempProfiles,setTempProfiles]=useState(()=>loadLocal("sk_tempProfiles",[]));
@@ -1417,6 +1458,11 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [plateCoachLoading,setPlateCoachLoading]=useState(false);
   const [showPlateSummary,setShowPlateSummary]=useState(false);
   const [scaleWeight,setScaleWeight]=useState(null);
+  // Per-ingredient mise en place weighing — keyed by ingredient index, cleared whenever the
+  // open recipe changes. Confirmed weights are always stored in grams (the scale's native unit
+  // internally, via scaleWeightGrams) regardless of what unit the scale is currently displaying.
+  const [weighingIngredientIdx,setWeighingIngredientIdx]=useState(null);
+  const [weighedIngredients,setWeighedIngredients]=useState({});
   const [scaleUnit,setScaleUnit]=useState("g");
   const [scaleWeightGrams,setScaleWeightGrams]=useState(0);
   const [scaleRawBytes,setScaleRawBytes]=useState("");
@@ -2009,6 +2055,7 @@ APP KNOWLEDGE: Smart Kitchen has these features:
 - Recipes & Saved: AI recipe suggestions. Star-rate meals. 5-star = Keeper on rotation.
 - SERVING SIZE SCALING: Every recipe detail view (tap any meal in Meal Plan, any Recipes tab card, Make This results, Family Recipes, and Desserts) has a "Serves" stepper with +/- buttons. Adjusting it live-scales both the ingredients list and the numbered instructions together — e.g. going from 4 to 8 servings doubles every amount in the ingredients AND updates the amounts written into the steps. Printing a recipe also respects whatever serving count is currently selected. Great for guests, planned leftovers, or just a bigger/smaller batch of one specific meal without changing your household's default family size.
 - BULK ITEM TRACKING: When adding an inventory item, there's a "🪣 Track as Bulk Item" toggle — for staples like flour, sugar, rice, seasonings, or cooking oil. User picks a tracking unit (cups, tbsp, tsp, or fl oz for liquids), enters the package weight (or total fl oz for liquids), and the app suggests how many of that unit the package holds (editable — the suggestion is a starting estimate, not exact for every brand). Two modes: Measured (the app deducts the exact amount used every time a recipe is cooked) or Estimate (user manually adjusts a percentage-remaining slider instead). When a bulk item drops below its low-stock threshold, it's automatically added to the shopping list. "I Cooked This" / "I Made This" now deducts real bulk-item amounts (matched to the recipe's ingredients and current serving size) instead of a flat generic deduction, wherever a bulk item and a recipe ingredient are matched with compatible units.
+- MISE EN PLACE SCALE WEIGHING: Whenever a Bluetooth scale is connected, every recipe's ingredient list (Meal Plan, Recipes tab, Make This, Desserts, and Family Recipes) shows a "⚖ Weigh" button next to each ingredient line. Tapping it tares the scale and shows the live weight; tapping "✓ Log" confirms that ingredient's actual weighed amount. If that ingredient matches a bulk-tracked pantry item, the confirmed weighed amount is used for inventory deduction instead of the recipe's stated amount when "I Cooked This" is tapped — a real weigh-in is more accurate than any recipe estimate. Not available in Family Recipes yet since there's no "Made It" action there currently.
 - RECIPE SHARING: Share button on Saved tab and Family Recipes modal. Select any recipes, tap Share, get a 6-character code. Text or email the code to anyone. They tap Import on their Saved tab, enter the code, see a preview, and tap "Add All to My Kitchen." Family Recipes import directly to Family Recipes; Saved recipes go to Saved. Codes valid 90 days. Deep link also works — tapping the link auto-opens the import modal with the code pre-filled.
 - MOVING RECIPES: On any Saved recipe card, tap "📖 Add to Family" to move it to Family Recipes. Inside a Family Recipe view, tap "⭐ Add to Saved" to copy it to Saved Recipes.
 - Shopping List: auto-builds from meal plan. Email, SMS (Text to... button — add phone in Settings), and Send to Instacart (opens Meijer/ALDI/Kroger/etc with items ready to shop — set preferred store in Settings).
@@ -3414,19 +3461,28 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     setInventory(p=>p.map(i=>{
       if(i.isBulkItem&&Array.isArray(r.ingredients)){
         const iname=(i.name||"").toLowerCase().trim();
-        const match=r.ingredients.find(ing=>{
+        const matchIdx=r.ingredients.findIndex(ing=>{
           const n=(typeof ing==="object"?ing.name:ing||"").toLowerCase().trim();
           return n&&iname&&(n.includes(iname)||iname.includes(n));
         });
-        if(match&&typeof match==="object"&&match.unit&&BULK_UNIT_TO_CUPS[match.unit]&&BULK_UNIT_TO_CUPS[i.bulkUnit]){
-          const usedInBulkUnit=convertBulkUnits((match.qty||0)*scale,match.unit,i.bulkUnit);
-          const newRemaining=Math.max(0,+(i.bulkQtyRemaining-usedInBulkUnit).toFixed(2));
-          const prevPct=i.bulkTotalUnits?(i.bulkQtyRemaining/i.bulkTotalUnits*100):100;
-          const newPct=i.bulkTotalUnits?(newRemaining/i.bulkTotalUnits*100):100;
-          if(i.bulkTrackingMode!=="estimate"&&prevPct>(i.bulkLowStockPct||20)&&newPct<=(i.bulkLowStockPct||20)){
-            restockAdds.push({name:i.name,qty:1,unit:"package",category:i.category||"Pantry",checked:false,suggestBulk:true,source:i.name+" — running low"});
+        const match=matchIdx>=0?r.ingredients[matchIdx]:null;
+        if(match&&typeof match==="object"){
+          // Prefer an actual scale-weighed amount for this ingredient (mise en place) over the
+          // recipe's stated quantity — a real weigh-in is more accurate than any recipe estimate.
+          const weighedGrams=weighedIngredients[matchIdx];
+          let usedInBulkUnit=weighedGrams!=null?gramsToBulkUnit(weighedGrams,i.name,i.bulkUnit):null;
+          if(usedInBulkUnit==null&&match.unit&&BULK_UNIT_TO_CUPS[match.unit]&&BULK_UNIT_TO_CUPS[i.bulkUnit]){
+            usedInBulkUnit=convertBulkUnits((match.qty||0)*scale,match.unit,i.bulkUnit);
           }
-          return {...i,bulkQtyRemaining:newRemaining};
+          if(usedInBulkUnit!=null){
+            const newRemaining=Math.max(0,+(i.bulkQtyRemaining-usedInBulkUnit).toFixed(2));
+            const prevPct=i.bulkTotalUnits?(i.bulkQtyRemaining/i.bulkTotalUnits*100):100;
+            const newPct=i.bulkTotalUnits?(newRemaining/i.bulkTotalUnits*100):100;
+            if(i.bulkTrackingMode!=="estimate"&&prevPct>(i.bulkLowStockPct||20)&&newPct<=(i.bulkLowStockPct||20)){
+              restockAdds.push({name:i.name,qty:1,unit:"package",category:i.category||"Pantry",checked:false,suggestBulk:true,source:i.name+" — running low"});
+            }
+            return {...i,bulkQtyRemaining:newRemaining};
+          }
         }
         return i; // bulk item but no unit-compatible match this cook — leave as-is rather than guess
       }
@@ -5980,10 +6036,14 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
             {(activeRecipe.ingredients||[]).length>0&&(()=>{
               const scale=activeRecipeServings/(activeRecipe.servings||4);
               return (<div style={{marginBottom:16}}>
-                <div style={{fontFamily:FM,fontSize:10,color:C.muted,letterSpacing:1,marginBottom:10}}>INGREDIENTS</div>
-                {activeRecipe.ingredients.filter(ing=>ing&&(typeof ing==="object"?ing.name:ing.trim())).map((ing,i)=>
-                  <div key={i} style={{fontSize:13,color:C.text,padding:"4px 0",borderBottom:"1px dotted "+C.borderLight}}>• {scaleIngredientDisplay(ing,scale)}</div>
-                )}
+                <div style={{fontFamily:FM,fontSize:10,color:C.muted,letterSpacing:1,marginBottom:10}}>INGREDIENTS{scaleDevice&&<span style={{fontWeight:400,textTransform:"none",letterSpacing:0,color:"#3b82f6"}}> — ⚖ scale connected, tap Weigh on any line for mise en place</span>}</div>
+                {activeRecipe.ingredients.map((ing,i)=>{
+                  if(!ing||!(typeof ing==="object"?ing.name:ing.trim())) return null;
+                  return (<div key={i} style={{fontSize:13,color:C.text,padding:"4px 0",borderBottom:"1px dotted "+C.borderLight,display:"flex",alignItems:"center",flexWrap:"wrap"}}>
+                    <span>• {scaleIngredientDisplay(ing,scale)}</span>
+                    <IngredientWeighWidget idx={i} scaleDevice={scaleDevice} weighingIngredientIdx={weighingIngredientIdx} setWeighingIngredientIdx={setWeighingIngredientIdx} weighedIngredients={weighedIngredients} setWeighedIngredients={setWeighedIngredients} scaleWeight={scaleWeight} scaleWeightGrams={scaleWeightGrams} scaleUnit={scaleUnit}/>
+                  </div>);
+                })}
               </div>);
             })()}
             <div style={{fontFamily:FM,fontSize:10,color:C.muted,letterSpacing:1,marginBottom:10}}>INSTRUCTIONS</div>
@@ -6039,10 +6099,14 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
             {(activeDessert.ingredients||[]).length>0&&(()=>{
               const scale=activeDessertServings/(activeDessert.servings||4);
               return (<div style={{marginBottom:16}}>
-                <div style={{fontFamily:FM,fontSize:10,color:C.muted,letterSpacing:1,marginBottom:10}}>INGREDIENTS</div>
-                {activeDessert.ingredients.filter(ing=>ing&&(typeof ing==="object"?ing.name:ing.trim())).map((ing,i)=>
-                  <div key={i} style={{fontSize:13,color:C.text,padding:"4px 0",borderBottom:"1px dotted "+C.borderLight}}>• {scaleIngredientDisplay(ing,scale)}</div>
-                )}
+                <div style={{fontFamily:FM,fontSize:10,color:C.muted,letterSpacing:1,marginBottom:10}}>INGREDIENTS{scaleDevice&&<span style={{fontWeight:400,textTransform:"none",letterSpacing:0,color:"#3b82f6"}}> — ⚖ scale connected, tap Weigh on any line for mise en place</span>}</div>
+                {activeDessert.ingredients.map((ing,i)=>{
+                  if(!ing||!(typeof ing==="object"?ing.name:ing.trim())) return null;
+                  return (<div key={i} style={{fontSize:13,color:C.text,padding:"4px 0",borderBottom:"1px dotted "+C.borderLight,display:"flex",alignItems:"center",flexWrap:"wrap"}}>
+                    <span>• {scaleIngredientDisplay(ing,scale)}</span>
+                    <IngredientWeighWidget idx={i} scaleDevice={scaleDevice} weighingIngredientIdx={weighingIngredientIdx} setWeighingIngredientIdx={setWeighingIngredientIdx} weighedIngredients={weighedIngredients} setWeighedIngredients={setWeighedIngredients} scaleWeight={scaleWeight} scaleWeightGrams={scaleWeightGrams} scaleUnit={scaleUnit}/>
+                  </div>);
+                })}
               </div>);
             })()}
             <div style={{fontFamily:FM,fontSize:10,color:C.muted,letterSpacing:1,marginBottom:10}}>INSTRUCTIONS</div>
@@ -7423,13 +7487,17 @@ setScaleCalcLoading(false);setTimeout(()=>{if(scaleDevice&&scaleDevice._writeChr
                 {(frViewRecipe.seasons||[]).map(s=><span key={s} style={{background:"#ede9fe",border:"1px solid #7c3aed",borderRadius:20,padding:"4px 10px",fontSize:12,color:"#5b21b6",fontFamily:"Georgia,serif"}}>{s}</span>)}
               </div>
               <div style={{background:"#fffbf0",border:"1px solid #e8d5b0",borderRadius:10,padding:14,marginBottom:14}}>
-                <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?16:13,fontWeight:700,color:"#5c3317",marginBottom:8,borderBottom:"1px dashed #e8d5b0",paddingBottom:6}}>Ingredients</div>
+                <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?16:13,fontWeight:700,color:"#5c3317",marginBottom:8,borderBottom:"1px dashed #e8d5b0",paddingBottom:6}}>Ingredients{scaleDevice&&<span style={{fontWeight:400,color:"#3b82f6",fontSize:11}}> — ⚖ scale connected</span>}</div>
                 {(()=>{
                   const base=frViewRecipe.servings||4;
                   const scale=frServings/base;
-                  return (frViewRecipe.ingredients||[]).filter(ing=>ing&&(typeof ing==="object"?ing.name:ing.trim())).map((ing,i)=>
-                    <div key={i} style={{fontFamily:"Georgia,serif",fontSize:seniorMode?16:13,color:"#3d2008",padding:"4px 0",borderBottom:"1px dotted #e8d5b0"}}>• {scaleIngredientDisplay(ing,scale)}</div>
-                  );
+                  return (frViewRecipe.ingredients||[]).map((ing,i)=>{
+                    if(!ing||!(typeof ing==="object"?ing.name:ing.trim())) return null;
+                    return (<div key={i} style={{fontFamily:"Georgia,serif",fontSize:seniorMode?16:13,color:"#3d2008",padding:"4px 0",borderBottom:"1px dotted #e8d5b0",display:"flex",alignItems:"center",flexWrap:"wrap"}}>
+                      <span>• {scaleIngredientDisplay(ing,scale)}</span>
+                      <IngredientWeighWidget idx={i} scaleDevice={scaleDevice} weighingIngredientIdx={weighingIngredientIdx} setWeighingIngredientIdx={setWeighingIngredientIdx} weighedIngredients={weighedIngredients} setWeighedIngredients={setWeighedIngredients} scaleWeight={scaleWeight} scaleWeightGrams={scaleWeightGrams} scaleUnit={scaleUnit}/>
+                    </div>);
+                  });
                 })()}
               </div>
               <div style={{background:"#fffbf0",border:"1px solid #e8d5b0",borderRadius:10,padding:14,marginBottom:14}}>
