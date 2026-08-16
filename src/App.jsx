@@ -7286,7 +7286,8 @@ setScaleCalcLoading(false);setTimeout(()=>{if(scaleDevice&&scaleDevice._writeChr
                       return n.includes(iname)||iname.includes(n);
                     });
                   };
-                  const parsed=(frViewRecipe.ingredients||[]).map(ing=>typeof ing==="object"?{name:ing.name||"",qty:ing.qty||1,unit:ing.unit||"",note:ing.note||""}:parseIngredientLine(ing));
+                  const scale=frServings/(frViewRecipe.servings||4);
+                  const parsed=(frViewRecipe.ingredients||[]).map(ing=>typeof ing==="object"?{name:ing.name||"",qty:(ing.qty||1)*scale,unit:ing.unit||"",note:ing.note||""}:(p=>({...p,qty:p.qty*scale}))(parseIngredientLine(ing)));
                   const missing=parsed.filter(p=>!inInventory(p.name));
                   if(missing.length===0){showAlert("You have all the ingredients on hand!");}
                   else{
