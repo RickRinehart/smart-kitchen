@@ -1578,6 +1578,13 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
     return ()=>clearTimeout(t);
   },[user,guestCaptured]);
 
+  // -- Usage Activity Log — one row per user per active day, feeds engagement metrics --
+  useEffect(()=>{
+    if(!user?.id) return;
+    supabase.rpc("log_user_activity",{p_user_id:user.id}).then(({error})=>{
+      if(error) console.error("Activity log error:",error);
+    });
+  },[user?.id]);
   // -- Proactive Feature Announcements (per-account via Supabase, localStorage fallback for guests) --
   const [seenAnnouncements,setSeenAnnouncements]=useState(null); // null = not loaded yet
   useEffect(()=>{
