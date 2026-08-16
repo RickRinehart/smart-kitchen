@@ -1163,6 +1163,8 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [desserts,setDesserts]=useState(()=>loadLocal("sk_desserts",[]));
   const [dessertRatings,setDessertRatings]=useState(()=>loadLocal("sk_dessertRatings",{}));
   const [activeDessert,setActiveDessert]=useState(null);
+  const [activeDessertServings,setActiveDessertServings]=useState(4);
+  useEffect(()=>{if(activeDessert)setActiveDessertServings(activeDessert.servings||4);},[activeDessert]);
   const [dessertLoading,setDessertLoading]=useState(false);const [dessertQuery,setDessertQuery]=useState("");const [dessertUseInventory,setDessertUseInventory]=useState(true);
   const [dessertError,setDessertError]=useState("");
   const [loading,setLoading]=useState(false);
@@ -3287,7 +3289,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       const queryPart=q.trim()?" The user is craving: "+q.trim()+". Focus suggestions around this craving.":"";
       const inventoryPart=useInv?" Use baking pantry inventory ingredients as much as possible.":" Suggest any great desserts freely.";
       const raw=await callClaude({
-        system:"Return ONLY a JSON array of 4 dessert recipes. No other text. Start with [ end with ]. Each object: {id(number),name(string),time(string),difficulty(Easy|Medium|Hard),category(Baked|No-Bake|Quick-Treat),description(one sentence),steps(array of 3 short strings),servings(number),usesFromInventory(array of ingredient names from inventory),missingIngredients(array of items NOT in inventory)}."+(fs?" CRITICAL DIETARY RULES — HARD STOPS: "+fs:""),
+        system:"Return ONLY a JSON array of 4 dessert recipes. No other text. Start with [ end with ]. Each object: {id(number),name(string),time(string),difficulty(Easy|Medium|Hard),category(Baked|No-Bake|Quick-Treat),description(one sentence),servings(number, default 4),ingredients(array of {name,qty,unit} objects — qty is a NUMBER, unit is a short string like \"cup\",\"tsp\",\"tbsp\",\"oz\",\"lb\" or \"\" for countable items),steps(array of 3 short strings — CRITICAL: every step referencing a measured ingredient MUST use a {{ing:N}} placeholder instead of typing a number, where N is that ingredient's zero-based index in ingredients. Never type a literal quantity.),usesFromInventory(array of ingredient names from inventory),missingIngredients(array of items NOT in inventory)}."+(fs?" CRITICAL DIETARY RULES — HARD STOPS: "+fs:""),
         prompt:"Full pantry/fridge inventory: "+invList+"."+queryPart+inventoryPart+" Suggest 4 desserts. missingIngredients must ONLY list items NOT in the inventory above."+(fs?" ENFORCE these dietary rules: "+fs:""),
       });
       const s=raw.indexOf("["),e=raw.lastIndexOf("]");
@@ -5844,11 +5846,17 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
             </div>
             {mealPhotos[activeDessert.name]&&<div style={{marginBottom:12}}><img src={mealPhotos[activeDessert.name]} alt={activeDessert.name} style={{width:"100%",maxHeight:200,objectFit:"cover",borderRadius:10,border:"1px solid "+C.borderLight}} /></div>}
             <div style={{color:C.muted,fontSize:13,marginBottom:14,lineHeight:1.6}}>{activeDessert.description}</div>
-            <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap"}}>
+            <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap",alignItems:"center"}}>
               <span style={bTag(C.muted)}>⏱ {activeDessert.time}</span>
               <span style={bTag("#f472b6")}>{activeDessert.category}</span>
               <span style={bTag(activeDessert.difficulty==="Easy"?C.green:activeDessert.difficulty==="Hard"?C.red:C.accent)}>{activeDessert.difficulty}</span>
-              {activeDessert.servings&&<span style={bTag(C.blue)}>🍽 {activeDessert.servings} servings</span>}
+              <div style={{display:"flex",alignItems:"center",gap:6,background:"#fef3c7",borderRadius:20,padding:"4px 10px",border:"1px solid #f59e0b"}}>
+                <span style={{fontSize:13}}>🍽</span>
+                <span style={{fontFamily:FM,fontSize:12,color:"#92400e",fontWeight:700}}>Serves</span>
+                <button onClick={()=>setActiveDessertServings(s=>Math.max(1,s-1))} style={{background:"#f59e0b",border:"none",borderRadius:"50%",width:20,height:20,cursor:"pointer",fontSize:12,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700}}>−</button>
+                <span style={{fontFamily:FM,fontSize:14,color:"#92400e",fontWeight:700,minWidth:16,textAlign:"center"}}>{activeDessertServings}</span>
+                <button onClick={()=>setActiveDessertServings(s=>s+1)} style={{background:"#f59e0b",border:"none",borderRadius:"50%",width:20,height:20,cursor:"pointer",fontSize:12,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700}}>+</button>
+              </div>
             </div>
             <div style={{marginBottom:12}}>
               <a href={getRecipeUrl(activeDessert.name)} target="_blank" rel="noopener noreferrer" style={{fontSize:11,color:"#f59e0b",fontFamily:FM,textDecoration:"none",fontWeight:600,letterSpacing:0.5}}>TAP FOR FULL RECIPE →</a>
@@ -5860,15 +5868,27 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                 {activeDessert.missingIngredients.map((m,i)=><div key={i} style={{fontSize:13,color:C.red,marginBottom:3}}>· {m}</div>)}
               </div>
             )}
+            {(activeDessert.ingredients||[]).length>0&&(()=>{
+              const scale=activeDessertServings/(activeDessert.servings||4);
+              return (<div style={{marginBottom:16}}>
+                <div style={{fontFamily:FM,fontSize:10,color:C.muted,letterSpacing:1,marginBottom:10}}>INGREDIENTS</div>
+                {activeDessert.ingredients.filter(ing=>ing&&(typeof ing==="object"?ing.name:ing.trim())).map((ing,i)=>
+                  <div key={i} style={{fontSize:13,color:C.text,padding:"4px 0",borderBottom:"1px dotted "+C.borderLight}}>• {scaleIngredientDisplay(ing,scale)}</div>
+                )}
+              </div>);
+            })()}
             <div style={{fontFamily:FM,fontSize:10,color:C.muted,letterSpacing:1,marginBottom:10}}>INSTRUCTIONS</div>
-            {(activeDessert.steps||activeDessert.instructions||[]).map((step,i)=>(
-              <div key={i} style={{display:"flex",gap:10,marginBottom:12,alignItems:"flex-start"}}>
-                <div style={{width:22,height:22,borderRadius:"50%",background:"#f472b6",color:"#0c0e14",fontSize:11,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{i+1}</div>
-                <div style={{fontSize:13,lineHeight:1.7,color:C.text}}>{step}</div>
-              </div>
-            ))}
+            {(()=>{
+              const scale=activeDessertServings/(activeDessert.servings||4);
+              return (activeDessert.steps||activeDessert.instructions||[]).map((step,i)=>(
+                <div key={i} style={{display:"flex",gap:10,marginBottom:12,alignItems:"flex-start"}}>
+                  <div style={{width:22,height:22,borderRadius:"50%",background:"#f472b6",color:"#0c0e14",fontSize:11,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{i+1}</div>
+                  <div style={{fontSize:13,lineHeight:1.7,color:C.text}}>{renderStepText(step,activeDessert.ingredients,scale)}</div>
+                </div>
+              ));
+            })()}
             <div style={{display:"flex",gap:8,marginTop:10}}>
-              <button style={{...bBtn("ghost"),padding:"10px 14px",fontSize:12}} onClick={()=>printRecipeCard(activeDessert,mealPhotos[activeDessert.name])}>&#128424; Print</button>
+              <button style={{...bBtn("ghost"),padding:"10px 14px",fontSize:12}} onClick={()=>printRecipeCard(activeDessert,mealPhotos[activeDessert.name],activeDessertServings)}>&#128424; Print</button>
               {(activeDessert.missingIngredients||[]).length>0&&<button style={{...bBtn("ghost"),flex:1,padding:12,border:"1px solid #f472b6",color:"#f472b6"}}
                 onClick={()=>{
                   setShopping(prev=>{
