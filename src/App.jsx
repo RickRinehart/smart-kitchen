@@ -315,6 +315,26 @@ const targetWeightGrams=(name,qty,unit)=>{
   }
   return null;
 };
+// Purchase-cadence restock prediction — no usage tracking exists for most items (especially
+// non-food), so this uses purchase HISTORY as a proxy instead: how often has this item actually
+// been bought, and is it about due again based on that pattern. Needs 2+ logged purchases to say
+// anything at all — with only one data point there's no interval to compute, so it stays silent
+// rather than guess. Works for any item with priceHistory, food or non-food, bulk-tracked or not —
+// for Bulk Items the precise quantity signal remains authoritative; this is the fallback signal
+// for everything else.
+const estimateRestockDue=(item)=>{
+  const hist=item.priceHistory;
+  if(!Array.isArray(hist)||hist.length<2) return null;
+  const dates=hist.map(h=>new Date(h.date)).filter(d=>!isNaN(d)).sort((a,b)=>a-b);
+  if(dates.length<2) return null;
+  const msPerDay=86400000;
+  const spanDays=(dates[dates.length-1]-dates[0])/msPerDay;
+  const avgIntervalDays=spanDays/(dates.length-1);
+  if(avgIntervalDays<=0) return null;
+  const daysSinceLast=(Date.now()-dates[dates.length-1])/msPerDay;
+  const dueSoon=daysSinceLast>=avgIntervalDays*0.9;
+  return {avgIntervalDays:Math.round(avgIntervalDays),daysSinceLast:Math.round(daysSinceLast),dueSoon};
+};
 const PROTEIN_TAG_COLOR=(name)=>{
   if(!name) return C.muted;
   const n=name.toLowerCase();
@@ -4370,6 +4390,11 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                       {item.isBulkItem&&<span title={item.bulkTrackingMode==="estimate"?"Estimated remaining":"Measured remaining"} style={bTag(item.bulkTotalUnits&&(item.bulkQtyRemaining/item.bulkTotalUnits*100)<=(item.bulkLowStockPct||20)?C.red:"#f59e0b")}>🪣 {item.bulkQtyRemaining} {item.bulkUnit}{item.bulkTotalUnits?" / "+item.bulkTotalUnits:""}</span>}
                       {isBP&&item.avgCostPerPortion&&<span title={(item.portionPriceHistory||[]).length>1?"Average of "+item.portionPriceHistory.length+" batches":"From last batch"} style={bTag(C.green)}>avg ${item.avgCostPerPortion.toFixed(2)}/portion</span>}
                       {!isBP&&item.avgUnitPrice&&<span title={item.purchaseCount>1?"Average of "+item.purchaseCount+" purchases":"From last purchase"} style={bTag(C.green)}>avg ${item.avgUnitPrice.toFixed(2)}</span>}
+                      {!item.isBulkItem&&(()=>{
+                        const r=estimateRestockDue(item);
+                        if(!r||!r.dueSoon) return null;
+                        return <span title={"Usually bought every ~"+r.avgIntervalDays+" days \u2014 last bought "+r.daysSinceLast+" days ago. Based on purchase history, not usage tracking."} style={bTag("#f59e0b")}>🔄 Likely due (~{r.avgIntervalDays}d cycle)</span>;
+                      })()}
                     </div>
                     <div style={{display:"flex",alignItems:"center",gap:6}}>
                       <button onClick={()=>setInventory(p=>p.map(i=>i.id===item.id?{...i,qty:Math.max(0,i.qty-1)}:i))} style={{width:seniorMode?52:24,height:seniorMode?52:24,borderRadius:8,background:C.surface,border:"2px solid "+C.border,color:C.text,cursor:"pointer",fontSize:seniorMode?26:14,display:"flex",alignItems:"center",justifyContent:"center"}}>−</button>
