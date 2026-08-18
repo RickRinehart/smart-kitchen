@@ -1593,6 +1593,20 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [scanStage,setScanStage]=useState("upload");
   const [scanMode,setScanMode]=useState("shelf");
   const [saleItems,setSaleItems]=useState(()=>{try{return JSON.parse(localStorage.getItem("sk_saleItems")||"[]");}catch{return [];}});
+  const [adMetaStore,setAdMetaStore]=useState("Meijer");
+  const [adMetaDateStart,setAdMetaDateStart]=useState("");
+  const [adMetaDateEnd,setAdMetaDateEnd]=useState("");
+  const [adMetaWeek,setAdMetaWeek]=useState("current"); // "current" | "preview"
+  // Compares a detected/confirmed start date against today to guess This Week vs. Next Week
+  // Preview — always shown back to the user to confirm/correct, never trusted silently, since a
+  // misread date would mislabel an entire week's worth of sale data (see Sale-Aware Shopping brief).
+  const computeEffectiveWeek=(startDateStr)=>{
+    if(!startDateStr) return "current"; // no date detected — default to actionable, let user correct
+    const start=new Date(startDateStr+"T00:00:00");
+    if(isNaN(start)) return "current";
+    const today=new Date();today.setHours(0,0,0,0);
+    return start.getTime()>today.getTime()+86400000?"preview":"current"; // >1 day out = preview
+  };
   const [rpOpen,setRpOpen]=useState(false);
   const [rpYieldConfirm,setRpYieldConfirm]=useState(null);
   const [rpActualBags,setRpActualBags]=useState("");
@@ -1650,6 +1664,29 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   },[mealPlan]);
   useEffect(()=>{try{localStorage.setItem("sk_shoppingList",JSON.stringify(shopping));}catch{}},[shopping]);
   useEffect(()=>{try{localStorage.setItem("sk_saleItems",JSON.stringify(saleItems));}catch{}},[saleItems]);
+  // Automatic week rollover — runs once on load. Promotes Preview items to current once their
+  // start date arrives, and drops items whose end date has already passed, so stale sale data
+  // never silently lingers or gets treated as still-actionable.
+  useEffect(()=>{
+    setSaleItems(prev=>{
+      if(!Array.isArray(prev)||prev.length===0) return prev;
+      const today=new Date();today.setHours(0,0,0,0);
+      const next=prev.map(i=>{
+        if(!i.dateRangeStart) return i;
+        const startsAt=new Date(i.dateRangeStart+"T00:00:00");
+        if(!isNaN(startsAt)&&startsAt.getTime()<=today.getTime()&&i.effectiveWeek==="preview"){
+          return {...i,effectiveWeek:"current"};
+        }
+        return i;
+      }).filter(i=>{
+        if(!i.dateRangeEnd) return true;
+        const endsAt=new Date(i.dateRangeEnd+"T00:00:00");
+        return isNaN(endsAt)||endsAt.getTime()>=today.getTime();
+      });
+      return next.length===prev.length&&next.every((v,idx)=>v===prev[idx])?prev:next;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[]);
   useEffect(()=>{try{localStorage.setItem("sk_familySize",JSON.stringify(familySize));}catch{}},[familySize]);
   useEffect(()=>{try{localStorage.setItem("sk_familyProfiles",JSON.stringify(familyProfiles));}catch{}},[familyProfiles]);
   useEffect(()=>{try{localStorage.setItem("sk_appliances",JSON.stringify(kitchenAppliances));}catch{}},[kitchenAppliances]);
@@ -2334,25 +2371,32 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     setScanStage("analyzing");
     setLoading(true); setLoadMsg("Reading weekly ad ("+files.length+" pages)...");
     let allItems=[];
+    let detectedStore=null,detectedStart=null,detectedEnd=null;
     try{
       for(let i=0;i<files.length;i++){
         setLoadMsg("Reading page "+(i+1)+" of "+files.length+"...");
         const b64=await fileToBase64(files[i]);
         const mime=files[i].type||"image/jpeg";
         const raw=await callClaude({
-          system:"You are a grocery store weekly ad parser. Analyze this store ad image and extract food/grocery sale items. Return ONLY a valid JSON array. Each object: {name(string, clean product name), salePrice(string, e.g. '$2.99'), regularPrice(string or null), unit(string, e.g. 'lb' 'each' 'pkg'), category(Protein|Produce|Dairy|Pantry|Grains|Frozen|Condiments|Other), savings(string, e.g. 'Save $1.00' or 'BOGO' or '2 for $5')}. Focus on food items only. Skip non-food deals.",
+          system:"You are a grocery store weekly ad parser. Analyze this store ad image and extract the store name, the effective date range, and food/grocery sale items. Return ONLY a valid JSON object (not an array): {store(string, the retailer name shown on the ad e.g. 'Meijer' — your best guess if not clearly visible), effectiveDateStart(string, ISO format YYYY-MM-DD, the date this sale begins — null if not visible on the flyer), effectiveDateEnd(string, ISO format YYYY-MM-DD, the date this sale ends — null if not visible), items(array of {name(string, clean product name), salePrice(string, e.g. '$2.99'), regularPrice(string or null), unit(string, e.g. 'lb' 'each' 'pkg'), category(Protein|Produce|Dairy|Pantry|Grains|Frozen|Condiments|Other), savings(string, e.g. 'Save $1.00' or 'BOGO' or '2 for $5')})}. Focus on food items only. Skip non-food deals. Many flyers print separate 'This Week' and 'Next Week Preview' sections or pages — if this image is clearly a preview/next-week section, still extract its own accurate date range, do not guess the current week's dates instead.",
           prompt:"Extract all food sale items from this weekly grocery ad. Include sale price, unit, and any savings details visible.",
           imageBase64:b64,imageType:mime,
         });
-        const s=raw.indexOf("["),e=raw.lastIndexOf("]");
+        const s=raw.indexOf("{"),e=raw.lastIndexOf("}");
         if(s!==-1){
           const parsed=JSON.parse(raw.slice(s,e+1));
-          allItems=allItems.concat(parsed);
+          allItems=allItems.concat(parsed.items||[]);
+          if(!detectedStore&&parsed.store) detectedStore=parsed.store;
+          if(!detectedStart&&parsed.effectiveDateStart) detectedStart=parsed.effectiveDateStart;
+          if(!detectedEnd&&parsed.effectiveDateEnd) detectedEnd=parsed.effectiveDateEnd;
         }
       }
       const seen=new Set();
       allItems=allItems.filter(i=>{const k=i.name.toLowerCase();if(seen.has(k))return false;seen.add(k);return true;});
-      setSaleItems(allItems);
+      setAdMetaStore(detectedStore||"Meijer");
+      setAdMetaDateStart(detectedStart||"");
+      setAdMetaDateEnd(detectedEnd||"");
+      setAdMetaWeek(computeEffectiveWeek(detectedStart));
       setScanStage("review");
       setScanResults(allItems.map(i=>({...i,selected:false,qty:1,location:"Store",action:"sale"})));
       setScanPreview(null); setScanB64(null);
@@ -2465,18 +2509,36 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     setLoading(true); setLoadMsg("Reading weekly ad…");
     try{
       const raw=await callClaude({
-        system:"You are a grocery store weekly ad parser. Analyze this store ad image and extract food/grocery sale items. Return ONLY a valid JSON array. Each object: {name(string, clean product name), salePrice(string, e.g. '$2.99'), regularPrice(string or null), unit(string, e.g. 'lb' 'each' 'pkg'), category(Protein|Produce|Dairy|Pantry|Grains|Frozen|Condiments|Other), savings(string, e.g. 'Save $1.00' or 'BOGO' or '2 for $5')}. Focus on food items only. Skip non-food deals.",
+        system:"You are a grocery store weekly ad parser. Analyze this store ad image and extract the store name, the effective date range, and food/grocery sale items. Return ONLY a valid JSON object (not an array): {store(string, the retailer name shown on the ad e.g. 'Meijer' — your best guess if not clearly visible), effectiveDateStart(string, ISO format YYYY-MM-DD, the date this sale begins — null if not visible on the flyer), effectiveDateEnd(string, ISO format YYYY-MM-DD, the date this sale ends — null if not visible), items(array of {name(string, clean product name), salePrice(string, e.g. '$2.99'), regularPrice(string or null), unit(string, e.g. 'lb' 'each' 'pkg'), category(Protein|Produce|Dairy|Pantry|Grains|Frozen|Condiments|Other), savings(string, e.g. 'Save $1.00' or 'BOGO' or '2 for $5')})}. Focus on food items only. Skip non-food deals. Many flyers print separate 'This Week' and 'Next Week Preview' sections or pages — if this image is clearly a preview/next-week section, still extract its own accurate date range, do not guess the current week's dates instead.",
         prompt:"Extract all food sale items from this weekly grocery ad. Include sale price, unit, and any savings details visible.",
         imageBase64:scanB64,imageType:scanMime,
       });
-      const s=raw.indexOf("["),e=raw.lastIndexOf("]");
+      const s=raw.indexOf("{"),e=raw.lastIndexOf("}");
       if(s===-1) throw new Error("Could not read ad");
       const parsed=JSON.parse(raw.slice(s,e+1));
-      setSaleItems(parsed);
+      const items=parsed.items||[];
+      setAdMetaStore(parsed.store||"Meijer");
+      setAdMetaDateStart(parsed.effectiveDateStart||"");
+      setAdMetaDateEnd(parsed.effectiveDateEnd||"");
+      setAdMetaWeek(computeEffectiveWeek(parsed.effectiveDateStart));
       setScanStage("review");
-      setScanResults(parsed.map(i=>({...i,selected:false,qty:1,location:"Store",action:"sale"})));
+      setScanResults(items.map(i=>({...i,selected:false,qty:1,location:"Store",action:"sale"})));
     } catch(e){ showAlert("Ad scan failed: "+e.message); }
     setLoading(false);
+  };
+  // Merges this scan's confirmed store/date-range/week into saleItems, replacing any prior
+  // entries from the SAME store+week (so re-scanning this week's ad doesn't duplicate) while
+  // preserving items from other weeks/stores — this is what lets "this week" and "next week
+  // preview" coexist instead of one scan wiping out the other.
+  const commitAdMeta=()=>{
+    if(!scanResults||scanResults.length===0){showAlert("No sale items to save.");return;}
+    const tagged=scanResults.map(i=>({...i,store:adMetaStore,dateRangeStart:adMetaDateStart||null,dateRangeEnd:adMetaDateEnd||null,effectiveWeek:adMetaWeek,selected:undefined,action:undefined}));
+    setSaleItems(prev=>{
+      const kept=(Array.isArray(prev)?prev:[]).filter(i=>!(i.store===adMetaStore&&i.effectiveWeek===adMetaWeek));
+      return [...kept,...tagged];
+    });
+    setSaleItemsSavedCue({count:tagged.length,toShopping:false});
+    setScanStage("upload");setScanResults(null);setScanMode(null);
   };
   const commitScan=()=>{
     const chosen=scanResults.filter(i=>i.selected);
@@ -2582,11 +2644,12 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
   };
 
   const buildSaleMealPlan=async()=>{
-    if(saleItems.length===0){showAlert("No sale items loaded. Scan a weekly ad first.");return;}
+    const activeSaleItems=saleItems.filter(i=>i.effectiveWeek!=="preview"); // Preview items are informational-only until their week arrives — never actionable
+    if(activeSaleItems.length===0){showAlert(saleItems.length>0?"Only Preview (next week) sale items are loaded — nothing active yet to build a plan around.":"No sale items loaded. Scan a weekly ad first.");return;}
     setLoading(true); setLoadMsg("Building sale meal plan…"); setTab("mealplan");
     try{
       const proteins=proteinItems.map(i=>i.name+" "+i.qty+" portions").join(", ");
-      const saleList=saleItems.map(i=>i.name+(i.salePrice?" ("+i.salePrice+")":"")+(i.savings?" — "+i.savings:"")).join(", ");
+      const saleList=activeSaleItems.map(i=>i.name+(i.salePrice?" ("+i.salePrice+")":"")+(i.savings?" — "+i.savings:"")).join(", ");
       const invList=inventory.map(i=>String(i.name||"")).filter(Boolean).join(", ");
       const fs=familySummary();
       const occCtx=buildOccasionContext(occasionState)+(occasionCustomText?" Special occasion name: "+occasionCustomText+".":"");
@@ -4654,18 +4717,24 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
 {/* == MEAL PLAN == */}
         {!loading&&tab==="mealplan"&&(
           <div>
-            {saleItems.length>0&&(
+            {saleItems.length>0&&(()=>{
+              const active=saleItems.filter(i=>i.effectiveWeek!=="preview");
+              const preview=saleItems.filter(i=>i.effectiveWeek==="preview");
+              const stores=[...new Set(saleItems.map(i=>i.store).filter(Boolean))];
+              const storeLabel=stores.length===0?"":stores.length===1?stores[0]+" ":stores.join(" + ")+" ";
+              return (
               <div style={{background:"#1a1500",border:"1px solid #f59e0b",borderRadius:12,padding:"12px 16px",marginBottom:16,display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
                 <div>
-                  <div style={{fontFamily:FD,fontSize:14,color:"#f59e0b"}}>🏷 {saleItems.length} Meijer Sale Items Loaded</div>
-                  <div style={{fontFamily:FM,fontSize:11,color:"#fbbf24",marginTop:2}}>{saleItems.slice(0,4).map(i=>i.name).join(", ")}{saleItems.length>4?" + "+(saleItems.length-4)+" more":""}</div>
+                  <div style={{fontFamily:FD,fontSize:14,color:"#f59e0b"}}>🏷 {active.length} {storeLabel}Sale Item{active.length!==1?"s":""} Loaded{preview.length>0?" · "+preview.length+" Preview (next week)":""}</div>
+                  <div style={{fontFamily:FM,fontSize:11,color:"#fbbf24",marginTop:2}}>{active.slice(0,4).map(i=>i.name).join(", ")}{active.length>4?" + "+(active.length-4)+" more":""}{active.length===0&&preview.length>0?"Next week's preview items aren't active yet — check back once their sale starts.":""}</div>
                 </div>
                 <div style={{display:"flex",gap:8}}>
                   <button style={{...bBtn("ghost"),fontSize:11,padding:"6px 12px",border:"1px solid #f59e0b44",color:"#f59e0b"}} onClick={()=>setSaleItems([])}>✕ Clear</button>
-                  <button style={{padding:"8px 16px",borderRadius:9,border:"none",background:"#f59e0b",color:"#0c0e14",fontFamily:FM,fontSize:12,fontWeight:700,cursor:"pointer"}} onClick={buildSaleMealPlan}>🏷 Build Sale Meal Plan</button>
+                  <button style={{padding:"8px 16px",borderRadius:9,border:"none",background:"#f59e0b",color:"#0c0e14",fontFamily:FM,fontSize:12,fontWeight:700,cursor:"pointer",opacity:active.length>0?1:0.5}} disabled={active.length===0} onClick={buildSaleMealPlan}>🏷 Build Sale Meal Plan</button>
                 </div>
               </div>
-            )}
+              );
+            })()}
             {(()=>{const tod=new Date();return activeProfiles.filter(p=>p.dob).find(p=>{const b=new Date(p.dob+"T12:00:00");const nb=new Date(tod.getFullYear(),b.getMonth(),b.getDate());if(nb<tod) nb.setFullYear(tod.getFullYear()+1);return Math.ceil((nb-tod)/(1000*60*60*24))<=7;});})()&&(()=>{const tod=new Date();const bPerson=activeProfiles.filter(p=>p.dob).find(p=>{const b=new Date(p.dob+"T12:00:00");const nb=new Date(tod.getFullYear(),b.getMonth(),b.getDate());if(nb<tod) nb.setFullYear(tod.getFullYear()+1);return Math.ceil((nb-tod)/(1000*60*60*24))<=7;});const b2=new Date(bPerson.dob+"T12:00:00");const nb2=new Date(tod.getFullYear(),b2.getMonth(),b2.getDate());if(nb2<tod) nb2.setFullYear(tod.getFullYear()+1);const days=Math.ceil((nb2-tod)/(1000*60*60*24));return <div style={{background:"#f59e0b22",border:"1px solid #f59e0b44",borderRadius:10,padding:"10px 14px",marginBottom:10,display:"flex",alignItems:"center",gap:10,cursor:"pointer"}} onClick={()=>{setShowOccasionPlanner(true);setOccasionState(s=>({...s,eventType:"party",audienceType:"family"}));setOccasionStep("form");}}><span style={{fontSize:20}}>🎂</span><div><div style={{fontFamily:FM,fontSize:12,fontWeight:700,color:"#d97706"}}>{bPerson.name||"Someone"} has a birthday in {days} day{days===1?"":"s"}!</div><div style={{fontFamily:FM,fontSize:11,color:C.muted}}>Tap to plan a birthday dinner.</div></div></div>;})()}
             {occasionState.eventType&&<div style={{background:C.accent+"18",border:"1px solid "+C.accent+"44",borderRadius:10,padding:"8px 14px",marginBottom:10,display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
               <span style={{fontSize:16}}>{OCCASION_EVENT_TYPES.find(e=>e.key===occasionState.eventType)?.emoji||""}</span>
@@ -5932,6 +6001,31 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
             {scanStage==="review"&&scanResults&&(
               <div>
                 {scanPreview&&<img src={scanPreview} alt="" style={{width:"100%",borderRadius:8,maxHeight:100,objectFit:"cover",marginBottom:10,opacity:0.65}}/>}
+                {scanMode==="weeklyad"&&(
+                  <div style={{background:"#f59e0b12",border:"1px solid #f59e0b44",borderRadius:10,padding:12,marginBottom:12}}>
+                    <div style={{fontFamily:FM,fontSize:10,color:"#b45309",letterSpacing:0.5,marginBottom:8,fontWeight:700}}>CONFIRM BEFORE SAVING — dates and store were read automatically, double-check them</div>
+                    <div style={{display:"flex",gap:8,marginBottom:8,flexWrap:"wrap"}}>
+                      <div style={{flex:1,minWidth:100}}>
+                        <div style={{fontSize:9,color:C.muted,fontFamily:FM,marginBottom:3}}>STORE</div>
+                        <input value={adMetaStore} onChange={e=>setAdMetaStore(e.target.value)} style={{...bInp,padding:"6px 8px",fontSize:12,width:"100%"}}/>
+                      </div>
+                      <div style={{flex:1,minWidth:110}}>
+                        <div style={{fontSize:9,color:C.muted,fontFamily:FM,marginBottom:3}}>SALE STARTS</div>
+                        <input type="date" value={adMetaDateStart} onChange={e=>{setAdMetaDateStart(e.target.value);setAdMetaWeek(computeEffectiveWeek(e.target.value));}} style={{...bInp,padding:"6px 8px",fontSize:12,width:"100%"}}/>
+                      </div>
+                      <div style={{flex:1,minWidth:110}}>
+                        <div style={{fontSize:9,color:C.muted,fontFamily:FM,marginBottom:3}}>SALE ENDS</div>
+                        <input type="date" value={adMetaDateEnd} onChange={e=>setAdMetaDateEnd(e.target.value)} style={{...bInp,padding:"6px 8px",fontSize:12,width:"100%"}}/>
+                      </div>
+                    </div>
+                    <div style={{display:"flex",gap:6}}>
+                      {[["current","This Week — active now"],["preview","Next Week Preview — not active yet"]].map(([k,label])=>(
+                        <button key={k} onClick={()=>setAdMetaWeek(k)} style={{flex:1,padding:"7px 8px",borderRadius:8,border:"1px solid "+(adMetaWeek===k?"#f59e0b":C.border),background:adMetaWeek===k?"#f59e0b22":"transparent",color:adMetaWeek===k?"#b45309":C.muted,fontFamily:FM,fontSize:11,fontWeight:600,cursor:"pointer"}}>{label}{adMetaWeek===k?" ✓":""}</button>
+                      ))}
+                    </div>
+                    {adMetaWeek==="preview"&&<div style={{fontSize:10,color:"#b45309",fontFamily:FM,marginTop:6,fontStyle:"italic"}}>Preview items save now but stay inactive — excluded from shopping suggestions and meal-plan-around-sales until their week actually arrives.</div>}
+                  </div>
+                )}
                 <div style={{display:"flex",justifyContent:"space-between",marginBottom:8,alignItems:"center"}}>
                   <div style={{fontFamily:FM,fontSize:11,color:C.muted}}>{scanResults.filter(i=>i.selected).length}/{scanResults.length} selected</div>
                   <button style={{...bBtn("ghost"),fontSize:11,padding:"4px 10px"}} onClick={()=>setScanResults(p=>{const a=p.every(i=>i.selected);return p.map(i=>({...i,selected:!a}));})}>{scanResults.every(i=>i.selected)?"Deselect All":"Select All"}</button>
@@ -5963,7 +6057,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                     <div style={{fontSize:11,color:C.muted,fontFamily:FM,marginBottom:8,textAlign:"center"}}>How do you want to use these sale items?</div>
                     <div style={{display:"flex",gap:8,marginBottom:8}}>
                       <button style={{...bBtn("ghost"),flex:1}} onClick={()=>{setScanStage("upload");setScanResults(null);}}>Rescan</button>
-                      <button style={{...bBtn("primary"),flex:2}} onClick={()=>{const n=scanResults.filter(i=>i.selected).length;setSaleItems(scanResults.filter(i=>i.selected).map(({selected:_,...rest})=>rest));setScanOpen(false);setScanPreview(null);setScanB64(null);setScanResults(null);setScanStage("upload");setSaleItemsSavedCue(n);}}>📅 Add to Meal Plan</button>
+                      <button style={{...bBtn("primary"),flex:2}} onClick={commitAdMeta}>📅 Save for Meal Planning{adMetaWeek==="preview"?" (Preview)":""}</button>
                     </div>
                     <button style={{...bBtn("green"),width:"100%"}} onClick={()=>{
                       const chosen=scanResults.filter(i=>i.selected);
