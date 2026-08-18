@@ -640,12 +640,25 @@ async function callClaude({system,prompt,imageBase64,imageB64,imageType,extraIma
   (extraImages||[]).forEach(img=>content.push({type:"image",source:{type:"base64",media_type:"image/jpeg",data:img}}));
   content.push({type:"text",text:prompt});
   const apiKey=import.meta.env?.VITE_ANTHROPIC_API_KEY||"";
-  const res=await fetch("https://api.anthropic.com/v1/messages",{
-    method:"POST",
-    headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-    body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:maxTokens,system,messages:[{role:"user",content}]}),
-    signal:AbortSignal.timeout(60000),
-  });
+  let res;
+  try{
+    res=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",
+      headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+      body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:maxTokens,system,messages:[{role:"user",content}]}),
+      signal:AbortSignal.timeout(90000),
+    });
+  }catch(err){
+    // AbortSignal.timeout() rejects with a DOMException whose .message is often blank/undefined
+    // in some browsers, which every caller's catch block then shows verbatim as "...failed:
+    // undefined" — genuinely confusing since it looks like a code bug, not a slow response. Always
+    // re-throw a real Error with an actual message here so every call site benefits automatically,
+    // instead of having to patch each one individually.
+    if(err.name==="TimeoutError"||err.name==="AbortError"){
+      throw new Error("Request timed out — this can happen with a complex image or a slow connection. Please try again.");
+    }
+    throw new Error(err.message||"Network error — please check your connection and try again.");
+  }
   if(!res.ok) throw new Error("API error "+res.status);
   const data=await res.json();
   if(data.error) throw new Error(data.error.message||"API error");
