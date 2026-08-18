@@ -5787,8 +5787,9 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
       )}
       {/* == SALE ITEMS SAVED CUE == */}
       {saleItemsSavedCue&&(()=>{
-        const toShopping=typeof saleItemsSavedCue==="object"&&saleItemsSavedCue.toShopping;
-        const count=toShopping?saleItemsSavedCue.count:saleItemsSavedCue;
+        const isObj=typeof saleItemsSavedCue==="object"&&saleItemsSavedCue!==null;
+        const toShopping=isObj&&saleItemsSavedCue.toShopping;
+        const count=isObj?saleItemsSavedCue.count:saleItemsSavedCue;
         return (
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300,padding:16}} onClick={()=>setSaleItemsSavedCue(null)}>
           <div style={{background:C.card,border:"1px solid "+(toShopping?C.green:"#f59e0b")+"55",borderRadius:16,padding:26,maxWidth:380,width:"100%",textAlign:"center"}} onClick={e=>e.stopPropagation()}>
