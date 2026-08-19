@@ -335,6 +335,53 @@ const estimateRestockDue=(item)=>{
   const dueSoon=daysSinceLast>=avgIntervalDays*0.9;
   return {avgIntervalDays:Math.round(avgIntervalDays),daysSinceLast:Math.round(daysSinceLast),dueSoon};
 };
+// Sale-Aware Shopping Stage 2 — matches an active sale item to an inventory item, deliberately
+// conservative: sale flyer names are often compound listings ("Ritz, Wheat Thins or Triscuit...")
+// covering several unrelated products under one price. Matching those confidently isn't possible,
+// so they're excluded entirely rather than guessed at — a wrong match does more damage than a
+// missed one. Only simple, unambiguous sale item names are matched.
+const matchSaleItemToInventoryItem=(saleItemName,inventoryItemName)=>{
+  const s=(saleItemName||"").toLowerCase().trim();
+  const inv=(inventoryItemName||"").toLowerCase().trim();
+  if(!s||!inv||inv.length<3) return false;
+  if(s.includes(" or ")||(s.match(/,/g)||[]).length>1) return false; // compound/ambiguous listing — skip
+  return s.includes(inv)||inv.includes(s);
+};
+// Extracts a numeric dollar amount from a price string like "$2.99" — used to compute real savings,
+// not just flag a match. Returns null if unparseable rather than guessing.
+const parsePriceNum=(str)=>{
+  const m=(str||"").match(/[\d.]+/);
+  return m?parseFloat(m[0]):null;
+};
+// Sale-Aware Shopping Stage 2 — matches active sale items against inventory, flagging ones you're
+// running low on (Bulk Item quantity, most precise), usually due about now (purchase-cadence), or
+// buy often (purchaseCount fallback). Shared by the Meal Plan banner display and the sale-meal-plan
+// AI prompt, so both always agree on the same set rather than drifting apart.
+const getSaleRecommendations=(activeSaleItems,inventory)=>{
+  const recs=[];
+  for(const si of activeSaleItems){
+    for(const inv of inventory){
+      if(!matchSaleItemToInventoryItem(si.name,inv.name)) continue;
+      let reason=null;
+      if(inv.isBulkItem&&inv.bulkTotalUnits){
+        const pct=inv.bulkQtyRemaining/inv.bulkTotalUnits*100;
+        if(pct<=(inv.bulkLowStockPct||20)) reason="running low ("+Math.round(pct)+"% left)";
+      }
+      if(!reason){
+        const due=estimateRestockDue(inv);
+        if(due&&due.dueSoon) reason="usually due about now (~"+due.avgIntervalDays+"d cycle)";
+      }
+      if(!reason&&inv.purchaseCount>=3) reason="you buy this often";
+      if(reason){
+        const reg=parsePriceNum(si.regularPrice),sale=parsePriceNum(si.salePrice);
+        const savings=reg!==null&&sale!==null?+(reg-sale).toFixed(2):null;
+        recs.push({name:si.name,reason,savings});
+        break;
+      }
+    }
+  }
+  return recs;
+};
 const PROTEIN_TAG_COLOR=(name)=>{
   if(!name) return C.muted;
   const n=name.toLowerCase();
@@ -2672,12 +2719,14 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     try{
       const proteins=proteinItems.map(i=>i.name+" "+i.qty+" portions").join(", ");
       const saleList=activeSaleItems.map(i=>i.name+(i.salePrice?" ("+i.salePrice+")":"")+(i.savings?" — "+i.savings:"")).join(", ");
+      const recommendations=getSaleRecommendations(activeSaleItems,inventory);
+      const recPart=recommendations.length>0?" Especially prioritize these — they're on sale AND the household is running low on or regularly buys them: "+recommendations.map(r=>r.name+" ("+r.reason+")").join(", ")+".":"";
       const invList=inventory.map(i=>String(i.name||"")).filter(Boolean).join(", ");
       const fs=familySummary();
       const occCtx=buildOccasionContext(occasionState)+(occasionCustomText?" Special occasion name: "+occasionCustomText+".":"");
       const raw=await callClaude({
         system:"Return ONLY a JSON array of 7 dinner plan objects. No other text. Start with [ end with ]. Each: {day,meal,proteinUsed,sauteBagsUsed,sideUsed,shoppingNeeded}. day is Monday through Sunday. shoppingNeeded is array of {name,qty,unit} — ONLY items NOT in inventory.",
-        prompt:"This week's Meijer sale items: "+saleList+". Proteins on hand: "+proteins+". Full inventory (do NOT list in shoppingNeeded): "+invList+". "+fs+"Build a 7-day dinner plan that PRIORITIZES sale items to maximize savings. Use sale proteins and produce first. shoppingNeeded should only list items not in inventory, and prefer sale-priced items when shopping is needed.",
+        prompt:"This week's Meijer sale items: "+saleList+"."+recPart+" Proteins on hand: "+proteins+". Full inventory (do NOT list in shoppingNeeded): "+invList+". "+fs+"Build a 7-day dinner plan that PRIORITIZES sale items to maximize savings. Use sale proteins and produce first. shoppingNeeded should only list items not in inventory, and prefer sale-priced items when shopping is needed.",
         maxTokens:3000,
       });
       const s=raw.indexOf("["),e=raw.lastIndexOf("]");
@@ -4744,11 +4793,23 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
               const preview=saleItems.filter(i=>i.effectiveWeek==="preview");
               const stores=[...new Set(saleItems.map(i=>i.store).filter(Boolean))];
               const storeLabel=stores.length===0?"":stores.length===1?stores[0]+" ":stores.join(" + ")+" ";
+              // Stage 2: match active sale items against inventory — flag ones you're running low
+              // on, usually due about now, or buy often. Shared logic, see getSaleRecommendations().
+              const recommendations=getSaleRecommendations(active,inventory);
               return (
               <div style={{background:"#1a1500",border:"1px solid #f59e0b",borderRadius:12,padding:"12px 16px",marginBottom:16,display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
                 <div>
                   <div style={{fontFamily:FD,fontSize:14,color:"#f59e0b"}}>🏷 {active.length} {storeLabel}Sale Item{active.length!==1?"s":""} Loaded{preview.length>0?" · "+preview.length+" Preview (next week)":""}</div>
                   <div style={{fontFamily:FM,fontSize:11,color:"#fbbf24",marginTop:2}}>{active.slice(0,4).map(i=>i.name).join(", ")}{active.length>4?" + "+(active.length-4)+" more":""}{active.length===0&&preview.length>0?"Next week's preview items aren't active yet — check back once their sale starts.":""}</div>
+                  {recommendations.length>0&&(
+                    <div style={{marginTop:8,paddingTop:8,borderTop:"1px solid #f59e0b33"}}>
+                      <div style={{fontFamily:FM,fontSize:10,color:"#22c55e",letterSpacing:0.4,marginBottom:4,fontWeight:700}}>🔥 WORTH A LOOK — {recommendations.length} MATCH{recommendations.length!==1?"ES":""} YOU'RE LIKELY LOW ON OR BUY OFTEN</div>
+                      {recommendations.slice(0,4).map((r,i)=>(
+                        <div key={i} style={{fontSize:11,color:"#d1d5db",fontFamily:FM,padding:"2px 0"}}>• <strong style={{color:"#fff"}}>{r.name}</strong> — {r.reason}{r.savings&&r.savings>0?" · save $"+r.savings.toFixed(2):""}</div>
+                      ))}
+                      {recommendations.length>4&&<div style={{fontSize:10,color:"#9ca3af",fontFamily:FM,marginTop:2}}>+ {recommendations.length-4} more</div>}
+                    </div>
+                  )}
                 </div>
                 <div style={{display:"flex",gap:8}}>
                   <button style={{...bBtn("ghost"),fontSize:11,padding:"6px 12px",border:"1px solid #f59e0b44",color:"#f59e0b"}} onClick={()=>setSaleItems([])}>✕ Clear</button>
