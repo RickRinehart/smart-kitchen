@@ -201,6 +201,32 @@ export default async function handler(req, res) {
         } catch (e) { console.error('Referral tracking (drop-off) failed:', e.message); }
         break;
       }
+      case 'invoice.paid': {
+        // Referral tracking — ongoing revenue ledger. A flat per-conversion fee only needs the
+        // one 'converted' event, but a percentage-of-revenue bonus (hybrid fee structures) needs
+        // a running total of what a referred subscription actually paid over time, since
+        // subscriptions keep billing monthly. Only logs anything if this subscription was
+        // referral-tagged at checkout — a non-referred customer's invoice correctly logs nothing.
+        try {
+          const customerId = obj.customer;
+          const amountPaid = (obj.amount_paid || 0) / 100; // Stripe amounts are in cents
+          const subscriptionId = obj.subscription;
+          if (subscriptionId && amountPaid > 0) {
+            const ref = await getReferralForSubscription(subscriptionId);
+            if (ref) {
+              await logReferralEvent({
+                referral_code: ref.referral_code,
+                partner_id: ref.partner_id,
+                link: 'revenue',
+                stripe_customer_id: customerId,
+                stripe_subscription_id: subscriptionId,
+                amount: amountPaid,
+              });
+            }
+          }
+        } catch (e) { console.error('Referral tracking (revenue) failed:', e.message); }
+        break;
+      }
       case 'invoice.payment_failed': {
         await supabase.from('profiles').update({ subscription_status: 'past_due' }).eq('stripe_customer_id', obj.customer);
         break;
