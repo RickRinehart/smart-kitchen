@@ -20,6 +20,36 @@ const PRICE_TO_TIER = {
   [process.env.STRIPE_PRICE_MEDICAL_ANNUAL]: 'medical',
 };
 
+// -- Referral & Partner Payment Tracking (Commit 3 of 4, per the scope doc) --------------------
+// Links 2-4 of the six-link chain. Deliberately isolated and defensively wrapped everywhere it's
+// called below: a referral-tracking failure must NEVER break the core subscription/tier update
+// logic this webhook already handles — that's the actual product, referral tracking is secondary.
+async function findPartnerByCode(promoCode) {
+  if (!promoCode) return null;
+  try {
+    const { data } = await supabase.from('partner_accounts').select('id, referral_code')
+      .eq('referral_code', promoCode).eq('status', 'active').maybeSingle();
+    return data || null;
+  } catch (e) { console.error('findPartnerByCode error:', e.message); return null; }
+}
+async function logReferralEvent(row) {
+  try {
+    const { error } = await supabase.from('referral_events').insert(row);
+    if (error) console.error('logReferralEvent error:', error.message);
+  } catch (e) { console.error('logReferralEvent exception:', e.message); }
+}
+// A subscription's referral_code isn't known at conversion/cancellation time unless it was tagged
+// earlier — looks up the earliest referral-tagged event for this subscription, if any exists.
+async function getReferralForSubscription(subscriptionId) {
+  try {
+    const { data } = await supabase.from('referral_events').select('referral_code, partner_id')
+      .eq('stripe_subscription_id', subscriptionId).not('referral_code', 'is', null)
+      .order('occurred_at', { ascending: true }).limit(1).maybeSingle();
+    return data || null;
+  } catch (e) { console.error('getReferralForSubscription error:', e.message); return null; }
+}
+// --------------------------------------------------------------------------------------------
+
 async function buffer(readable) {
   const chunks = [];
   for await (const chunk of readable) {
@@ -88,6 +118,18 @@ export default async function handler(req, res) {
         if (error) console.error('Supabase error:', error);
         else console.log('Profile updated successfully');
 
+        // Referral tracking — Links 2 (Code Applied) & 3 (Trial Started). Both happen together
+        // here since a completed checkout immediately starts the trial. Only logs anything if the
+        // promo code used matches an active partner_accounts.referral_code — a non-partner promo
+        // code (e.g. a plain discount) correctly logs nothing.
+        try {
+          const partner = await findPartnerByCode(promoCode);
+          if (partner) {
+            await logReferralEvent({ referral_code: partner.referral_code, partner_id: partner.id, link: 'code_applied', user_id: userId, stripe_customer_id: customerId, stripe_subscription_id: subscriptionId });
+            await logReferralEvent({ referral_code: partner.referral_code, partner_id: partner.id, link: 'trial_started', user_id: userId, stripe_customer_id: customerId, stripe_subscription_id: subscriptionId });
+          }
+        } catch (e) { console.error('Referral tracking (checkout) failed:', e.message); }
+
         // Send plan-confirmation email now that the real tier is known
         try {
           const customerEmail = obj.customer_email || obj.customer_details?.email;
@@ -126,10 +168,37 @@ export default async function handler(req, res) {
         const priceId = obj.items && obj.items.data[0] && obj.items.data[0].price.id;
         const tier = PRICE_TO_TIER[priceId] || 'free';
         await supabase.from('profiles').update({ tier, subscription_status: obj.status }).eq('stripe_subscription_id', obj.id);
+        // Referral tracking — Link 4 (Conversion). Only fires once, the first time this
+        // subscription transitions to active, and only if it was referral-tagged at checkout.
+        if (obj.status === 'active') {
+          try {
+            const ref = await getReferralForSubscription(obj.id);
+            if (ref) {
+              const { data: already } = await supabase.from('referral_events').select('id')
+                .eq('stripe_subscription_id', obj.id).eq('link', 'converted').maybeSingle();
+              if (!already) {
+                await logReferralEvent({ referral_code: ref.referral_code, partner_id: ref.partner_id, link: 'converted', stripe_subscription_id: obj.id });
+              }
+            }
+          } catch (e) { console.error('Referral tracking (conversion) failed:', e.message); }
+        }
         break;
       }
       case 'customer.subscription.deleted': {
         await supabase.from('profiles').update({ tier: 'free', subscription_status: 'canceled' }).eq('stripe_subscription_id', obj.id);
+        // Referral tracking — Link 4 (Drop-off variant). Only a meaningful failure signal if this
+        // subscription never converted — canceling AFTER a normal paid period is unrelated to the
+        // referral funnel and shouldn't be logged as a drop-off.
+        try {
+          const ref = await getReferralForSubscription(obj.id);
+          if (ref) {
+            const { data: converted } = await supabase.from('referral_events').select('id')
+              .eq('stripe_subscription_id', obj.id).eq('link', 'converted').maybeSingle();
+            if (!converted) {
+              await logReferralEvent({ referral_code: ref.referral_code, partner_id: ref.partner_id, link: 'dropped_off', stripe_subscription_id: obj.id });
+            }
+          }
+        } catch (e) { console.error('Referral tracking (drop-off) failed:', e.message); }
         break;
       }
       case 'invoice.payment_failed': {
