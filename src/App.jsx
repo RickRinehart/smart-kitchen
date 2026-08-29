@@ -231,6 +231,11 @@ const parseIngredientLine=(raw)=>{
 };
 // Scales one ingredient (structured {name,qty,unit} OR legacy free-text string) by `scale` and returns
 // a display string. Structured ingredients scale precisely; legacy strings are parsed on the fly.
+// Formats a recipe's ingredients array into the one-per-line text shown in the Family Recipes
+// editor textarea. Used ONLY to seed the textarea's raw-text shadow state when the editor first
+// opens (see frIngredientsText) — never called on every keystroke, since re-deriving display text
+// from re-parsed structured data on every change is what caused the "1 1" typing corruption bug.
+const formatIngredientsForEdit=(ingredients)=>(ingredients||[]).map(ing=>typeof ing==="object"?[formatScaledQty(ing.qty),ing.unit,ing.name].filter(Boolean).join(" ")+(ing.note?" ("+ing.note+")":""):ing).join("\n");
 const scaleIngredientDisplay=(ing,scale)=>{
   if(ing&&typeof ing==="object"){
     const scaledQty=formatScaledQty((ing.qty||0)*scale);
@@ -1554,6 +1559,13 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [familyRecipes,setFamilyRecipes]=useState(()=>{try{const s=localStorage.getItem("sk_familyRecipes");return s?JSON.parse(s):[];}catch{return [];}});
   const [frAddMode,setFrAddMode]=useState(null);
   const [frEditRecipe,setFrEditRecipe]=useState(null);
+  // Raw text shadow state for the ingredients textarea in the Family Recipes editor. The textarea
+  // is intentionally NOT bound directly to frEditRecipe.ingredients (a structured array) — doing so
+  // requires re-parsing + re-formatting on every keystroke, which mangles partial input mid-typing
+  // (e.g. typing "2" alone would round-trip through parseIngredientLine and redisplay as "2 2").
+  // This holds the exact text the user sees/types; it's parsed into frEditRecipe.ingredients on
+  // every change (so Save/scaling logic downstream still works), but never derived back FROM it.
+  const [frIngredientsText,setFrIngredientsText]=useState("");
   const [frViewRecipe,setFrViewRecipe]=useState(null);
   const [frLoading,setFrLoading]=useState(false);
   const [frPhotoPreview,setFrPhotoPreview]=useState(null);
@@ -7975,7 +7987,7 @@ setScaleCalcLoading(false);setTimeout(()=>{if(scaleDevice&&scaleDevice._writeChr
                   setShowShareModal(true);
                 }} style={{background:"transparent",border:"2px solid #c8963e",borderRadius:10,padding:"10px 16px",color:"#c8963e",fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,cursor:"pointer",fontWeight:600}}>📤 Share</button>
                 <button onClick={()=>{const scale=frServings/(frViewRecipe.servings||4);const ingDisplay=(frViewRecipe.ingredients||[]).map(ing=>scaleIngredientDisplay(ing,scale));setAddToPlanRecipe({...frViewRecipe,usesFromInventory:frViewRecipe.usesFromInventory||ingDisplay,missingIngredients:frViewRecipe.missingIngredients||[]});setAddToPlanDay("");}} style={{background:"transparent",border:"2px solid #2aa86e",borderRadius:10,padding:"10px 16px",color:"#2aa86e",fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,cursor:"pointer",fontWeight:600}}>📅 Add to Meal Plan</button>
-                <button onClick={()=>{setFrEditRecipe({...frViewRecipe});setFrServings(frViewRecipe.servings||4);}} style={{background:"transparent",border:"2px solid #c8963e",borderRadius:10,padding:"10px 16px",color:"#5c3317",fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,cursor:"pointer"}}>✏ Edit</button>
+                <button onClick={()=>{setFrEditRecipe({...frViewRecipe});setFrServings(frViewRecipe.servings||4);setFrIngredientsText(formatIngredientsForEdit(frViewRecipe.ingredients));}} style={{background:"transparent",border:"2px solid #c8963e",borderRadius:10,padding:"10px 16px",color:"#5c3317",fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,cursor:"pointer"}}>✏ Edit</button>
                 <button onClick={()=>{setFrRemixBase(frViewRecipe);setFrRemixInput("");setFrViewRecipe(null);setFrAddMode("remix");}} style={{background:"transparent",border:"2px solid #7c3aed",borderRadius:10,padding:"10px 16px",color:"#7c3aed",fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,cursor:"pointer",fontWeight:600}}>🔀 Remix</button>
                 <button onClick={()=>{showConfirm("Delete "+frViewRecipe.name+"?",()=>{const updated=familyRecipes.filter(r=>r.id!==frViewRecipe.id);setFamilyRecipes(updated);try{localStorage.setItem("sk_familyRecipes",JSON.stringify(updated));}catch{}setFrViewRecipe(null);});}} style={{background:"transparent",border:"2px solid #dc2626",borderRadius:10,padding:"10px 16px",color:"#dc2626",fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,cursor:"pointer"}}>🗑 Delete</button>
               </div>
@@ -7999,7 +8011,7 @@ setScaleCalcLoading(false);setTimeout(()=>{if(scaleDevice&&scaleDevice._writeChr
               </div>
               <div style={{marginBottom:10}}>
                 <div style={{fontFamily:"Georgia,serif",fontSize:12,color:"#8b6340",marginBottom:6}}>Ingredients (one per line)</div>
-                <textarea value={(frEditRecipe.ingredients||[]).map(ing=>typeof ing==="object"?[formatScaledQty(ing.qty),ing.unit,ing.name].filter(Boolean).join(" ")+(ing.note?" ("+ing.note+")":""):ing).join("\n")} onChange={e=>setFrEditRecipe(r=>({...r,ingredients:e.target.value.split("\n").map(line=>{const p=parseIngredientLine(line);return {name:p.name,qty:p.qty,unit:p.unit,note:p.note};})}))} rows={5} style={{width:"100%",padding:"10px 12px",borderRadius:8,border:"1px solid #e8d5b0",fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,color:"#3d2008",background:"#fffbf0",boxSizing:"border-box",resize:"vertical"}}/>
+                <textarea value={frIngredientsText} onChange={e=>{const text=e.target.value;setFrIngredientsText(text);setFrEditRecipe(r=>({...r,ingredients:text.split("\n").map(line=>{const p=parseIngredientLine(line);return {name:p.name,qty:p.qty,unit:p.unit,note:p.note};})}));}} rows={5} style={{width:"100%",padding:"10px 12px",borderRadius:8,border:"1px solid #e8d5b0",fontFamily:"Georgia,serif",fontSize:seniorMode?15:12,color:"#3d2008",background:"#fffbf0",boxSizing:"border-box",resize:"vertical"}}/>
                 <div style={{fontFamily:"Georgia,serif",fontSize:11,color:"#8b6340",marginTop:4,fontStyle:"italic"}}>One per line, e.g. "1 1/2 cups flour" — saved with precise amounts so this recipe can scale by serving size.</div>
               </div>
               <div style={{marginBottom:14}}>
@@ -8052,7 +8064,7 @@ setScaleCalcLoading(false);setTimeout(()=>{if(scaleDevice&&scaleDevice._writeChr
                 <button onClick={()=>setFrAddMode(null)} style={{background:"transparent",border:"none",fontSize:20,cursor:"pointer",color:"#8b6340"}}>✕</button>
               </div>
               <div style={{display:"flex",flexDirection:"column",gap:10}}>
-                <button onClick={()=>{setFrAddMode("type");setFrEditRecipe({name:"",kitchenOf:"",notes:"",servings:4,ingredients:[],steps:[],rotation:false,frequency:"4week",seasons:[],photo:null});}} style={{background:"#fffbf0",border:"2px solid #e8d5b0",borderRadius:12,padding:"16px",textAlign:"left",cursor:"pointer"}}>
+                <button onClick={()=>{setFrAddMode("type");setFrEditRecipe({name:"",kitchenOf:"",notes:"",servings:4,ingredients:[],steps:[],rotation:false,frequency:"4week",seasons:[],photo:null});setFrIngredientsText("");}} style={{background:"#fffbf0",border:"2px solid #e8d5b0",borderRadius:12,padding:"16px",textAlign:"left",cursor:"pointer"}}>
                   <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?18:15,color:"#5c3317",fontWeight:700,marginBottom:4}}>✏ Type it in</div>
                   <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?14:12,color:"#8b6340"}}>Enter the recipe name, ingredients, and steps yourself</div>
                 </button>
@@ -8145,6 +8157,7 @@ setScaleCalcLoading(false);setTimeout(()=>{if(scaleDevice&&scaleDevice._writeChr
                     const parsed=JSON.parse(raw.slice(s,e+1));
                     const parsedServings=parseInt(parsed.servings)||4;
                   setFrEditRecipe({...parsed,id:Date.now(),servings:parsedServings,rotation:false,frequency:"4week",seasons:[],photo:null});
+                    setFrIngredientsText(formatIngredientsForEdit(parsed.ingredients));
                     setFrServings(parsedServings);
                     setFrPhotos([]);
                     setFrAddMode("review");
@@ -8171,6 +8184,7 @@ setScaleCalcLoading(false);setTimeout(()=>{if(scaleDevice&&scaleDevice._writeChr
                   const s=raw.indexOf("{"),e=raw.lastIndexOf("}");
                   const parsed=JSON.parse(raw.slice(s,e+1));
                   setFrEditRecipe({...parsed,id:Date.now(),rotation:false,frequency:"4week",seasons:[],photo:null});
+                  setFrIngredientsText(formatIngredientsForEdit(parsed.ingredients));
                   setFrServings(parsed.servings||4);
                   setFrAddMode("review");
                 }catch(err){showAlert("Could not create recipe. Please try again.");}
@@ -8207,6 +8221,7 @@ setScaleCalcLoading(false);setTimeout(()=>{if(scaleDevice&&scaleDevice._writeChr
                   const parsed=JSON.parse(raw.slice(s,e+1));
                   const parsedServings=parseInt(parsed.servings)||frRemixBase.servings||4;
                   setFrEditRecipe({...parsed,id:Date.now(),servings:parsedServings,rotation:false,frequency:"4week",seasons:[],photo:null});
+                  setFrIngredientsText(formatIngredientsForEdit(parsed.ingredients));
                   setFrServings(parsedServings);
                   setFrRemixInput("");
                   setFrRemixBase(null);
