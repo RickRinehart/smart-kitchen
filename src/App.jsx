@@ -387,6 +387,97 @@ const getSaleRecommendations=(activeSaleItems,inventory)=>{
   }
   return recs;
 };
+// ── Smarter Way to Shop — partner ad matching (Aug 2026) ──────────────────────────────
+// Fetches centrally-collected sale items for the user's preferred markets and matches
+// them against inventory using the SAME conservative matchSaleItemToInventoryItem logic
+// already used above for the single-store Weekly Ad Scanner — no new matching algorithm,
+// just a new, shared data source (partner_ads) instead of the user's own single-store
+// sale_items. Paid feature — gated by can.smarterWayToShop.
+//
+// Unit normalization matters here: some retailers price by total pack (e.g. "$9.95 for a
+// 5lb bag") rather than per-unit. Comparing that raw price against a per-lb avgUnitPrice
+// would be actively misleading, so prices are only compared when both sides confidently
+// reduce to the same unit family (lb/oz/each) — otherwise needsUnitNormalization is flagged
+// and no comparison number is shown, rather than guessing.
+const parsePartnerAdQuantity=(text)=>{
+  if(!text) return null;
+  const t=text.toLowerCase().trim();
+  let m;
+  if((m=t.match(/^(\d+(?:\.\d+)?)\s*lb/))) return {qty:parseFloat(m[1]),family:"lb"};
+  if((m=t.match(/^(\d+(?:\.\d+)?)\s*oz/))) return {qty:parseFloat(m[1])/16,family:"lb"};
+  if(/^lb\.?s?$/.test(t)) return {qty:1,family:"lb"};
+  if(/^oz\.?$/.test(t)) return {qty:1/16,family:"lb"};
+  if(/^each$|^ea\.?$/.test(t)) return {qty:1,family:"each"};
+  return null;
+};
+const normalizePartnerAdPrice=(adPrice,adUnitSize,invUnit)=>{
+  if(adPrice==null) return null;
+  const adQty=parsePartnerAdQuantity(adUnitSize);
+  const invQty=parsePartnerAdQuantity(invUnit);
+  if(!adQty||!invQty||adQty.family!==invQty.family||!adQty.qty) return null;
+  return +(adPrice/adQty.qty).toFixed(2);
+};
+const fetchPartnerAdMatches=async(currentInventory,userId,deepDiscountThresholdPct=40)=>{
+  if(!userId||!currentInventory||currentInventory.length===0) return [];
+  const {data:markets,error:marketsErr}=await supabase
+    .from('user_preferred_markets')
+    .select('partner_store_id')
+    .eq('user_id',userId);
+  if(marketsErr||!markets||markets.length===0) return [];
+
+  const storeIds=markets.map(m=>m.partner_store_id);
+  const today=new Date().toISOString().slice(0,10);
+  const {data:ads,error:adsErr}=await supabase
+    .from('partner_ads')
+    .select('item_name, canonical_key, regular_price, card_price, compare_at_price, unit_size, department, sale_start, sale_end, partner_stores(name, inventory_model)')
+    .in('partner_store_id',storeIds)
+    .or(`sale_start.is.null,sale_start.lte.${today}`)
+    .or(`sale_end.is.null,sale_end.gte.${today}`);
+  if(adsErr||!ads) return [];
+
+  const matches=[];
+  for(const ad of ads){
+    for(const inv of currentInventory){
+      if(!matchSaleItemToInventoryItem(ad.item_name,inv.name)) continue;
+
+      const rawAdPrice=ad.card_price??ad.regular_price??null;
+      const comparableAdPrice=normalizePartnerAdPrice(rawAdPrice,ad.unit_size,inv.unit);
+      const needsUnitNormalization=rawAdPrice!=null&&comparableAdPrice==null;
+
+      const avg=inv.avgUnitPrice??null;
+      const priceDelta=(comparableAdPrice!=null&&avg!=null)?+(avg-comparableAdPrice).toFixed(2):null;
+
+      let deepDiscountPct=null;
+      if(ad.compare_at_price&&(ad.regular_price||rawAdPrice)){
+        const basis=ad.regular_price??rawAdPrice;
+        deepDiscountPct=+(((ad.compare_at_price-basis)/ad.compare_at_price)*100).toFixed(1);
+      }
+      const isDeepDiscountEligible=
+        deepDiscountPct!=null&&
+        deepDiscountPct>=deepDiscountThresholdPct&&
+        (inv.purchaseCount||0)>=1; // must be something the user has actually bought before
+
+      matches.push({
+        adItemName:ad.item_name,
+        inventoryItemName:inv.name,
+        storeName:ad.partner_stores?.name||null,
+        inventoryModel:ad.partner_stores?.inventory_model||null,
+        rawAdPrice,
+        comparableAdPrice:needsUnitNormalization?null:(comparableAdPrice??rawAdPrice),
+        needsUnitNormalization,
+        avgUnitPrice:avg,
+        priceDelta,
+        purchaseCount:inv.purchaseCount||0,
+        compareAtPrice:ad.compare_at_price??null,
+        deepDiscountPct,
+        isDeepDiscountEligible,
+        department:ad.department||null,
+      });
+      break; // one match per ad item, same conservative rule as getSaleRecommendations
+    }
+  }
+  return matches;
+};
 const PROTEIN_TAG_COLOR=(name)=>{
   if(!name) return C.muted;
   const n=name.toLowerCase();
@@ -1673,6 +1764,16 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [scanStage,setScanStage]=useState("upload");
   const [scanMode,setScanMode]=useState("shelf");
   const [saleItems,setSaleItems]=useState(()=>{try{return JSON.parse(localStorage.getItem("sk_saleItems")||"[]");}catch{return [];}});
+  // Smarter Way to Shop -- centrally-collected matches, separate from the single-store
+  // sale_items above. Only fetched for entitled users, and only re-fetched when inventory
+  // or the logged-in user changes -- this is a paid feature, not a background poll for everyone.
+  const [partnerAdMatches,setPartnerAdMatches]=useState([]);
+  useEffect(()=>{
+    if(!can.smarterWayToShop||!user?.id){ setPartnerAdMatches([]); return; }
+    let cancelled=false;
+    fetchPartnerAdMatches(inventory,user.id).then(m=>{ if(!cancelled) setPartnerAdMatches(m); });
+    return ()=>{ cancelled=true; };
+  },[inventory,user?.id,can.smarterWayToShop]);
   const [adMetaStore,setAdMetaStore]=useState("Meijer");
   const [adMetaDateStart,setAdMetaDateStart]=useState("");
   const [adMetaDateEnd,setAdMetaDateEnd]=useState("");
@@ -4827,6 +4928,35 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                   <button style={{...bBtn("ghost"),fontSize:11,padding:"6px 12px",border:"1px solid #f59e0b44",color:"#f59e0b"}} onClick={()=>setSaleItems([])}>✕ Clear</button>
                   <button style={{padding:"8px 16px",borderRadius:9,border:"none",background:"#f59e0b",color:"#0c0e14",fontFamily:FM,fontSize:12,fontWeight:700,cursor:"pointer",opacity:active.length>0?1:0.5}} disabled={active.length===0} onClick={buildSaleMealPlan}>🏷 Build Sale Meal Plan</button>
                 </div>
+              </div>
+              );
+            })()}
+            {/* Smarter Way to Shop -- centrally-collected multi-retailer matches. Visually
+                distinct (teal accent) from the amber single-store Weekly Ad Scanner banner
+                above, since they're two different features: this one requires no manual
+                ad-scanning at all. */}
+            {can.smarterWayToShop&&partnerAdMatches.length>0&&(()=>{
+              const deepDiscounts=partnerAdMatches.filter(m=>m.isDeepDiscountEligible);
+              const belowAverage=partnerAdMatches.filter(m=>m.priceDelta!=null&&m.priceDelta>0&&!m.isDeepDiscountEligible);
+              return (
+              <div style={{background:"#0a1a17",border:"1px solid #14b8a6",borderRadius:12,padding:"12px 16px",marginBottom:16}}>
+                <div style={{fontFamily:FD,fontSize:14,color:"#14b8a6"}}>🛒 Smarter Way to Shop — {partnerAdMatches.length} match{partnerAdMatches.length!==1?"es":""} at your preferred stores</div>
+                {deepDiscounts.length>0&&(
+                  <div style={{marginTop:8,paddingTop:8,borderTop:"1px solid #14b8a633"}}>
+                    <div style={{fontFamily:FM,fontSize:10,color:"#f59e0b",letterSpacing:0.4,marginBottom:4,fontWeight:700}}>⚡ DEEP DISCOUNT — {deepDiscounts.length} ITEM{deepDiscounts.length!==1?"S":""} YOU BUY, DEEPLY DISCOUNTED{deepDiscounts.some(m=>m.inventoryModel==="closeout_limited")?" · LIMITED QUANTITIES":""}</div>
+                    {deepDiscounts.slice(0,4).map((m,i)=>(
+                      <div key={i} style={{fontSize:11,color:"#d1d5db",fontFamily:FM,padding:"2px 0"}}>• <strong style={{color:"#fff"}}>{m.inventoryItemName}</strong> at {m.storeName} — {m.deepDiscountPct}% off {m.storeName}'s stated price{m.inventoryModel==="closeout_limited"&&<span style={{color:"#f59e0b"}}> (limited quantities)</span>}</div>
+                    ))}
+                  </div>
+                )}
+                {belowAverage.length>0&&(
+                  <div style={{marginTop:8,paddingTop:8,borderTop:"1px solid #14b8a633"}}>
+                    <div style={{fontFamily:FM,fontSize:10,color:"#22c55e",letterSpacing:0.4,marginBottom:4,fontWeight:700}}>💰 BELOW YOUR USUAL PRICE — {belowAverage.length} ITEM{belowAverage.length!==1?"S":""}</div>
+                    {belowAverage.slice(0,4).map((m,i)=>(
+                      <div key={i} style={{fontSize:11,color:"#d1d5db",fontFamily:FM,padding:"2px 0"}}>• <strong style={{color:"#fff"}}>{m.inventoryItemName}</strong> at {m.storeName} — ${m.comparableAdPrice?.toFixed(2)} vs. your usual ${m.avgUnitPrice?.toFixed(2)} (save ${m.priceDelta.toFixed(2)})</div>
+                    ))}
+                  </div>
+                )}
               </div>
               );
             })()}
