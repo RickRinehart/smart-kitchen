@@ -4,6 +4,7 @@
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],
   "crons": [
-    { "path": "/api/send-shopping-list?action=check-recalls", "schedule": "0 8 * * *" }
+    { "path": "/api/send-shopping-list?action=check-recalls", "schedule": "0 8 * * *" },
+    { "path": "/api/ingest-horrocks?action=ingest-horrocks", "schedule": "0 12 * * *" }
   ]
 }
