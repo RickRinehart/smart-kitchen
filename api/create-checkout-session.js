@@ -52,7 +52,7 @@ export default async function handler(req, res) {
     return handleCurrentPricing(req, res);
   }
   if (req.method !== 'POST') return res.status(405).end();
-  const { priceId, addOnPriceId, userId, userEmail, promoCode } = req.body;
+  const { priceId, addOnPriceId, addOnPriceIds, userId, userEmail, promoCode } = req.body;
   if (!priceId || !userId) {
     return res.status(400).json({ error: 'priceId and userId required' });
   }
@@ -60,19 +60,23 @@ export default async function handler(req, res) {
   const priceMap = PRICE_MAP;
 
   const resolvedPriceId = priceMap[priceId] || priceId;
-  const resolvedAddOn = addOnPriceId ? (priceMap[addOnPriceId] || addOnPriceId) : null;
+  // Accepts either the original singular addOnPriceId (Medical+ only, kept for backward
+  // compatibility) or the newer addOnPriceIds array (supports bundling multiple add-ons -- e.g.
+  // Medical+ and Smarter Way to Shop -- into the same checkout/subscription at signup).
+  const rawAddOns = addOnPriceIds && addOnPriceIds.length ? addOnPriceIds : (addOnPriceId ? [addOnPriceId] : []);
+  const resolvedAddOns = rawAddOns.map(id => priceMap[id] || id).filter(Boolean);
 
-  console.log('Checkout debug:', { priceId, resolvedPriceId, addOn: resolvedAddOn, hasKey: !!process.env.STRIPE_SECRET_KEY });
+  console.log('Checkout debug:', { priceId, resolvedPriceId, addOns: resolvedAddOns, hasKey: !!process.env.STRIPE_SECRET_KEY });
 
   if (!resolvedPriceId) {
     return res.status(400).json({ error: 'Could not resolve price ID for: ' + priceId });
   }
 
   try {
-    // Build line items — base plan + optional Medical+ add-on
+    // Build line items — base plan + any add-ons
     const lineItems = [{ price: resolvedPriceId, quantity: 1 }];
-    if (resolvedAddOn) {
-      lineItems.push({ price: resolvedAddOn, quantity: 1 });
+    for (const addOn of resolvedAddOns) {
+      lineItems.push({ price: addOn, quantity: 1 });
     }
 
     const sessionParams = {
@@ -84,13 +88,13 @@ export default async function handler(req, res) {
       subscription_data: {
         metadata: {
           supabase_user_id: userId,
-          has_medical_addon: resolvedAddOn ? 'true' : 'false',
+          has_addon: resolvedAddOns.length ? 'true' : 'false',
         },
       },
       metadata: {
         supabase_user_id: userId,
         promo_code: promoCode || '',
-        has_medical_addon: resolvedAddOn ? 'true' : 'false',
+        has_addon: resolvedAddOns.length ? 'true' : 'false',
       },
       success_url: `${process.env.VITE_APP_URL}/?checkout=success`,
       cancel_url: `${process.env.VITE_APP_URL}/`,
