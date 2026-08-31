@@ -1774,6 +1774,27 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
     fetchPartnerAdMatches(inventory,user.id).then(m=>{ if(!cancelled) setPartnerAdMatches(m); });
     return ()=>{ cancelled=true; };
   },[inventory,user?.id,can.smarterWayToShop]);
+  // Add-on upsell -- lets an already-subscribed, non-trial paid user add Medical+ and/or
+  // Smarter Way to Shop later without re-selecting their base tier. can.unlimitedRecipes is
+  // true for both trial and any real paid tier, but the trial already grants medicalCompliance
+  // and smarterWayToShop directly (see main.jsx), so a trial user never sees this -- only
+  // someone on a genuine paid subscription who's missing one or both add-ons does.
+  const [addonCheckoutLoading,setAddonCheckoutLoading]=useState(null);
+  const startAddonCheckout=async(addonKey)=>{
+    if(!user?.id) return;
+    setAddonCheckoutLoading(addonKey);
+    try{
+      const priceId=addonKey==="medical"?"medical_addon_monthly":"sws_addon_monthly";
+      const res=await fetch("/api/create-checkout-session",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({priceId,userId:user.id,userEmail:user.email}),
+      });
+      const data=await res.json();
+      if(data.url) window.location.href=data.url;
+      else setAddonCheckoutLoading(null);
+    }catch(e){ setAddonCheckoutLoading(null); }
+  };
   const [adMetaStore,setAdMetaStore]=useState("Meijer");
   const [adMetaDateStart,setAdMetaDateStart]=useState("");
   const [adMetaDateEnd,setAdMetaDateEnd]=useState("");
@@ -4960,6 +4981,28 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
               </div>
               );
             })()}
+            {/* Add-on upsell -- only shown to already-active paid subscribers missing one or both
+                add-ons. Trial users already have both via main.jsx's inTrial checks, so they never
+                see this; a genuinely free/never-subscribed user goes through the main Upgrade flow
+                (SubscriptionModal) instead, where the same add-ons can be selected at signup. */}
+            {can.unlimitedRecipes&&(!can.medicalCompliance||!can.smarterWayToShop)&&(
+              <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16}}>
+                {!can.medicalCompliance&&(
+                  <button onClick={()=>startAddonCheckout("medical")} disabled={addonCheckoutLoading==="medical"}
+                    style={{flex:"1 1 220px",textAlign:"left",background:"#f5f3ff",border:"1px solid #6D28D9",borderRadius:10,padding:"10px 14px",cursor:"pointer",opacity:addonCheckoutLoading==="medical"?0.7:1}}>
+                    <div style={{fontFamily:FM,fontSize:12,fontWeight:700,color:"#6D28D9"}}>+ Add Medical+ — $10/mo</div>
+                    <div style={{fontFamily:FM,fontSize:11,color:"#4b2d8c",marginTop:2}}>{addonCheckoutLoading==="medical"?"Loading...":"AI-enforced dietary compliance per member"}</div>
+                  </button>
+                )}
+                {!can.smarterWayToShop&&(
+                  <button onClick={()=>startAddonCheckout("sws")} disabled={addonCheckoutLoading==="sws"}
+                    style={{flex:"1 1 220px",textAlign:"left",background:"#effaf7",border:"1px solid #0F8A7A",borderRadius:10,padding:"10px 14px",cursor:"pointer",opacity:addonCheckoutLoading==="sws"?0.7:1}}>
+                    <div style={{fontFamily:FM,fontSize:12,fontWeight:700,color:"#0F8A7A"}}>+ Add Smarter Way to Shop — $5/mo</div>
+                    <div style={{fontFamily:FM,fontSize:11,color:"#0a5f54",marginTop:2}}>{addonCheckoutLoading==="sws"?"Loading...":"Weekly ad comparison, no manual scanning"}</div>
+                  </button>
+                )}
+              </div>
+            )}
             {(()=>{const tod=new Date();return activeProfiles.filter(p=>p.dob).find(p=>{const b=new Date(p.dob+"T12:00:00");const nb=new Date(tod.getFullYear(),b.getMonth(),b.getDate());if(nb<tod) nb.setFullYear(tod.getFullYear()+1);return Math.ceil((nb-tod)/(1000*60*60*24))<=7;});})()&&(()=>{const tod=new Date();const bPerson=activeProfiles.filter(p=>p.dob).find(p=>{const b=new Date(p.dob+"T12:00:00");const nb=new Date(tod.getFullYear(),b.getMonth(),b.getDate());if(nb<tod) nb.setFullYear(tod.getFullYear()+1);return Math.ceil((nb-tod)/(1000*60*60*24))<=7;});const b2=new Date(bPerson.dob+"T12:00:00");const nb2=new Date(tod.getFullYear(),b2.getMonth(),b2.getDate());if(nb2<tod) nb2.setFullYear(tod.getFullYear()+1);const days=Math.ceil((nb2-tod)/(1000*60*60*24));return <div style={{background:"#f59e0b22",border:"1px solid #f59e0b44",borderRadius:10,padding:"10px 14px",marginBottom:10,display:"flex",alignItems:"center",gap:10,cursor:"pointer"}} onClick={()=>{setShowOccasionPlanner(true);setOccasionState(s=>({...s,eventType:"party",audienceType:"family"}));setOccasionStep("form");}}><span style={{fontSize:20}}>🎂</span><div><div style={{fontFamily:FM,fontSize:12,fontWeight:700,color:"#d97706"}}>{bPerson.name||"Someone"} has a birthday in {days} day{days===1?"":"s"}!</div><div style={{fontFamily:FM,fontSize:11,color:C.muted}}>Tap to plan a birthday dinner.</div></div></div>;})()}
             {occasionState.eventType&&<div style={{background:C.accent+"18",border:"1px solid "+C.accent+"44",borderRadius:10,padding:"8px 14px",marginBottom:10,display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
               <span style={{fontSize:16}}>{OCCASION_EVENT_TYPES.find(e=>e.key===occasionState.eventType)?.emoji||""}</span>
