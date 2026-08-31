@@ -5,6 +5,7 @@
   ],
   "crons": [
     { "path": "/api/send-shopping-list?action=check-recalls", "schedule": "0 8 * * *" },
-    { "path": "/api/ingest-horrocks?action=ingest-horrocks", "schedule": "0 12 * * *" }
+    { "path": "/api/ingest-horrocks?action=ingest-horrocks", "schedule": "0 12 * * *" },
+    { "path": "/api/check-deep-discounts?action=check-deep-discounts", "schedule": "0 13 * * *" }
   ]
 }
