@@ -297,6 +297,7 @@ export default function SubscriptionModal({ user, currentTier, onClose, onSubscr
             </div>
             <div style={s.medAddonDesc}>
               See what's on sale across your preferred stores every week, and get alerted when something you actually buy is below your usual price — or deeply discounted with limited quantities. No manual ad-scanning required.
+              <div style={{ marginTop: 4, fontSize: 12, color: TEAL, fontWeight: 600 }}>$10/mo standalone — included here at $5/mo as a Smart Kitchen member.</div>
             </div>
           </div>
           {addSWTS && (
