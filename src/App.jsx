@@ -814,6 +814,49 @@ async function callClaude({system,prompt,imageBase64,imageB64,imageType,extraIma
 
 function fileToBase64(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(",")[1]);r.onerror=rej;r.readAsDataURL(f);});}
 
+// Parses the ad-extraction JSON, salvaging every complete item even if the response was cut off
+// mid-array by hitting the output token ceiling on a large, item-heavy flyer. A truncated tail
+// shouldn't throw away everything that DID complete before it -- this walks brace depth through
+// the items array and keeps every {...} object that's fully closed, rather than requiring the
+// whole response to be syntactically perfect. Sets _partial:true when recovery was needed, so the
+// UI can tell the admin some items near the end may be missing.
+function parseAdExtractionJson(raw){
+  const s=raw.indexOf("{");
+  if(s===-1) throw new Error("Could not read the PDF");
+  const jsonStr=raw.slice(s);
+  const lastBrace=jsonStr.lastIndexOf("}");
+  try{
+    return JSON.parse(jsonStr.slice(0,lastBrace+1));
+  }catch(parseErr){
+    const dateStartMatch=jsonStr.match(/"effectiveDateStart"\s*:\s*("[^"]*"|null)/);
+    const dateEndMatch=jsonStr.match(/"effectiveDateEnd"\s*:\s*("[^"]*"|null)/);
+    const itemsKeyIdx=jsonStr.indexOf('"items"');
+    if(itemsKeyIdx===-1) throw parseErr;
+    const arrStart=jsonStr.indexOf('[',itemsKeyIdx);
+    if(arrStart===-1) throw parseErr;
+    let depth=0,itemStart=-1;const items=[];
+    for(let i=arrStart+1;i<jsonStr.length;i++){
+      const ch=jsonStr[i];
+      if(ch==='{'){ if(depth===0) itemStart=i; depth++; }
+      else if(ch==='}'){
+        depth--;
+        if(depth===0&&itemStart!==-1){
+          try{ items.push(JSON.parse(jsonStr.slice(itemStart,i+1))); }catch{}
+          itemStart=-1;
+        }
+      }
+    }
+    if(items.length===0) throw parseErr;
+    return {
+      effectiveDateStart: dateStartMatch?JSON.parse(dateStartMatch[1]):null,
+      effectiveDateEnd: dateEndMatch?JSON.parse(dateEndMatch[1]):null,
+      items,
+      _partial:true,
+    };
+  }
+}
+
+
 // -- Loading dots --------------------------------------------------------------
 function LoadingDots(){
   const [tick,setTick]=useState(0);
@@ -7459,15 +7502,14 @@ What can I substitute and do I have what I need?`,
                   system:"You are a grocery store weekly ad parser for Smart Kitchen's Smarter Way to Shop feature. Analyze this store ad PDF and extract every food/grocery item with its pricing, grouped by department. Return ONLY a valid JSON object (not an array): {effectiveDateStart(string, ISO YYYY-MM-DD, null if not visible), effectiveDateEnd(string, ISO YYYY-MM-DD, null if not visible), items(array of {item_name(string, clean product name as printed), department(one of Produce|Meat|Deli|Grocery|Dairy|Frozen|Bakery|Tavern|Other), regular_price(number or null, the unconditional shelf price if shown separately from a card/loyalty price), card_price(number or null, the loyalty-card or 'with card' price), mix_match_price(number or null, a Buy-5/Mix-and-Match final unit price if shown), coupon_price(number or null, price after a specific printed digital coupon), compare_at_price(number or null, ONLY for closeout/discount retailers that print an explicit 'Compare At' or original-value reference price alongside a much lower deal price — never fabricate this for a normal grocer's regular shelf price), unit_size(string, e.g. 'lb', 'each', '16 oz', or the original printed multi-buy text like '2/$5 5 lb bag' — do not do any math yourself, keep it as printed), notes(string or null, ONLY for genuinely ambiguous pricing such as 'X each OR Y per dozen' that represent different real purchase choices, not a discount tier — leave null for normal single-price items)})}. Focus on food/grocery items only — skip household goods, electronics, floral, or garden. Process every page if the PDF has multiple pages. Never guess a price that isn't printed — use null rather than inventing one.",
                   prompt:"Extract every food/grocery sale item from this weekly ad PDF, with pricing exactly as printed and organized by department.",
                   pdfBase64,
-                  maxTokens:8000,
+                  maxTokens:16000,
                   timeoutMs:240000,
                 });
-                const s=raw.indexOf("{"),e=raw.lastIndexOf("}");
-                if(s===-1) throw new Error("Could not read the PDF");
-                const parsed=JSON.parse(raw.slice(s,e+1));
+                const parsed=parseAdExtractionJson(raw);
                 setAdAdminSaleStart(parsed.effectiveDateStart||"");
                 setAdAdminSaleEnd(parsed.effectiveDateEnd||"");
                 setAdAdminExtractedItems((parsed.items||[]).map(i=>({...i,_selected:true})));
+                if(parsed._partial) showAlert("Heads up: this ad had more items than fit in one response. "+parsed.items.length+" item(s) were recovered, but the last few near the end of the flyer may be missing — review the tail carefully before committing.");
               }catch(err){ showAlert("Extraction failed: "+err.message); }
               setAdAdminExtracting(false);
             }} disabled={adAdminExtracting||!adAdminFile} style={{...bBtn("primary"),width:"100%",opacity:(adAdminExtracting||!adAdminFile)?0.6:1}}>
