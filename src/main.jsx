@@ -455,6 +455,7 @@ function Root() {
         onUpgrade={handleUpgrade}
         user={user}
         viewerRole={viewerRole}
+        isAdmin={isAdmin}
         onShowGuestViewer={() => { setShowAuthModal(false); setShowGuestViewer(true); }}
       />
 
