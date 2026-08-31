@@ -96,9 +96,29 @@ const MEDICAL_ADDON = {
   ],
 }
 
+const TEAL = '#0F8A7A'
+
+const SWTS_ADDON = {
+  id: 'sws_addon',
+  name: 'Smarter Way to Shop',
+  monthly: 5.00,
+  annual: 50.00,
+  annualPerMonth: 4.17,
+  color: TEAL,
+  priceIdMonthly: 'sws_addon_monthly',
+  priceIdAnnual: 'sws_addon_annual',
+  features: [
+    'Weekly ad comparison across your preferred stores',
+    'Below-your-usual-price alerts, based on your own history',
+    'Deep discount alerts on items you actually buy',
+    'No manual ad-scanning required',
+  ],
+}
+
 export default function SubscriptionModal({ user, currentTier, onClose, onSubscribed }) {
   const [billing, setBilling] = useState('monthly')
   const [addMedical, setAddMedical] = useState(false)
+  const [addSWTS, setAddSWTS] = useState(false)
   const [loading, setLoading] = useState(null)
   const [error, setError] = useState('')
 
@@ -106,9 +126,9 @@ export default function SubscriptionModal({ user, currentTier, onClose, onSubscr
     setLoading(tier.id)
     setError('')
     const priceId = billing === 'annual' ? tier.priceIdAnnual : tier.priceIdMonthly
-    const addOnPriceId = addMedical
-      ? (billing === 'annual' ? MEDICAL_ADDON.priceIdAnnual : MEDICAL_ADDON.priceIdMonthly)
-      : null
+    const addOnPriceIds = []
+    if (addMedical) addOnPriceIds.push(billing === 'annual' ? MEDICAL_ADDON.priceIdAnnual : MEDICAL_ADDON.priceIdMonthly)
+    if (addSWTS) addOnPriceIds.push(billing === 'annual' ? SWTS_ADDON.priceIdAnnual : SWTS_ADDON.priceIdMonthly)
 
     try {
       const res = await fetch('/api/create-checkout-session', {
@@ -116,7 +136,7 @@ export default function SubscriptionModal({ user, currentTier, onClose, onSubscr
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           priceId,
-          addOnPriceId,
+          addOnPriceIds,
           userId: user.id,
           userEmail: user.email,
           tier: tier.id,
@@ -137,6 +157,9 @@ export default function SubscriptionModal({ user, currentTier, onClose, onSubscr
   const medMonthly = billing === 'annual'
     ? MEDICAL_ADDON.annualPerMonth.toFixed(2)
     : MEDICAL_ADDON.monthly.toFixed(2)
+  const swtsMonthly = billing === 'annual'
+    ? SWTS_ADDON.annualPerMonth.toFixed(2)
+    : SWTS_ADDON.monthly.toFixed(2)
 
   return (
     <div style={s.overlay} onClick={onClose}>
@@ -171,7 +194,8 @@ export default function SubscriptionModal({ user, currentTier, onClose, onSubscr
           {TIERS.map(tier => {
             const price = billing === 'annual' ? tier.annualPerMonth : tier.monthly
             const medAdd = addMedical ? (billing === 'annual' ? MEDICAL_ADDON.annualPerMonth : MEDICAL_ADDON.monthly) : 0
-            const total = price + medAdd
+            const swtsAdd = addSWTS ? (billing === 'annual' ? SWTS_ADDON.annualPerMonth : SWTS_ADDON.monthly) : 0
+            const total = price + medAdd + swtsAdd
             const isCurrent = currentTier === tier.id
             return (
               <div key={tier.id} style={{ ...s.card, borderColor: tier.color, boxShadow: isCurrent ? `0 0 0 3px ${tier.color}44` : 'none' }}>
@@ -188,9 +212,11 @@ export default function SubscriptionModal({ user, currentTier, onClose, onSubscr
                     ${(total * 12).toFixed(2)}/yr · save 2 months
                   </div>
                 )}
-                {addMedical && (
+                {(addMedical || addSWTS) && (
                   <div style={s.medBreakdown}>
-                    ${price.toFixed(2)} plan + ${medAdd.toFixed(2)} Medical+
+                    ${price.toFixed(2)} plan
+                    {addMedical && ` + $${medAdd.toFixed(2)} Medical+`}
+                    {addSWTS && ` + $${swtsAdd.toFixed(2)} Smarter Way to Shop`}
                   </div>
                 )}
                 <ul style={s.features}>
@@ -202,6 +228,11 @@ export default function SubscriptionModal({ user, currentTier, onClose, onSubscr
                   {addMedical && MEDICAL_ADDON.features.slice(0, 2).map(f => (
                     <li key={f} style={{ ...s.feature, color: PURPLE }}>
                       <span style={{ color: PURPLE, flexShrink: 0 }}>✦</span> {f}
+                    </li>
+                  ))}
+                  {addSWTS && SWTS_ADDON.features.slice(0, 2).map(f => (
+                    <li key={f} style={{ ...s.feature, color: TEAL }}>
+                      <span style={{ color: TEAL, flexShrink: 0 }}>✦</span> {f}
                     </li>
                   ))}
                 </ul>
@@ -242,6 +273,37 @@ export default function SubscriptionModal({ user, currentTier, onClose, onSubscr
               {MEDICAL_ADDON.features.map(f => (
                 <li key={f} style={{ ...s.feature, color: '#4b2d8c', fontSize: 12 }}>
                   <span style={{ color: PURPLE, flexShrink: 0 }}>✦</span> {f}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {/* Smarter Way to Shop Add-on toggle */}
+        <div style={{ ...s.medAddon, borderColor: addSWTS ? TEAL : '#ddd', background: addSWTS ? '#effaf7' : '#fafafa' }}>
+          <div style={s.medAddonLeft}>
+            <div style={s.medAddonToggle}>
+              <input
+                type="checkbox"
+                id="swts-addon"
+                checked={addSWTS}
+                onChange={e => setAddSWTS(e.target.checked)}
+                style={{ width: 18, height: 18, cursor: 'pointer', accentColor: TEAL }}
+              />
+              <label htmlFor="swts-addon" style={s.medAddonLabel}>
+                <span style={{ color: TEAL, fontWeight: 700 }}>+ Smarter Way to Shop Add-on</span>
+                <span style={{ ...s.medAddonPrice, color: TEAL }}> +${swtsMonthly}/mo per plan</span>
+              </label>
+            </div>
+            <div style={s.medAddonDesc}>
+              See what's on sale across your preferred stores every week, and get alerted when something you actually buy is below your usual price — or deeply discounted with limited quantities. No manual ad-scanning required.
+            </div>
+          </div>
+          {addSWTS && (
+            <ul style={{ ...s.features, marginTop: 8, marginLeft: 8 }}>
+              {SWTS_ADDON.features.map(f => (
+                <li key={f} style={{ ...s.feature, color: '#0a5f54', fontSize: 12 }}>
+                  <span style={{ color: TEAL, flexShrink: 0 }}>✦</span> {f}
                 </li>
               ))}
             </ul>
