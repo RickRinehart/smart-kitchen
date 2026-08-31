@@ -20,6 +20,32 @@ const PRICE_TO_TIER = {
   [process.env.STRIPE_PRICE_MEDICAL_ANNUAL]: 'medical',
 };
 
+// Smarter Way to Shop -- a separate a-la-carte add-on (its own profiles column, not a tier value).
+// Purchasable standalone (its own subscription) or alongside a base plan, at signup or later.
+const SWS_ADDON_PRICE_IDS = [
+  process.env.STRIPE_PRICE_SWS_ADDON_MONTHLY,
+  process.env.STRIPE_PRICE_SWS_ADDON_ANNUAL,
+].filter(Boolean);
+
+// Derives {tier, hasSWSAddon} from a FULL list of a subscription's line items, not just item[0].
+// The previous single-item check (subscription.items.data[0]) silently broke whenever an add-on
+// wasn't in the first position -- e.g. a base plan + add-on checkout, where the add-on line item
+// is added second (see create-checkout-session.js). This checks every item instead, so an add-on
+// is detected regardless of its position, and a tier is only returned if a real tier price is
+// actually present -- an add-on-only subscription (no base-tier item) correctly returns tier=null
+// rather than guessing, so it never accidentally overwrites someone's real tier.
+function deriveEntitlementsFromItems(items) {
+  let tier = null;
+  let hasSWSAddon = false;
+  for (const item of items || []) {
+    const priceId = item.price && item.price.id;
+    if (!priceId) continue;
+    if (SWS_ADDON_PRICE_IDS.includes(priceId)) { hasSWSAddon = true; continue; }
+    if (PRICE_TO_TIER[priceId]) { tier = PRICE_TO_TIER[priceId]; }
+  }
+  return { tier, hasSWSAddon };
+}
+
 // -- Referral & Partner Payment Tracking (Commit 3 of 4, per the scope doc) --------------------
 // Links 2-4 of the six-link chain. Deliberately isolated and defensively wrapped everywhere it's
 // called below: a referral-tracking failure must NEVER break the core subscription/tier update
@@ -105,16 +131,29 @@ export default async function handler(req, res) {
         console.log('checkout.session.completed userId:', userId);
         if (!userId) { console.error('No supabase_user_id in metadata'); break; }
         const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-        const priceId = subscription.items.data[0] && subscription.items.data[0].price.id;
-        const tier = PRICE_TO_TIER[priceId] || 'solo';
-        console.log('Updating to tier:', tier, 'for user:', userId);
-        const { error } = await supabase.from('profiles').update({
-          tier,
+        const { tier: derivedTier, hasSWSAddon } = deriveEntitlementsFromItems(subscription.items.data);
+        console.log('Derived tier:', derivedTier, 'hasSWSAddon:', hasSWSAddon, 'for user:', userId);
+        const profileUpdate = {
           stripe_customer_id: customerId,
-          stripe_subscription_id: subscriptionId,
           subscription_status: 'active',
           trial_ends_at: null,
-        }).eq('id', userId);
+        };
+        // Only set tier when a real base-tier price was actually in this checkout. An addon-only
+        // purchase (e.g. buying just Smarter Way to Shop with no base plan) must NOT overwrite
+        // whatever tier the user already has -- falling back to a default here would incorrectly
+        // "upgrade" a free user, or downgrade an existing family/medical subscriber, just because
+        // this particular checkout session didn't happen to include a base-tier line item.
+        if (derivedTier) {
+          profileUpdate.tier = derivedTier;
+          profileUpdate.stripe_subscription_id = subscriptionId;
+        }
+        if (hasSWSAddon) {
+          profileUpdate.smarter_way_to_shop_addon = true;
+          // Addon-only purchase (no base tier in this same checkout) -> its own subscription ID,
+          // tracked separately so cancelling it later doesn't touch the base plan or vice versa.
+          if (!derivedTier) profileUpdate.stripe_sws_subscription_id = subscriptionId;
+        }
+        const { error } = await supabase.from('profiles').update(profileUpdate).eq('id', userId);
         if (error) console.error('Supabase error:', error);
         else console.log('Profile updated successfully');
 
@@ -138,7 +177,7 @@ export default async function handler(req, res) {
             await fetch(`${process.env.VITE_APP_URL}/api/send-welcome-email`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ email: customerEmail, name: customerName, tier, event: 'plan_confirmed' }),
+              body: JSON.stringify({ email: customerEmail, name: customerName, tier: derivedTier || 'solo', event: 'plan_confirmed' }),
             });
           }
         } catch (e) {
@@ -156,7 +195,7 @@ export default async function handler(req, res) {
             await fetch(`${process.env.VITE_APP_URL}/api/family-approval-notify`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ name: customerName, email: customerEmail, customerId, stripeUrl, tier }),
+              body: JSON.stringify({ name: customerName, email: customerEmail, customerId, stripeUrl, tier: derivedTier || 'solo' }),
             });
           } catch(e) {
             console.warn('Approval notify failed:', e.message);
@@ -165,9 +204,25 @@ export default async function handler(req, res) {
         break;
       }
       case 'customer.subscription.updated': {
-        const priceId = obj.items && obj.items.data[0] && obj.items.data[0].price.id;
-        const tier = PRICE_TO_TIER[priceId] || 'free';
-        await supabase.from('profiles').update({ tier, subscription_status: obj.status }).eq('stripe_subscription_id', obj.id);
+        const { tier: derivedTier, hasSWSAddon } = deriveEntitlementsFromItems(obj.items && obj.items.data);
+        const update = { subscription_status: obj.status };
+        // Never falls back to a default tier here (unlike the pre-existing behavior this replaces)
+        // -- this event fires per-subscription, and a customer can now have a base-plan subscription
+        // and a separate addon-only subscription at once. A status change on the addon-only
+        // subscription must not wipe the base plan's tier just because THIS subscription's own
+        // items don't include a tier price.
+        if (derivedTier) update.tier = derivedTier;
+        // Only ever sets the addon flag true here, never clears it -- a subscription legitimately
+        // updating for unrelated reasons (e.g. the base plan changing tiers) won't include the SWS
+        // price either, and that must not be misread as the addon having been removed. Clearing the
+        // flag is handled explicitly in customer.subscription.deleted below, where "this specific
+        // subscription is gone" is an unambiguous signal.
+        if (hasSWSAddon) update.smarter_way_to_shop_addon = true;
+        await supabase.from('profiles').update(update).eq('stripe_subscription_id', obj.id);
+        if (hasSWSAddon) {
+          // Also covers the case where this update event IS the addon-only subscription
+          await supabase.from('profiles').update(update).eq('stripe_sws_subscription_id', obj.id);
+        }
         // Referral tracking — Link 4 (Conversion). Only fires once, the first time this
         // subscription transitions to active, and only if it was referral-tagged at checkout.
         if (obj.status === 'active') {
@@ -185,7 +240,18 @@ export default async function handler(req, res) {
         break;
       }
       case 'customer.subscription.deleted': {
+        // Deletion is unambiguous per-subscription, unlike .updated above -- if THIS subscription
+        // is gone, whatever it uniquely provided is gone too. Checked against both possible
+        // subscription-id columns since either could be the one that was just cancelled.
         await supabase.from('profiles').update({ tier: 'free', subscription_status: 'canceled' }).eq('stripe_subscription_id', obj.id);
+        await supabase.from('profiles').update({ smarter_way_to_shop_addon: false, stripe_sws_subscription_id: null }).eq('stripe_sws_subscription_id', obj.id);
+        // Covers the bundled case too: addon purchased alongside a base plan in the same
+        // subscription (like the existing medical_addon pattern) -- if that shared subscription is
+        // cancelled, the addon flag needs clearing even though it was never in stripe_sws_subscription_id.
+        const { tier: deletedTier, hasSWSAddon: deletedHadSWSAddon } = deriveEntitlementsFromItems(obj.items && obj.items.data);
+        if (deletedHadSWSAddon) {
+          await supabase.from('profiles').update({ smarter_way_to_shop_addon: false }).eq('stripe_subscription_id', obj.id);
+        }
         // Referral tracking — Link 4 (Drop-off variant). Only a meaningful failure signal if this
         // subscription never converted — canceling AFTER a normal paid period is unrelated to the
         // referral funnel and shouldn't be logged as a drop-off.
