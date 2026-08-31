@@ -10,6 +10,12 @@ const PRICE_MAP = {
   'family_annual':         process.env.STRIPE_PRICE_FAMILY_ANNUAL,
   'medical_addon_monthly': process.env.STRIPE_PRICE_MEDICAL_ADDON_MONTHLY,
   'medical_addon_annual':  process.env.STRIPE_PRICE_MEDICAL_ADDON_ANNUAL,
+  // Smarter Way to Shop -- separate a-la-carte add-on, purchasable by any tier including free.
+  // Unlike medical_addon (only ever bundled with a base plan at signup), this can be added or
+  // removed independently at any time, so it also needs its own standalone checkout entry point
+  // (priceId itself, not just addOnPriceId) for existing subscribers adding it after the fact.
+  'sws_addon_monthly':     process.env.STRIPE_PRICE_SWS_ADDON_MONTHLY,
+  'sws_addon_annual':      process.env.STRIPE_PRICE_SWS_ADDON_ANNUAL,
   // Legacy — keep for beta family grandfathered pricing
   'medical_monthly':       process.env.STRIPE_PRICE_MEDICAL_MONTHLY,
   'medical_annual':        process.env.STRIPE_PRICE_MEDICAL_ANNUAL,
@@ -20,7 +26,7 @@ const PRICE_MAP = {
 // grandfathered keys are intentionally excluded — a current subscriber viewing "what does this cost
 // today" should see standard pricing, not their own or someone else's special-case rate.
 async function handleCurrentPricing(req, res) {
-  const PUBLIC_KEYS = ['solo_monthly','solo_annual','couple_monthly','couple_annual','family_monthly','family_annual','medical_addon_monthly','medical_addon_annual'];
+  const PUBLIC_KEYS = ['solo_monthly','solo_annual','couple_monthly','couple_annual','family_monthly','family_annual','medical_addon_monthly','medical_addon_annual','sws_addon_monthly','sws_addon_annual'];
   try {
     const entries = PUBLIC_KEYS.filter(k => PRICE_MAP[k]);
     const prices = await Promise.all(entries.map(async (key) => {
