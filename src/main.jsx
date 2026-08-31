@@ -382,6 +382,10 @@ function Root() {
     medicalCompliance:   isAdmin || effectiveTier === "medical",
     temporaryDiets:      isAdmin || effectiveTier === "medical",
     cloudSync:           isAdmin || ["solo", "couple", "family", "medical"].includes(effectiveTier),
+    // Separate a-la-carte add-on -- independent of tier, purchasable by any tier including free.
+    // Reads directly from profiles.smarter_way_to_shop_addon (set by the Stripe webhook), not from
+    // effectiveTier, since it's not part of the tier system.
+    smarterWayToShop:    isAdmin || !!userProfile?.smarter_way_to_shop_addon,
   };
 
   const tierLabel = isAdmin
