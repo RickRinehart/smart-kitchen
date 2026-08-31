@@ -776,7 +776,7 @@ const bInp={background:C.surface,border:"1px solid "+C.border,borderRadius:8,pad
 const Label=({children})=><div style={{fontSize:10,color:C.muted,fontFamily:FM,letterSpacing:0.8,marginBottom:5}}>{children}</div>;
 
 // -- Claude API ----------------------------------------------------------------
-async function callClaude({system,prompt,imageBase64,imageB64,imageType,extraImages=[],pdfBase64,maxTokens=4000}){
+async function callClaude({system,prompt,imageBase64,imageB64,imageType,extraImages=[],pdfBase64,maxTokens=4000,timeoutMs=90000}){
   const content=[];
   const primaryImg=imageBase64||imageB64;
   if(primaryImg) content.push({type:"image",source:{type:"base64",media_type:imageType||"image/jpeg",data:primaryImg}});
@@ -793,7 +793,7 @@ async function callClaude({system,prompt,imageBase64,imageB64,imageType,extraIma
       method:"POST",
       headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
       body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:maxTokens,system,messages:[{role:"user",content}]}),
-      signal:AbortSignal.timeout(90000),
+      signal:AbortSignal.timeout(timeoutMs),
     });
   }catch(err){
     // AbortSignal.timeout() rejects with a DOMException whose .message is often blank/undefined
@@ -7447,6 +7447,11 @@ What can I substitute and do I have what I need?`,
 
             <button onClick={async()=>{
               if(!adAdminFile){showAlert("Choose a PDF first.");return;}
+              const sizeMB=adAdminFile.size/(1024*1024);
+              if(sizeMB>18){
+                showAlert("This file is "+sizeMB.toFixed(1)+"MB — large multi-page regional flyers (like Meijer's full-region PDF) can exceed the API's request size limit and fail outright rather than just run slow. If this file represents a whole region, try a single-store version if the retailer offers one; otherwise this may need a different approach than direct upload.");
+                return;
+              }
               setAdAdminExtracting(true);
               try{
                 const pdfBase64=await fileToBase64(adAdminFile);
@@ -7455,6 +7460,7 @@ What can I substitute and do I have what I need?`,
                   prompt:"Extract every food/grocery sale item from this weekly ad PDF, with pricing exactly as printed and organized by department.",
                   pdfBase64,
                   maxTokens:8000,
+                  timeoutMs:240000,
                 });
                 const s=raw.indexOf("{"),e=raw.lastIndexOf("}");
                 if(s===-1) throw new Error("Could not read the PDF");
@@ -7465,7 +7471,7 @@ What can I substitute and do I have what I need?`,
               }catch(err){ showAlert("Extraction failed: "+err.message); }
               setAdAdminExtracting(false);
             }} disabled={adAdminExtracting||!adAdminFile} style={{...bBtn("primary"),width:"100%",opacity:(adAdminExtracting||!adAdminFile)?0.6:1}}>
-              {adAdminExtracting?"⏳ Reading PDF...":"📄 Extract Items"}
+              {adAdminExtracting?"⏳ Reading PDF... this can take a couple minutes for a large flyer":"📄 Extract Items"}
             </button>
           </div>
 
