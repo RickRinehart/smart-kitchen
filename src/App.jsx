@@ -776,11 +776,15 @@ const bInp={background:C.surface,border:"1px solid "+C.border,borderRadius:8,pad
 const Label=({children})=><div style={{fontSize:10,color:C.muted,fontFamily:FM,letterSpacing:0.8,marginBottom:5}}>{children}</div>;
 
 // -- Claude API ----------------------------------------------------------------
-async function callClaude({system,prompt,imageBase64,imageB64,imageType,extraImages=[],maxTokens=4000}){
+async function callClaude({system,prompt,imageBase64,imageB64,imageType,extraImages=[],pdfBase64,maxTokens=4000}){
   const content=[];
   const primaryImg=imageBase64||imageB64;
   if(primaryImg) content.push({type:"image",source:{type:"base64",media_type:imageType||"image/jpeg",data:primaryImg}});
   (extraImages||[]).forEach(img=>content.push({type:"image",source:{type:"base64",media_type:"image/jpeg",data:img}}));
+  // PDF documents -- Claude reads these natively (each page), no client-side PDF-to-image
+  // conversion needed. Kept as a separate optional param so every existing image-based caller
+  // (receipts, weekly ad scanner, etc.) is completely unaffected.
+  if(pdfBase64) content.push({type:"document",source:{type:"base64",media_type:"application/pdf",data:pdfBase64}});
   content.push({type:"text",text:prompt});
   const apiKey=import.meta.env?.VITE_ANTHROPIC_API_KEY||"";
   let res;
@@ -1388,7 +1392,7 @@ function FoodJournal({user,supabase,familyProfiles,can,seniorMode,C,FM,FD,
   );
 }
 
-export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, user=null, viewerRole=null, onShowGuestViewer=null }){
+export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, user=null, viewerRole=null, isAdmin=false, onShowGuestViewer=null }){
   // -- State ------------------------------------------------------------------
   const isViewer = !!viewerRole; // true = read-only viewer of another account
   const [isManager,setIsManager]=useState(false);
@@ -1575,6 +1579,24 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   // -- Deep Discount Alerts State (Smarter Way to Shop) --------------------------
   const [deepDiscountAlerts,setDeepDiscountAlerts]=useState([]);
   const [showDeepDiscountBanner,setShowDeepDiscountBanner]=useState(true);
+  // -- Admin: Ad PDF Upload State (Smarter Way to Shop, isAdmin-gated) -----------
+  const [adAdminStores,setAdAdminStores]=useState([]);
+  const [adAdminSelectedStore,setAdAdminSelectedStore]=useState("");
+  const [adAdminNewStoreName,setAdAdminNewStoreName]=useState("");
+  const [adAdminFile,setAdAdminFile]=useState(null);
+  const [adAdminExtracting,setAdAdminExtracting]=useState(false);
+  const [adAdminExtractedItems,setAdAdminExtractedItems]=useState(null);
+  const [adAdminSaleStart,setAdAdminSaleStart]=useState("");
+  const [adAdminSaleEnd,setAdAdminSaleEnd]=useState("");
+  const [adAdminCommitting,setAdAdminCommitting]=useState(false);
+  const [adAdminExistingKeys,setAdAdminExistingKeys]=useState([]);
+  useEffect(()=>{
+    if(!isAdmin) return;
+    supabase.from("partner_stores").select("id,name").order("name").then(({data})=>{if(data)setAdAdminStores(data);});
+    supabase.from("partner_ads").select("canonical_key").not("canonical_key","is",null).then(({data})=>{
+      if(data) setAdAdminExistingKeys([...new Set(data.map(d=>d.canonical_key))].sort());
+    });
+  },[isAdmin]);
 
   // -- Support Chat State -------------------------------------------------------
   const [chatOpen,setChatOpen]=useState(false);
@@ -4522,7 +4544,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
 
       {/* -- Tabs -- */}
       <div style={{display:"flex",background:C.surface,borderBottom:"1px solid "+C.border,paddingLeft:12,overflowX:"auto"}}>
-        {[["inventory","📦","Inventory"],["recipes","🍽","Recipes"],["saved","⭐","Saved"],["mealplan","📅","Meal Plan"],["shopping","🛒","Shopping"],["desserts","🍰","Desserts"],["leftovers","🥡","Leftovers"],["substitute","🔄","Substitute"]].map(([k,ic,lb])=>(
+        {[["inventory","📦","Inventory"],["recipes","🍽","Recipes"],["saved","⭐","Saved"],["mealplan","📅","Meal Plan"],["shopping","🛒","Shopping"],["desserts","🍰","Desserts"],["leftovers","🥡","Leftovers"],["substitute","🔄","Substitute"],...(isAdmin?[["adingest","🗂","Ad Upload"]]:[])].map(([k,ic,lb])=>(
           <button key={k} onClick={()=>setTab(k)} style={{background:"transparent",border:"none",borderBottom:"2px solid "+(tab===k?C.accent:"transparent"),padding:"11px 16px",color:tab===k?C.accent:C.muted,cursor:"pointer",fontFamily:FM,fontSize:seniorMode?18:11,fontWeight:700,letterSpacing:0.5,whiteSpace:"nowrap",transition:"all 0.15s",padding:seniorMode?"16px 22px":"11px 16px"}}>
             {ic} {lb.toUpperCase()}
           </button>
@@ -7395,6 +7417,130 @@ What can I substitute and do I have what I need?`,
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* -- Admin: Ad PDF Upload (Smarter Way to Shop) -- isAdmin-gated, not a consumer feature.
+          Extraction runs client-side via callClaude + a PDF document block (same technique as the
+          Weekly Ad Scanner above); the actual database write goes through a server endpoint since
+          partner_ads/partner_stores RLS only grant INSERT to service_role, not authenticated users. */}
+      {tab==="adingest"&&isAdmin&&(
+        <div style={{maxWidth:900,margin:"0 auto",padding:"0 8px"}}>
+          <div style={{marginBottom:16}}>
+            <div style={{fontSize:seniorMode?22:16,fontWeight:700,color:C.accent,marginBottom:4}}>🗂 Ad Upload (Smarter Way to Shop)</div>
+            <div style={{fontSize:seniorMode?15:12,color:C.muted}}>Upload a retailer's weekly ad PDF. Claude reads it directly and extracts items for you to review and edit before anything is saved — nothing is written to the shared database until you commit.</div>
+          </div>
+
+          <div style={{background:C.card,border:"1px solid "+C.border,borderRadius:12,padding:16,marginBottom:16}}>
+            <div style={{fontFamily:FM,fontSize:11,color:"#888",marginBottom:4,letterSpacing:0.8}}>STORE</div>
+            <select value={adAdminSelectedStore} onChange={e=>setAdAdminSelectedStore(e.target.value)} style={{width:"100%",background:C.surface,border:"1px solid "+C.border,borderRadius:8,padding:"8px 10px",color:C.text,fontFamily:FM,fontSize:13,marginBottom:8}}>
+              <option value="">Select a store...</option>
+              {adAdminStores.map(s=>(<option key={s.id} value={s.id}>{s.name}</option>))}
+              <option value="__new__">+ New store...</option>
+            </select>
+            {adAdminSelectedStore==="__new__"&&(
+              <input value={adAdminNewStoreName} onChange={e=>setAdAdminNewStoreName(e.target.value)} placeholder="New store name, e.g. Ken's Fruit & Farm Market - Plainfield" style={{width:"100%",background:C.surface,border:"1px solid "+C.border,borderRadius:8,padding:"8px 10px",color:C.text,fontFamily:FM,fontSize:13,marginBottom:8,boxSizing:"border-box"}}/>
+            )}
+
+            <div style={{fontFamily:FM,fontSize:11,color:"#888",marginBottom:4,marginTop:8,letterSpacing:0.8}}>AD PDF</div>
+            <input type="file" accept="application/pdf" onChange={e=>setAdAdminFile(e.target.files?.[0]||null)} style={{width:"100%",fontFamily:FM,fontSize:12,color:C.text,marginBottom:10}}/>
+
+            <button onClick={async()=>{
+              if(!adAdminFile){showAlert("Choose a PDF first.");return;}
+              setAdAdminExtracting(true);
+              try{
+                const pdfBase64=await fileToBase64(adAdminFile);
+                const raw=await callClaude({
+                  system:"You are a grocery store weekly ad parser for Smart Kitchen's Smarter Way to Shop feature. Analyze this store ad PDF and extract every food/grocery item with its pricing, grouped by department. Return ONLY a valid JSON object (not an array): {effectiveDateStart(string, ISO YYYY-MM-DD, null if not visible), effectiveDateEnd(string, ISO YYYY-MM-DD, null if not visible), items(array of {item_name(string, clean product name as printed), department(one of Produce|Meat|Deli|Grocery|Dairy|Frozen|Bakery|Tavern|Other), regular_price(number or null, the unconditional shelf price if shown separately from a card/loyalty price), card_price(number or null, the loyalty-card or 'with card' price), mix_match_price(number or null, a Buy-5/Mix-and-Match final unit price if shown), coupon_price(number or null, price after a specific printed digital coupon), compare_at_price(number or null, ONLY for closeout/discount retailers that print an explicit 'Compare At' or original-value reference price alongside a much lower deal price — never fabricate this for a normal grocer's regular shelf price), unit_size(string, e.g. 'lb', 'each', '16 oz', or the original printed multi-buy text like '2/$5 5 lb bag' — do not do any math yourself, keep it as printed), notes(string or null, ONLY for genuinely ambiguous pricing such as 'X each OR Y per dozen' that represent different real purchase choices, not a discount tier — leave null for normal single-price items)})}. Focus on food/grocery items only — skip household goods, electronics, floral, or garden. Process every page if the PDF has multiple pages. Never guess a price that isn't printed — use null rather than inventing one.",
+                  prompt:"Extract every food/grocery sale item from this weekly ad PDF, with pricing exactly as printed and organized by department.",
+                  pdfBase64,
+                  maxTokens:8000,
+                });
+                const s=raw.indexOf("{"),e=raw.lastIndexOf("}");
+                if(s===-1) throw new Error("Could not read the PDF");
+                const parsed=JSON.parse(raw.slice(s,e+1));
+                setAdAdminSaleStart(parsed.effectiveDateStart||"");
+                setAdAdminSaleEnd(parsed.effectiveDateEnd||"");
+                setAdAdminExtractedItems((parsed.items||[]).map(i=>({...i,_selected:true})));
+              }catch(err){ showAlert("Extraction failed: "+err.message); }
+              setAdAdminExtracting(false);
+            }} disabled={adAdminExtracting||!adAdminFile} style={{...bBtn("primary"),width:"100%",opacity:(adAdminExtracting||!adAdminFile)?0.6:1}}>
+              {adAdminExtracting?"⏳ Reading PDF...":"📄 Extract Items"}
+            </button>
+          </div>
+
+          {adAdminExtractedItems&&(
+            <div style={{background:C.card,border:"1px solid "+C.border,borderRadius:12,padding:16}}>
+              <div style={{display:"flex",gap:8,marginBottom:12}}>
+                <div style={{flex:1}}>
+                  <div style={{fontFamily:FM,fontSize:10,color:"#888",marginBottom:2}}>Sale Start</div>
+                  <input type="date" value={adAdminSaleStart||""} onChange={e=>setAdAdminSaleStart(e.target.value)} style={{width:"100%",background:C.surface,border:"1px solid "+C.border,borderRadius:6,padding:"6px 8px",color:C.text,fontFamily:FM,fontSize:12,boxSizing:"border-box"}}/>
+                </div>
+                <div style={{flex:1}}>
+                  <div style={{fontFamily:FM,fontSize:10,color:"#888",marginBottom:2}}>Sale End</div>
+                  <input type="date" value={adAdminSaleEnd||""} onChange={e=>setAdAdminSaleEnd(e.target.value)} style={{width:"100%",background:C.surface,border:"1px solid "+C.border,borderRadius:6,padding:"6px 8px",color:C.text,fontFamily:FM,fontSize:12,boxSizing:"border-box"}}/>
+                </div>
+              </div>
+
+              <datalist id="adAdminCanonicalKeys">
+                {adAdminExistingKeys.map(k=>(<option key={k} value={k}/>))}
+              </datalist>
+
+              <div style={{fontFamily:FM,fontSize:11,color:"#888",marginBottom:8}}>{adAdminExtractedItems.filter(i=>i._selected).length} of {adAdminExtractedItems.length} items selected — review and edit before saving. Existing canonical keys autocomplete as you type, to avoid creating a near-duplicate of one that already exists.</div>
+
+              <div style={{maxHeight:420,overflowY:"auto"}}>
+                {adAdminExtractedItems.map((item,idx)=>(
+                  <div key={idx} style={{border:"1px solid "+(item._selected?C.border:"#3a3a3a"),borderRadius:8,padding:10,marginBottom:8,opacity:item._selected?1:0.45,background:C.surface}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+                      <input type="checkbox" checked={item._selected} onChange={()=>setAdAdminExtractedItems(prev=>prev.map((it,i)=>i===idx?{...it,_selected:!it._selected}:it))}/>
+                      <input value={item.item_name||""} onChange={e=>setAdAdminExtractedItems(prev=>prev.map((it,i)=>i===idx?{...it,item_name:e.target.value}:it))} placeholder="Item name" style={{flex:1,background:C.card,border:"1px solid "+C.border,borderRadius:6,padding:"5px 8px",color:C.text,fontFamily:FM,fontSize:12}}/>
+                      <select value={item.department||""} onChange={e=>setAdAdminExtractedItems(prev=>prev.map((it,i)=>i===idx?{...it,department:e.target.value}:it))} style={{background:C.card,border:"1px solid "+C.border,borderRadius:6,padding:"5px 6px",color:C.text,fontFamily:FM,fontSize:11}}>
+                        {["Produce","Meat","Deli","Grocery","Dairy","Frozen","Bakery","Tavern","Other"].map(d=>(<option key={d} value={d}>{d}</option>))}
+                      </select>
+                    </div>
+                    <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                      {[["regular_price","Reg $"],["card_price","Card $"],["mix_match_price","Mix&Match $"],["coupon_price","Coupon $"],["compare_at_price","Compare At $"]].map(([field,ph])=>(
+                        <input key={field} type="number" step="0.01" value={item[field]??""} onChange={e=>setAdAdminExtractedItems(prev=>prev.map((it,i)=>i===idx?{...it,[field]:e.target.value===""?null:parseFloat(e.target.value)}:it))} placeholder={ph} style={{width:90,background:C.card,border:"1px solid "+C.border,borderRadius:6,padding:"5px 6px",color:C.text,fontFamily:FM,fontSize:11}}/>
+                      ))}
+                      <input value={item.unit_size||""} onChange={e=>setAdAdminExtractedItems(prev=>prev.map((it,i)=>i===idx?{...it,unit_size:e.target.value}:it))} placeholder="Unit size" style={{width:110,background:C.card,border:"1px solid "+C.border,borderRadius:6,padding:"5px 6px",color:C.text,fontFamily:FM,fontSize:11}}/>
+                      <input list="adAdminCanonicalKeys" value={item.canonical_key||""} onChange={e=>setAdAdminExtractedItems(prev=>prev.map((it,i)=>i===idx?{...it,canonical_key:e.target.value}:it))} placeholder="canonical_key (optional)" style={{width:180,background:C.card,border:"1px solid "+C.border,borderRadius:6,padding:"5px 6px",color:C.text,fontFamily:FM,fontSize:11}}/>
+                    </div>
+                    {item.notes&&<div style={{fontFamily:FM,fontSize:10,color:"#d97706",marginTop:4}}>⚠️ {item.notes}</div>}
+                  </div>
+                ))}
+              </div>
+
+              <button onClick={async()=>{
+                const chosen=(adAdminExtractedItems||[]).filter(i=>i._selected&&i.item_name&&i.item_name.trim());
+                if(chosen.length===0){showAlert("No items selected to save.");return;}
+                const usingNewStore=adAdminSelectedStore==="__new__";
+                if(usingNewStore&&!adAdminNewStoreName.trim()){showAlert("Enter a name for the new store.");return;}
+                if(!usingNewStore&&!adAdminSelectedStore){showAlert("Select a store first.");return;}
+                setAdAdminCommitting(true);
+                try{
+                  const res=await fetch("/api/ingest-ad-upload",{
+                    method:"POST",headers:{"Content-Type":"application/json"},
+                    body:JSON.stringify({
+                      storeId:usingNewStore?null:adAdminSelectedStore,
+                      newStore:usingNewStore?{name:adAdminNewStoreName.trim()}:null,
+                      items:chosen.map(({_selected,...rest})=>rest),
+                      saleStart:adAdminSaleStart||null,
+                      saleEnd:adAdminSaleEnd||null,
+                      enteredBy:user?.email||"admin",
+                    }),
+                  });
+                  const data=await res.json();
+                  if(!res.ok) throw new Error(data.error||"Save failed");
+                  showAlert("Saved "+data.inserted+" item(s) to the shared database.");
+                  setAdAdminExtractedItems(null);setAdAdminFile(null);setAdAdminSelectedStore("");setAdAdminNewStoreName("");
+                  supabase.from("partner_stores").select("id,name").order("name").then(({data})=>{if(data)setAdAdminStores(data);});
+                }catch(err){ showAlert("Save failed: "+err.message); }
+                setAdAdminCommitting(false);
+              }} disabled={adAdminCommitting} style={{...bBtn("primary"),width:"100%",marginTop:12,background:"#0F8A7A",opacity:adAdminCommitting?0.6:1}}>
+                {adAdminCommitting?"⏳ Saving...":"✅ Commit "+adAdminExtractedItems.filter(i=>i._selected).length+" Item(s) to Database"}
+              </button>
+            </div>
+          )}
         </div>
       )}
 
