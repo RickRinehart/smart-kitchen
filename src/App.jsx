@@ -1564,6 +1564,9 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [recallSensitivity,setRecallSensitivity]=useState("broad");
   const [showRecallBanner,setShowRecallBanner]=useState(true);
   const [activeRecallDetail,setActiveRecallDetail]=useState(null);
+  // -- Deep Discount Alerts State (Smarter Way to Shop) --------------------------
+  const [deepDiscountAlerts,setDeepDiscountAlerts]=useState([]);
+  const [showDeepDiscountBanner,setShowDeepDiscountBanner]=useState(true);
 
   // -- Support Chat State -------------------------------------------------------
   const [chatOpen,setChatOpen]=useState(false);
@@ -3472,6 +3475,29 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     supabase.from("user_recall_alerts").update({read:true}).eq("id",alertId).then(()=>{}).catch(()=>{});
   };
 
+  // Fetch Deep Discount Alerts (Smarter Way to Shop) once the user is known -- same pattern as
+  // recall alerts above: computed server-side by a daily cron, just read here, never computed
+  // client-side. Gated by can.smarterWayToShop so the query isn't run for users without access.
+  useEffect(()=>{
+    if(!user||!can.smarterWayToShop) return;
+    (async()=>{
+      try{
+        const {data,error}=await supabase
+          .from("user_deep_discount_alerts")
+          .select("id,item_name,inventory_item_name,store_name,discount_pct,compare_at_price,ad_price,inventory_model,created_at")
+          .eq("user_id",user.id)
+          .eq("read",false)
+          .order("created_at",{ascending:false});
+        if(!error&&data) setDeepDiscountAlerts(data);
+      }catch{}
+    })();
+  },[user,can.smarterWayToShop]);
+
+  const dismissDeepDiscountAlert=(alertId)=>{
+    setDeepDiscountAlerts(prev=>prev.filter(a=>a.id!==alertId));
+    supabase.from("user_deep_discount_alerts").update({read:true}).eq("id",alertId).then(()=>{}).catch(()=>{});
+  };
+
   const updateRecallSensitivity=(val)=>{
     setRecallSensitivity(val);
     if(user) supabase.from("user_data").update({recall_match_sensitivity:val}).eq("user_id",user.id).then(()=>{}).catch(()=>{});
@@ -4407,6 +4433,21 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
           </div>
         );
       })()}
+      {deepDiscountAlerts.length>0&&showDeepDiscountBanner&&(()=>{
+        const hasLimitedQty=deepDiscountAlerts.some(a=>a.inventory_model==="closeout_limited");
+        return (
+          <div style={{background:"#3a1a00",borderBottom:"2px solid #f59e0b",padding:"12px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
+              <span style={{fontSize:20}}>⚡</span>
+              <span style={{fontFamily:"Arial,sans-serif",fontSize:14,color:"#fde68a",fontWeight:700}}>
+                Deep Discount Alert — {deepDiscountAlerts.length} item{deepDiscountAlerts.length!==1?"s":""} you buy {deepDiscountAlerts.length!==1?"are":"is"} deeply discounted at your preferred stores{hasLimitedQty?" (limited quantities)":""}. {deepDiscountAlerts.slice(0,2).map(a=>a.inventory_item_name).join(", ")}{deepDiscountAlerts.length>2?", and more":""}.
+              </span>
+            </div>
+            <button onClick={()=>setShowDeepDiscountBanner(false)} style={{background:"transparent",border:"1px solid #f59e0b",borderRadius:8,color:"#fde68a",cursor:"pointer",fontFamily:"Arial",fontSize:12,padding:"6px 12px"}}>Dismiss</button>
+          </div>
+        );
+      })()}
+
       {isViewer&&<div style={{background:"#4a1d96",color:"#e9d5ff",padding:"10px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:"2px solid #7c3aed"}}><span style={{fontSize:14,fontFamily:"Arial,sans-serif"}}>👁 Viewing {viewerRole?.label||"Family"} account — Read Only Mode</span></div>}
       {showVoicePanel&&<div style={{position:"fixed",bottom:90,left:"50%",transform:"translateX(-50%)",zIndex:999,background:"#1A2344",borderRadius:16,padding:"16px 20px",width:340,maxWidth:"90vw",boxShadow:"0 8px 32px rgba(0,0,0,0.4)",border:"2px solid "+(voiceState==="listening"?"#ef4444":voiceState==="speaking"?"#C8963E":"#3b82f6")}}><div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}><div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:20}}>{voiceState==="listening"?"🔴":voiceState==="speaking"?"🔊":voiceState==="processing"?"⏳":"🎙"}</span><span style={{color:"#C8963E",fontWeight:700,fontSize:15,fontFamily:"Arial"}}>Hey {assistantName()}</span></div><button onClick={()=>{stopListening();setShowVoicePanel(false);}} style={{background:"transparent",border:"none",color:"#aaa",cursor:"pointer",fontSize:18,lineHeight:1}}>x</button></div>{voiceTranscript&&<div style={{background:"rgba(255,255,255,0.08)",borderRadius:8,padding:"8px 12px",marginBottom:8}}><div style={{fontSize:11,color:"#aaa",fontFamily:"Arial",marginBottom:2}}>You said:</div><div style={{fontSize:14,color:"#fff",fontFamily:"Arial"}}>{voiceTranscript}</div></div>}{voiceResponse&&<div style={{background:"rgba(200,150,62,0.15)",borderRadius:8,padding:"8px 12px",marginBottom:8,border:"1px solid rgba(200,150,62,0.3)"}}><div style={{fontSize:11,color:"#C8963E",fontFamily:"Arial",marginBottom:2}}>{assistantName()} says:</div><div style={{fontSize:14,color:"#fff",fontFamily:"Arial",lineHeight:1.5}}>{voiceResponse}</div></div>}<div style={{textAlign:"center"}}><button onClick={voiceState==="idle"?startListening:stopListening} style={{background:voiceState==="listening"?"#ef4444":"#C8963E",border:"none",borderRadius:50,width:56,height:56,fontSize:24,cursor:"pointer",color:"#fff",display:"inline-flex",alignItems:"center",justifyContent:"center"}}>{voiceState==="listening"?"⏹":"🎙"}</button><div style={{fontSize:11,color:"#aaa",fontFamily:"Arial",marginTop:6}}>{voiceState==="listening"?"Tap to stop":voiceState==="processing"?"Thinking...":voiceState==="speaking"?"Speaking...":"Tap to speak"}</div></div></div>}
       {isManager&&<div style={{background:"#065f46",color:"#d1fae5",padding:"10px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:"2px solid #059669"}}><span style={{fontSize:14,fontFamily:"Arial,sans-serif"}}>🩺 Managing household account — Caregiver Mode</span></div>}
