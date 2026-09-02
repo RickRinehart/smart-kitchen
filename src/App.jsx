@@ -1503,6 +1503,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [instacartApiKey,setInstacartApiKey]=useState(()=>localStorage.getItem("sk_instacartKey")||"");
   const [expandedIngDay,setExpandedIngDay]=useState(null);
   const [expandedShopSaleSection,setExpandedShopSaleSection]=useState(null);
+  const [shopGroupMode,setShopGroupMode]=useState("category");
   const [shareSelected,setShareSelected]=useState({});// {recipeKey: recipeObj}
   const [shareMode,setShareMode]=useState(false);
   const [showShareModal,setShowShareModal]=useState(false);
@@ -1880,6 +1881,43 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
     fetchPartnerAdMatches(enriched,user.id).then(m=>{ if(!cancelled) setShoppingAdMatches(m); });
     return ()=>{ cancelled=true; };
   },[shopping,inventory,user?.id,can.smarterWayToShop]);
+  // Applies a tapped sale match's store+price onto the matching shopping list item(s), so the
+  // person can build a real per-store picture of their list instead of the match just sitting
+  // in the banner as an FYI.
+  const assignSaleMatchToShopping=(m)=>{
+    const price=m.comparableAdPrice??m.rawAdPrice??null;
+    let matchedCount=0;
+    setShopping(p=>p.map(si=>{
+      if(!wordsOverlap(m.inventoryItemName,si.name)) return si;
+      matchedCount++;
+      return {...si,assignedStore:m.storeName,assignedPrice:price};
+    }));
+    if(matchedCount>0) showAlert("Assigned "+m.inventoryItemName+" to "+m.storeName+(price!=null?" at $"+price.toFixed(2):"")+".");
+  };
+  const renderShopItem=(item)=>{
+    const gi=shopping.indexOf(item);
+    const isEditing=editingShoppingIdx===gi;
+    if(isEditing) return (
+      <div key={gi} style={{background:C.card,border:"1px solid "+C.accent,borderRadius:10,padding:seniorMode?"16px 18px":"10px 14px",marginBottom:seniorMode?10:6,display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+        <input value={editShopDraft.name} onChange={e=>setEditShopDraft(d=>({...d,name:e.target.value}))} style={{flex:2,minWidth:100,padding:"6px 8px",borderRadius:6,border:"1px solid "+C.border,background:C.surface,color:C.text,fontFamily:FM,fontSize:13}} placeholder="Item name"/>
+        <input value={editShopDraft.qty} onChange={e=>setEditShopDraft(d=>({...d,qty:e.target.value}))} style={{width:50,padding:"6px 8px",borderRadius:6,border:"1px solid "+C.border,background:C.surface,color:C.text,fontFamily:FM,fontSize:13}} placeholder="Qty"/>
+        <input value={editShopDraft.unit} onChange={e=>setEditShopDraft(d=>({...d,unit:e.target.value}))} style={{width:70,padding:"6px 8px",borderRadius:6,border:"1px solid "+C.border,background:C.surface,color:C.text,fontFamily:FM,fontSize:13}} placeholder="Unit"/>
+        <button onClick={()=>{setShopping(p=>p.map((si,sii)=>sii===gi?{...si,name:editShopDraft.name.trim()||si.name,qty:parseFloat(editShopDraft.qty)||si.qty,unit:editShopDraft.unit.trim()||si.unit}:si));setEditingShoppingIdx(null);}} style={{padding:"6px 12px",borderRadius:6,border:"1px solid "+C.green,background:C.green,color:"#fff",fontFamily:FM,fontSize:12,cursor:"pointer",fontWeight:600}}>Save</button>
+        <button onClick={()=>setEditingShoppingIdx(null)} style={{padding:"6px 12px",borderRadius:6,border:"1px solid "+C.border,background:"transparent",color:C.muted,fontFamily:FM,fontSize:12,cursor:"pointer"}}>Cancel</button>
+      </div>
+    );
+    return (
+      <div key={gi} onClick={()=>setShopping(p=>p.map((si,sii)=>sii===gi?{...si,checked:!si.checked}:si))}
+        style={{background:C.card,border:"1px solid "+C.border,borderRadius:10,padding:seniorMode?"16px 18px":"10px 14px",marginBottom:seniorMode?10:6,display:"flex",alignItems:"center",gap:12,cursor:"pointer",opacity:item.checked?0.45:1,transition:"opacity 0.2s"}}>
+        <div style={{width:seniorMode?28:18,height:seniorMode?28:18,borderRadius:4,border:"2px solid "+(item.checked?C.green:C.border),background:item.checked?C.green:"transparent",display:"flex",alignItems:"center",justifyContent:"center",fontSize:seniorMode?16:11,flexShrink:0}}>{item.checked&&"✓"}</div>
+        <div style={{flex:1,fontSize:seniorMode?18:13,fontWeight:seniorMode?600:400,lineHeight:1.4,textDecoration:item.checked?"line-through":"none"}}>{item.name}{item.assignedStore&&<div style={{fontSize:10,color:"#14b8a6",fontFamily:FM,fontWeight:600,marginTop:2}}>🛒 {item.assignedStore}{item.assignedPrice!=null?" — $"+item.assignedPrice.toFixed(2):""}</div>}</div>
+        {(()=>{const recallMatch=shoppingListRecallAlerts.find(a=>(a.matched_item_name||"").toLowerCase()===(item.name||"").toLowerCase());if(!recallMatch)return null;const isCritical=recallMatch.severity==="critical";const isPending=recallMatch.severity==="pending";const bg=isCritical?"#4a0e0e":isPending?"#2e1a4a":"#3a2a0e";const fg=isCritical?"#fecaca":isPending?"#ddd6fe":"#fde68a";const bd=isCritical?"#ef4444":isPending?"#8b5cf6":"#d97706";return(<span onClick={e=>{e.stopPropagation();setActiveRecallDetail([recallMatch]);}} title="Possible FDA recall match — tap for details" style={{fontSize:11,fontWeight:700,padding:"3px 8px",borderRadius:20,background:bg,color:fg,border:"1px solid "+bd,cursor:"pointer",flexShrink:0}}>{isCritical?"🚨":isPending?"🆕":"⚠️"} recall?</span>);})()}
+        {item.suggestBulk&&<span style={bTag(C.orange)}>📦 bulk</span>}
+        <div style={{fontFamily:FM,fontSize:12,color:C.muted}}>{item.qty} {item.unit}</div>
+        <button onClick={e=>{e.stopPropagation();setEditShopDraft({name:item.name,qty:String(item.qty??""),unit:item.unit||""});setEditingShoppingIdx(gi);}} title="Got something different? Edit before restocking" style={{background:"transparent",border:"none",cursor:"pointer",fontSize:13,padding:"2px 4px",color:C.muted,flexShrink:0}}>✏️</button>
+      </div>
+    );
+  };
   // Add-on upsell -- lets an already-subscribed, non-trial paid user add Medical+ and/or
   // Smarter Way to Shop later without re-selecting their base tier. can.unlimitedRecipes is
   // true for both trial and any real paid tier, but the trial already grants medicalCompliance
@@ -5495,30 +5533,34 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
   return (
   <div style={{background:"#0a1a17",border:"1px solid #14b8a6",borderRadius:12,padding:"12px 16px",marginBottom:14}}>
     <div style={{fontFamily:FD,fontSize:14,color:"#14b8a6"}}>🛒 Smarter Way to Shop — {shoppingAdMatches.length} item{shoppingAdMatches.length!==1?"s":""} on your list found on sale</div>
+    <div style={{fontFamily:FM,fontSize:10,color:"#5eead4",marginTop:2}}>Tap an item to assign that store + price to your list</div>
     {deepDiscounts.length>0&&(
       <div style={{marginTop:8,paddingTop:8,borderTop:"1px solid #14b8a633"}}>
         <div style={{fontFamily:FM,fontSize:10,color:"#f59e0b",letterSpacing:0.4,marginBottom:4,fontWeight:700}}>⚡ DEEP DISCOUNT — {deepDiscounts.length} ITEM{deepDiscounts.length!==1?"S":""}{deepDiscounts.some(m=>m.inventoryModel==="closeout_limited")?" · LIMITED QUANTITIES":""}</div>
-        {(expandedShopSaleSection==="deep"?deepDiscounts:deepDiscounts.slice(0,6)).map((m,i)=>(
-          <div key={i} style={{fontSize:11,color:"#d1d5db",fontFamily:FM,padding:"2px 0"}}>• <strong style={{color:"#fff"}}>{m.inventoryItemName}</strong> at {m.storeName} — {m.deepDiscountPct}% off{m.inventoryModel==="closeout_limited"&&<span style={{color:"#f59e0b"}}> (limited quantities)</span>}</div>
-        ))}
+        {(expandedShopSaleSection==="deep"?deepDiscounts:deepDiscounts.slice(0,6)).map((m,i)=>{
+          const isAssigned=shopping.some(si=>wordsOverlap(m.inventoryItemName,si.name)&&si.assignedStore===m.storeName);
+          return (<div key={i} onClick={()=>assignSaleMatchToShopping(m)} style={{fontSize:11,color:"#d1d5db",fontFamily:FM,padding:"3px 0",cursor:"pointer"}}>{isAssigned?"✓":"•"} <strong style={{color:"#fff"}}>{m.inventoryItemName}</strong> at {m.storeName} — {m.deepDiscountPct}% off{m.inventoryModel==="closeout_limited"&&<span style={{color:"#f59e0b"}}> (limited quantities)</span>}</div>);
+        })}
         {deepDiscounts.length>6&&<button onClick={()=>setExpandedShopSaleSection(expandedShopSaleSection==="deep"?null:"deep")} style={{background:"transparent",border:"none",color:"#14b8a6",fontFamily:FM,fontSize:11,cursor:"pointer",padding:"4px 0",fontWeight:600}}>{expandedShopSaleSection==="deep"?"▲ Show less":"▼ Show all "+deepDiscounts.length}</button>}
       </div>
     )}
     {belowAverage.length>0&&(
       <div style={{marginTop:8,paddingTop:8,borderTop:"1px solid #14b8a633"}}>
         <div style={{fontFamily:FM,fontSize:10,color:"#22c55e",letterSpacing:0.4,marginBottom:4,fontWeight:700}}>💰 BELOW YOUR USUAL PRICE — {belowAverage.length} ITEM{belowAverage.length!==1?"S":""}</div>
-        {(expandedShopSaleSection==="below"?belowAverage:belowAverage.slice(0,6)).map((m,i)=>(
-          <div key={i} style={{fontSize:11,color:"#d1d5db",fontFamily:FM,padding:"2px 0"}}>• <strong style={{color:"#fff"}}>{m.inventoryItemName}</strong> at {m.storeName} — ${m.comparableAdPrice?.toFixed(2)} vs. your usual ${m.avgUnitPrice?.toFixed(2)} (save ${m.priceDelta.toFixed(2)})</div>
-        ))}
+        {(expandedShopSaleSection==="below"?belowAverage:belowAverage.slice(0,6)).map((m,i)=>{
+          const isAssigned=shopping.some(si=>wordsOverlap(m.inventoryItemName,si.name)&&si.assignedStore===m.storeName);
+          return (<div key={i} onClick={()=>assignSaleMatchToShopping(m)} style={{fontSize:11,color:"#d1d5db",fontFamily:FM,padding:"3px 0",cursor:"pointer"}}>{isAssigned?"✓":"•"} <strong style={{color:"#fff"}}>{m.inventoryItemName}</strong> at {m.storeName} — ${m.comparableAdPrice?.toFixed(2)} vs. your usual ${m.avgUnitPrice?.toFixed(2)} (save ${m.priceDelta.toFixed(2)})</div>);
+        })}
         {belowAverage.length>6&&<button onClick={()=>setExpandedShopSaleSection(expandedShopSaleSection==="below"?null:"below")} style={{background:"transparent",border:"none",color:"#14b8a6",fontFamily:FM,fontSize:11,cursor:"pointer",padding:"4px 0",fontWeight:600}}>{expandedShopSaleSection==="below"?"▲ Show less":"▼ Show all "+belowAverage.length}</button>}
       </div>
     )}
     {plainMatches.length>0&&(
       <div style={{marginTop:8,paddingTop:8,borderTop:"1px solid #14b8a633"}}>
         <div style={{fontFamily:FM,fontSize:10,color:"#9ca3af",letterSpacing:0.4,marginBottom:4,fontWeight:700}}>ON SALE — {plainMatches.length} ITEM{plainMatches.length!==1?"S":""}</div>
-        {(expandedShopSaleSection==="plain"?plainMatches:plainMatches.slice(0,6)).map((m,i)=>(
-          <div key={i} style={{fontSize:11,color:"#d1d5db",fontFamily:FM,padding:"2px 0"}}>• <strong style={{color:"#fff"}}>{m.inventoryItemName}</strong> at {m.storeName}{m.rawAdPrice?" — $"+m.rawAdPrice.toFixed(2):""}</div>
-        ))}
+        {(expandedShopSaleSection==="plain"?plainMatches:plainMatches.slice(0,6)).map((m,i)=>{
+          const isAssigned=shopping.some(si=>wordsOverlap(m.inventoryItemName,si.name)&&si.assignedStore===m.storeName);
+          return (<div key={i} onClick={()=>assignSaleMatchToShopping(m)} style={{fontSize:11,color:"#d1d5db",fontFamily:FM,padding:"3px 0",cursor:"pointer"}}>{isAssigned?"✓":"•"} <strong style={{color:"#fff"}}>{m.inventoryItemName}</strong> at {m.storeName}{m.rawAdPrice?" — $"+m.rawAdPrice.toFixed(2):""}</div>);
+        })}
         {plainMatches.length>6&&<button onClick={()=>setExpandedShopSaleSection(expandedShopSaleSection==="plain"?null:"plain")} style={{background:"transparent",border:"none",color:"#14b8a6",fontFamily:FM,fontSize:11,cursor:"pointer",padding:"4px 0",fontWeight:600}}>{expandedShopSaleSection==="plain"?"▲ Show less":"▼ Show all "+plainMatches.length}</button>}
       </div>
     )}
@@ -5556,36 +5598,78 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
               </div>
             ):(
               <div>
-                {[...CATEGORIES.filter(cat=>shopping.some(i=>i.category===cat)),...(shopping.some(i=>!CATEGORIES.includes(i.category))?["Smart Cellar"]:[])].filter((cat,idx,arr)=>arr.indexOf(cat)===idx).map(cat=>(
-                  <div key={cat} style={{marginBottom:18}}>
-                    <div style={{fontFamily:FM,fontSize:10,color:CAT_COLORS[cat]||C.muted,letterSpacing:1.2,marginBottom:7,display:"flex",alignItems:"center",gap:7}}>
-                      <div style={{width:7,height:7,borderRadius:"50%",background:CAT_COLORS[cat]||C.muted}}/>{cat.toUpperCase()}
+                <div style={{display:"flex",gap:6,alignItems:"center",marginBottom:14}}>
+                  <span style={{fontFamily:FM,fontSize:11,color:C.muted}}>Group by:</span>
+                  {[["category","Category"],["store","Store"]].map(([k,label])=>(
+                    <button key={k} onClick={()=>setShopGroupMode(k)} style={{padding:"5px 12px",borderRadius:16,border:"1px solid "+(shopGroupMode===k?C.accent:C.border),background:shopGroupMode===k?C.accent+"22":"transparent",color:shopGroupMode===k?C.accent:C.muted,fontFamily:FM,fontSize:11,fontWeight:600,cursor:"pointer"}}>{label}</button>
+                  ))}
+                </div>
+                {shopGroupMode==="category"?(
+                  [...CATEGORIES.filter(cat=>shopping.some(i=>i.category===cat)),...(shopping.some(i=>!CATEGORIES.includes(i.category))?["Smart Cellar"]:[])].filter((cat,idx,arr)=>arr.indexOf(cat)===idx).map(cat=>(
+                    <div key={cat} style={{marginBottom:18}}>
+                      <div style={{fontFamily:FM,fontSize:10,color:CAT_COLORS[cat]||C.muted,letterSpacing:1.2,marginBottom:7,display:"flex",alignItems:"center",gap:7}}>
+                        <div style={{width:7,height:7,borderRadius:"50%",background:CAT_COLORS[cat]||C.muted}}/>{cat.toUpperCase()}
+                      </div>
+                      {shopping.filter(i=>cat==="Smart Cellar"?!CATEGORIES.includes(i.category):i.category===cat).map(renderShopItem)}
                     </div>
-                    {shopping.filter(i=>cat==="Smart Cellar"?!CATEGORIES.includes(i.category):i.category===cat).map((item)=>{
-                      const gi=shopping.indexOf(item);
-                        const isEditing=editingShoppingIdx===gi;
-                        return isEditing?(
-                        <div key={gi} style={{background:C.card,border:"1px solid "+C.accent,borderRadius:10,padding:seniorMode?"16px 18px":"10px 14px",marginBottom:seniorMode?10:6,display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-                          <input value={editShopDraft.name} onChange={e=>setEditShopDraft(d=>({...d,name:e.target.value}))} style={{flex:2,minWidth:100,padding:"6px 8px",borderRadius:6,border:"1px solid "+C.border,background:C.surface,color:C.text,fontFamily:FM,fontSize:13}} placeholder="Item name"/>
-                          <input value={editShopDraft.qty} onChange={e=>setEditShopDraft(d=>({...d,qty:e.target.value}))} style={{width:50,padding:"6px 8px",borderRadius:6,border:"1px solid "+C.border,background:C.surface,color:C.text,fontFamily:FM,fontSize:13}} placeholder="Qty"/>
-                          <input value={editShopDraft.unit} onChange={e=>setEditShopDraft(d=>({...d,unit:e.target.value}))} style={{width:70,padding:"6px 8px",borderRadius:6,border:"1px solid "+C.border,background:C.surface,color:C.text,fontFamily:FM,fontSize:13}} placeholder="Unit"/>
-                          <button onClick={()=>{setShopping(p=>p.map((si,sii)=>sii===gi?{...si,name:editShopDraft.name.trim()||si.name,qty:parseFloat(editShopDraft.qty)||si.qty,unit:editShopDraft.unit.trim()||si.unit}:si));setEditingShoppingIdx(null);}} style={{padding:"6px 12px",borderRadius:6,border:"1px solid "+C.green,background:C.green,color:"#fff",fontFamily:FM,fontSize:12,cursor:"pointer",fontWeight:600}}>Save</button>
-                          <button onClick={()=>setEditingShoppingIdx(null)} style={{padding:"6px 12px",borderRadius:6,border:"1px solid "+C.border,background:"transparent",color:C.muted,fontFamily:FM,fontSize:12,cursor:"pointer"}}>Cancel</button>
+                  ))
+                ):(()=>{
+                  // Two-layer sort: store first, then category within each store. Items with no
+                  // assigned store (never tapped in the Smarter Way to Shop banner) fall into their
+                  // own "Not Yet Priced" group at the end, since they can't factor into the
+                  // per-store economics below.
+                  const priced=shopping.filter(i=>i.assignedStore);
+                  const unpriced=shopping.filter(i=>!i.assignedStore);
+                  const storeNames=[...new Set(priced.map(i=>i.assignedStore))];
+                  const storeTotals=storeNames.map(store=>{
+                    const items=priced.filter(i=>i.assignedStore===store);
+                    const total=items.reduce((sum,i)=>sum+(i.assignedPrice||0),0);
+                    return {store,items,total};
+                  }).sort((a,b)=>b.items.length-a.items.length||b.total-a.total);
+                  const primary=storeTotals[0];
+                  const splitTotal=storeTotals.reduce((sum,s)=>sum+s.total,0);
+                  return (<>
+                    {storeTotals.length>1&&primary&&(
+                      <div style={{background:"#0a1a17",border:"1px solid #14b8a6",borderRadius:10,padding:"10px 14px",marginBottom:16}}>
+                        <div style={{fontFamily:FM,fontSize:11,fontWeight:700,color:"#14b8a6",marginBottom:4}}>📍 Is the extra stop worth it?</div>
+                        <div style={{fontFamily:FM,fontSize:11,color:"#d1d5db",lineHeight:1.6}}>
+                          <strong style={{color:"#fff"}}>{primary.store}</strong> covers {primary.items.length} of your {priced.length} priced items (${primary.total.toFixed(2)}).
+                          {storeTotals.length>1&&<> The other {storeTotals.length-1} store{storeTotals.length>2?"s":""} together cover {priced.length-primary.items.length} item{priced.length-primary.items.length!==1?"s":""} for ${(splitTotal-primary.total).toFixed(2)} — that's the savings on the table if you make the extra stop{storeTotals.length>2?"s":""}.</>}
                         </div>
-                        ):(
-                        <div key={gi} onClick={()=>setShopping(p=>p.map((si,sii)=>sii===gi?{...si,checked:!si.checked}:si))}
-                          style={{background:C.card,border:"1px solid "+C.border,borderRadius:10,padding:seniorMode?"16px 18px":"10px 14px",marginBottom:seniorMode?10:6,display:"flex",alignItems:"center",gap:12,cursor:"pointer",opacity:item.checked?0.45:1,transition:"opacity 0.2s"}}>
-                          <div style={{width:seniorMode?28:18,height:seniorMode?28:18,borderRadius:4,border:"2px solid "+(item.checked?C.green:C.border),background:item.checked?C.green:"transparent",display:"flex",alignItems:"center",justifyContent:"center",fontSize:seniorMode?16:11,flexShrink:0}}>{item.checked&&"✓"}</div>
-                          <div style={{flex:1,fontSize:seniorMode?18:13,fontWeight:seniorMode?600:400,lineHeight:1.4,textDecoration:item.checked?"line-through":"none"}}>{item.name}</div>
-                          {(()=>{const recallMatch=shoppingListRecallAlerts.find(a=>(a.matched_item_name||"").toLowerCase()===(item.name||"").toLowerCase());if(!recallMatch)return null;const isCritical=recallMatch.severity==="critical";const isPending=recallMatch.severity==="pending";const bg=isCritical?"#4a0e0e":isPending?"#2e1a4a":"#3a2a0e";const fg=isCritical?"#fecaca":isPending?"#ddd6fe":"#fde68a";const bd=isCritical?"#ef4444":isPending?"#8b5cf6":"#d97706";return(<span onClick={e=>{e.stopPropagation();setActiveRecallDetail([recallMatch]);}} title="Possible FDA recall match — tap for details" style={{fontSize:11,fontWeight:700,padding:"3px 8px",borderRadius:20,background:bg,color:fg,border:"1px solid "+bd,cursor:"pointer",flexShrink:0}}>{isCritical?"🚨":isPending?"🆕":"⚠️"} recall?</span>);})()}
-                          {item.suggestBulk&&<span style={bTag(C.orange)}>📦 bulk</span>}
-                          <div style={{fontFamily:FM,fontSize:12,color:C.muted}}>{item.qty} {item.unit}</div>
-                          <button onClick={e=>{e.stopPropagation();setEditShopDraft({name:item.name,qty:String(item.qty??""),unit:item.unit||""});setEditingShoppingIdx(gi);}} title="Got something different? Edit before restocking" style={{background:"transparent",border:"none",cursor:"pointer",fontSize:13,padding:"2px 4px",color:C.muted,flexShrink:0}}>✏️</button>
+                        <div style={{fontFamily:FM,fontSize:10,color:C.dim,marginTop:6}}>Based only on prices you've assigned below — not a drive-time or fuel-cost estimate. You know best whether the extra stop is worth your time.</div>
+                      </div>
+                    )}
+                    {storeTotals.map(({store,items,total})=>(
+                      <div key={store} style={{marginBottom:20}}>
+                        <div style={{fontFamily:FD,fontSize:15,color:"#14b8a6",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"baseline"}}>
+                          <span>🛒 {store}</span>
+                          <span style={{fontFamily:FM,fontSize:12,color:C.muted}}>{items.length} item{items.length!==1?"s":""} · ${total.toFixed(2)}</span>
                         </div>
-                        );
-                    })}
-                  </div>
-                ))}
+                        {[...CATEGORIES.filter(cat=>items.some(i=>i.category===cat)),...(items.some(i=>!CATEGORIES.includes(i.category))?["Smart Cellar"]:[])].filter((cat,idx,arr)=>arr.indexOf(cat)===idx).map(cat=>(
+                          <div key={cat} style={{marginBottom:10,marginLeft:8}}>
+                            <div style={{fontFamily:FM,fontSize:9,color:CAT_COLORS[cat]||C.muted,letterSpacing:1,marginBottom:5,display:"flex",alignItems:"center",gap:6}}>
+                              <div style={{width:6,height:6,borderRadius:"50%",background:CAT_COLORS[cat]||C.muted}}/>{cat.toUpperCase()}
+                            </div>
+                            {items.filter(i=>cat==="Smart Cellar"?!CATEGORIES.includes(i.category):i.category===cat).map(renderShopItem)}
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                    {unpriced.length>0&&(
+                      <div style={{marginBottom:18}}>
+                        <div style={{fontFamily:FD,fontSize:15,color:C.muted,marginBottom:8}}>🏷 Not Yet Priced ({unpriced.length})</div>
+                        {[...CATEGORIES.filter(cat=>unpriced.some(i=>i.category===cat)),...(unpriced.some(i=>!CATEGORIES.includes(i.category))?["Smart Cellar"]:[])].filter((cat,idx,arr)=>arr.indexOf(cat)===idx).map(cat=>(
+                          <div key={cat} style={{marginBottom:10,marginLeft:8}}>
+                            <div style={{fontFamily:FM,fontSize:9,color:CAT_COLORS[cat]||C.muted,letterSpacing:1,marginBottom:5,display:"flex",alignItems:"center",gap:6}}>
+                              <div style={{width:6,height:6,borderRadius:"50%",background:CAT_COLORS[cat]||C.muted}}/>{cat.toUpperCase()}
+                            </div>
+                            {unpriced.filter(i=>cat==="Smart Cellar"?!CATEGORIES.includes(i.category):i.category===cat).map(renderShopItem)}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>);
+                })()}
                 <button style={bBtn("green")} onClick={()=>{
                   const checked=shopping.filter(i=>i.checked);
                   if(!checked.length) return;
