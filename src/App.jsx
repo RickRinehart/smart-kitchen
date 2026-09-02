@@ -1510,6 +1510,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [editingShoppingIdx,setEditingShoppingIdx]=useState(null);
   const [editShopDraft,setEditShopDraft]=useState({name:"",qty:"",unit:""});
   const [restockConfirm,setRestockConfirm]=useState(null);
+  const [receiptReconcileCue,setReceiptReconcileCue]=useState(null);
   const [confirmClearList,setConfirmClearList]=useState(false);
   const [appAlert,setAppAlert]=useState(null);
   const showAlert=(msg)=>setAppAlert(String(msg));
@@ -2859,6 +2860,21 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       });
       return u;
     });
+    // Reconcile Shopping List against what was just bought -- receipt scanning previously only
+    // touched Inventory, so items you'd already purchased kept sitting on the Shopping List
+    // indefinitely unless you separately checked them off. Uses the same head-noun matcher as
+    // liveMissing/liveNeeded (see wordsOverlap) so "Chicken Broth" on the list doesn't get wiped
+    // out by a receipt line for "Chicken Breast".
+    if(scanMode==="receipt"){
+      setShopping(prevShop=>{
+        const matched=prevShop.filter(sItem=>chosen.some(ci=>{
+          const h1=headNoun(ci.name),h2=headNoun(sItem.name);
+          return h1&&h2&&h1===h2;
+        }));
+        if(matched.length>0) setReceiptReconcileCue({count:matched.length,names:matched.map(m=>m.name)});
+        return prevShop.filter(sItem=>!matched.includes(sItem));
+      });
+    }
     setScanStage("done");
     setTimeout(()=>{
       setScanOpen(false);setScanPreview(null);setScanB64(null);setScanResults(null);setScanStage("upload");
@@ -3881,7 +3897,10 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     if(!mealPlan.length) return;
     setLoading(true); setLoadMsg("Building shopping list…");
     try{
-      const needed=mealPlan.flatMap(d=>d.shoppingNeeded||[]);
+      // Re-check against current inventory before consolidating -- d.shoppingNeeded is a snapshot
+      // written whenever that meal was planned/regenerated, and goes stale the moment inventory
+      // changes afterward (restock, receipt scan, manual add). liveNeeded() re-filters it live.
+      const needed=mealPlan.flatMap(d=>liveNeeded(d.shoppingNeeded||[]));
       const raw=await callClaude({
         system:"Return ONLY a JSON array. No other text. Start with [ end with ]. Each: {name,qty,unit,category,checked,suggestBulk}. category is Protein Produce Dairy Pantry Grains Spices Frozen Condiments or Other. checked is false. suggestBulk is boolean.",
         prompt:"Consolidate this shopping list for a family of "+activeProfiles.length+": "+JSON.stringify(needed),
@@ -3930,10 +3949,16 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
   // inventory item name, it is already owned").
   const RECON_STOPWORDS=new Set(["and","or","the","a","an","with","without","fresh","raw","cooked","large","small","medium","peeled","deveined","boneless","skinless","shredded","grated","chopped","sliced","minced","of","for","to","tail","off","whole","half"]);
   const significantWords=(s)=>String(s||"").toLowerCase().replace(/[^a-z0-9\s]/g," ").split(/\s+/).filter(w=>w.length>2&&!RECON_STOPWORDS.has(w));
+  // Head-noun match: English noun phrases put the core item last ("chicken broth" -> broth,
+  // "chicken breast" -> breast), so comparing just the LAST significant word tells apart items
+  // that share a modifier but are not the same thing. The old version matched on ANY shared
+  // significant word, so "chicken broth" (recipe) silently counted as "already have" whenever
+  // "chicken breast" was in inventory -- swallowing genuinely missing ingredients.
+  const headNoun=(s)=>{const w=significantWords(s);return w.length?w[w.length-1]:null;};
   const wordsOverlap=(a,b)=>{
-    const wa=significantWords(a),wb=significantWords(b);
-    if(!wa.length||!wb.length) return false;
-    return wa.some(w=>wb.includes(w));
+    const ha=headNoun(a),hb=headNoun(b);
+    if(!ha||!hb) return false;
+    return ha===hb;
   };
   const liveMissing=(list)=>{
     if(!Array.isArray(list)) return [];
@@ -6179,6 +6204,17 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
             <div style={{fontFamily:FD,fontSize:20,color:C.green,marginBottom:8}}>Restocked!</div>
             <div style={{fontSize:14,color:C.text,lineHeight:1.6,marginBottom:16}}>{restockConfirm.count} item{restockConfirm.count>1?"s":""} added to inventory.</div>
             <button style={{...bBtn("primary"),width:"100%"}} onClick={()=>setRestockConfirm(null)}>Got it</button>
+          </div>
+        </div>
+      )}
+      {/* == RECEIPT SHOPPING LIST RECONCILE CUE == */}
+      {receiptReconcileCue&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300,padding:16}} onClick={()=>setReceiptReconcileCue(null)}>
+          <div style={{background:C.card,border:"1px solid "+C.green+"55",borderRadius:16,padding:26,maxWidth:380,width:"100%",textAlign:"center"}} onClick={e=>e.stopPropagation()}>
+            <div style={{fontSize:38,marginBottom:10}}>🛒</div>
+            <div style={{fontFamily:FD,fontSize:20,color:C.green,marginBottom:8}}>Shopping List updated</div>
+            <div style={{fontSize:14,color:C.text,lineHeight:1.6,marginBottom:16}}>Removed {receiptReconcileCue.count} item{receiptReconcileCue.count>1?"s":""} you just bought: {receiptReconcileCue.names.join(", ")}</div>
+            <button style={{...bBtn("primary"),width:"100%"}} onClick={()=>setReceiptReconcileCue(null)}>Got it</button>
           </div>
         </div>
       )}
