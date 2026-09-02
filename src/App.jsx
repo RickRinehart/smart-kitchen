@@ -1502,6 +1502,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [shopPhone,setShopPhone]=useState(()=>localStorage.getItem("sk_shopPhone")||"");
   const [instacartApiKey,setInstacartApiKey]=useState(()=>localStorage.getItem("sk_instacartKey")||"");
   const [expandedIngDay,setExpandedIngDay]=useState(null);
+  const [expandedShopSaleSection,setExpandedShopSaleSection]=useState(null);
   const [shareSelected,setShareSelected]=useState({});// {recipeKey: recipeObj}
   const [shareMode,setShareMode]=useState(false);
   const [showShareModal,setShowShareModal]=useState(false);
@@ -5497,25 +5498,28 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
     {deepDiscounts.length>0&&(
       <div style={{marginTop:8,paddingTop:8,borderTop:"1px solid #14b8a633"}}>
         <div style={{fontFamily:FM,fontSize:10,color:"#f59e0b",letterSpacing:0.4,marginBottom:4,fontWeight:700}}>⚡ DEEP DISCOUNT — {deepDiscounts.length} ITEM{deepDiscounts.length!==1?"S":""}{deepDiscounts.some(m=>m.inventoryModel==="closeout_limited")?" · LIMITED QUANTITIES":""}</div>
-        {deepDiscounts.slice(0,6).map((m,i)=>(
+        {(expandedShopSaleSection==="deep"?deepDiscounts:deepDiscounts.slice(0,6)).map((m,i)=>(
           <div key={i} style={{fontSize:11,color:"#d1d5db",fontFamily:FM,padding:"2px 0"}}>• <strong style={{color:"#fff"}}>{m.inventoryItemName}</strong> at {m.storeName} — {m.deepDiscountPct}% off{m.inventoryModel==="closeout_limited"&&<span style={{color:"#f59e0b"}}> (limited quantities)</span>}</div>
         ))}
+        {deepDiscounts.length>6&&<button onClick={()=>setExpandedShopSaleSection(expandedShopSaleSection==="deep"?null:"deep")} style={{background:"transparent",border:"none",color:"#14b8a6",fontFamily:FM,fontSize:11,cursor:"pointer",padding:"4px 0",fontWeight:600}}>{expandedShopSaleSection==="deep"?"▲ Show less":"▼ Show all "+deepDiscounts.length}</button>}
       </div>
     )}
     {belowAverage.length>0&&(
       <div style={{marginTop:8,paddingTop:8,borderTop:"1px solid #14b8a633"}}>
         <div style={{fontFamily:FM,fontSize:10,color:"#22c55e",letterSpacing:0.4,marginBottom:4,fontWeight:700}}>💰 BELOW YOUR USUAL PRICE — {belowAverage.length} ITEM{belowAverage.length!==1?"S":""}</div>
-        {belowAverage.slice(0,6).map((m,i)=>(
+        {(expandedShopSaleSection==="below"?belowAverage:belowAverage.slice(0,6)).map((m,i)=>(
           <div key={i} style={{fontSize:11,color:"#d1d5db",fontFamily:FM,padding:"2px 0"}}>• <strong style={{color:"#fff"}}>{m.inventoryItemName}</strong> at {m.storeName} — ${m.comparableAdPrice?.toFixed(2)} vs. your usual ${m.avgUnitPrice?.toFixed(2)} (save ${m.priceDelta.toFixed(2)})</div>
         ))}
+        {belowAverage.length>6&&<button onClick={()=>setExpandedShopSaleSection(expandedShopSaleSection==="below"?null:"below")} style={{background:"transparent",border:"none",color:"#14b8a6",fontFamily:FM,fontSize:11,cursor:"pointer",padding:"4px 0",fontWeight:600}}>{expandedShopSaleSection==="below"?"▲ Show less":"▼ Show all "+belowAverage.length}</button>}
       </div>
     )}
     {plainMatches.length>0&&(
       <div style={{marginTop:8,paddingTop:8,borderTop:"1px solid #14b8a633"}}>
         <div style={{fontFamily:FM,fontSize:10,color:"#9ca3af",letterSpacing:0.4,marginBottom:4,fontWeight:700}}>ON SALE — {plainMatches.length} ITEM{plainMatches.length!==1?"S":""}</div>
-        {plainMatches.slice(0,6).map((m,i)=>(
+        {(expandedShopSaleSection==="plain"?plainMatches:plainMatches.slice(0,6)).map((m,i)=>(
           <div key={i} style={{fontSize:11,color:"#d1d5db",fontFamily:FM,padding:"2px 0"}}>• <strong style={{color:"#fff"}}>{m.inventoryItemName}</strong> at {m.storeName}{m.rawAdPrice?" — $"+m.rawAdPrice.toFixed(2):""}</div>
         ))}
+        {plainMatches.length>6&&<button onClick={()=>setExpandedShopSaleSection(expandedShopSaleSection==="plain"?null:"plain")} style={{background:"transparent",border:"none",color:"#14b8a6",fontFamily:FM,fontSize:11,cursor:"pointer",padding:"4px 0",fontWeight:600}}>{expandedShopSaleSection==="plain"?"▲ Show less":"▼ Show all "+plainMatches.length}</button>}
       </div>
     )}
   </div>
