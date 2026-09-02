@@ -191,14 +191,15 @@ export async function loadCloudData(userId, force = false) {
         if (Array.isArray(data[dbCol])) {
           const localRaw = localStorage.getItem(lsKey);
           const localArr = localRaw ? JSON.parse(localRaw) : [];
-          // Use cloud data if forced (explicit manual pull), or if cloud actually has MORE
-          // items than local, or local is empty. The length check alone is a poor staleness
-          // signal once both sides are fully populated -- e.g. meal_plan is always exactly
-          // 7 entries on every device, so cloud.length > local.length (7 > 7) is never true
-          // and an unforced load silently does nothing for it. That's fine for passive
-          // background loads (where under-triggering is the safer failure mode), but it
-          // defeated the whole point of the manual "Load from Cloud" button.
-          if (force || data[dbCol].length > localArr.length || localArr.length === 0) {
+          // Use cloud data if forced (explicit manual pull), or if this device has no pending
+          // local edits of its own (safe to fully trust the cloud either way), or as a last
+          // resort if cloud has more items than local, or local is empty. The length check
+          // alone is a poor staleness signal for arrays whose common edits don't change length
+          // at all -- e.g. changing an inventory item's quantity, or updating any of the 7
+          // meal_plan days -- so relying on it left ordinary quantity/content edits invisible
+          // to every automatic load, not just meal_plan. isCloudDirty() is the real signal: if
+          // nothing changed here since the last sync, there's nothing local worth protecting.
+          if (force || !isCloudDirty() || data[dbCol].length > localArr.length || localArr.length === 0) {
             // For family_profiles: preserve Medical+ fields from local if cloud record lacks them
             if (dbCol === 'family_profiles' && localArr.length > 0) {
               const MEDICAL_FIELDS = ['medications','supplements','medicalPlan','medicalAllergies',
