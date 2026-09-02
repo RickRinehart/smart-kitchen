@@ -3984,7 +3984,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       // Re-check against current inventory before consolidating -- d.shoppingNeeded is a snapshot
       // written whenever that meal was planned/regenerated, and goes stale the moment inventory
       // changes afterward (restock, receipt scan, manual add). liveNeeded() re-filters it live.
-      const needed=mealPlan.flatMap(d=>liveNeeded(d.shoppingNeeded||[]));
+      const needed=mealPlan.flatMap(d=>mealPlanStillNeeded(d));
       const raw=await callClaude({
         system:"Return ONLY a JSON array. No other text. Start with [ end with ]. Each: {name,qty,unit,category,checked,suggestBulk}. category is Protein Produce Dairy Pantry Grains Spices Frozen Condiments or Other. checked is false. suggestBulk is boolean.",
         prompt:"Consolidate this shopping list for a family of "+activeProfiles.length+": "+JSON.stringify(needed),
@@ -4044,12 +4044,18 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     if(!ha||!hb) return false;
     return ha===hb;
   };
+  // An inventory entry only counts as "have it" if it actually has stock remaining -- a
+  // depleted item (qty 0, or bulkQtyRemaining 0 for bulk-tracked items) still exists as a row
+  // in inventory, but that's not the same as having any on hand. Previously liveMissing/liveNeeded
+  // only checked whether a matching NAME existed at all, so a fully-used-up item like "Cab Stew
+  // Beef" (0 portions) silently never showed as needed on the meal plan or shopping list.
+  const hasStock=(i)=>i.isBulkItem?(parseFloat(i.bulkQtyRemaining)||0)>0:(parseFloat(i.qty)||0)>0;
   const liveMissing=(list)=>{
     if(!Array.isArray(list)) return [];
     return list.filter(ing=>{
       const ingL=String(ing||"").trim();
       if(!ingL) return false;
-      return !inventory.some(i=>wordsOverlap(ingL,i.name));
+      return !inventory.some(i=>wordsOverlap(ingL,i.name)&&hasStock(i));
     });
   };
   const liveNeeded=(list)=>{
@@ -4057,8 +4063,23 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     return list.filter(s=>{
       const nameL=String(s?.name||s||"").trim();
       if(!nameL) return false;
-      return !inventory.some(i=>wordsOverlap(nameL,i.name));
+      return !inventory.some(i=>wordsOverlap(nameL,i.name)&&hasStock(i));
     });
+  };
+  // Re-derives what a meal plan day still needs by re-checking EVERY ingredient the AI
+  // originally identified (both the "already have" list and the original "still need" list)
+  // against CURRENT inventory -- not just re-filtering the stale "still need" snapshot from
+  // planning time. That snapshot can only ever shrink (an item gets restocked), never grow, so
+  // an ingredient that was on hand when the meal was planned but has since been fully used up
+  // by a different meal (e.g. Cab Stew Beef) would never surface as needed. This merges both
+  // sources so newly-depleted ingredients show up too, while still preserving qty/unit for the
+  // ones that were already flagged as missing.
+  const mealPlanStillNeeded=(day)=>{
+    const stillMissingFromShoppingList=liveNeeded(day.shoppingNeeded||[]);
+    const newlyMissingFromHaveList=liveMissing(day.ingredients||[]).filter(name=>
+      !stillMissingFromShoppingList.some(s=>wordsOverlap(name,s.name))
+    );
+    return [...stillMissingFromShoppingList,...newlyMissingFromHaveList.map(name=>({qty:"",unit:"",name}))];
   };
   // Shared inventory deduction — used by cookRecipe (Meal Plan/Recipes/Make This) and the Desserts
   // handler, so both stay in sync instead of drifting into two half-correct implementations.
@@ -5320,9 +5341,9 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                         </div>
                       </div>
                       <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
-                        {liveNeeded(day.shoppingNeeded).length===0
+                        {mealPlanStillNeeded(day).length===0
                           ?<span style={bTag(C.green)}>✅ Ready</span>
-                          :<div style={{width:"100%",marginBottom:4}}><div style={{fontSize:9,color:C.muted,marginBottom:3,fontFamily:FM}}>NEED</div>{liveNeeded(day.shoppingNeeded).map((s,j)=><div key={j} style={{fontSize:seniorMode?15:13,color:C.red,marginBottom:2}}>· {s.qty} {s.unit} {s.name}</div>)}</div>}
+                          :<div style={{width:"100%",marginBottom:4}}><div style={{fontSize:9,color:C.muted,marginBottom:3,fontFamily:FM}}>NEED</div>{mealPlanStillNeeded(day).map((s,j)=><div key={j} style={{fontSize:seniorMode?15:13,color:C.red,marginBottom:2}}>· {s.qty} {s.unit} {s.name}</div>)}</div>}
                         <button onClick={()=>madeMeal(day)} style={{background:"#3ecf8e22",border:"1px solid #3ecf8e44",borderRadius:seniorMode?10:6,color:"#3ecf8e",cursor:"pointer",fontFamily:FM,fontSize:seniorMode?18:11,padding:seniorMode?"12px 20px":"8px 14px",flexShrink:0,fontWeight:seniorMode?700:400}} disabled={isViewer}>✅ Made It!</button>
                         {familyProfiles.some(p=>p.guidedPlateMode)&&(<button onClick={()=>{const qualifying=familyProfiles.filter(p=>p.guidedPlateMode||p.medicalPlan||(can.medicalCompliance&&p.medicalAllergies?.length>0));const active=qualifying.length>0?qualifying:familyProfiles.slice(0,1);setPlateStep(0);setPlateComponents([]);setPlateCumulativeG(0);setPlateSessionId(Date.now().toString());setPlateCoachNote("");setShowPlateSummary(false);setScaleCalcResult(null);setScaleError("");setPlateSuggestedComponents([]);setPlateCurrentComponentIdx(-1);setPlateComponentsLoading(true);if(active.length===1){const activeP=active[0];setPlateSession({active:true,memberName:activeP.name||"",mealName:day.meal,mealDay:day.day,activeProfile:activeP,dayObj:day});setPlatePendingMeal(null);setPlateQualifyingMembers([]);}else{setPlatePendingMeal(day);setPlateQualifyingMembers(active);setPlateSession({active:true,memberName:"",mealName:day.meal,mealDay:day.day,activeProfile:null,dayObj:day});}setShowScaleModal(true);buildComponentsFromDay(day).then(comps=>{setPlateSuggestedComponents(comps);setPlateComponentsLoading(false);}).catch(()=>setPlateComponentsLoading(false));}} style={{background:"#10b98122",border:"1px solid #10b981",borderRadius:seniorMode?10:6,color:"#10b981",cursor:"pointer",fontFamily:FM,fontSize:seniorMode?16:11,padding:seniorMode?"10px 16px":"6px 12px",flexShrink:0,fontWeight:600}} disabled={isViewer}>🍽 Build Plate</button>)}
                         <button onClick={()=>setPhotoPromptMeal(day.meal)} style={{background:"transparent",border:"1px solid "+C.border,borderRadius:seniorMode?10:6,color:C.muted,cursor:"pointer",fontFamily:FM,fontSize:seniorMode?16:12,padding:seniorMode?"10px 14px":"8px 12px",flexShrink:0}} title="Add photo" disabled={isViewer}>📸 {mealPhotos[day.meal]?"Change":"Photo"}</button>
