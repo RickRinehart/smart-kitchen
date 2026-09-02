@@ -2841,15 +2841,22 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       chosen.forEach(si=>{
         si={...si,name:(si.name||"").trim()};
         if(!si.name) return; // skip anything that scanned/edited down to a blank name
-        // Exact match first (fast path); fall back to shared-significant-word match so
-        // "Quaker Grits" and "Quaker Quick Grits" from two different scans of the same can
-        // land as one item instead of silently duplicating.
+        // Exact match first (fast path); fall back to a SUBSET match on significant words --
+        // require every significant word of the SHORTER name to appear in the other name, not
+        // just any one shared word. A single shared word is too weak: "Sliced Swiss Cheese"
+        // and "Kraft Mac & Cheese" share "cheese" but are different products, and matching on
+        // that alone silently merged a real new purchase into the wrong existing item instead
+        // of creating it. Requiring the full shorter set still correctly merges genuine re-scans
+        // of the same product, e.g. "Quaker Grits" -> "Quaker Quick Grits".
         let idx=u.findIndex(i=>(i.name||"").trim().toLowerCase()===si.name.toLowerCase());
         if(idx<0){
           const siWords=significantWords(si.name).filter(w=>w.length>=4);
           idx=u.findIndex(i=>{
             const iWords=significantWords(i.name).filter(w=>w.length>=4);
-            return siWords.length&&iWords.length&&siWords.some(w=>iWords.includes(w));
+            if(!siWords.length||!iWords.length) return false;
+            const shorter=siWords.length<=iWords.length?siWords:iWords;
+            const longer=siWords.length<=iWords.length?iWords:siWords;
+            return shorter.every(w=>longer.includes(w));
           });
         }
         const paid=parsePrice(si.price);
@@ -2857,7 +2864,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
         if(idx>=0){
           const prevHist=u[idx].priceHistory||[];
           const newHist=paid?[...prevHist,{price:paid,date:today}]:prevHist;
-          u[idx]={...u[idx],qty:si.qty,unit:si.unit,location:si.location,upc:si.upc||u[idx].upc||null,brand:si.brand||u[idx].brand||null,size:si.size||u[idx].size||null,nutrition:Object.keys(si.nutrition||{}).length?si.nutrition:u[idx].nutrition||{},image_url:si.image_url||u[idx].image_url||null,upc_enriched:si.upc_enriched||u[idx].upc_enriched||false,priceHistory:newHist,avgUnitPrice:avgOf(newHist)||u[idx].avgUnitPrice||null,purchaseCount:newHist.length,lastPrice:paid||u[idx].lastPrice||null};
+          u[idx]={...u[idx],name:si.name||u[idx].name,qty:si.qty,unit:si.unit,location:si.location,upc:si.upc||u[idx].upc||null,brand:si.brand||u[idx].brand||null,size:si.size||u[idx].size||null,nutrition:Object.keys(si.nutrition||{}).length?si.nutrition:u[idx].nutrition||{},image_url:si.image_url||u[idx].image_url||null,upc_enriched:si.upc_enriched||u[idx].upc_enriched||false,priceHistory:newHist,avgUnitPrice:avgOf(newHist)||u[idx].avgUnitPrice||null,purchaseCount:newHist.length,lastPrice:paid||u[idx].lastPrice||null};
         }
         else{
           const hist=paid?[{price:paid,date:today}]:[];
