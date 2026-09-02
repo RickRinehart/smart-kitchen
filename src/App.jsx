@@ -1861,6 +1861,24 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
     fetchPartnerAdMatches(inventory,user.id).then(m=>{ if(!cancelled) setPartnerAdMatches(m); });
     return ()=>{ cancelled=true; };
   },[inventory,user?.id,can.smarterWayToShop]);
+  // Same matching engine, but against the Shopping List instead of full inventory -- surfaces
+  // sale matches specifically for what's actually on the list right now. Shopping list items
+  // don't carry price history of their own, so each item is enriched with its matching
+  // inventory record's avgUnitPrice/purchaseCount (if one exists) before matching, using the
+  // same tightened head-noun matcher as the rest of the app -- a brand-new item never bought
+  // before still surfaces as "on sale at X" via rawAdPrice, it just won't qualify for the
+  // deep-discount/below-average comparisons that require prior purchase history.
+  const [shoppingAdMatches,setShoppingAdMatches]=useState([]);
+  useEffect(()=>{
+    if(!can.smarterWayToShop||!user?.id||shopping.length===0){ setShoppingAdMatches([]); return; }
+    let cancelled=false;
+    const enriched=shopping.map(s=>{
+      const invMatch=inventory.find(i=>wordsOverlap(s.name,i.name));
+      return {name:s.name,unit:s.unit||invMatch?.unit||null,avgUnitPrice:invMatch?.avgUnitPrice??null,purchaseCount:invMatch?.purchaseCount||0};
+    });
+    fetchPartnerAdMatches(enriched,user.id).then(m=>{ if(!cancelled) setShoppingAdMatches(m); });
+    return ()=>{ cancelled=true; };
+  },[shopping,inventory,user?.id,can.smarterWayToShop]);
   // Add-on upsell -- lets an already-subscribed, non-trial paid user add Medical+ and/or
   // Smarter Way to Shop later without re-selecting their base tier. can.unlimitedRecipes is
   // true for both trial and any real paid tier, but the trial already grants medicalCompliance
@@ -5469,6 +5487,40 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                 {shopping.length>0&&<><div style={{fontFamily:FM,fontSize:seniorMode?15:11,color:C.muted,fontWeight:seniorMode?600:400}}>{shopping.filter(i=>i.checked).length}/{shopping.length} items</div><button style={{...bBtn("ghost"),padding:"6px 12px",fontSize:11}} onClick={printShopping}>🖨 Print</button>{shopPartnerEmail&&<button style={{...bBtn("ghost"),padding:"6px 12px",fontSize:11}} onClick={async()=>{const btn=document.activeElement;btn.textContent="Sending...";btn.disabled=true;try{const r=await fetch("/api/send-shopping-list",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({toEmail:shopPartnerEmail,toName:shopPartnerName,items:shopping,fromName:"Smart Kitchen"})});const d=await r.json();if(d.success){setEmailSentModal(shopPartnerEmail);}else if(d.fallback){window.location.href=d.mailtoUrl;}else{showAlert("Could not send email. Please try again.");}}catch(e){showAlert("Could not send email: "+e.message);}btn.textContent="Email to "+(shopPartnerName||shopPartnerEmail);btn.disabled=false;}}>Email to {shopPartnerName||shopPartnerEmail}</button>}{shopPhone&&<button style={{...bBtn("ghost"),padding:"6px 12px",fontSize:11,border:"1px solid #22c55e",color:"#22c55e"}} onClick={async()=>{setSmsSent(false);try{const r=await fetch("/api/send-shopping-sms",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({toPhone:shopPhone,items:shopping,fromName:shopPartnerName||"Smart Kitchen"})});const d=await r.json();if(d.success){setSmsSent(true);setTimeout(()=>setSmsSent(false),4000);}else if(d.fallback&&d.smsUrl){window.open(d.smsUrl);}else{showAlert("Could not send SMS. Please try again.");}}catch(e){showAlert("Could not send SMS: "+e.message);}}}>{smsSent?"Sent!":"Text to "+shopPhone}</button>}<button style={{...bBtn("ghost"),padding:"6px 12px",fontSize:11,background:"#00873A",border:"1px solid #00873A",color:"#ffffff",fontWeight:600}} onClick={sendToDelivery} disabled={instacartLoading}>{instacartLoading?"Opening...":"🛒 "+(deliveryService==="shipt"?"Send to Shipt":"Copy for Instacart")}</button>{deliveryService==="instacart"&&<select value={instacartStore} onChange={e=>{setInstacartStore(e.target.value);try{localStorage.setItem("sk_instacartStore",e.target.value);}catch{}}} title="Choose your Instacart store" style={{padding:"6px 8px",borderRadius:8,border:"1px solid "+C.border,background:C.surface,color:C.text,fontFamily:FM,fontSize:11,cursor:"pointer"}}>{[["meijer","Meijer"],["aldi","ALDI"],["kroger","Kroger"],["costco","Costco"],["walmart","Walmart"],["target","Target"],["other","Other / Not Listed"]].map(([k,label])=>(<option key={k} value={k}>{label}</option>))}</select>}{restockQueue.length>0&&<button style={{...bBtn("ghost"),padding:"6px 12px",fontSize:11,border:"1px solid "+C.accent,color:C.accent}} onClick={()=>{const toAdd=restockQueue.filter(name=>!shopping.some(s=>s.name.toLowerCase()===name.toLowerCase())).map(name=>({name,qty:1,unit:"",category:"Pantry",checked:false,suggestBulk:false}));if(toAdd.length>0){setShopping(p=>[...p,...toAdd]);showAlert(toAdd.length+" item"+(toAdd.length>1?"s":"")+" added to shopping list.");}else{showAlert("All restock items are already on the list.");}  }}>+ {restockQueue.length} Restock</button>}</>}
               </div>
             </div>
+{can.smarterWayToShop&&shoppingAdMatches.length>0&&(()=>{
+  const deepDiscounts=shoppingAdMatches.filter(m=>m.isDeepDiscountEligible);
+  const belowAverage=shoppingAdMatches.filter(m=>m.priceDelta!=null&&m.priceDelta>0&&!m.isDeepDiscountEligible);
+  const plainMatches=shoppingAdMatches.filter(m=>!m.isDeepDiscountEligible&&!(m.priceDelta!=null&&m.priceDelta>0));
+  return (
+  <div style={{background:"#0a1a17",border:"1px solid #14b8a6",borderRadius:12,padding:"12px 16px",marginBottom:14}}>
+    <div style={{fontFamily:FD,fontSize:14,color:"#14b8a6"}}>🛒 Smarter Way to Shop — {shoppingAdMatches.length} item{shoppingAdMatches.length!==1?"s":""} on your list found on sale</div>
+    {deepDiscounts.length>0&&(
+      <div style={{marginTop:8,paddingTop:8,borderTop:"1px solid #14b8a633"}}>
+        <div style={{fontFamily:FM,fontSize:10,color:"#f59e0b",letterSpacing:0.4,marginBottom:4,fontWeight:700}}>⚡ DEEP DISCOUNT — {deepDiscounts.length} ITEM{deepDiscounts.length!==1?"S":""}{deepDiscounts.some(m=>m.inventoryModel==="closeout_limited")?" · LIMITED QUANTITIES":""}</div>
+        {deepDiscounts.slice(0,6).map((m,i)=>(
+          <div key={i} style={{fontSize:11,color:"#d1d5db",fontFamily:FM,padding:"2px 0"}}>• <strong style={{color:"#fff"}}>{m.inventoryItemName}</strong> at {m.storeName} — {m.deepDiscountPct}% off{m.inventoryModel==="closeout_limited"&&<span style={{color:"#f59e0b"}}> (limited quantities)</span>}</div>
+        ))}
+      </div>
+    )}
+    {belowAverage.length>0&&(
+      <div style={{marginTop:8,paddingTop:8,borderTop:"1px solid #14b8a633"}}>
+        <div style={{fontFamily:FM,fontSize:10,color:"#22c55e",letterSpacing:0.4,marginBottom:4,fontWeight:700}}>💰 BELOW YOUR USUAL PRICE — {belowAverage.length} ITEM{belowAverage.length!==1?"S":""}</div>
+        {belowAverage.slice(0,6).map((m,i)=>(
+          <div key={i} style={{fontSize:11,color:"#d1d5db",fontFamily:FM,padding:"2px 0"}}>• <strong style={{color:"#fff"}}>{m.inventoryItemName}</strong> at {m.storeName} — ${m.comparableAdPrice?.toFixed(2)} vs. your usual ${m.avgUnitPrice?.toFixed(2)} (save ${m.priceDelta.toFixed(2)})</div>
+        ))}
+      </div>
+    )}
+    {plainMatches.length>0&&(
+      <div style={{marginTop:8,paddingTop:8,borderTop:"1px solid #14b8a633"}}>
+        <div style={{fontFamily:FM,fontSize:10,color:"#9ca3af",letterSpacing:0.4,marginBottom:4,fontWeight:700}}>ON SALE — {plainMatches.length} ITEM{plainMatches.length!==1?"S":""}</div>
+        {plainMatches.slice(0,6).map((m,i)=>(
+          <div key={i} style={{fontSize:11,color:"#d1d5db",fontFamily:FM,padding:"2px 0"}}>• <strong style={{color:"#fff"}}>{m.inventoryItemName}</strong> at {m.storeName}{m.rawAdPrice?" — $"+m.rawAdPrice.toFixed(2):""}</div>
+        ))}
+      </div>
+    )}
+  </div>
+  );
+})()}
 {budgetAmount&&shopping.length>0&&(()=>{
   const priced=shopping.map(s=>{
     const match=inventory.find(i=>(i.name||"").toLowerCase()===(s.name||"").toLowerCase())||inventory.find(i=>{const iw=significantWords(i.name).filter(w=>w.length>=4);const sw=significantWords(s.name).filter(w=>w.length>=4);return iw.length&&sw.length&&iw.some(w=>sw.includes(w));});
