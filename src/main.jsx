@@ -5,7 +5,7 @@ import App from "./App";
 import AuthModal from "./AuthModal";
 import { GuestViewerModal } from "./ViewerCodeManager";
 import SubscriptionModal from "./SubscriptionModal";
-import { supabase, getUserProfile, trialDaysRemaining, markTouchpoint, loadCloudData, saveCloudData, getViewerRole } from "./supabaseClient";
+import { supabase, getUserProfile, trialDaysRemaining, markTouchpoint, loadCloudData, saveCloudData, getViewerRole, isCloudDirty } from "./supabaseClient";
 import "./index.css";
 
 // Pre-auth accessibility toggles shown next to Sign In button
@@ -257,9 +257,17 @@ function Root() {
             // Load own cloud data
             loadCloudData(session.user.id).then(loaded => {
               if (loaded) window.dispatchEvent(new Event("sk_cloud_loaded"));
-            }).catch(() => {});
-            // Save immediately on login
-            setTimeout(() => saveCloudData(session.user.id).catch(() => {}), 3000);
+              // Only push local data up if something is genuinely local-only (e.g. a fresh
+              // signup that had local data before ever syncing) -- chained after the load
+              // settles, and dirty-gated, so this can't clobber the load we just did with a
+              // stale pre-load snapshot the way an unconditional fixed-delay save could.
+              setTimeout(() => {
+                if (isCloudDirty()) saveCloudData(session.user.id).catch(() => {});
+              }, 1500);
+            }).catch(() => {
+              // Load failed -- fall back to pushing local data so at least something persists.
+              saveCloudData(session.user.id).catch(() => {});
+            });
           }
         }).catch(() => {});
         getUserProfile(session.user.id).then(setUserProfile);
@@ -284,9 +292,11 @@ function Root() {
       window.history.replaceState({}, "", window.location.pathname);
     }
 
-    // Save to cloud when tab becomes hidden
+    // Save to cloud when tab becomes hidden -- only if something actually changed here since
+    // the last sync, so simply switching away from a tab that has nothing new doesn't blindly
+    // re-push a stale snapshot over top of a fresher save from another device.
     const handleVisibility = () => {
-      if (document.visibilityState === "hidden") {
+      if (document.visibilityState === "hidden" && isCloudDirty()) {
         supabase.auth.getUser().then(({data}) => {
           if (data?.user) saveCloudData(data.user.id).catch(()=>{});
         });
@@ -314,11 +324,14 @@ function Root() {
     } catch(e) {}
   }, []);
 
-  // Auto-save to cloud every 5 minutes when signed in
+  // Auto-save to cloud every 5 minutes when signed in -- but only if something local actually
+  // changed since the last sync. This was the main source of devices fighting each other: an
+  // idle device's timer would fire on schedule regardless of whether it had any new data,
+  // silently re-pushing its own stale copy over a fresher save another device had just made.
   useEffect(() => {
     if (!user) return;
     const interval = setInterval(() => {
-      saveCloudData(user.id).catch(() => {});
+      if (isCloudDirty()) saveCloudData(user.id).catch(() => {});
     }, 300 * 1000); // Every 5 minutes
     return () => clearInterval(interval);
   }, [user]);
