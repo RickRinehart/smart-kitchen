@@ -1,7 +1,7 @@
 // Smart Kitchen App v2.1 - April 26 2026
 import React, { useState, useRef, useEffect } from "react"
 import { ViewerCodeManager, JoinAsViewerModal } from "./ViewerCodeManager";
-import { supabase } from "./supabaseClient";
+import { supabase, isCloudDirty } from "./supabaseClient";
 import "./App.css";
 
 // -- Design tokens -------------------------------------------------------------
@@ -1928,6 +1928,11 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
     if(user&&inventory.length>0){
       clearTimeout(window._invSaveTimer);
       window._invSaveTimer=setTimeout(()=>{
+        // Only push if something actually changed locally since the last sync -- otherwise a
+        // state update caused purely by an incoming cloud load (which always creates a new
+        // array reference, even when content is identical) would blindly re-push 10s later,
+        // potentially stomping a value the load itself hadn't finished correcting yet.
+        if(!isCloudDirty()) return;
         import("./supabaseClient").then(m=>m.saveCloudData(user.id)).catch(()=>{});
       },10000);
     }
@@ -1937,6 +1942,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
     if(user&&mealPlan.length>0){
       clearTimeout(window._mpSaveTimer);
       window._mpSaveTimer=setTimeout(()=>{
+        if(!isCloudDirty()) return;
         import("./supabaseClient").then(m=>m.saveCloudData(user.id)).catch(()=>{});
       },10000);
     }
