@@ -117,6 +117,43 @@ const SYNC_MAP = {
   setup_done:           'sk_setupDone',
 };
 
+// ── DIRTY TRACKING ───────────────────────────────────────────────────────────
+// Distinguishes "local data actually changed" from "the periodic timer fired." Without this,
+// the background auto-save (every 5 min, and whenever the tab is hidden) unconditionally
+// re-pushes whatever is currently in this device's memory -- even if nothing changed here since
+// the last sync. That's how two devices fight: Device A saves a fresh edit, then Device B's own
+// blind timer fires moments later and silently overwrites the cloud with Device B's stale copy,
+// before Device B ever pulls A's version down. Wrapping localStorage.setItem once here catches
+// every write to a synced key (current and future) without instrumenting each call site.
+const DIRTY_KEY = 'sk_cloudDirty';
+let _dirtyTrackingPatched = false;
+function ensureDirtyTracking() {
+  if (_dirtyTrackingPatched || typeof window === 'undefined' || !window.localStorage) return;
+  _dirtyTrackingPatched = true;
+  const syncedKeys = new Set(Object.values(SYNC_MAP));
+  const originalSetItem = localStorage.setItem.bind(localStorage);
+  localStorage.setItem = function(key, value) {
+    if (syncedKeys.has(key)) {
+      try {
+        if (localStorage.getItem(key) !== value) originalSetItem(DIRTY_KEY, '1');
+      } catch(e) {}
+    }
+    return originalSetItem(key, value);
+  };
+}
+ensureDirtyTracking();
+
+// True if a synced field has changed locally since the last successful save or load -- i.e.
+// there's actually something worth pushing. Fails open (returns true) if the flag can't be
+// read, so a storage error never silently blocks a save the user might be relying on.
+export function isCloudDirty() {
+  try { return localStorage.getItem(DIRTY_KEY) !== '0'; } catch(e) { return true; }
+}
+
+function clearCloudDirty() {
+  try { localStorage.setItem(DIRTY_KEY, '0'); } catch(e) {}
+}
+
 // Load all user data from Supabase into localStorage on app start.
 // force=true is for the explicit "Load from Cloud" button: the user has (per the app's own
 // documented workflow) already manually pushed from the source device first, so this should be
@@ -203,6 +240,7 @@ export async function loadCloudData(userId, force = false) {
       } catch(e) {}
     });
 
+    clearCloudDirty();
     return true;
   } catch(e) {
     console.warn('Cloud load failed:', e.message);
@@ -285,6 +323,7 @@ export async function saveCloudData(userId) {
       .upsert(row, { onConflict: 'user_id' });
 
     if (error) console.warn('Cloud save failed:', error.message);
+    else clearCloudDirty();
     return !error;
   } catch(e) {
     console.warn('Cloud save error:', e.message);
