@@ -117,8 +117,13 @@ const SYNC_MAP = {
   setup_done:           'sk_setupDone',
 };
 
-// Load all user data from Supabase into localStorage on app start
-export async function loadCloudData(userId) {
+// Load all user data from Supabase into localStorage on app start.
+// force=true is for the explicit "Load from Cloud" button: the user has (per the app's own
+// documented workflow) already manually pushed from the source device first, so this should be
+// an authoritative pull -- no length-based staleness guard. force=false (default) is for
+// automatic/passive loads (e.g. on sign-in) where a background pull might otherwise race a
+// debounced local save and clobber fresher local edits with a stale cloud snapshot.
+export async function loadCloudData(userId, force = false) {
   try {
     // SAFETY: save current local state to backup keys before loading cloud
     // This means we can always recover local data if cloud load goes wrong
@@ -149,12 +154,14 @@ export async function loadCloudData(userId) {
         if (Array.isArray(data[dbCol])) {
           const localRaw = localStorage.getItem(lsKey);
           const localArr = localRaw ? JSON.parse(localRaw) : [];
-          // Use cloud data only if it actually has MORE items than local, or local is empty.
-          // (Previously this only checked cloud.length > 0, which is true almost always once
-          // there's any inventory at all — so a stale cloud snapshot would silently overwrite
-          // newer local changes, e.g. right after scanning a new item, before the debounced
-          // save to Supabase had a chance to run.)
-          if (data[dbCol].length > localArr.length || localArr.length === 0) {
+          // Use cloud data if forced (explicit manual pull), or if cloud actually has MORE
+          // items than local, or local is empty. The length check alone is a poor staleness
+          // signal once both sides are fully populated -- e.g. meal_plan is always exactly
+          // 7 entries on every device, so cloud.length > local.length (7 > 7) is never true
+          // and an unforced load silently does nothing for it. That's fine for passive
+          // background loads (where under-triggering is the safer failure mode), but it
+          // defeated the whole point of the manual "Load from Cloud" button.
+          if (force || data[dbCol].length > localArr.length || localArr.length === 0) {
             // For family_profiles: preserve Medical+ fields from local if cloud record lacks them
             if (dbCol === 'family_profiles' && localArr.length > 0) {
               const MEDICAL_FIELDS = ['medications','supplements','medicalPlan','medicalAllergies',
