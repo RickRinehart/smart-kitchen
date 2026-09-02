@@ -284,6 +284,15 @@ const suggestBulkCups=(itemName,weightLb)=>{
 };
 // Fixed volume-unit conversion ratios — always exact, no density involved.
 const BULK_UNIT_TO_CUPS={cup:1,tbsp:1/16,tsp:1/48,floz:1/8};
+// Weight-unit conversion ratios (relative to oz) — for bulk items tracked by weight (cheese, deli
+// meat, ham, etc.) rather than volume. Kept as a separate table from BULK_UNIT_TO_CUPS since mixing
+// mass and volume units in one conversion table would silently produce wrong numbers.
+const WEIGHT_UNIT_TO_OZ={oz:1,lb:16,g:0.035274,kg:35.274};
+const convertWeightUnits=(amount,fromUnit,toUnit)=>{
+  if(fromUnit===toUnit) return amount;
+  const inOz=amount*(WEIGHT_UNIT_TO_OZ[fromUnit]||1);
+  return inOz/(WEIGHT_UNIT_TO_OZ[toUnit]||1);
+};
 const convertBulkUnits=(amount,fromUnit,toUnit)=>{
   if(fromUnit===toUnit) return amount;
   const inCups=amount*(BULK_UNIT_TO_CUPS[fromUnit]||1);
@@ -295,6 +304,7 @@ const convertBulkUnits=(amount,fromUnit,toUnit)=>{
 // can fall back to the recipe's stated amount instead of guessing.
 const gramsToBulkUnit=(grams,itemName,bulkUnit)=>{
   if(bulkUnit==="floz") return null; // liquids: scale weight isn't a reliable stand-in for fl oz without density too
+  if(WEIGHT_UNIT_TO_OZ[bulkUnit]) return convertWeightUnits(grams/28.3495,"oz",bulkUnit); // direct mass conversion, no density needed
   const lb=grams/453.592;
   const cups=suggestBulkCups(itemName,lb);
   if(cups===null) return null;
@@ -2861,14 +2871,44 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
         }
         const paid=parsePrice(si.price);
         const today=new Date().toISOString();
+        // Bulk-item tracking: only acted on if the user toggled "Track as Bulk Item" during
+        // review AND entered a total-units value for the package just purchased.
+        const purchasedBulkUnits=si.isBulkItem?(parseFloat(si.bulkTotalUnitsInput)||0):0;
         if(idx>=0){
           const prevHist=u[idx].priceHistory||[];
           const newHist=paid?[...prevHist,{price:paid,date:today}]:prevHist;
-          u[idx]={...u[idx],name:si.name||u[idx].name,qty:si.qty,unit:si.unit,location:si.location,upc:si.upc||u[idx].upc||null,brand:si.brand||u[idx].brand||null,size:si.size||u[idx].size||null,nutrition:Object.keys(si.nutrition||{}).length?si.nutrition:u[idx].nutrition||{},image_url:si.image_url||u[idx].image_url||null,upc_enriched:si.upc_enriched||u[idx].upc_enriched||false,priceHistory:newHist,avgUnitPrice:avgOf(newHist)||u[idx].avgUnitPrice||null,purchaseCount:newHist.length,lastPrice:paid||u[idx].lastPrice||null};
+          let bulkFields={};
+          if(purchasedBulkUnits>0){
+            // Restock: add this package's units to whatever's already tracked (0 if this item
+            // wasn't bulk-tracked before now) rather than overwriting -- buying more of a
+            // staple replenishes it, it doesn't reset it to a single fresh package's amount.
+            const priorTotal=u[idx].isBulkItem?(u[idx].bulkTotalUnits||0):0;
+            const priorRemaining=u[idx].isBulkItem?(u[idx].bulkQtyRemaining||0):0;
+            bulkFields={
+              isBulkItem:true,
+              bulkUnit:si.bulkUnit||u[idx].bulkUnit||"oz",
+              bulkTotalUnits:+(priorTotal+purchasedBulkUnits).toFixed(2),
+              bulkQtyRemaining:+(priorRemaining+purchasedBulkUnits).toFixed(2),
+              bulkLowStockPct:u[idx].bulkLowStockPct||20,
+              bulkCostPerUnit:paid?+(paid/purchasedBulkUnits).toFixed(4):(u[idx].bulkCostPerUnit||0),
+            };
+          }
+          u[idx]={...u[idx],name:si.name||u[idx].name,qty:si.qty,unit:si.unit,location:si.location,upc:si.upc||u[idx].upc||null,brand:si.brand||u[idx].brand||null,size:si.size||u[idx].size||null,nutrition:Object.keys(si.nutrition||{}).length?si.nutrition:u[idx].nutrition||{},image_url:si.image_url||u[idx].image_url||null,upc_enriched:si.upc_enriched||u[idx].upc_enriched||false,priceHistory:newHist,avgUnitPrice:avgOf(newHist)||u[idx].avgUnitPrice||null,purchaseCount:newHist.length,lastPrice:paid||u[idx].lastPrice||null,...bulkFields};
         }
         else{
           const hist=paid?[{price:paid,date:today}]:[];
-          u.push({id:Date.now()+Math.random(),name:si.brand&&si.size?`${si.brand} ${si.name} ${si.size}`.trim():si.name,qty:si.qty,unit:si.unit,category:si.category,location:si.location,isProtein:!!si.isProtein,price:si.price||null,priceHistory:hist,avgUnitPrice:avgOf(hist),purchaseCount:hist.length,lastPrice:paid,expiryDays:si.expiryDays||null,upc:si.upc||null,brand:si.brand||null,size:si.size||null,nutrition:si.nutrition||{},image_url:si.image_url||null,upc_enriched:!!si.upc_enriched});
+          let bulkFields={};
+          if(purchasedBulkUnits>0){
+            bulkFields={
+              isBulkItem:true,
+              bulkUnit:si.bulkUnit||"oz",
+              bulkTotalUnits:+purchasedBulkUnits.toFixed(2),
+              bulkQtyRemaining:+purchasedBulkUnits.toFixed(2),
+              bulkLowStockPct:20,
+              bulkCostPerUnit:paid?+(paid/purchasedBulkUnits).toFixed(4):0,
+            };
+          }
+          u.push({id:Date.now()+Math.random(),name:si.brand&&si.size?`${si.brand} ${si.name} ${si.size}`.trim():si.name,qty:si.qty,unit:si.unit,category:si.category,location:si.location,isProtein:!!si.isProtein,price:si.price||null,priceHistory:hist,avgUnitPrice:avgOf(hist),purchaseCount:hist.length,lastPrice:paid,expiryDays:si.expiryDays||null,upc:si.upc||null,brand:si.brand||null,size:si.size||null,nutrition:si.nutrition||{},image_url:si.image_url||null,upc_enriched:!!si.upc_enriched,...bulkFields});
         }
       });
       return u;
@@ -3894,7 +3934,38 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
   };
 
   const getRecipeUrl=(meal)=>{const q=encodeURIComponent(meal+" recipe");const sites={google:"https://www.google.com/search?q=",allrecipes:"https://www.allrecipes.com/search?q=",pinterest:"https://www.pinterest.com/search/pins/?q=",foodnetwork:"https://www.foodnetwork.com/search/"+encodeURIComponent(meal)};if(recipeSite==="foodnetwork")return sites.foodnetwork;return(sites[recipeSite]||sites.google)+q;};
-  const madeMeal=(day)=>{if(!day)return;setMadeItDay(day);setMadeItSides([]);setMadeItSideInput("");setMadeItSubs({});setShowMadeItModal(true);};  const confirmMadeIt=(day,sides,subs)=>{if(!day)return;try{const h=JSON.parse(localStorage.getItem("sk_madeItHistory")||"[]");h.push({meal:day.meal,protein:day.proteinUsed||null,day:day.day,sides:sides||[],substitutions:subs||{},isLeftover:day.isLeftover||false,isBusyNight:day.busyNight||false,ts:Date.now()});localStorage.setItem("sk_madeItHistory",JSON.stringify(h.slice(-100)));}catch{}setInventory(prev=>prev.map(item=>{const nameLower=item.name.toLowerCase();if(day.proteinUsed&&nameLower.includes(day.proteinUsed.toLowerCase())&&item.isBulkProtein)return{...item,qty:Math.max(0,item.qty-1)};if((day.sauteBagsUsed||0)>0&&item.vegType==="sauteBlend")return{...item,qty:Math.max(0,item.qty-(day.sauteBagsUsed||0))};if(sides&&sides.some(s=>nameLower.includes(s.toLowerCase())))return{...item,qty:Math.max(0,item.qty-1)};if(subs){const subVals=Object.values(subs).map(v=>v.toLowerCase());if(subVals.some(v=>nameLower.includes(v)))return{...item,qty:Math.max(0,item.qty-1)};}return item;}));if(user?.id&&day.meal){const activeP=familyProfiles.find(p=>p.guidedPlateMode)||familyProfiles[0];logNutrition({memberName:activeP?.name||null,itemName:day.meal+(sides&&sides.length>0?" with "+sides.join(", "):""),weightG:null,calories:null,protein_g:null,carbs_g:null,fat_g:null,sat_fat_g:null,sugar_g:null,fiber_g:null,sodium_mg:null,wwPoints:null,source:"made_it",sessionId:Date.now().toString()});}setShowMadeItModal(false);setMadeItDay(null);};
+  const madeMeal=(day)=>{if(!day)return;setMadeItDay(day);setMadeItSides([]);setMadeItSideInput("");setMadeItSubs({});setShowMadeItModal(true);};
+  const confirmMadeIt=(day,sides,subs)=>{
+    if(!day)return;
+    try{
+      const h=JSON.parse(localStorage.getItem("sk_madeItHistory")||"[]");
+      h.push({meal:day.meal,protein:day.proteinUsed||null,day:day.day,sides:sides||[],substitutions:subs||{},isLeftover:day.isLeftover||false,isBusyNight:day.busyNight||false,ts:Date.now()});
+      localStorage.setItem("sk_madeItHistory",JSON.stringify(h.slice(-100)));
+    }catch{}
+    // If the full recipe (with real {name,qty,unit} ingredients) was viewed for this exact meal,
+    // run the same bulk-quantity-aware deduction used by "Cook This" on Family Recipes/Desserts --
+    // converts each ingredient's actual amount into the tracked bulk unit instead of just flatly
+    // decrementing by 1 whole unit regardless of how much the recipe really called for.
+    const hasStructuredRecipe=activeRecipe&&activeRecipe.name&&day.meal&&activeRecipe.name.trim().toLowerCase()===day.meal.trim().toLowerCase()&&Array.isArray(activeRecipe.ingredients)&&activeRecipe.ingredients.some(ing=>typeof ing==="object");
+    if(hasStructuredRecipe) deductInventoryForRecipe(activeRecipe,activeRecipeServings);
+    setInventory(prev=>prev.map(item=>{
+      // Bulk items are only ever deducted via the precise recipe-ingredient path above --
+      // skip them here so a manually-typed side/substitution matching a bulk item's name
+      // doesn't ALSO trigger a flat -1 on top of the accurate deduction.
+      if(item.isBulkItem) return item;
+      const nameLower=item.name.toLowerCase();
+      if(day.proteinUsed&&nameLower.includes(day.proteinUsed.toLowerCase())&&item.isBulkProtein)return{...item,qty:Math.max(0,item.qty-1)};
+      if((day.sauteBagsUsed||0)>0&&item.vegType==="sauteBlend")return{...item,qty:Math.max(0,item.qty-(day.sauteBagsUsed||0))};
+      if(sides&&sides.some(s=>nameLower.includes(s.toLowerCase())))return{...item,qty:Math.max(0,item.qty-1)};
+      if(subs){const subVals=Object.values(subs).map(v=>v.toLowerCase());if(subVals.some(v=>nameLower.includes(v)))return{...item,qty:Math.max(0,item.qty-1)};}
+      return item;
+    }));
+    if(user?.id&&day.meal){
+      const activeP=familyProfiles.find(p=>p.guidedPlateMode)||familyProfiles[0];
+      logNutrition({memberName:activeP?.name||null,itemName:day.meal+(sides&&sides.length>0?" with "+sides.join(", "):""),weightG:null,calories:null,protein_g:null,carbs_g:null,fat_g:null,sat_fat_g:null,sugar_g:null,fiber_g:null,sodium_mg:null,wwPoints:null,source:"made_it",sessionId:Date.now().toString()});
+    }
+    setShowMadeItModal(false);setMadeItDay(null);
+  };
   const completeWizard=(includePantry=false,openScan=false)=>{
     if(openScan){try{localStorage.setItem("sk_setupDone","1");}catch{} setShowWizard(false);setTimeout(()=>setScanOpen(true),300);return;}
     const proteins=wizardProteins.map((p,i)=>({id:900+i,name:p.name,qty:parseInt(p.qty)||0,unit:"portions",category:"Protein",location:"Freezer",isBulkProtein:true,portionOz:parseInt(p.oz)||6}));
@@ -4012,6 +4083,9 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
           if(usedInBulkUnit==null&&match.unit&&BULK_UNIT_TO_CUPS[match.unit]&&BULK_UNIT_TO_CUPS[i.bulkUnit]){
             usedInBulkUnit=convertBulkUnits((match.qty||0)*scale,match.unit,i.bulkUnit);
           }
+          if(usedInBulkUnit==null&&match.unit&&WEIGHT_UNIT_TO_OZ[match.unit]&&WEIGHT_UNIT_TO_OZ[i.bulkUnit]){
+            usedInBulkUnit=convertWeightUnits((match.qty||0)*scale,match.unit,i.bulkUnit);
+          }
           if(usedInBulkUnit!=null){
             const newRemaining=Math.max(0,+(i.bulkQtyRemaining-usedInBulkUnit).toFixed(2));
             const prevPct=i.bulkTotalUnits?(i.bulkQtyRemaining/i.bulkTotalUnits*100):100;
@@ -4109,10 +4183,14 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       // suggest from package weight via the density table (always in cups, converted to bulkUnit).
       // Fl oz (liquids) skip density entirely — user enters the container's total fl oz directly.
       let totalUnits=parseFloat(newItem.bulkPackageCupsOverride)||0;
-      if(!totalUnits&&newItem.bulkUnit!=="floz"&&newItem.bulkPackageWeight){
+      if(!totalUnits&&newItem.bulkPackageWeight){
         const weightLb=newItem.bulkPackageWeightUnit==="oz"?parseFloat(newItem.bulkPackageWeight)/16:parseFloat(newItem.bulkPackageWeight);
-        const cupsSuggested=suggestBulkCups(newItem.name,weightLb);
-        if(cupsSuggested) totalUnits=convertBulkUnits(cupsSuggested,"cup",newItem.bulkUnit);
+        if(WEIGHT_UNIT_TO_OZ[newItem.bulkUnit]){
+          totalUnits=convertWeightUnits(weightLb,"lb",newItem.bulkUnit);
+        }else if(newItem.bulkUnit!=="floz"){
+          const cupsSuggested=suggestBulkCups(newItem.name,weightLb);
+          if(cupsSuggested) totalUnits=convertBulkUnits(cupsSuggested,"cup",newItem.bulkUnit);
+        }
       }
       const startPct=newItem.bulkTrackingMode==="estimate"?(parseFloat(newItem.bulkEstimatePct)||100):100;
       item.bulkTotalUnits=+totalUnits.toFixed(2);
@@ -4775,18 +4853,21 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                   </button>
                   {!newItem.isBulkItem&&<span style={{fontSize:10,color:C.dim,marginLeft:8}}>For staples like flour, sugar, rice, seasonings, cooking oil — tracks precise amount remaining as recipes use it</span>}
                   {newItem.isBulkItem&&(()=>{
-                    const isVolume=newItem.bulkUnit!=="floz";
+                    const isVolume=["cup","tbsp","tsp"].includes(newItem.bulkUnit);
+                    const isWeight=WEIGHT_UNIT_TO_OZ[newItem.bulkUnit];
                     const weightLb=newItem.bulkPackageWeightUnit==="oz"?parseFloat(newItem.bulkPackageWeight||0)/16:parseFloat(newItem.bulkPackageWeight||0);
                     const suggested=isVolume?suggestBulkCups(newItem.name,weightLb):null;
-                    const suggestedInUnit=suggested?convertBulkUnits(suggested,"cup",newItem.bulkUnit):null;
+                    const suggestedInUnit=isVolume?(suggested?convertBulkUnits(suggested,"cup",newItem.bulkUnit):null)
+                      :isWeight?(weightLb?convertWeightUnits(weightLb,"lb",newItem.bulkUnit):null)
+                      :null;
                     return (<div style={{background:"#f59e0b0d",border:"1px solid #f59e0b33",borderRadius:10,padding:12,marginTop:8}}>
                       <div style={{display:"flex",gap:6,alignItems:"center",marginBottom:8,flexWrap:"wrap"}}>
                         <span style={{fontFamily:FM,fontSize:11,color:C.muted}}>Track in:</span>
-                        {[["cup","Cups"],["tbsp","Tbsp"],["tsp","Tsp"],["floz","Fl Oz (liquids)"]].map(([u,label])=>(
+                        {[["cup","Cups"],["tbsp","Tbsp"],["tsp","Tsp"],["floz","Fl Oz (liquids)"],["oz","Oz (weight)"],["lb","Lb (weight)"]].map(([u,label])=>(
                           <button key={u} onClick={()=>setNewItem(p=>({...p,bulkUnit:u}))} style={{padding:"3px 10px",borderRadius:16,border:"1px solid "+(newItem.bulkUnit===u?"#f59e0b":C.border),background:newItem.bulkUnit===u?"#f59e0b22":"transparent",color:newItem.bulkUnit===u?"#f59e0b":C.muted,fontFamily:FM,fontSize:10,cursor:"pointer"}}>{label}</button>
                         ))}
                       </div>
-                      {isVolume?(<div style={{display:"flex",gap:6,alignItems:"end",flexWrap:"wrap",marginBottom:8}}>
+                      {(isVolume||isWeight)?(<div style={{display:"flex",gap:6,alignItems:"end",flexWrap:"wrap",marginBottom:8}}>
                         <div><Label>Package Weight</Label><input style={{...bInp,width:80}} type="number" placeholder="10" value={newItem.bulkPackageWeight} onChange={e=>setNewItem(p=>({...p,bulkPackageWeight:e.target.value}))}/></div>
                         <div style={{display:"flex",gap:4}}>
                           {["lb","oz"].map(u=>(<button key={u} onClick={()=>setNewItem(p=>({...p,bulkPackageWeightUnit:u}))} style={{padding:"6px 10px",borderRadius:6,border:"1px solid "+(newItem.bulkPackageWeightUnit===u?"#f59e0b":C.border),background:newItem.bulkPackageWeightUnit===u?"#f59e0b22":"transparent",color:newItem.bulkPackageWeightUnit===u?"#f59e0b":C.muted,fontFamily:FM,fontSize:11,cursor:"pointer"}}>{u}</button>))}
@@ -4795,7 +4876,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                       </div>):(
                         <div style={{marginBottom:8}}><Label>{"Total fl oz in container"}</Label><input style={{...bInp,width:100}} type="number" placeholder="e.g. 128" value={newItem.bulkPackageCupsOverride} onChange={e=>setNewItem(p=>({...p,bulkPackageCupsOverride:e.target.value}))}/></div>
                       )}
-                      {suggestedInUnit&&!newItem.bulkPackageCupsOverride&&<div style={{fontSize:10,color:"#f59e0b",marginBottom:8}}>Suggested from typical density — check the field above if it looks off for your specific product, then confirm.</div>}
+                      {suggestedInUnit&&!newItem.bulkPackageCupsOverride&&<div style={{fontSize:10,color:"#f59e0b",marginBottom:8}}>{isWeight?"Calculated directly from package weight — adjust if it looks off.":"Suggested from typical density — check the field above if it looks off for your specific product, then confirm."}</div>}
                       <div style={{display:"flex",gap:6,alignItems:"center",marginBottom:8,flexWrap:"wrap"}}>
                         <span style={{fontFamily:FM,fontSize:11,color:C.muted}}>Mode:</span>
                         {[["measured","Measured — deduct exact amounts"],["estimate","Estimate — I'll adjust % myself"]].map(([m,label])=>(
@@ -6482,6 +6563,22 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                           <div><div style={{fontSize:9,color:C.muted,fontFamily:FM,marginBottom:3}}>UNIT</div><input value={item.unit} onChange={e=>setScanResults(p=>p.map((si,sii)=>sii===i?{...si,unit:e.target.value}:si))} style={{...bInp,padding:"5px 8px",fontSize:12}}/></div>
                           <div><div style={{fontSize:9,color:C.muted,fontFamily:FM,marginBottom:3}}>LOCATION</div><select value={item.location||"Pantry"} onChange={e=>setScanResults(p=>p.map((si,sii)=>sii===i?{...si,location:e.target.value}:si))} style={{...bInp,padding:"5px 8px",fontSize:12}}><option>Pantry</option><option>Fridge</option><option>Freezer</option></select></div>
                           <div><div style={{fontSize:9,color:C.muted,fontFamily:FM,marginBottom:3}}>CATEGORY</div><select value={item.category||"Pantry"} onChange={e=>setScanResults(p=>p.map((si,sii)=>sii===i?{...si,category:e.target.value}:si))} style={{...bInp,padding:"5px 8px",fontSize:12}}><option>Protein</option><option>Produce</option><option>Dairy</option><option>Pantry</option><option>Frozen</option><option>Grains</option><option>Condiments</option></select></div>
+                          <div style={{gridColumn:"1 / -1"}}>
+                            <button onClick={()=>setScanResults(p=>p.map((si,sii)=>sii===i?{...si,isBulkItem:!si.isBulkItem,bulkUnit:si.bulkUnit||"oz"}:si))} style={{display:"flex",alignItems:"center",gap:6,padding:"4px 10px",borderRadius:16,border:"1px solid "+(item.isBulkItem?"#f59e0b":C.border),background:item.isBulkItem?"#f59e0b22":"transparent",color:item.isBulkItem?"#f59e0b":C.muted,fontFamily:FM,fontSize:10,fontWeight:600,cursor:"pointer"}}>
+                              🪣 Track as Bulk Item{item.isBulkItem?" ✓":""}
+                            </button>
+                            {!item.isBulkItem&&<span style={{fontSize:9,color:C.dim,marginLeft:8}}>For staples like cheese, deli meat, flour, rice — tracks precise amount remaining as recipes use it</span>}
+                            {item.isBulkItem&&(
+                              <div style={{display:"flex",gap:6,alignItems:"end",flexWrap:"wrap",marginTop:6}}>
+                                <div style={{display:"flex",gap:4}}>
+                                  {[["oz","Oz"],["lb","Lb"],["cup","Cup"],["tbsp","Tbsp"],["tsp","Tsp"],["floz","Fl Oz"]].map(([u,label])=>(
+                                    <button key={u} onClick={()=>setScanResults(p=>p.map((si,sii)=>sii===i?{...si,bulkUnit:u}:si))} style={{padding:"3px 8px",borderRadius:14,border:"1px solid "+(item.bulkUnit===u?"#f59e0b":C.border),background:item.bulkUnit===u?"#f59e0b22":"transparent",color:item.bulkUnit===u?"#f59e0b":C.muted,fontFamily:FM,fontSize:9,cursor:"pointer"}}>{label}</button>
+                                  ))}
+                                </div>
+                                <div><div style={{fontSize:9,color:C.muted,fontFamily:FM,marginBottom:3}}>{"Total "+(item.bulkUnit||"oz")+"s in this package"}</div><input type="number" placeholder="e.g. 16" value={item.bulkTotalUnitsInput||""} onChange={e=>setScanResults(p=>p.map((si,sii)=>sii===i?{...si,bulkTotalUnitsInput:e.target.value}:si))} style={{...bInp,padding:"5px 8px",fontSize:12,width:90}}/></div>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       )}
                     </div>
