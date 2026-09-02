@@ -4219,7 +4219,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
 }}>Save to Cloud Now</button>}
 {!isViewer&&<button style={{...bBtn("ghost"),width:"100%",border:"1px solid #1A2344",color:"#1A2344",marginBottom:8}} onClick={async()=>{
   if(!user){showAlert("Sign in to use cloud sync.");return;}
-  const ok=await import("./supabaseClient").then(m=>m.loadCloudData(user.id));
+  const ok=await import("./supabaseClient").then(m=>m.loadCloudData(user.id,true));
   if(ok){window.dispatchEvent(new Event("sk_cloud_loaded"));showAlert("Data loaded from cloud ✓");}
   else showAlert("Load failed — check connection");
 }}>Load from Cloud</button>}
