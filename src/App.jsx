@@ -367,12 +367,7 @@ const matchSaleItemToInventoryItem=(saleItemName,inventoryItemName)=>{
   // short inventory name like "Bacon" matching inside a longer branded ad name like "Oscar
   // Mayer Bacon") while ruling out matches on unrelated words that just share letters.
   const words=str=>str.replace(/[^a-z0-9\s]/g," ").split(/\s+/).filter(Boolean);
-  // Tolerate simple plural/singular mismatches ("Breast" vs "Breasts", "Cracker" vs "Crackers")
-  // -- grocery names never consistently agree on singular vs plural, and without this, an exact
-  // word match would wrongly reject "Chicken Breast" against an ad for "Chicken Breasts".
-  // Skips short words to avoid over-stripping (e.g. doesn't turn "gas" into "ga").
-  const norm=w=>w.length>3&&w.endsWith("s")?w.slice(0,-1):w;
-  const sWords=words(s).map(norm),invWords=words(inv).map(norm);
+  const sWords=words(s),invWords=words(inv);
   if(!sWords.length||!invWords.length) return false;
   const shorter=sWords.length<=invWords.length?sWords:invWords;
   const longer=sWords.length<=invWords.length?invWords:sWords;
@@ -429,8 +424,11 @@ const parsePartnerAdQuantity=(text)=>{
   if(!text) return null;
   const t=text.toLowerCase().trim();
   let m;
-  if((m=t.match(/^(\d+(?:\.\d+)?)\s*lb/))) return {qty:parseFloat(m[1]),family:"lb"};
-  if((m=t.match(/^(\d+(?:\.\d+)?)\s*oz/))) return {qty:parseFloat(m[1])/16,family:"lb"};
+  // Not anchored to the start -- ad unit sizes come in many forms ("10 lb", "10 lb. bag",
+  // "each (10 lb. bag)"), and requiring the number to be the very first token silently missed
+  // anything phrased differently, e.g. a bulk pack described as "each (10 lb. bag)".
+  if((m=t.match(/(\d+(?:\.\d+)?)\s*lb/))) return {qty:parseFloat(m[1]),family:"lb"};
+  if((m=t.match(/(\d+(?:\.\d+)?)\s*oz/))) return {qty:parseFloat(m[1])/16,family:"lb"};
   if(/^lb\.?s?$/.test(t)) return {qty:1,family:"lb"};
   if(/^oz\.?$/.test(t)) return {qty:1/16,family:"lb"};
   if(/^each$|^ea\.?$/.test(t)) return {qty:1,family:"each"};
@@ -474,6 +472,13 @@ const fetchPartnerAdMatches=async(currentInventory,userId,deepDiscountThresholdP
       const avg=inv.avgUnitPrice??null;
       const priceDelta=(comparableAdPrice!=null&&avg!=null)?+(avg-comparableAdPrice).toFixed(2):null;
 
+      // True per-pound cost of the ad's own pack size, independent of the person's inventory
+      // unit -- so a bulk special's real cost ($16.99 for a 10 lb bag = $1.70/lb) is visible
+      // without having to notice or remember the pack size printed on the ad itself.
+      const adQtyParsed=parsePartnerAdQuantity(ad.unit_size);
+      const perLbPrice=(adQtyParsed&&adQtyParsed.family==="lb"&&adQtyParsed.qty>1)
+        ?+(rawAdPrice/adQtyParsed.qty).toFixed(2):null;
+
       let deepDiscountPct=null;
       if(ad.compare_at_price&&(ad.regular_price||rawAdPrice)){
         const basis=ad.regular_price??rawAdPrice;
@@ -490,6 +495,8 @@ const fetchPartnerAdMatches=async(currentInventory,userId,deepDiscountThresholdP
         storeName:ad.partner_stores?.name||null,
         inventoryModel:ad.partner_stores?.inventory_model||null,
         rawAdPrice,
+        unitSize:ad.unit_size||null,
+        perLbPrice,
         comparableAdPrice:needsUnitNormalization?null:(comparableAdPrice??rawAdPrice),
         needsUnitNormalization,
         avgUnitPrice:avg,
@@ -5564,7 +5571,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
         <div style={{fontFamily:FM,fontSize:10,color:"#f59e0b",letterSpacing:0.4,marginBottom:4,fontWeight:700}}>⚡ DEEP DISCOUNT — {deepDiscounts.length} ITEM{deepDiscounts.length!==1?"S":""}{deepDiscounts.some(m=>m.inventoryModel==="closeout_limited")?" · LIMITED QUANTITIES":""}</div>
         {(expandedShopSaleSection==="deep"?deepDiscounts:deepDiscounts.slice(0,6)).map((m,i)=>{
           const isAssigned=shopping.some(si=>wordsOverlap(m.inventoryItemName,si.name)&&si.assignedStore===m.storeName);
-          return (<div key={i} onClick={()=>assignSaleMatchToShopping(m)} style={{fontSize:11,color:"#d1d5db",fontFamily:FM,padding:"3px 0",cursor:"pointer"}}>{isAssigned?"✓":"•"} <strong style={{color:"#fff"}}>{m.inventoryItemName}</strong> at {m.storeName} — {m.deepDiscountPct}% off{m.inventoryModel==="closeout_limited"&&<span style={{color:"#f59e0b"}}> (limited quantities)</span>}</div>);
+          return (<div key={i} onClick={()=>assignSaleMatchToShopping(m)} style={{fontSize:11,color:"#d1d5db",fontFamily:FM,padding:"3px 0",cursor:"pointer"}}>{isAssigned?"✓":"•"} <strong style={{color:"#fff"}}>{m.inventoryItemName}</strong> at {m.storeName} — {m.deepDiscountPct}% off{m.inventoryModel==="closeout_limited"&&<span style={{color:"#f59e0b"}}> (limited quantities)</span>}{m.perLbPrice&&<span style={{color:"#f59e0b"}}> · ${m.rawAdPrice.toFixed(2)}{m.unitSize?" ("+m.unitSize+")":""} ≈ ${m.perLbPrice.toFixed(2)}/lb</span>}</div>);
         })}
         {deepDiscounts.length>6&&<button onClick={()=>setExpandedShopSaleSection(expandedShopSaleSection==="deep"?null:"deep")} style={{background:"transparent",border:"none",color:"#14b8a6",fontFamily:FM,fontSize:11,cursor:"pointer",padding:"4px 0",fontWeight:600}}>{expandedShopSaleSection==="deep"?"▲ Show less":"▼ Show all "+deepDiscounts.length}</button>}
       </div>
@@ -5574,7 +5581,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
         <div style={{fontFamily:FM,fontSize:10,color:"#22c55e",letterSpacing:0.4,marginBottom:4,fontWeight:700}}>💰 BELOW YOUR USUAL PRICE — {belowAverage.length} ITEM{belowAverage.length!==1?"S":""}</div>
         {(expandedShopSaleSection==="below"?belowAverage:belowAverage.slice(0,6)).map((m,i)=>{
           const isAssigned=shopping.some(si=>wordsOverlap(m.inventoryItemName,si.name)&&si.assignedStore===m.storeName);
-          return (<div key={i} onClick={()=>assignSaleMatchToShopping(m)} style={{fontSize:11,color:"#d1d5db",fontFamily:FM,padding:"3px 0",cursor:"pointer"}}>{isAssigned?"✓":"•"} <strong style={{color:"#fff"}}>{m.inventoryItemName}</strong> at {m.storeName} — ${m.comparableAdPrice?.toFixed(2)} vs. your usual ${m.avgUnitPrice?.toFixed(2)} (save ${m.priceDelta.toFixed(2)})</div>);
+          return (<div key={i} onClick={()=>assignSaleMatchToShopping(m)} style={{fontSize:11,color:"#d1d5db",fontFamily:FM,padding:"3px 0",cursor:"pointer"}}>{isAssigned?"✓":"•"} <strong style={{color:"#fff"}}>{m.inventoryItemName}</strong> at {m.storeName} — ${m.comparableAdPrice?.toFixed(2)} vs. your usual ${m.avgUnitPrice?.toFixed(2)} (save ${m.priceDelta.toFixed(2)}){m.perLbPrice&&<span style={{color:"#22c55e"}}> · {m.unitSize?"("+m.unitSize+") ":""}≈ ${m.perLbPrice.toFixed(2)}/lb</span>}</div>);
         })}
         {belowAverage.length>6&&<button onClick={()=>setExpandedShopSaleSection(expandedShopSaleSection==="below"?null:"below")} style={{background:"transparent",border:"none",color:"#14b8a6",fontFamily:FM,fontSize:11,cursor:"pointer",padding:"4px 0",fontWeight:600}}>{expandedShopSaleSection==="below"?"▲ Show less":"▼ Show all "+belowAverage.length}</button>}
       </div>
@@ -5584,7 +5591,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
         <div style={{fontFamily:FM,fontSize:10,color:"#9ca3af",letterSpacing:0.4,marginBottom:4,fontWeight:700}}>ON SALE — {plainMatches.length} ITEM{plainMatches.length!==1?"S":""}</div>
         {(expandedShopSaleSection==="plain"?plainMatches:plainMatches.slice(0,6)).map((m,i)=>{
           const isAssigned=shopping.some(si=>wordsOverlap(m.inventoryItemName,si.name)&&si.assignedStore===m.storeName);
-          return (<div key={i} onClick={()=>assignSaleMatchToShopping(m)} style={{fontSize:11,color:"#d1d5db",fontFamily:FM,padding:"3px 0",cursor:"pointer"}}>{isAssigned?"✓":"•"} <strong style={{color:"#fff"}}>{m.inventoryItemName}</strong> at {m.storeName}{m.rawAdPrice?" — $"+m.rawAdPrice.toFixed(2):""}</div>);
+          return (<div key={i} onClick={()=>assignSaleMatchToShopping(m)} style={{fontSize:11,color:"#d1d5db",fontFamily:FM,padding:"3px 0",cursor:"pointer"}}>{isAssigned?"✓":"•"} <strong style={{color:"#fff"}}>{m.inventoryItemName}</strong> at {m.storeName}{m.rawAdPrice?" — $"+m.rawAdPrice.toFixed(2):""}{m.perLbPrice&&<span style={{color:"#14b8a6"}}> {m.unitSize?"("+m.unitSize+") ":""}≈ ${m.perLbPrice.toFixed(2)}/lb</span>}</div>);
         })}
         {plainMatches.length>6&&<button onClick={()=>setExpandedShopSaleSection(expandedShopSaleSection==="plain"?null:"plain")} style={{background:"transparent",border:"none",color:"#14b8a6",fontFamily:FM,fontSize:11,cursor:"pointer",padding:"4px 0",fontWeight:600}}>{expandedShopSaleSection==="plain"?"▲ Show less":"▼ Show all "+plainMatches.length}</button>}
       </div>
