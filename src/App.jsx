@@ -6428,7 +6428,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
             <div style={{fontSize:13,color:C.muted,lineHeight:1.6,marginBottom:16}}>This empties the whole list — it won’t touch inventory. Do this after your shopping trip, then scan your receipt or shelf to update what you actually bought.</div>
             <div style={{display:"flex",gap:8}}>
               <button style={{...bBtn("ghost"),flex:1}} onClick={()=>setConfirmClearList(false)}>Cancel</button>
-              <button style={{...bBtn("primary"),flex:1}} onClick={()=>{setShopping([]);setConfirmClearList(false);}}>Clear It</button>
+              <button style={{...bBtn("primary"),flex:1}} onClick={()=>{setShopping([]);setConfirmClearList(false);try{localStorage.setItem("sk_shoppingList","[]");}catch{}if(user?.id){import("./supabaseClient").then(m=>m.saveCloudData(user.id)).catch(()=>{});}}}>Clear It</button>
             </div>
           </div>
         </div>
