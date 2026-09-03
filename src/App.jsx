@@ -2018,14 +2018,24 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   useEffect(()=>{
     const fixed=localStorage.getItem("sk_portionFixV2");
     setInventory(prev=>{
-      const skipUnits=["lb","oz","g","kg","can","jar","bottle","stick","bunch","gallon","slice","slices"];
-      const isBulkCandidate=i=>i.category==="Protein"&&!i.isBulkProtein&&(i.location==="Freezer"||!i.location)&&!skipUnits.includes((i.unit||"").toLowerCase())&&(parseFloat(i.qty)||0)<=50;
+      const skipUnits=["g","kg","can","jar","bottle","stick","bunch","gallon","slice","slices"];
+      const isBulkCandidate=i=>i.category==="Protein"&&!i.isBulkProtein&&(i.location==="Freezer"||!i.location)&&!skipUnits.includes((i.unit||"").toLowerCase())&&!["lb","lbs","oz"].includes((i.unit||"").toLowerCase())&&(parseFloat(i.qty)||0)<=50;
+      // Weight-based protein items (lb/oz) need actual conversion, not a direct 1:1 mapping --
+      // previously these were just excluded from portion tracking entirely, so "10 lb Chicken
+      // Leg Quarters" never showed up in the Protein Portions summary at all.
+      const isWeightCandidate=i=>i.category==="Protein"&&!i.isBulkProtein&&["lb","lbs","oz"].includes((i.unit||"").toLowerCase());
       const hasCorrupted=!fixed&&prev.some(i=>i.isBulkProtein&&(parseFloat(i.qty)||0)>50);
-      const needsPromo=prev.some(isBulkCandidate);
+      const needsPromo=prev.some(isBulkCandidate)||prev.some(isWeightCandidate);
       if(!needsPromo&&!hasCorrupted)return prev;
       if(hasCorrupted)localStorage.setItem("sk_portionFixV2","1");
       return prev.map(i=>{
-        if(isBulkCandidate(i))return{...i,isBulkProtein:true,location:"Freezer",portionOz:i.portionOz||6};
+        if(isBulkCandidate(i))return{...i,isBulkProtein:true,location:i.location||"Freezer",portionOz:i.portionOz||6};
+        if(isWeightCandidate(i)){
+          const unit=(i.unit||"").toLowerCase();
+          const totalOz=unit==="oz"?(parseFloat(i.qty)||0):(parseFloat(i.qty)||0)*16;
+          const portions=Math.max(1,Math.round(totalOz/6));
+          return{...i,isBulkProtein:true,qty:portions,portionOz:6,location:i.location||"Freezer"};
+        }
         if(!fixed&&i.isBulkProtein&&(parseFloat(i.qty)||0)>50){const unit=(i.unit||"").toLowerCase();const reasonable=unit.includes("portion")?6:unit.includes("package")?2:unit.includes("count")?4:3;return{...i,qty:reasonable};}
         return i;
       });
@@ -2270,7 +2280,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
 
   // -- Computed values --------------------------------------------------------
   const blendItem=inventory.find(i=>i.vegType==="sauteBlend")||inventory.find(i=>i.name.toLowerCase().includes("saute")&&i.category==="Frozen");
-  const proteinItems=inventory.filter(i=>i.isBulkProtein||(i.harvestType==="Protein"&&(i.category==="Wild Harvest"||i.category==="Home Harvest")));
+  const proteinItems=inventory.filter(i=>(i.isBulkProtein||(i.harvestType==="Protein"&&(i.category==="Wild Harvest"||i.category==="Home Harvest")))&&(parseFloat(i.qty)||0)>0);
   const totalPortions=proteinItems.reduce((a,i)=>a+(parseFloat(i.qty)||0),0);
   const condimentItems=inventory.filter(i=>i.isCondiment);
   const activeProfiles=familyProfiles.filter(p=>p.active);
@@ -3006,7 +3016,17 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
               bulkCostPerUnit:paid?+(paid/purchasedBulkUnits).toFixed(4):0,
             };
           }
-          u.push({id:Date.now()+Math.random(),name:si.brand&&si.size?`${si.brand} ${si.name} ${si.size}`.trim():si.name,qty:si.qty,unit:si.unit,category:si.category,location:si.location,isProtein:!!si.isProtein,price:si.price||null,priceHistory:hist,avgUnitPrice:avgOf(hist),purchaseCount:hist.length,lastPrice:paid,expiryDays:si.expiryDays||null,upc:si.upc||null,brand:si.brand||null,size:si.size||null,nutrition:si.nutrition||{},image_url:si.image_url||null,upc_enriched:!!si.upc_enriched,...bulkFields});
+          // New protein items scanned with a weight unit (lb/oz) get converted straight into
+          // portion-tracking, same as the migration does for existing items -- otherwise a
+          // freshly-scanned "10 lb Chicken Leg Quarters" wouldn't show up in the Protein
+          // Portions summary until the next full reload picks it up via the migration.
+          let proteinBulkFields={};
+          if((si.category||"").toLowerCase()==="protein"&&["lb","lbs","oz"].includes((si.unit||"").toLowerCase())){
+            const unit=(si.unit||"").toLowerCase();
+            const totalOz=unit==="oz"?(parseFloat(si.qty)||0):(parseFloat(si.qty)||0)*16;
+            proteinBulkFields={isBulkProtein:true,portionOz:6,qty:Math.max(1,Math.round(totalOz/6))};
+          }
+          u.push({id:Date.now()+Math.random(),name:si.brand&&si.size?`${si.brand} ${si.name} ${si.size}`.trim():si.name,qty:si.qty,unit:si.unit,category:si.category,location:si.location,isProtein:!!si.isProtein,price:si.price||null,priceHistory:hist,avgUnitPrice:avgOf(hist),purchaseCount:hist.length,lastPrice:paid,expiryDays:si.expiryDays||null,upc:si.upc||null,brand:si.brand||null,size:si.size||null,nutrition:si.nutrition||{},image_url:si.image_url||null,upc_enriched:!!si.upc_enriched,...bulkFields,...proteinBulkFields});
         }
       });
       return u;
