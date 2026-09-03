@@ -2018,24 +2018,19 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   useEffect(()=>{
     const fixed=localStorage.getItem("sk_portionFixV2");
     setInventory(prev=>{
-      const skipUnits=["g","kg","can","jar","bottle","stick","bunch","gallon","slice","slices"];
-      const isBulkCandidate=i=>i.category==="Protein"&&!i.isBulkProtein&&(i.location==="Freezer"||!i.location)&&!skipUnits.includes((i.unit||"").toLowerCase())&&!["lb","lbs","oz"].includes((i.unit||"").toLowerCase())&&(parseFloat(i.qty)||0)<=50;
-      // Weight-based protein items (lb/oz) need actual conversion, not a direct 1:1 mapping --
-      // previously these were just excluded from portion tracking entirely, so "10 lb Chicken
-      // Leg Quarters" never showed up in the Protein Portions summary at all.
-      const isWeightCandidate=i=>i.category==="Protein"&&!i.isBulkProtein&&["lb","lbs","oz"].includes((i.unit||"").toLowerCase());
+      const skipUnits=["lb","lbs","oz","g","kg","can","jar","bottle","stick","bunch","gallon","slice","slices"];
+      const isBulkCandidate=i=>i.category==="Protein"&&!i.isBulkProtein&&(i.location==="Freezer"||!i.location)&&!skipUnits.includes((i.unit||"").toLowerCase())&&(parseFloat(i.qty)||0)<=50;
+      // Weight-unit protein items (lb/oz) are deliberately NOT auto-converted into portions --
+      // a flat "divide by 6oz" assumption is wrong for whole cuts naturally counted by the
+      // piece (a T-bone steak is much bigger than 6oz) and wrong for bulk items still awaiting
+      // repackaging, where the actual portioning decision belongs to that later step, not a
+      // guess made at scan time.
       const hasCorrupted=!fixed&&prev.some(i=>i.isBulkProtein&&(parseFloat(i.qty)||0)>50);
-      const needsPromo=prev.some(isBulkCandidate)||prev.some(isWeightCandidate);
+      const needsPromo=prev.some(isBulkCandidate);
       if(!needsPromo&&!hasCorrupted)return prev;
       if(hasCorrupted)localStorage.setItem("sk_portionFixV2","1");
       return prev.map(i=>{
         if(isBulkCandidate(i))return{...i,isBulkProtein:true,location:i.location||"Freezer",portionOz:i.portionOz||6};
-        if(isWeightCandidate(i)){
-          const unit=(i.unit||"").toLowerCase();
-          const totalOz=unit==="oz"?(parseFloat(i.qty)||0):(parseFloat(i.qty)||0)*16;
-          const portions=Math.max(1,Math.round(totalOz/6));
-          return{...i,isBulkProtein:true,qty:portions,portionOz:6,location:i.location||"Freezer"};
-        }
         if(!fixed&&i.isBulkProtein&&(parseFloat(i.qty)||0)>50){const unit=(i.unit||"").toLowerCase();const reasonable=unit.includes("portion")?6:unit.includes("package")?2:unit.includes("count")?4:3;return{...i,qty:reasonable};}
         return i;
       });
@@ -3016,17 +3011,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
               bulkCostPerUnit:paid?+(paid/purchasedBulkUnits).toFixed(4):0,
             };
           }
-          // New protein items scanned with a weight unit (lb/oz) get converted straight into
-          // portion-tracking, same as the migration does for existing items -- otherwise a
-          // freshly-scanned "10 lb Chicken Leg Quarters" wouldn't show up in the Protein
-          // Portions summary until the next full reload picks it up via the migration.
-          let proteinBulkFields={};
-          if((si.category||"").toLowerCase()==="protein"&&["lb","lbs","oz"].includes((si.unit||"").toLowerCase())){
-            const unit=(si.unit||"").toLowerCase();
-            const totalOz=unit==="oz"?(parseFloat(si.qty)||0):(parseFloat(si.qty)||0)*16;
-            proteinBulkFields={isBulkProtein:true,portionOz:6,qty:Math.max(1,Math.round(totalOz/6))};
-          }
-          u.push({id:Date.now()+Math.random(),name:si.brand&&si.size?`${si.brand} ${si.name} ${si.size}`.trim():si.name,qty:si.qty,unit:si.unit,category:si.category,location:si.location,isProtein:!!si.isProtein,price:si.price||null,priceHistory:hist,avgUnitPrice:avgOf(hist),purchaseCount:hist.length,lastPrice:paid,expiryDays:si.expiryDays||null,upc:si.upc||null,brand:si.brand||null,size:si.size||null,nutrition:si.nutrition||{},image_url:si.image_url||null,upc_enriched:!!si.upc_enriched,...bulkFields,...proteinBulkFields});
+          u.push({id:Date.now()+Math.random(),name:si.brand&&si.size?`${si.brand} ${si.name} ${si.size}`.trim():si.name,qty:si.qty,unit:si.unit,category:si.category,location:si.location,isProtein:!!si.isProtein,price:si.price||null,priceHistory:hist,avgUnitPrice:avgOf(hist),purchaseCount:hist.length,lastPrice:paid,expiryDays:si.expiryDays||null,upc:si.upc||null,brand:si.brand||null,size:si.size||null,nutrition:si.nutrition||{},image_url:si.image_url||null,upc_enriched:!!si.upc_enriched,...bulkFields});
         }
       });
       return u;
