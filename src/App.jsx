@@ -462,6 +462,7 @@ const fetchPartnerAdMatches=async(currentInventory,userId,deepDiscountThresholdP
       if(!matchSaleItemToInventoryItem(ad.item_name,inv.name)) continue;
 
       const rawAdPrice=ad.card_price??ad.regular_price??null;
+      if(rawAdPrice==null) continue; // no usable price -- this match tells the person nothing actionable, and multiple distinct real products with no price all render identically, looking like duplicates
       const comparableAdPrice=normalizePartnerAdPrice(rawAdPrice,ad.unit_size,inv.unit);
       const needsUnitNormalization=rawAdPrice!=null&&comparableAdPrice==null;
 
@@ -497,7 +498,15 @@ const fetchPartnerAdMatches=async(currentInventory,userId,deepDiscountThresholdP
       break; // one match per ad item, same conservative rule as getSaleRecommendations
     }
   }
-  return matches;
+  // Guard against genuine duplicate ad rows (e.g. the same flyer accidentally uploaded twice) --
+  // collapses matches that are identical in store, underlying ad product, and price.
+  const seen=new Set();
+  return matches.filter(m=>{
+    const key=m.storeName+"|"+m.adItemName+"|"+m.rawAdPrice;
+    if(seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 };
 const PROTEIN_TAG_COLOR=(name)=>{
   if(!name) return C.muted;
