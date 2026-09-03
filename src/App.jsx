@@ -5125,11 +5125,41 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                         <span style={bTag(C.blue)}>👨‍👩‍👧 {activeProfiles.length} people</span>
                         {r.cellarItem&&<span style={bTag("#7c3aed")}>🍷 {r.cellarItem}</span>}
                         <span style={{...bTag(C.green),fontSize:seniorMode?14:undefined}}>✅ {(r.usesFromInventory||[]).length} on hand</span>
-                        {liveMissing(r.missingIngredients).length>0&&<span style={{...bTag(C.red),fontSize:seniorMode?14:undefined}}>🛒 {liveMissing(r.missingIngredients).length} needed</span>}
                       </div>
+                      {(()=>{
+                        const hasStructured=Array.isArray(r.ingredients)&&r.ingredients.some(ing=>typeof ing==="object");
+                        const missingList=hasStructured
+                          ?r.ingredients.map(ing=>typeof ing==="object"?{name:ing.name||""}:{name:parseIngredientLine(ing).name}).filter(p=>p.name&&!inventory.some(i=>wordsOverlap(p.name,i.name)&&hasStock(i)))
+                          :liveMissing(r.missingIngredients).map(name=>({name}));
+                        if(missingList.length===0) return null;
+                        return (<div style={{width:"100%",marginBottom:10}}>
+                          <div style={{fontSize:9,color:C.muted,marginBottom:3,fontFamily:FM}}>NEED</div>
+                          {missingList.map((s,j)=><div key={j} style={{fontSize:seniorMode?15:13,color:C.red,marginBottom:2}}>· {s.name}</div>)}
+                        </div>);
+                      })()}
                       <div style={{fontSize:seniorMode?17:11,color:C.accent,fontFamily:FM,fontWeight:seniorMode?700:400}}>TAP FOR FULL RECIPE →</div>
-                      <div style={{marginTop:10,display:"flex",gap:8}}>
+                      <div style={{marginTop:10,display:"flex",gap:8,flexWrap:"wrap"}}>
                       <button onClick={e=>{e.stopPropagation();printRecipeCard(r,mealPhotos[r.name]);}} style={{padding:"8px 12px",borderRadius:8,border:"1px solid "+C.border,background:C.surface,color:C.text,fontSize:12,cursor:"pointer"}}>🖨 Print</button>
+                      {(()=>{
+                        const scale=activeProfiles.length/(r.servings||4);
+                        const hasStructured=Array.isArray(r.ingredients)&&r.ingredients.some(ing=>typeof ing==="object");
+                        let missing;
+                        if(hasStructured){
+                          const parsed=r.ingredients.map(ing=>typeof ing==="object"?{name:ing.name||"",qty:(ing.qty||1)*scale,unit:ing.unit||""}:(p=>({...p,qty:p.qty*scale}))(parseIngredientLine(ing)));
+                          missing=parsed.filter(p=>p.name&&!inventory.some(i=>wordsOverlap(p.name,i.name)&&hasStock(i)));
+                        }else{
+                          missing=liveMissing(r.missingIngredients||[]).map(name=>({name,qty:1,unit:"as needed"}));
+                        }
+                        if(missing.length===0) return null;
+                        return (<button onClick={e=>{
+                          e.stopPropagation();
+                          setShopping(prev=>{
+                            const toAdd=missing.filter(m=>!prev.some(p=>(p.name||"").toLowerCase()===m.name.toLowerCase()));
+                            return [...prev,...toAdd.map(m=>({name:m.name,qty:m.qty||1,unit:m.unit||"",category:"Pantry",checked:false,suggestBulk:false,source:"Recipe: "+r.name}))];
+                          });
+                          showAlert(missing.length+" ingredient"+(missing.length!==1?"s":"")+" added to your shopping list!");
+                        }} style={{padding:"8px 12px",borderRadius:8,border:"1px solid "+C.accent,background:"transparent",color:C.accent,fontFamily:FM,fontSize:12,cursor:"pointer",fontWeight:600}}>🛒 Add Missing ({missing.length})</button>);
+                      })()}
                       <button onClick={e=>{e.stopPropagation();setAddToPlanRecipe(r);setAddToPlanDay("");}} style={{flex:1,padding:"8px",borderRadius:8,border:"1px solid #2aa86e",background:"#2aa86e",color:"#fff",fontFamily:FM,fontSize:12,cursor:"pointer",fontWeight:600}} disabled={isViewer}>📅 Add to Plan</button>
                       <button onClick={e=>{e.stopPropagation();setSwapRecipeModal(r);setSwapRecipeRequest("");}} style={{flex:1,padding:"8px",borderRadius:8,border:"1px solid "+C.border,background:C.surface,color:C.text,fontFamily:FM,fontSize:12,cursor:"pointer"}} disabled={isViewer}>✦ Swap Recipe</button><button onClick={e=>{e.stopPropagation();setPhotoPromptMeal(r.name);}} style={{padding:"8px 12px",borderRadius:8,border:"1px solid "+C.border,background:C.surface,color:C.muted,fontFamily:FM,fontSize:seniorMode?16:12,cursor:"pointer"}} title="Add photo" disabled={isViewer}>📸 {mealPhotos[r.name]?"Change":"Photo"}</button></div>
                     </div>
