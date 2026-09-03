@@ -1999,8 +1999,11 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [rpActualBags,setRpActualBags]=useState("");
   const [rpMode,setRpMode]=useState("protein");
   const [rpPName,setRpPName]=useState("");
+  const [rpPMode,setRpPMode]=useState("weight"); // "weight" (lbs ÷ oz-per-portion) or "pieces" (piece count ÷ pieces-per-serving) -- whole cuts like thighs/drumsticks are naturally counted by the piece, not divided by weight
   const [rpPLbs,setRpPLbs]=useState("");
   const [rpPOz,setRpPOz]=useState(6);
+  const [rpPPieces,setRpPPieces]=useState("");
+  const [rpPPiecesPerServing,setRpPPiecesPerServing]=useState(1);
   const [rpPPrice,setRpPPrice]=useState("");
   const [rpPPreview,setRpPPreview]=useState(null);
   const [rpVSessions,setRpVSessions]=useState([{id:1,preset:{name:"Mixed Sauté Blend",cupsPerUnit:3,bagCups:2,color:C.orange},count:"",bags:null}]);
@@ -2662,8 +2665,11 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
   // -- Repackage helpers ------------------------------------------------------
   const openRepack=(mode)=>{setRpMode(mode);setRpPName("");setRpPLbs("");setRpPOz(6);setRpPPrice("");setRpPPreview(null);setRpHItem("");setRpHRaw("");setRpHOz(16);setRpOpen(true);};
   const commitProtein=()=>{
-    if(!rpPName||!rpPLbs) return;
-    const portions=Math.floor((parseFloat(rpPLbs)*16)/rpPOz);
+    if(!rpPName) return;
+    const isPieces=rpPMode==="pieces";
+    if(isPieces&&!rpPPieces) return;
+    if(!isPieces&&!rpPLbs) return;
+    const portions=isPieces?Math.floor((parseFloat(rpPPieces)||0)/(parseFloat(rpPPiecesPerServing)||1)):Math.floor((parseFloat(rpPLbs)*16)/rpPOz);
     const pName=rpPName;
     const price=parseFloat(rpPPrice)||0;
     const costPerPortion=(price>0&&portions>0)?+(price/portions).toFixed(2):null;
@@ -2671,13 +2677,14 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     setInventory(prev=>{
       const idx=prev.findIndex(i=>i.name.toLowerCase()===pName.toLowerCase());
       const today=new Date().toISOString();
+      const sizeFields=isPieces?{piecesPerServing:parseFloat(rpPPiecesPerServing)||1,portionOz:null}:{portionOz:rpPOz,piecesPerServing:null};
       if(idx>=0){
         const prevHist=prev[idx].portionPriceHistory||[];
-        const newHist=costPerPortion!==null?[...prevHist,{costPerPortion,totalPrice:price,lbs:parseFloat(rpPLbs),portions,date:today}]:prevHist;
-        return prev.map((i,ii)=>ii===idx?{...i,qty:i.qty+portions,isBulkProtein:true,portionOz:rpPOz,portionPriceHistory:newHist,avgCostPerPortion:avgOf(newHist)||i.avgCostPerPortion||null,lastCostPerPortion:costPerPortion||i.lastCostPerPortion||null}:i);
+        const newHist=costPerPortion!==null?[...prevHist,{costPerPortion,totalPrice:price,lbs:isPieces?null:parseFloat(rpPLbs),pieces:isPieces?parseFloat(rpPPieces):null,portions,date:today}]:prevHist;
+        return prev.map((i,ii)=>ii===idx?{...i,qty:i.qty+portions,isBulkProtein:true,...sizeFields,portionPriceHistory:newHist,avgCostPerPortion:avgOf(newHist)||i.avgCostPerPortion||null,lastCostPerPortion:costPerPortion||i.lastCostPerPortion||null}:i);
       }
-      const hist=costPerPortion!==null?[{costPerPortion,totalPrice:price,lbs:parseFloat(rpPLbs),portions,date:today}]:[];
-      return [...prev,{id:Date.now(),name:pName,qty:portions,unit:"portions",category:"Protein",location:"Freezer",isBulkProtein:true,portionOz:rpPOz,portionPriceHistory:hist,avgCostPerPortion:avgOf(hist),lastCostPerPortion:costPerPortion}];
+      const hist=costPerPortion!==null?[{costPerPortion,totalPrice:price,lbs:isPieces?null:parseFloat(rpPLbs),pieces:isPieces?parseFloat(rpPPieces):null,portions,date:today}]:[];
+      return [...prev,{id:Date.now(),name:pName,qty:portions,unit:"portions",category:"Protein",location:"Freezer",isBulkProtein:true,...sizeFields,portionPriceHistory:hist,avgCostPerPortion:avgOf(hist),lastCostPerPortion:costPerPortion}];
     });
     setRpOpen(false);
     setTimeout(()=>{
@@ -4851,7 +4858,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                   <div key={i.id} style={{fontSize:13,marginBottom:3,display:"flex",gap:8,alignItems:"center"}}>
                     <span style={{color:C.text,fontWeight:600}}>{i.name}</span>
                     <span style={bTag(i.qty===0?C.red:C.green)}>{i.qty} portions</span>
-                    <span style={{color:C.muted,fontSize:10,fontFamily:FM}}>{i.portionOz}oz ea</span>
+                    <span style={{color:C.muted,fontSize:10,fontFamily:FM}}>{i.piecesPerServing?i.piecesPerServing+(i.piecesPerServing===1?" piece ea":" pieces ea"):i.portionOz+"oz ea"}</span>
                   </div>
                 ))}
               </div>
@@ -6112,42 +6119,82 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
             </div>
             {rpMode==="protein"&&(
               <div>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
-                  <div>
-                    <Label>PROTEIN NAME</Label>
-                    <input style={bInp} spellCheck="true" placeholder="e.g. Chicken Breast" value={rpPName} onChange={e=>{setRpPName(e.target.value);setRpPPreview(null);}}/>
-                    {(()=>{ const m=findCloseInventoryMatch(rpPName,inventory); return m&&(
-                      <div style={{marginTop:6,fontSize:11,color:C.orange,display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
-                        <span>Did you mean <strong>{m}</strong>? Typos create a separate item instead of adding to the existing one.</span>
-                        <button onClick={()=>{setRpPName(m);setRpPPreview(null);}} style={{...bBtn("ghost"),padding:"2px 8px",fontSize:10,border:"1px solid "+C.orange,color:C.orange}}>Use "{m}"</button>
-                      </div>
-                    );})()}
-                  </div>
-                  <div><Label>WEIGHT (lbs)</Label><input style={bInp} type="number" placeholder="5" value={rpPLbs} onChange={e=>{setRpPLbs(e.target.value);setRpPPreview(null);}}/></div>
-                  <div>
-                    <Label>OZ PER PORTION</Label>
-                    <div style={{display:"flex",gap:6}}>
-                      {[4,5,6,7,8].map(oz=>(
-                        <button key={oz} onClick={()=>{setRpPOz(oz);setRpPPreview(null);}}
-                          style={{...bBtn("ghost"),padding:"6px 10px",fontSize:12,background:rpPOz===oz?C.orange+"22":"transparent",color:rpPOz===oz?C.orange:C.muted,border:"1px solid "+(rpPOz===oz?C.orange:C.border)}}>
-                          {oz}oz
-                        </button>
-                      ))}
+                <div style={{marginBottom:12}}>
+                  <Label>PROTEIN NAME</Label>
+                  <input style={bInp} spellCheck="true" placeholder="e.g. Chicken Breast" value={rpPName} onChange={e=>{setRpPName(e.target.value);setRpPPreview(null);}}/>
+                  {(()=>{ const m=findCloseInventoryMatch(rpPName,inventory); return m&&(
+                    <div style={{marginTop:6,fontSize:11,color:C.orange,display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+                      <span>Did you mean <strong>{m}</strong>? Typos create a separate item instead of adding to the existing one.</span>
+                      <button onClick={()=>{setRpPName(m);setRpPPreview(null);}} style={{...bBtn("ghost"),padding:"2px 8px",fontSize:10,border:"1px solid "+C.orange,color:C.orange}}>Use "{m}"</button>
                     </div>
-                  </div>
+                  );})()}
+                </div>
+                <div style={{display:"flex",gap:6,marginBottom:12}}>
+                  <span style={{fontSize:11,color:C.muted,fontFamily:FM,alignSelf:"center",marginRight:2}}>Divide by:</span>
+                  {[["weight","⚖ Weight"],["pieces","🍗 Pieces"]].map(([m,label])=>(
+                    <button key={m} onClick={()=>{setRpPMode(m);setRpPPreview(null);}} style={{padding:"6px 14px",borderRadius:8,border:"1px solid "+(rpPMode===m?C.orange:C.border),background:rpPMode===m?C.orange+"22":"transparent",color:rpPMode===m?C.orange:C.muted,fontFamily:FM,fontSize:12,cursor:"pointer",fontWeight:rpPMode===m?700:400}}>{label}</button>
+                  ))}
+                </div>
+                <div style={{fontSize:11,color:C.muted,fontFamily:FM,marginBottom:12,fontStyle:"italic"}}>
+                  {rpPMode==="weight"?"For ground/bulk-style proteins divided by weight into arbitrary portions.":"For whole cuts naturally counted by the piece (thighs, drumsticks, chops, steaks) — e.g. 8 thighs at 1 per serving, or 8 drumsticks at 2 per serving."}
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
+                  {rpPMode==="weight"?(<>
+                    <div><Label>WEIGHT (lbs)</Label><input style={bInp} type="number" placeholder="5" value={rpPLbs} onChange={e=>{setRpPLbs(e.target.value);setRpPPreview(null);}}/></div>
+                    <div>
+                      <Label>OZ PER PORTION</Label>
+                      <div style={{display:"flex",gap:6}}>
+                        {[4,5,6,7,8].map(oz=>(
+                          <button key={oz} onClick={()=>{setRpPOz(oz);setRpPPreview(null);}}
+                            style={{...bBtn("ghost"),padding:"6px 10px",fontSize:12,background:rpPOz===oz?C.orange+"22":"transparent",color:rpPOz===oz?C.orange:C.muted,border:"1px solid "+(rpPOz===oz?C.orange:C.border)}}>
+                            {oz}oz
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </>):(<>
+                    <div><Label>TOTAL PIECES</Label><input style={bInp} type="number" placeholder="e.g. 8" value={rpPPieces} onChange={e=>{setRpPPieces(e.target.value);setRpPPreview(null);}}/></div>
+                    <div>
+                      <Label>PIECES PER SERVING</Label>
+                      <div style={{display:"flex",gap:6}}>
+                        {[1,2,3,4].map(n=>(
+                          <button key={n} onClick={()=>{setRpPPiecesPerServing(n);setRpPPreview(null);}}
+                            style={{...bBtn("ghost"),padding:"6px 10px",fontSize:12,background:rpPPiecesPerServing===n?C.orange+"22":"transparent",color:rpPPiecesPerServing===n?C.orange:C.muted,border:"1px solid "+(rpPPiecesPerServing===n?C.orange:C.border)}}>
+                            {n}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </>)}
                   <div style={{gridColumn:"1 / -1"}}>
                     <Label>PURCHASE PRICE ($) — optional</Label>
                     <input style={bInp} type="number" step="0.01" min="0" placeholder="e.g. 14.99" value={rpPPrice} onChange={e=>{setRpPPrice(e.target.value);setRpPPreview(null);}}/>
                     <div style={{fontSize:10,color:C.muted,marginTop:3,fontFamily:FM}}>Total you paid for this batch — used to estimate cost per portion for Smart Money.</div>
                   </div>
-                  <div style={{display:"flex",alignItems:"flex-end"}}>
-                    <button style={{...bBtn("orange"),width:"100%"}} onClick={()=>{const lbs=parseFloat(rpPLbs);if(!lbs||!rpPOz)return;const portions=Math.floor((lbs*16)/rpPOz);const price=parseFloat(rpPPrice)||0;const costPerPortion=(price>0&&portions>0)?+(price/portions).toFixed(2):null;setRpPPreview({portions,lbs,ozEach:rpPOz,price:price>0?price:null,costPerPortion});}}>Calculate</button>
+                  <div style={{gridColumn:"1 / -1",display:"flex",alignItems:"flex-end"}}>
+                    <button style={{...bBtn("orange"),width:"100%"}} onClick={()=>{
+                      const price=parseFloat(rpPPrice)||0;
+                      if(rpPMode==="weight"){
+                        const lbs=parseFloat(rpPLbs);if(!lbs||!rpPOz)return;
+                        const portions=Math.floor((lbs*16)/rpPOz);
+                        const costPerPortion=(price>0&&portions>0)?+(price/portions).toFixed(2):null;
+                        setRpPPreview({portions,lbs,ozEach:rpPOz,price:price>0?price:null,costPerPortion});
+                      }else{
+                        const pieces=parseFloat(rpPPieces);if(!pieces||!rpPPiecesPerServing)return;
+                        const portions=Math.floor(pieces/rpPPiecesPerServing);
+                        const costPerPortion=(price>0&&portions>0)?+(price/portions).toFixed(2):null;
+                        setRpPPreview({portions,pieces,piecesPerServing:rpPPiecesPerServing,price:price>0?price:null,costPerPortion});
+                      }
+                    }}>Calculate</button>
                   </div>
                 </div>
                 {rpPPreview&&(
                   <div style={{background:"#1a2018",border:"1px solid "+C.green+"44",borderRadius:10,padding:14,marginBottom:14}}>
                     <div style={{display:"grid",gridTemplateColumns:rpPPreview.costPerPortion?"1fr 1fr 1fr 1fr":"1fr 1fr 1fr",gap:10,textAlign:"center"}}>
-                      {[{l:"Family Pack",v:rpPPreview.lbs+" lbs",c:C.muted},{l:"Dinner Portions",v:rpPPreview.portions,c:C.green},{l:"Each",v:rpPPreview.ozEach+"oz",c:C.accent},...(rpPPreview.costPerPortion?[{l:"$/Portion",v:"$"+rpPPreview.costPerPortion.toFixed(2),c:C.orange}]:[])].map(s=>(
+                      {(rpPMode==="weight"
+                        ?[{l:"Family Pack",v:rpPPreview.lbs+" lbs",c:C.muted},{l:"Dinner Portions",v:rpPPreview.portions,c:C.green},{l:"Each",v:rpPPreview.ozEach+"oz",c:C.accent},...(rpPPreview.costPerPortion?[{l:"$/Portion",v:"$"+rpPPreview.costPerPortion.toFixed(2),c:C.orange}]:[])]
+                        :[{l:"Total Pieces",v:rpPPreview.pieces,c:C.muted},{l:"Servings",v:rpPPreview.portions,c:C.green},{l:"Each",v:rpPPreview.piecesPerServing+(rpPPreview.piecesPerServing===1?" piece":" pieces"),c:C.accent},...(rpPPreview.costPerPortion?[{l:"$/Serving",v:"$"+rpPPreview.costPerPortion.toFixed(2),c:C.orange}]:[])]
+                      ).map(s=>(
                         <div key={s.l}><div style={{fontSize:22,fontWeight:700,fontFamily:FD,color:s.c}}>{s.v}</div><div style={{fontSize:10,color:C.muted,fontFamily:FM,marginTop:2}}>{s.l}</div></div>
                       ))}
                     </div>
@@ -6155,7 +6202,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                 )}
                 <div style={{display:"flex",gap:8}}>
                   <button style={{...bBtn("ghost"),flex:1}} onClick={()=>setRpOpen(false)}>Cancel</button>
-                  <button style={{...bBtn("orange"),flex:2,opacity:(rpPName&&rpPLbs)?1:0.4}} onClick={commitProtein}>🥩 Add {rpPPreview?rpPPreview.portions+" Portions":"to Inventory"}</button>
+                  <button style={{...bBtn("orange"),flex:2,opacity:(rpPName&&(rpPMode==="weight"?rpPLbs:rpPPieces))?1:0.4}} onClick={commitProtein}>🥩 Add {rpPPreview?rpPPreview.portions+(rpPMode==="weight"?" Portions":" Servings"):"to Inventory"}</button>
                 </div>
               </div>
             )}
