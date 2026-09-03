@@ -474,8 +474,12 @@ const fetchPartnerAdMatches=async(currentInventory,userId,deepDiscountThresholdP
 
       // True per-pound cost of the ad's own pack size, independent of the person's inventory
       // unit -- so a bulk special's real cost ($16.99 for a 10 lb bag = $1.70/lb) is visible
-      // without having to notice or remember the pack size printed on the ad itself.
-      const adQtyParsed=parsePartnerAdQuantity(ad.unit_size);
+      // without having to notice or remember the pack size printed on the ad itself. Skipped for
+      // products conventionally sold by volume rather than weight -- "48 oz" ice cream is fluid
+      // ounces (a 1.5 quart tub), and treating that as weight ounces produces a meaningless
+      // "$/lb" figure nobody shops by.
+      const isVolumeSold=/ice cream|sorbet|sherbet|frozen yogurt|\bmilk\b|\bjuice\b|\bsoda\b|beverage/i.test(ad.item_name);
+      const adQtyParsed=isVolumeSold?null:parsePartnerAdQuantity(ad.unit_size);
       const perLbPrice=(adQtyParsed&&adQtyParsed.family==="lb"&&adQtyParsed.qty>1)
         ?+(rawAdPrice/adQtyParsed.qty).toFixed(2):null;
 
@@ -5303,8 +5307,9 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                 above, since they're two different features: this one requires no manual
                 ad-scanning at all. */}
             {can.smarterWayToShop&&partnerAdMatches.length>0&&(()=>{
-              const deepDiscounts=partnerAdMatches.filter(m=>m.isDeepDiscountEligible);
-              const belowAverage=partnerAdMatches.filter(m=>m.priceDelta!=null&&m.priceDelta>0&&!m.isDeepDiscountEligible);
+              const byItemName=(a,b)=>a.inventoryItemName.localeCompare(b.inventoryItemName)||a.storeName.localeCompare(b.storeName);
+              const deepDiscounts=partnerAdMatches.filter(m=>m.isDeepDiscountEligible).sort(byItemName);
+              const belowAverage=partnerAdMatches.filter(m=>m.priceDelta!=null&&m.priceDelta>0&&!m.isDeepDiscountEligible).sort(byItemName);
               return (
               <div style={{background:"#0a1a17",border:"1px solid #14b8a6",borderRadius:12,padding:"12px 16px",marginBottom:16}}>
                 <div style={{fontFamily:FD,fontSize:14,color:"#14b8a6"}}>🛒 Smarter Way to Shop — {partnerAdMatches.length} match{partnerAdMatches.length!==1?"es":""} at your preferred stores</div>
@@ -5559,9 +5564,10 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
               </div>
             </div>
 {can.smarterWayToShop&&shoppingAdMatches.length>0&&(()=>{
-  const deepDiscounts=shoppingAdMatches.filter(m=>m.isDeepDiscountEligible);
-  const belowAverage=shoppingAdMatches.filter(m=>m.priceDelta!=null&&m.priceDelta>0&&!m.isDeepDiscountEligible);
-  const plainMatches=shoppingAdMatches.filter(m=>!m.isDeepDiscountEligible&&!(m.priceDelta!=null&&m.priceDelta>0));
+  const byItemName=(a,b)=>a.inventoryItemName.localeCompare(b.inventoryItemName)||a.storeName.localeCompare(b.storeName);
+  const deepDiscounts=shoppingAdMatches.filter(m=>m.isDeepDiscountEligible).sort(byItemName);
+  const belowAverage=shoppingAdMatches.filter(m=>m.priceDelta!=null&&m.priceDelta>0&&!m.isDeepDiscountEligible).sort(byItemName);
+  const plainMatches=shoppingAdMatches.filter(m=>!m.isDeepDiscountEligible&&!(m.priceDelta!=null&&m.priceDelta>0)).sort(byItemName);
   return (
   <div style={{background:"#0a1a17",border:"1px solid #14b8a6",borderRadius:12,padding:"12px 16px",marginBottom:14}}>
     <div style={{fontFamily:FD,fontSize:14,color:"#14b8a6"}}>🛒 Smarter Way to Shop — {shoppingAdMatches.length} item{shoppingAdMatches.length!==1?"s":""} on your list found on sale</div>
