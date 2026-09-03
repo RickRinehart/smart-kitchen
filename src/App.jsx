@@ -5447,6 +5447,14 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                           ?<span style={bTag(C.green)}>✅ Ready</span>
                           :<div style={{width:"100%",marginBottom:4}}><div style={{fontSize:9,color:C.muted,marginBottom:3,fontFamily:FM}}>NEED</div>{mealPlanStillNeeded(day).map((s,j)=><div key={j} style={{fontSize:seniorMode?15:13,color:C.red,marginBottom:2}}>· {s.qty} {s.unit} {s.name}</div>)}</div>}
                         <button onClick={()=>madeMeal(day)} style={{background:"#3ecf8e22",border:"1px solid #3ecf8e44",borderRadius:seniorMode?10:6,color:"#3ecf8e",cursor:"pointer",fontFamily:FM,fontSize:seniorMode?18:11,padding:seniorMode?"12px 20px":"8px 14px",flexShrink:0,fontWeight:seniorMode?700:400}} disabled={isViewer}>✅ Made It!</button>
+                        {mealPlanStillNeeded(day).length>0&&<button onClick={()=>{
+                          const needed=mealPlanStillNeeded(day);
+                          setShopping(prev=>{
+                            const toAdd=needed.filter(m=>!prev.some(p=>wordsOverlap(m.name,p.name)));
+                            return [...prev,...toAdd.map(m=>({name:m.name,qty:m.qty||1,unit:m.unit||"",category:"Pantry",checked:false,suggestBulk:false,source:"Meal Plan: "+day.meal}))];
+                          });
+                          showAlert(needed.length+" ingredient"+(needed.length!==1?"s":"")+" added to your shopping list!");
+                        }} style={{background:"transparent",border:"1px solid "+C.accent,borderRadius:seniorMode?10:6,color:C.accent,cursor:"pointer",fontFamily:FM,fontSize:seniorMode?16:11,padding:seniorMode?"10px 16px":"8px 14px",flexShrink:0,fontWeight:600}}>🛒 Add Missing ({mealPlanStillNeeded(day).length})</button>}
                         {familyProfiles.some(p=>p.guidedPlateMode)&&(<button onClick={()=>{const qualifying=familyProfiles.filter(p=>p.guidedPlateMode||p.medicalPlan||(can.medicalCompliance&&p.medicalAllergies?.length>0));const active=qualifying.length>0?qualifying:familyProfiles.slice(0,1);setPlateStep(0);setPlateComponents([]);setPlateCumulativeG(0);setPlateSessionId(Date.now().toString());setPlateCoachNote("");setShowPlateSummary(false);setScaleCalcResult(null);setScaleError("");setPlateSuggestedComponents([]);setPlateCurrentComponentIdx(-1);setPlateComponentsLoading(true);if(active.length===1){const activeP=active[0];setPlateSession({active:true,memberName:activeP.name||"",mealName:day.meal,mealDay:day.day,activeProfile:activeP,dayObj:day});setPlatePendingMeal(null);setPlateQualifyingMembers([]);}else{setPlatePendingMeal(day);setPlateQualifyingMembers(active);setPlateSession({active:true,memberName:"",mealName:day.meal,mealDay:day.day,activeProfile:null,dayObj:day});}setShowScaleModal(true);buildComponentsFromDay(day).then(comps=>{setPlateSuggestedComponents(comps);setPlateComponentsLoading(false);}).catch(()=>setPlateComponentsLoading(false));}} style={{background:"#10b98122",border:"1px solid #10b981",borderRadius:seniorMode?10:6,color:"#10b981",cursor:"pointer",fontFamily:FM,fontSize:seniorMode?16:11,padding:seniorMode?"10px 16px":"6px 12px",flexShrink:0,fontWeight:600}} disabled={isViewer}>🍽 Build Plate</button>)}
                         <button onClick={()=>setPhotoPromptMeal(day.meal)} style={{background:"transparent",border:"1px solid "+C.border,borderRadius:seniorMode?10:6,color:C.muted,cursor:"pointer",fontFamily:FM,fontSize:seniorMode?16:12,padding:seniorMode?"10px 14px":"8px 12px",flexShrink:0}} title="Add photo" disabled={isViewer}>📸 {mealPhotos[day.meal]?"Change":"Photo"}</button>
                         <button onClick={()=>{setChangeMealModal(i);setChangeMealRequest("");}} style={{background:"transparent",border:"1px solid "+C.border,borderRadius:seniorMode?10:4,color:C.muted,fontFamily:FM,fontSize:seniorMode?18:11,padding:seniorMode?"12px 20px":"8px 14px",cursor:"pointer",flexShrink:0}} disabled={isViewer}>🔄 Change Meal</button>
@@ -7135,6 +7143,25 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
             })()}
             <div style={{display:"flex",gap:8,marginTop:10}}>
               <button style={{...bBtn("ghost"),flex:1,padding:10,fontSize:12}} onClick={()=>printRecipeCard(activeRecipe,mealPhotos[activeRecipe.name],activeRecipeServings)}>&#128424; Print</button>
+              {(()=>{
+                const scale=activeRecipeServings/(activeRecipe.servings||4);
+                const hasStructured=Array.isArray(activeRecipe.ingredients)&&activeRecipe.ingredients.some(ing=>typeof ing==="object");
+                let missing;
+                if(hasStructured){
+                  const parsed=activeRecipe.ingredients.map(ing=>typeof ing==="object"?{name:ing.name||"",qty:(ing.qty||1)*scale,unit:ing.unit||""}:(p=>({...p,qty:p.qty*scale}))(parseIngredientLine(ing)));
+                  missing=parsed.filter(p=>p.name&&!inventory.some(i=>wordsOverlap(p.name,i.name)&&hasStock(i)));
+                }else{
+                  missing=liveMissing(activeRecipe.missingIngredients||[]).map(name=>({name,qty:1,unit:"as needed"}));
+                }
+                if(missing.length===0) return null;
+                return (<button style={{...bBtn("ghost"),flex:2,padding:10,fontSize:12,border:"1px solid "+C.accent,color:C.accent}} onClick={()=>{
+                  setShopping(prev=>{
+                    const toAdd=missing.filter(m=>!prev.some(p=>(p.name||"").toLowerCase()===m.name.toLowerCase()));
+                    return [...prev,...toAdd.map(m=>({name:m.name,qty:m.qty||1,unit:m.unit||"",category:"Pantry",checked:false,suggestBulk:false,source:"Recipe: "+activeRecipe.name}))];
+                  });
+                  showAlert(missing.length+" ingredient"+(missing.length!==1?"s":"")+" added to your shopping list!");
+                }}>🛒 Add Missing ({missing.length})</button>);
+              })()}
               <button style={{...bBtn("primary"),flex:3,padding:12}} onClick={()=>cookRecipe(activeRecipe,activeRecipeServings)}>🍳 I Cooked This — Update Inventory</button>
             </div>
         </div>
@@ -7198,16 +7225,27 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
             })()}
             <div style={{display:"flex",gap:8,marginTop:10}}>
               <button style={{...bBtn("ghost"),padding:"10px 14px",fontSize:12}} onClick={()=>printRecipeCard(activeDessert,mealPhotos[activeDessert.name],activeDessertServings)}>&#128424; Print</button>
-              {(activeDessert.missingIngredients||[]).length>0&&<button style={{...bBtn("ghost"),flex:1,padding:12,border:"1px solid #f472b6",color:"#f472b6"}}
+              {(()=>{
+                const scale=activeDessertServings/(activeDessert.servings||4);
+                const hasStructured=Array.isArray(activeDessert.ingredients)&&activeDessert.ingredients.some(ing=>typeof ing==="object");
+                let missing;
+                if(hasStructured){
+                  const parsed=activeDessert.ingredients.map(ing=>typeof ing==="object"?{name:ing.name||"",qty:(ing.qty||1)*scale,unit:ing.unit||""}:(p=>({...p,qty:p.qty*scale}))(parseIngredientLine(ing)));
+                  missing=parsed.filter(p=>p.name&&!inventory.some(i=>wordsOverlap(p.name,i.name)&&hasStock(i)));
+                }else{
+                  missing=liveMissing(activeDessert.missingIngredients||[]).map(name=>({name,qty:1,unit:"as needed"}));
+                }
+                if(missing.length===0) return null;
+                return (<button style={{...bBtn("ghost"),flex:1,padding:12,border:"1px solid #f472b6",color:"#f472b6"}}
                 onClick={()=>{
                   setShopping(prev=>{
-                    const missing=(activeDessert.missingIngredients||[]).map(name=>({name,qty:1,unit:"as needed",category:"Pantry",checked:false,suggestBulk:false}));
-                    const toAdd=missing.filter(m=>!prev.some(p=>p.name.toLowerCase()===m.name.toLowerCase()));
-                    return [...prev,...toAdd];
+                    const toAdd=missing.filter(m=>!prev.some(p=>(p.name||"").toLowerCase()===m.name.toLowerCase()));
+                    return [...prev,...toAdd.map(m=>({name:m.name,qty:m.qty||1,unit:m.unit||"as needed",category:"Pantry",checked:false,suggestBulk:false,source:"Dessert: "+activeDessert.name}))];
                   });
                   setActiveDessert(null);
-                  showAlert("🛒 Missing ingredients added to shopping list!");
-                }}>🛒 Add Missing to List</button>}
+                  showAlert(missing.length+" ingredient"+(missing.length!==1?"s":"")+" added to shopping list!");
+                }}>🛒 Add Missing ({missing.length})</button>);
+              })()}
               <button style={{...bBtn("primary"),flex:2,padding:12,background:"#f472b6",color:"#0c0e14"}}
                 onClick={()=>{
                   const deductionSummary=deductInventoryForRecipe(activeDessert,activeDessertServings);
