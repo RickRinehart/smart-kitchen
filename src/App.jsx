@@ -5577,37 +5577,37 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
   const belowAverage=shoppingAdMatches.filter(m=>m.priceDelta!=null&&m.priceDelta>0&&!m.isDeepDiscountEligible).sort(byItemName);
   const plainMatches=shoppingAdMatches.filter(m=>!m.isDeepDiscountEligible&&!(m.priceDelta!=null&&m.priceDelta>0)).sort(byItemName);
   return (
-  <div style={{background:"#0a1a17",border:"1px solid #14b8a6",borderRadius:12,padding:"12px 16px",marginBottom:14}}>
-    <div style={{fontFamily:FD,fontSize:14,color:"#14b8a6"}}>🛒 Smarter Way to Shop — {shoppingAdMatches.length} item{shoppingAdMatches.length!==1?"s":""} on your list found on sale</div>
-    <div style={{fontFamily:FM,fontSize:10,color:"#5eead4",marginTop:2}}>Tap an item to assign that store + price to your list</div>
+  <div style={{background:"#0a1a17",border:"1px solid #14b8a6",borderRadius:12,padding:seniorMode?"16px 20px":"12px 16px",marginBottom:14}}>
+    <div style={{fontFamily:FD,fontSize:seniorMode?19:14,color:"#14b8a6"}}>🛒 Smarter Way to Shop — {shoppingAdMatches.length} item{shoppingAdMatches.length!==1?"s":""} on your list found on sale</div>
+    <div style={{fontFamily:FM,fontSize:seniorMode?14:10,color:"#5eead4",marginTop:2}}>Tap an item to assign that store + price to your list</div>
     {deepDiscounts.length>0&&(
       <div style={{marginTop:8,paddingTop:8,borderTop:"1px solid #14b8a633"}}>
-        <div style={{fontFamily:FM,fontSize:10,color:"#f59e0b",letterSpacing:0.4,marginBottom:4,fontWeight:700}}>⚡ DEEP DISCOUNT — {deepDiscounts.length} ITEM{deepDiscounts.length!==1?"S":""}{deepDiscounts.some(m=>m.inventoryModel==="closeout_limited")?" · LIMITED QUANTITIES":""}</div>
+        <div style={{fontFamily:FM,fontSize:seniorMode?14:10,color:"#f59e0b",letterSpacing:0.4,marginBottom:4,fontWeight:700}}>⚡ DEEP DISCOUNT — {deepDiscounts.length} ITEM{deepDiscounts.length!==1?"S":""}{deepDiscounts.some(m=>m.inventoryModel==="closeout_limited")?" · LIMITED QUANTITIES":""}</div>
         {(expandedShopSaleSection==="deep"?deepDiscounts:deepDiscounts.slice(0,6)).map((m,i)=>{
           const isAssigned=shopping.some(si=>wordsOverlap(m.inventoryItemName,si.name)&&si.assignedStore===m.storeName);
-          return (<div key={i} onClick={()=>assignSaleMatchToShopping(m)} style={{fontSize:11,color:"#d1d5db",fontFamily:FM,padding:"3px 0",cursor:"pointer"}}>{isAssigned?"✓":"•"} <strong style={{color:"#fff"}}>{m.inventoryItemName}</strong> at {m.storeName} — {m.deepDiscountPct}% off{m.inventoryModel==="closeout_limited"&&<span style={{color:"#f59e0b"}}> (limited quantities)</span>}{m.perLbPrice&&<span style={{color:"#f59e0b"}}> · ${m.rawAdPrice.toFixed(2)}{m.unitSize?" ("+m.unitSize+")":""} ≈ ${m.perLbPrice.toFixed(2)}/lb</span>}</div>);
+          return (<div key={i} onClick={()=>assignSaleMatchToShopping(m)} style={{fontSize:seniorMode?16:11,color:"#d1d5db",fontFamily:FM,padding:seniorMode?"6px 0":"3px 0",cursor:"pointer",lineHeight:seniorMode?1.5:1.3}}>{isAssigned?"✓":"•"} <strong style={{color:"#fff"}}>{m.inventoryItemName}</strong> at {m.storeName} — {m.deepDiscountPct}% off{m.inventoryModel==="closeout_limited"&&<span style={{color:"#f59e0b"}}> (limited quantities)</span>}{m.perLbPrice&&<span style={{color:"#f59e0b"}}> · ${m.rawAdPrice.toFixed(2)}{m.unitSize?" ("+m.unitSize+")":""} ≈ ${m.perLbPrice.toFixed(2)}/lb</span>}</div>);
         })}
-        {deepDiscounts.length>6&&<button onClick={()=>setExpandedShopSaleSection(expandedShopSaleSection==="deep"?null:"deep")} style={{background:"transparent",border:"none",color:"#14b8a6",fontFamily:FM,fontSize:11,cursor:"pointer",padding:"4px 0",fontWeight:600}}>{expandedShopSaleSection==="deep"?"▲ Show less":"▼ Show all "+deepDiscounts.length}</button>}
+        {deepDiscounts.length>6&&<button onClick={()=>setExpandedShopSaleSection(expandedShopSaleSection==="deep"?null:"deep")} style={{background:"transparent",border:"none",color:"#14b8a6",fontFamily:FM,fontSize:seniorMode?15:11,cursor:"pointer",padding:seniorMode?"8px 0":"4px 0",fontWeight:600}}>{expandedShopSaleSection==="deep"?"▲ Show less":"▼ Show all "+deepDiscounts.length}</button>}
       </div>
     )}
     {belowAverage.length>0&&(
       <div style={{marginTop:8,paddingTop:8,borderTop:"1px solid #14b8a633"}}>
-        <div style={{fontFamily:FM,fontSize:10,color:"#22c55e",letterSpacing:0.4,marginBottom:4,fontWeight:700}}>💰 BELOW YOUR USUAL PRICE — {belowAverage.length} ITEM{belowAverage.length!==1?"S":""}</div>
+        <div style={{fontFamily:FM,fontSize:seniorMode?14:10,color:"#22c55e",letterSpacing:0.4,marginBottom:4,fontWeight:700}}>💰 BELOW YOUR USUAL PRICE — {belowAverage.length} ITEM{belowAverage.length!==1?"S":""}</div>
         {(expandedShopSaleSection==="below"?belowAverage:belowAverage.slice(0,6)).map((m,i)=>{
           const isAssigned=shopping.some(si=>wordsOverlap(m.inventoryItemName,si.name)&&si.assignedStore===m.storeName);
-          return (<div key={i} onClick={()=>assignSaleMatchToShopping(m)} style={{fontSize:11,color:"#d1d5db",fontFamily:FM,padding:"3px 0",cursor:"pointer"}}>{isAssigned?"✓":"•"} <strong style={{color:"#fff"}}>{m.inventoryItemName}</strong> at {m.storeName} — ${m.comparableAdPrice?.toFixed(2)} vs. your usual ${m.avgUnitPrice?.toFixed(2)} (save ${m.priceDelta.toFixed(2)}){m.perLbPrice&&<span style={{color:"#22c55e"}}> · {m.unitSize?"("+m.unitSize+") ":""}≈ ${m.perLbPrice.toFixed(2)}/lb</span>}</div>);
+          return (<div key={i} onClick={()=>assignSaleMatchToShopping(m)} style={{fontSize:seniorMode?16:11,color:"#d1d5db",fontFamily:FM,padding:seniorMode?"6px 0":"3px 0",cursor:"pointer",lineHeight:seniorMode?1.5:1.3}}>{isAssigned?"✓":"•"} <strong style={{color:"#fff"}}>{m.inventoryItemName}</strong> at {m.storeName} — ${m.comparableAdPrice?.toFixed(2)} vs. your usual ${m.avgUnitPrice?.toFixed(2)} (save ${m.priceDelta.toFixed(2)}){m.perLbPrice&&<span style={{color:"#22c55e"}}> · {m.unitSize?"("+m.unitSize+") ":""}≈ ${m.perLbPrice.toFixed(2)}/lb</span>}</div>);
         })}
-        {belowAverage.length>6&&<button onClick={()=>setExpandedShopSaleSection(expandedShopSaleSection==="below"?null:"below")} style={{background:"transparent",border:"none",color:"#14b8a6",fontFamily:FM,fontSize:11,cursor:"pointer",padding:"4px 0",fontWeight:600}}>{expandedShopSaleSection==="below"?"▲ Show less":"▼ Show all "+belowAverage.length}</button>}
+        {belowAverage.length>6&&<button onClick={()=>setExpandedShopSaleSection(expandedShopSaleSection==="below"?null:"below")} style={{background:"transparent",border:"none",color:"#14b8a6",fontFamily:FM,fontSize:seniorMode?15:11,cursor:"pointer",padding:seniorMode?"8px 0":"4px 0",fontWeight:600}}>{expandedShopSaleSection==="below"?"▲ Show less":"▼ Show all "+belowAverage.length}</button>}
       </div>
     )}
     {plainMatches.length>0&&(
       <div style={{marginTop:8,paddingTop:8,borderTop:"1px solid #14b8a633"}}>
-        <div style={{fontFamily:FM,fontSize:10,color:"#9ca3af",letterSpacing:0.4,marginBottom:4,fontWeight:700}}>ON SALE — {plainMatches.length} ITEM{plainMatches.length!==1?"S":""}</div>
+        <div style={{fontFamily:FM,fontSize:seniorMode?14:10,color:"#9ca3af",letterSpacing:0.4,marginBottom:4,fontWeight:700}}>ON SALE — {plainMatches.length} ITEM{plainMatches.length!==1?"S":""}</div>
         {(expandedShopSaleSection==="plain"?plainMatches:plainMatches.slice(0,6)).map((m,i)=>{
           const isAssigned=shopping.some(si=>wordsOverlap(m.inventoryItemName,si.name)&&si.assignedStore===m.storeName);
-          return (<div key={i} onClick={()=>assignSaleMatchToShopping(m)} style={{fontSize:11,color:"#d1d5db",fontFamily:FM,padding:"3px 0",cursor:"pointer"}}>{isAssigned?"✓":"•"} <strong style={{color:"#fff"}}>{m.inventoryItemName}</strong> at {m.storeName}{m.rawAdPrice?" — $"+m.rawAdPrice.toFixed(2):""}{m.perLbPrice&&<span style={{color:"#14b8a6"}}> {m.unitSize?"("+m.unitSize+") ":""}≈ ${m.perLbPrice.toFixed(2)}/lb</span>}</div>);
+          return (<div key={i} onClick={()=>assignSaleMatchToShopping(m)} style={{fontSize:seniorMode?16:11,color:"#d1d5db",fontFamily:FM,padding:seniorMode?"6px 0":"3px 0",cursor:"pointer",lineHeight:seniorMode?1.5:1.3}}>{isAssigned?"✓":"•"} <strong style={{color:"#fff"}}>{m.inventoryItemName}</strong> at {m.storeName}{m.rawAdPrice?" — $"+m.rawAdPrice.toFixed(2):""}{m.perLbPrice&&<span style={{color:"#14b8a6"}}> {m.unitSize?"("+m.unitSize+") ":""}≈ ${m.perLbPrice.toFixed(2)}/lb</span>}</div>);
         })}
-        {plainMatches.length>6&&<button onClick={()=>setExpandedShopSaleSection(expandedShopSaleSection==="plain"?null:"plain")} style={{background:"transparent",border:"none",color:"#14b8a6",fontFamily:FM,fontSize:11,cursor:"pointer",padding:"4px 0",fontWeight:600}}>{expandedShopSaleSection==="plain"?"▲ Show less":"▼ Show all "+plainMatches.length}</button>}
+        {plainMatches.length>6&&<button onClick={()=>setExpandedShopSaleSection(expandedShopSaleSection==="plain"?null:"plain")} style={{background:"transparent",border:"none",color:"#14b8a6",fontFamily:FM,fontSize:seniorMode?15:11,cursor:"pointer",padding:seniorMode?"8px 0":"4px 0",fontWeight:600}}>{expandedShopSaleSection==="plain"?"▲ Show less":"▼ Show all "+plainMatches.length}</button>}
       </div>
     )}
   </div>
@@ -5645,15 +5645,15 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
             ):(
               <div>
                 <div style={{display:"flex",gap:6,alignItems:"center",marginBottom:14}}>
-                  <span style={{fontFamily:FM,fontSize:11,color:C.muted}}>Group by:</span>
+                  <span style={{fontFamily:FM,fontSize:seniorMode?15:11,color:C.muted}}>Group by:</span>
                   {[["category","Category"],["store","Store"]].map(([k,label])=>(
-                    <button key={k} onClick={()=>setShopGroupMode(k)} style={{padding:"5px 12px",borderRadius:16,border:"1px solid "+(shopGroupMode===k?C.accent:C.border),background:shopGroupMode===k?C.accent+"22":"transparent",color:shopGroupMode===k?C.accent:C.muted,fontFamily:FM,fontSize:11,fontWeight:600,cursor:"pointer"}}>{label}</button>
+                    <button key={k} onClick={()=>setShopGroupMode(k)} style={{padding:seniorMode?"8px 16px":"5px 12px",borderRadius:16,border:"1px solid "+(shopGroupMode===k?C.accent:C.border),background:shopGroupMode===k?C.accent+"22":"transparent",color:shopGroupMode===k?C.accent:C.muted,fontFamily:FM,fontSize:seniorMode?15:11,fontWeight:600,cursor:"pointer"}}>{label}</button>
                   ))}
                 </div>
                 {shopGroupMode==="category"?(
                   [...CATEGORIES.filter(cat=>shopping.some(i=>i.category===cat)),...(shopping.some(i=>!CATEGORIES.includes(i.category))?["Smart Cellar"]:[])].filter((cat,idx,arr)=>arr.indexOf(cat)===idx).map(cat=>(
                     <div key={cat} style={{marginBottom:18}}>
-                      <div style={{fontFamily:FM,fontSize:10,color:CAT_COLORS[cat]||C.muted,letterSpacing:1.2,marginBottom:7,display:"flex",alignItems:"center",gap:7}}>
+                      <div style={{fontFamily:FM,fontSize:seniorMode?13:10,color:CAT_COLORS[cat]||C.muted,letterSpacing:1.2,marginBottom:7,display:"flex",alignItems:"center",gap:7}}>
                         <div style={{width:7,height:7,borderRadius:"50%",background:CAT_COLORS[cat]||C.muted}}/>{cat.toUpperCase()}
                       </div>
                       {shopping.filter(i=>cat==="Smart Cellar"?!CATEGORIES.includes(i.category):i.category===cat).map(renderShopItem)}
@@ -5676,24 +5676,24 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                   const splitTotal=storeTotals.reduce((sum,s)=>sum+s.total,0);
                   return (<>
                     {storeTotals.length>1&&primary&&(
-                      <div style={{background:"#0a1a17",border:"1px solid #14b8a6",borderRadius:10,padding:"10px 14px",marginBottom:16}}>
-                        <div style={{fontFamily:FM,fontSize:11,fontWeight:700,color:"#14b8a6",marginBottom:4}}>📍 Is the extra stop worth it?</div>
-                        <div style={{fontFamily:FM,fontSize:11,color:"#d1d5db",lineHeight:1.6}}>
+                      <div style={{background:"#0a1a17",border:"1px solid #14b8a6",borderRadius:10,padding:seniorMode?"14px 18px":"10px 14px",marginBottom:16}}>
+                        <div style={{fontFamily:FM,fontSize:seniorMode?15:11,fontWeight:700,color:"#14b8a6",marginBottom:4}}>📍 Is the extra stop worth it?</div>
+                        <div style={{fontFamily:FM,fontSize:seniorMode?15:11,color:"#d1d5db",lineHeight:1.6}}>
                           <strong style={{color:"#fff"}}>{primary.store}</strong> covers {primary.items.length} of your {priced.length} priced items (${primary.total.toFixed(2)}).
                           {storeTotals.length>1&&<> The other {storeTotals.length-1} store{storeTotals.length>2?"s":""} together cover {priced.length-primary.items.length} item{priced.length-primary.items.length!==1?"s":""} for ${(splitTotal-primary.total).toFixed(2)} — that's the savings on the table if you make the extra stop{storeTotals.length>2?"s":""}.</>}
                         </div>
-                        <div style={{fontFamily:FM,fontSize:10,color:C.dim,marginTop:6}}>Based only on prices you've assigned below — not a drive-time or fuel-cost estimate. You know best whether the extra stop is worth your time.</div>
+                        <div style={{fontFamily:FM,fontSize:seniorMode?13:10,color:C.dim,marginTop:6}}>Based only on prices you've assigned below — not a drive-time or fuel-cost estimate. You know best whether the extra stop is worth your time.</div>
                       </div>
                     )}
                     {storeTotals.map(({store,items,total})=>(
                       <div key={store} style={{marginBottom:20}}>
-                        <div style={{fontFamily:FD,fontSize:15,color:"#14b8a6",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"baseline"}}>
+                        <div style={{fontFamily:FD,fontSize:seniorMode?19:15,color:"#14b8a6",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"baseline"}}>
                           <span>🛒 {store}</span>
-                          <span style={{fontFamily:FM,fontSize:12,color:C.muted}}>{items.length} item{items.length!==1?"s":""} · ${total.toFixed(2)}</span>
+                          <span style={{fontFamily:FM,fontSize:seniorMode?15:12,color:C.muted}}>{items.length} item{items.length!==1?"s":""} · ${total.toFixed(2)}</span>
                         </div>
                         {[...CATEGORIES.filter(cat=>items.some(i=>i.category===cat)),...(items.some(i=>!CATEGORIES.includes(i.category))?["Smart Cellar"]:[])].filter((cat,idx,arr)=>arr.indexOf(cat)===idx).map(cat=>(
                           <div key={cat} style={{marginBottom:10,marginLeft:8}}>
-                            <div style={{fontFamily:FM,fontSize:9,color:CAT_COLORS[cat]||C.muted,letterSpacing:1,marginBottom:5,display:"flex",alignItems:"center",gap:6}}>
+                            <div style={{fontFamily:FM,fontSize:seniorMode?12:9,color:CAT_COLORS[cat]||C.muted,letterSpacing:1,marginBottom:5,display:"flex",alignItems:"center",gap:6}}>
                               <div style={{width:6,height:6,borderRadius:"50%",background:CAT_COLORS[cat]||C.muted}}/>{cat.toUpperCase()}
                             </div>
                             {items.filter(i=>cat==="Smart Cellar"?!CATEGORIES.includes(i.category):i.category===cat).map(renderShopItem)}
@@ -5703,10 +5703,10 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                     ))}
                     {unpriced.length>0&&(
                       <div style={{marginBottom:18}}>
-                        <div style={{fontFamily:FD,fontSize:15,color:C.muted,marginBottom:8}}>🏷 Not Yet Priced ({unpriced.length})</div>
+                        <div style={{fontFamily:FD,fontSize:seniorMode?19:15,color:C.muted,marginBottom:8}}>🏷 Not Yet Priced ({unpriced.length})</div>
                         {[...CATEGORIES.filter(cat=>unpriced.some(i=>i.category===cat)),...(unpriced.some(i=>!CATEGORIES.includes(i.category))?["Smart Cellar"]:[])].filter((cat,idx,arr)=>arr.indexOf(cat)===idx).map(cat=>(
                           <div key={cat} style={{marginBottom:10,marginLeft:8}}>
-                            <div style={{fontFamily:FM,fontSize:9,color:CAT_COLORS[cat]||C.muted,letterSpacing:1,marginBottom:5,display:"flex",alignItems:"center",gap:6}}>
+                            <div style={{fontFamily:FM,fontSize:seniorMode?12:9,color:CAT_COLORS[cat]||C.muted,letterSpacing:1,marginBottom:5,display:"flex",alignItems:"center",gap:6}}>
                               <div style={{width:6,height:6,borderRadius:"50%",background:CAT_COLORS[cat]||C.muted}}/>{cat.toUpperCase()}
                             </div>
                             {unpriced.filter(i=>cat==="Smart Cellar"?!CATEGORIES.includes(i.category):i.category===cat).map(renderShopItem)}
