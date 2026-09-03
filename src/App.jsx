@@ -7578,24 +7578,85 @@ What can I substitute and do I have what I need?`,
                   <div className="brand">smart-kitchen-opal.vercel.app · Printed {new Date().toLocaleDateString()}</div>
                 </div>
               )}
-              {printModal==="shopping"&&(
+              {printModal==="shopping"&&(()=>{
+                const hasAssigned=shopping.some(i=>i.assignedStore);
+                if(!hasAssigned){
+                  return (
+                  <div>
+                    <div style={{fontSize:22,fontWeight:"bold",marginBottom:4}}>Shopping List</div>
+                    <div style={{fontSize:12,color:"#666",marginBottom:18}}>Smart Kitchen · {new Date().toLocaleDateString()}</div>
+                    {CATEGORIES.filter(cat=>shopping.some(i=>i.category===cat)).map(cat=>(
+                      <div key={cat}>
+                        <div style={{fontSize:11,fontWeight:"bold",textTransform:"uppercase",color:"#888",letterSpacing:1,margin:"14px 0 5px",borderBottom:"1px solid #eee",paddingBottom:3}}>{cat}</div>
+                        {shopping.filter(i=>i.category===cat).map((item,idx)=>(
+                          <div key={idx} style={{display:"flex",alignItems:"center",padding:"6px 0",borderBottom:"1px solid #f5f5f5",fontSize:14}}>
+                            <div style={{width:16,height:16,border:"1.5px solid #999",borderRadius:3,marginRight:12,flexShrink:0}}/>
+                            <span style={{flex:1}}>{item.name}{item.suggestBulk?" 📦":""}</span>
+                            <span style={{color:"#666",fontSize:12}}>{item.qty} {item.unit}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                  );
+                }
+                // Some items have an assigned store -- mirror the on-screen store-grouped view
+                // (store, then category within each store) so a printed or shared list shows
+                // exactly where to buy each item and at what price, not just a flat category list.
+                const priced=shopping.filter(i=>i.assignedStore);
+                const unpriced=shopping.filter(i=>!i.assignedStore);
+                const storeNames=[...new Set(priced.map(i=>i.assignedStore))];
+                const storeGroups=storeNames.map(store=>{
+                  const items=priced.filter(i=>i.assignedStore===store);
+                  const total=items.reduce((sum,i)=>sum+(i.assignedPrice||0),0);
+                  return {store,items,total};
+                }).sort((a,b)=>b.items.length-a.items.length||b.total-a.total);
+                const grandTotal=storeGroups.reduce((s,g)=>s+g.total,0);
+                return (
                 <div>
                   <div style={{fontSize:22,fontWeight:"bold",marginBottom:4}}>Shopping List</div>
-                  <div style={{fontSize:12,color:"#666",marginBottom:18}}>Smart Kitchen · {new Date().toLocaleDateString()}</div>
-                  {CATEGORIES.filter(cat=>shopping.some(i=>i.category===cat)).map(cat=>(
-                    <div key={cat}>
-                      <div style={{fontSize:11,fontWeight:"bold",textTransform:"uppercase",color:"#888",letterSpacing:1,margin:"14px 0 5px",borderBottom:"1px solid #eee",paddingBottom:3}}>{cat}</div>
-                      {shopping.filter(i=>i.category===cat).map((item,idx)=>(
-                        <div key={idx} style={{display:"flex",alignItems:"center",padding:"6px 0",borderBottom:"1px solid #f5f5f5",fontSize:14}}>
-                          <div style={{width:16,height:16,border:"1.5px solid #999",borderRadius:3,marginRight:12,flexShrink:0}}/>
-                          <span style={{flex:1}}>{item.name}{item.suggestBulk?" 📦":""}</span>
-                          <span style={{color:"#666",fontSize:12}}>{item.qty} {item.unit}</span>
+                  <div style={{fontSize:12,color:"#666",marginBottom:4}}>Smart Kitchen · {new Date().toLocaleDateString()}</div>
+                  {storeGroups.length>1&&<div style={{fontSize:12,color:"#666",marginBottom:18}}>{storeGroups.length} stops · ${grandTotal.toFixed(2)} in priced items</div>}
+                  {storeGroups.map(({store,items,total})=>(
+                    <div key={store} style={{marginBottom:20}}>
+                      <div style={{fontSize:16,fontWeight:"bold",color:"#0F8A7A",display:"flex",justifyContent:"space-between",borderBottom:"2px solid #0F8A7A",paddingBottom:4,marginBottom:6}}>
+                        <span>{store}</span><span>{items.length} item{items.length!==1?"s":""} · ${total.toFixed(2)}</span>
+                      </div>
+                      {CATEGORIES.filter(cat=>items.some(i=>i.category===cat)).map(cat=>(
+                        <div key={cat}>
+                          <div style={{fontSize:10,fontWeight:"bold",textTransform:"uppercase",color:"#999",letterSpacing:1,margin:"8px 0 3px"}}>{cat}</div>
+                          {items.filter(i=>i.category===cat).map((item,idx)=>(
+                            <div key={idx} style={{display:"flex",alignItems:"center",padding:"6px 0",borderBottom:"1px solid #f5f5f5",fontSize:14}}>
+                              <div style={{width:16,height:16,border:"1.5px solid #999",borderRadius:3,marginRight:12,flexShrink:0}}/>
+                              <span style={{flex:1}}>{item.name}{item.suggestBulk?" 📦":""}</span>
+                              <span style={{color:"#666",fontSize:12,marginRight:10}}>{item.qty} {item.unit}</span>
+                              <span style={{color:"#0F8A7A",fontSize:12,fontWeight:600}}>${item.assignedPrice?.toFixed(2)}</span>
+                            </div>
+                          ))}
                         </div>
                       ))}
                     </div>
                   ))}
+                  {unpriced.length>0&&(
+                    <div>
+                      <div style={{fontSize:16,fontWeight:"bold",color:"#888",borderBottom:"2px solid #ccc",paddingBottom:4,marginBottom:6}}>Not Yet Priced</div>
+                      {CATEGORIES.filter(cat=>unpriced.some(i=>i.category===cat)).map(cat=>(
+                        <div key={cat}>
+                          <div style={{fontSize:10,fontWeight:"bold",textTransform:"uppercase",color:"#999",letterSpacing:1,margin:"8px 0 3px"}}>{cat}</div>
+                          {unpriced.filter(i=>i.category===cat).map((item,idx)=>(
+                            <div key={idx} style={{display:"flex",alignItems:"center",padding:"6px 0",borderBottom:"1px solid #f5f5f5",fontSize:14}}>
+                              <div style={{width:16,height:16,border:"1.5px solid #999",borderRadius:3,marginRight:12,flexShrink:0}}/>
+                              <span style={{flex:1}}>{item.name}{item.suggestBulk?" 📦":""}</span>
+                              <span style={{color:"#666",fontSize:12}}>{item.qty} {item.unit}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              )}
+                );
+              })()}
             </div>
           </div>
         </div>
