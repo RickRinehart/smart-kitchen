@@ -381,13 +381,89 @@ export default async function handler(req, res) {
 
   const resendKey = process.env.RESEND_API_KEY;
 
-  // Build grouped shopping list
-  const grouped = {};
-  items.forEach(i => {
-    const cat = i.category || 'Other';
-    if (!grouped[cat]) grouped[cat] = [];
-    grouped[cat].push(`${i.qty || 1} ${i.unit || ''} ${i.name}`.trim());
-  });
+  // If items carry an assigned store (set via the Smarter Way to Shop tap-to-assign flow),
+  // mirror the on-screen store-grouped view -- store first, category within each store, with
+  // subtotals and per-item price -- so a shopping partner sees exactly where to buy each item
+  // and what it costs, not just a flat undifferentiated list.
+  const hasAssignedStore = items.some(i => i.assignedStore);
+
+  let listHtml, textBody;
+
+  if (hasAssignedStore) {
+    const priced = items.filter(i => i.assignedStore);
+    const unpriced = items.filter(i => !i.assignedStore);
+    const storeNames = [...new Set(priced.map(i => i.assignedStore))];
+    const storeGroups = storeNames.map(store => {
+      const storeItems = priced.filter(i => i.assignedStore === store);
+      const total = storeItems.reduce((sum, i) => sum + (i.assignedPrice || 0), 0);
+      return { store, items: storeItems, total };
+    }).sort((a, b) => b.items.length - a.items.length || b.total - a.total);
+    const grandTotal = storeGroups.reduce((s, g) => s + g.total, 0);
+
+    const groupByCategory = (list) => {
+      const g = {};
+      list.forEach(i => {
+        const cat = i.category || 'Other';
+        if (!g[cat]) g[cat] = [];
+        g[cat].push(i);
+      });
+      return g;
+    };
+
+    listHtml = `
+      ${storeGroups.length > 1 ? `<div style="font-size:13px;color:#555;margin-bottom:16px;">${storeGroups.length} stops · $${grandTotal.toFixed(2)} in priced items</div>` : ''}
+      ${storeGroups.map(({ store, items: storeItems, total }) => `
+        <div style="margin-bottom:20px;">
+          <div style="font-size:15px;font-weight:bold;color:#0F8A7A;border-bottom:2px solid #0F8A7A;padding-bottom:4px;margin-bottom:8px;display:flex;justify-content:space-between;">
+            <span>${store}</span><span>${storeItems.length} item${storeItems.length !== 1 ? 's' : ''} · $${total.toFixed(2)}</span>
+          </div>
+          ${Object.entries(groupByCategory(storeItems)).map(([cat, list]) => `
+            <div style="margin-bottom:10px;">
+              <div style="font-size:10px;font-weight:bold;text-transform:uppercase;color:#999;letter-spacing:1px;margin-bottom:4px;">${cat}</div>
+              ${list.map(i => `<div style="padding:5px 0;font-size:14px;color:#333;display:flex;justify-content:space-between;">☐ &nbsp;${(i.qty||1)} ${i.unit||''} ${i.name}<span style="color:#0F8A7A;font-weight:600;">$${(i.assignedPrice||0).toFixed(2)}</span></div>`).join('')}
+            </div>
+          `).join('')}
+        </div>
+      `).join('')}
+      ${unpriced.length > 0 ? `
+        <div>
+          <div style="font-size:15px;font-weight:bold;color:#888;border-bottom:2px solid #ccc;padding-bottom:4px;margin-bottom:8px;">Not Yet Priced</div>
+          ${Object.entries(groupByCategory(unpriced)).map(([cat, list]) => `
+            <div style="margin-bottom:10px;">
+              <div style="font-size:10px;font-weight:bold;text-transform:uppercase;color:#999;letter-spacing:1px;margin-bottom:4px;">${cat}</div>
+              ${list.map(i => `<div style="padding:5px 0;font-size:14px;color:#333;">☐ &nbsp;${(i.qty||1)} ${i.unit||''} ${i.name}</div>`).join('')}
+            </div>
+          `).join('')}
+        </div>
+      ` : ''}
+    `;
+
+    textBody = storeGroups.map(({ store, items: storeItems, total }) =>
+      `${store.toUpperCase()} (${storeItems.length} items · $${total.toFixed(2)})\n` +
+      Object.entries(groupByCategory(storeItems)).map(([cat, list]) =>
+        `${cat.toUpperCase()}\n${list.map(i => `  - ${i.qty || 1} ${i.unit || ''} ${i.name} — $${(i.assignedPrice||0).toFixed(2)}`).join('\n')}`
+      ).join('\n')
+    ).join('\n\n') + (unpriced.length > 0 ? `\n\nNOT YET PRICED\n` + Object.entries(groupByCategory(unpriced)).map(([cat, list]) =>
+      `${cat.toUpperCase()}\n${list.map(i => `  - ${i.qty || 1} ${i.unit || ''} ${i.name}`).join('\n')}`
+    ).join('\n') : '');
+  } else {
+    // Build grouped shopping list
+    const grouped = {};
+    items.forEach(i => {
+      const cat = i.category || 'Other';
+      if (!grouped[cat]) grouped[cat] = [];
+      grouped[cat].push(`${i.qty || 1} ${i.unit || ''} ${i.name}`.trim());
+    });
+    listHtml = `${Object.entries(grouped).map(([cat, list]) => `
+      <div style="margin-bottom:16px;">
+        <div style="font-size:11px;font-weight:bold;text-transform:uppercase;color:#888;letter-spacing:1px;border-bottom:1px solid #eee;padding-bottom:4px;margin-bottom:8px;">${cat}</div>
+        ${list.map(item => `<div style="padding:5px 0;font-size:15px;color:#333;">☐ &nbsp;${item}</div>`).join('')}
+      </div>
+    `).join('')}`;
+    textBody = Object.entries(grouped)
+      .map(([cat, list]) => `${cat.toUpperCase()}\n${list.map(i => '  - ' + i).join('\n')}`)
+      .join('\n\n');
+  }
 
   const htmlBody = `
     <div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:24px;">
@@ -397,22 +473,13 @@ export default async function handler(req, res) {
       </div>
       <div style="border:1px solid #e2e6ef;border-top:none;border-radius:0 0 8px 8px;padding:20px;">
         ${toName ? `<p style="color:#555;margin-bottom:16px;">Hi ${toName}, here's your shopping list:</p>` : ''}
-        ${Object.entries(grouped).map(([cat, list]) => `
-          <div style="margin-bottom:16px;">
-            <div style="font-size:11px;font-weight:bold;text-transform:uppercase;color:#888;letter-spacing:1px;border-bottom:1px solid #eee;padding-bottom:4px;margin-bottom:8px;">${cat}</div>
-            ${list.map(item => `<div style="padding:5px 0;font-size:15px;color:#333;">☐ &nbsp;${item}</div>`).join('')}
-          </div>
-        `).join('')}
+        ${listHtml}
         <div style="margin-top:20px;padding-top:16px;border-top:1px solid #eee;font-size:11px;color:#aaa;text-align:center;">
           Sent from Smart Kitchen™ · smart-kitchen-opal.vercel.app
         </div>
       </div>
     </div>
   `;
-
-  const textBody = Object.entries(grouped)
-    .map(([cat, list]) => `${cat.toUpperCase()}\n${list.map(i => '  - ' + i).join('\n')}`)
-    .join('\n\n');
 
   if (!resendKey) {
     // No key configured — return mailto fallback
