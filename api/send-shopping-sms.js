@@ -8,19 +8,50 @@ export default async function handler(req, res) {
   const authToken  = process.env.TWILIO_AUTH_TOKEN;
   const fromPhone  = process.env.TWILIO_PHONE_NUMBER;
 
-  // Build clean SMS text — grouped by category, scannable
-  const grouped = {};
-  items.forEach(i => {
-    const cat = i.category || 'Other';
-    if (!grouped[cat]) grouped[cat] = [];
-    const qty  = i.qty  ? String(i.qty)  : '1';
-    const unit = i.unit ? ' ' + i.unit   : '';
-    grouped[cat].push(`- ${qty}${unit} ${i.name}`.trim());
-  });
+  // If items carry an assigned store, group by store (then category within) with subtotals and
+  // per-item price -- mirrors the on-screen and emailed versions -- otherwise fall back to the
+  // plain category grouping.
+  const hasAssignedStore = items.some(i => i.assignedStore);
+  let listText;
 
-  const listText = Object.entries(grouped)
-    .map(([cat, lines]) => `${cat.toUpperCase()}\n${lines.join('\n')}`)
-    .join('\n\n');
+  const groupByCategory = (list) => {
+    const g = {};
+    list.forEach(i => {
+      const cat = i.category || 'Other';
+      if (!g[cat]) g[cat] = [];
+      const qty  = i.qty  ? String(i.qty)  : '1';
+      const unit = i.unit ? ' ' + i.unit   : '';
+      g[cat].push(`- ${qty}${unit} ${i.name}`.trim() + (i.assignedPrice != null ? ` — $${i.assignedPrice.toFixed(2)}` : ''));
+    });
+    return g;
+  };
+
+  if (hasAssignedStore) {
+    const priced = items.filter(i => i.assignedStore);
+    const unpriced = items.filter(i => !i.assignedStore);
+    const storeNames = [...new Set(priced.map(i => i.assignedStore))];
+    const storeGroups = storeNames.map(store => {
+      const storeItems = priced.filter(i => i.assignedStore === store);
+      const total = storeItems.reduce((sum, i) => sum + (i.assignedPrice || 0), 0);
+      return { store, items: storeItems, total };
+    }).sort((a, b) => b.items.length - a.items.length || b.total - a.total);
+
+    listText = storeGroups.map(({ store, items: storeItems, total }) => {
+      const grouped = groupByCategory(storeItems);
+      return `${store.toUpperCase()} (${storeItems.length} items · $${total.toFixed(2)})\n` +
+        Object.entries(grouped).map(([cat, lines]) => `${cat.toUpperCase()}\n${lines.join('\n')}`).join('\n');
+    }).join('\n\n');
+
+    if (unpriced.length > 0) {
+      const grouped = groupByCategory(unpriced);
+      listText += `\n\nNOT YET PRICED\n` + Object.entries(grouped).map(([cat, lines]) => `${cat.toUpperCase()}\n${lines.join('\n')}`).join('\n');
+    }
+  } else {
+    const grouped = groupByCategory(items);
+    listText = Object.entries(grouped)
+      .map(([cat, lines]) => `${cat.toUpperCase()}\n${lines.join('\n')}`)
+      .join('\n\n');
+  }
 
   const body = `Smart Kitchen Shopping List${fromName ? ' for ' + fromName : ''}:\n\n${listText}\n\n-- Smart Kitchen`;
 
