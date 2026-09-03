@@ -360,7 +360,18 @@ const matchSaleItemToInventoryItem=(saleItemName,inventoryItemName)=>{
   const inv=(inventoryItemName||"").toLowerCase().trim();
   if(!s||!inv||inv.length<3) return false;
   if(s.includes(" or ")||(s.match(/,/g)||[]).length>1) return false; // compound/ambiguous listing — skip
-  return s.includes(inv)||inv.includes(s);
+  // Word-boundary matching, not raw substring: a raw substring test lets a short name match
+  // any word that merely CONTAINS the same letters in sequence -- "Ham" would match "Hammer",
+  // "Shampoo", and "Hamburger", none of which are ham. Splitting into words and requiring the
+  // shorter name's words to all appear as whole words in the other keeps the useful case (a
+  // short inventory name like "Bacon" matching inside a longer branded ad name like "Oscar
+  // Mayer Bacon") while ruling out matches on unrelated words that just share letters.
+  const words=str=>str.replace(/[^a-z0-9\s]/g," ").split(/\s+/).filter(Boolean);
+  const sWords=words(s),invWords=words(inv);
+  if(!sWords.length||!invWords.length) return false;
+  const shorter=sWords.length<=invWords.length?sWords:invWords;
+  const longer=sWords.length<=invWords.length?invWords:sWords;
+  return shorter.every(w=>longer.includes(w));
 };
 // Extracts a numeric dollar amount from a price string like "$2.99" — used to compute real savings,
 // not just flag a match. Returns null if unparseable rather than guessing.
