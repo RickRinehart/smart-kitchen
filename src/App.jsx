@@ -1890,7 +1890,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [scanPreview,setScanPreview]=useState(null);
   const [scanB64,setScanB64]=useState(null);
   const [scanMime,setScanMime]=useState("image/jpeg");
-  const [scanResults,setScanResults]=useState(null);const [changeMealModal,setChangeMealModal]=useState(null);const [pairDrinkMeal,setPairDrinkMeal]=useState(null);const [pairDrinkResult,setPairDrinkResult]=useState(null);const [pairDrinkLoading,setPairDrinkLoading]=useState(false);const [pairDrinkCellar,setPairDrinkCellar]=useState(null);const [pairDrinkCellarLoading,setPairDrinkCellarLoading]=useState(false);const [pairDrinkMarkedBottle,setPairDrinkMarkedBottle]=useState(null);const [pairDrinkMarkStatus,setPairDrinkMarkStatus]=useState(null);const [cellarPullStatus,setCellarPullStatus]=useState(null);const [expandedDay,setExpandedDay]=useState(null);const [changeMealRequest,setChangeMealRequest]=useState("");const [changeMealLoading,setChangeMealLoading]=useState(false);
+  const [scanResults,setScanResults]=useState(null);const [changeMealModal,setChangeMealModal]=useState(null);const [pairDrinkMeal,setPairDrinkMeal]=useState(null);const [pairDrinkResult,setPairDrinkResult]=useState(null);const [pairDrinkLoading,setPairDrinkLoading]=useState(false);const [pairDrinkCellar,setPairDrinkCellar]=useState(null);const [pairDrinkCellarLoading,setPairDrinkCellarLoading]=useState(false);const [pairDrinkMarkedBottle,setPairDrinkMarkedBottle]=useState(null);const [pairDrinkMarkStatus,setPairDrinkMarkStatus]=useState(null);const [cellarPullStatus,setCellarPullStatus]=useState(null);const [swtsPullStatus,setSwtsPullStatus]=useState(null);const [expandedDay,setExpandedDay]=useState(null);const [changeMealRequest,setChangeMealRequest]=useState("");const [changeMealLoading,setChangeMealLoading]=useState(false);
   const [scanStage,setScanStage]=useState("upload");
   const [scanMode,setScanMode]=useState("shelf");
   const [saleItems,setSaleItems]=useState(()=>{try{return JSON.parse(localStorage.getItem("sk_saleItems")||"[]");}catch{return [];}});
@@ -5629,6 +5629,36 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
     </div>
   );
 })()}
+{user&&(
+  <button style={{width:"100%",marginBottom:14,padding:seniorMode?"12px 16px":"8px 14px",background:"#14b8a611",border:"1px solid #14b8a644",borderRadius:10,color:"#14b8a6",fontFamily:FM,fontWeight:700,fontSize:seniorMode?15:12,cursor:swtsPullStatus==="saving"?"not-allowed":"pointer",opacity:swtsPullStatus==="saving"?0.6:1,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}
+  onClick={async()=>{
+    if(swtsPullStatus==="saving")return;
+    setSwtsPullStatus("saving");
+    try{
+      const {data}=await supabase.from("user_data").select("shopping_list").eq("user_id",user.id).single();
+      const cloudList=data?.shopping_list||[];
+      // SWTS pushes directly into this same column, so the cloud list already contains
+      // both sides merged -- just pull in whatever's there from SWTS that this device's
+      // local state hasn't picked up yet (e.g. because it hasn't refreshed since the push).
+      const swtsItems=cloudList.filter(ci=>ci.source==="Smarter Way to Shop");
+      if(swtsItems.length===0){setSwtsPullStatus("empty");setTimeout(()=>setSwtsPullStatus(null),3000);return;}
+      const toAdd=swtsItems.filter(ci=>!shopping.some(si=>wordsOverlap(ci.name,si.name)));
+      if(toAdd.length>0){
+        setShopping(p=>[...p,...toAdd]);
+        setSwtsPullStatus("done:"+toAdd.length);
+      }else{
+        setSwtsPullStatus("already");
+      }
+    }catch(e){
+      console.error("SWTS pull error:",e);
+      setSwtsPullStatus("error");
+    }
+    setTimeout(()=>setSwtsPullStatus(null),4000);
+  }}>
+    <span style={{fontSize:16}}>🛒</span>
+    <span>{swtsPullStatus==="saving"?"⏳ Checking…":swtsPullStatus?.startsWith("done:")?"✓ "+swtsPullStatus.split(":")[1]+" item"+(swtsPullStatus.split(":")[1]!=="1"?"s":"")+" pulled in!":swtsPullStatus==="empty"?"🛒 Nothing sent from Smarter Way to Shop yet":swtsPullStatus==="already"?"✓ Already on List":swtsPullStatus==="error"?"✕ Could not check":"🛒 Pull from Smarter Way to Shop"}</span>
+  </button>
+)}
 {user&&(
   <button style={{width:"100%",marginBottom:14,padding:seniorMode?"12px 16px":"8px 14px",background:"#7c3aed11",border:"1px solid #7c3aed44",borderRadius:10,color:"#7c3aed",fontFamily:FM,fontWeight:700,fontSize:seniorMode?15:12,cursor:cellarPullStatus==="saving"?"not-allowed":"pointer",opacity:cellarPullStatus==="saving"?0.6:1,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}
   onClick={async()=>{if(cellarPullStatus==="saving")return;setCellarPullStatus("saving");try{const {data}=await supabase.from("profiles").select("sc_cloud_data").eq("id",user.id).single();if(data?.sc_cloud_data){const parsed=typeof data.sc_cloud_data==="string"?JSON.parse(data.sc_cloud_data):data.sc_cloud_data;const cellarList=parsed.shoppingList||[];if(cellarList.length===0){setCellarPullStatus("empty");setTimeout(()=>setCellarPullStatus(null),3000);return;}const toAdd=cellarList.filter(ci=>!shopping.some(si=>(si.name||"").toLowerCase()===(ci.name||"").toLowerCase()));if(toAdd.length>0){setShopping(p=>[...p,...toAdd.map(ci=>({name:ci.name,qty:1,unit:"bottle",category:"Smart Cellar",checked:false,source:"Smart Cellar Advisor"}))]);setCellarPullStatus("done");}else{setCellarPullStatus("already");}}else{setCellarPullStatus("empty");}}catch(e){console.error("Cellar pull error:",e);setCellarPullStatus("error");}setTimeout(()=>setCellarPullStatus(null),3000);}}>
