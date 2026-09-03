@@ -5635,7 +5635,8 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
     if(swtsPullStatus==="saving")return;
     setSwtsPullStatus("saving");
     try{
-      const {data}=await supabase.from("user_data").select("shopping_list").eq("user_id",user.id).single();
+      const {data,error}=await supabase.from("user_data").select("shopping_list").eq("user_id",user.id).single();
+      if(error) throw error;
       const cloudList=data?.shopping_list||[];
       // SWTS pushes directly into this same column, so the cloud list already contains
       // both sides merged -- just pull in whatever's there from SWTS that this device's
