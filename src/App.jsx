@@ -367,7 +367,12 @@ const matchSaleItemToInventoryItem=(saleItemName,inventoryItemName)=>{
   // short inventory name like "Bacon" matching inside a longer branded ad name like "Oscar
   // Mayer Bacon") while ruling out matches on unrelated words that just share letters.
   const words=str=>str.replace(/[^a-z0-9\s]/g," ").split(/\s+/).filter(Boolean);
-  const sWords=words(s),invWords=words(inv);
+  // Tolerate simple plural/singular mismatches ("Breast" vs "Breasts", "Cracker" vs "Crackers")
+  // -- grocery names never consistently agree on singular vs plural, and without this, an exact
+  // word match would wrongly reject "Chicken Breast" against an ad for "Chicken Breasts".
+  // Skips short words to avoid over-stripping (e.g. doesn't turn "gas" into "ga").
+  const norm=w=>w.length>3&&w.endsWith("s")?w.slice(0,-1):w;
+  const sWords=words(s).map(norm),invWords=words(inv).map(norm);
   if(!sWords.length||!invWords.length) return false;
   const shorter=sWords.length<=invWords.length?sWords:invWords;
   const longer=sWords.length<=invWords.length?invWords:sWords;
