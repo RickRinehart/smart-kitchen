@@ -1545,6 +1545,15 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [expandedIngDay,setExpandedIngDay]=useState(null);
   const [expandedShopSaleSection,setExpandedShopSaleSection]=useState(null);
   const [shopGroupMode,setShopGroupMode]=useState("category");
+  const [mperksEnabled,setMperksEnabled]=useState(()=>{try{return localStorage.getItem("sk_mperksEnabled")==="1";}catch{return false;}});
+  const [mperksInfoOpen,setMperksInfoOpen]=useState(false);
+  useEffect(()=>{try{localStorage.setItem("sk_mperksEnabled",mperksEnabled?"1":"0");}catch{}},[mperksEnabled]);
+  // mPerks estimate: 1% is the flat, guaranteed rate -- $10 off in-store at 10,000 points on the
+  // $1,000 spent to earn them. Same rate SWTS uses, so the two apps stay consistent. Gas-tier
+  // redemption can be worth more for someone with a bigger tank, but that varies by vehicle and
+  // isn't guaranteed the way the in-store $10 redemption is -- see Learn More for details.
+  const isMeijer=(storeName)=>(storeName||"").toLowerCase().includes("meijer");
+  const mperksPrice=(price)=>price==null?null:+(price*(1-0.01)).toFixed(2);
   const [shareSelected,setShareSelected]=useState({});// {recipeKey: recipeObj}
   const [shareMode,setShareMode]=useState(false);
   const [showShareModal,setShowShareModal]=useState(false);
@@ -1951,7 +1960,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
       <div key={gi} onClick={()=>setShopping(p=>p.map((si,sii)=>sii===gi?{...si,checked:!si.checked}:si))}
         style={{background:C.card,border:"1px solid "+C.border,borderRadius:10,padding:seniorMode?"16px 18px":"10px 14px",marginBottom:seniorMode?10:6,display:"flex",alignItems:"center",gap:12,cursor:"pointer",opacity:item.checked?0.45:1,transition:"opacity 0.2s"}}>
         <div style={{width:seniorMode?28:18,height:seniorMode?28:18,borderRadius:4,border:"2px solid "+(item.checked?C.green:C.border),background:item.checked?C.green:"transparent",display:"flex",alignItems:"center",justifyContent:"center",fontSize:seniorMode?16:11,flexShrink:0}}>{item.checked&&"✓"}</div>
-        <div style={{flex:1,fontSize:seniorMode?18:13,fontWeight:seniorMode?600:400,lineHeight:1.4,textDecoration:item.checked?"line-through":"none"}}>{item.name}{item.assignedStore&&<div style={{fontSize:10,color:"#14b8a6",fontFamily:FM,fontWeight:600,marginTop:2}}>🛒 {item.assignedStore}{item.assignedPrice!=null?" — $"+item.assignedPrice.toFixed(2):""}</div>}</div>
+        <div style={{flex:1,fontSize:seniorMode?18:13,fontWeight:seniorMode?600:400,lineHeight:1.4,textDecoration:item.checked?"line-through":"none"}}>{item.name}{item.assignedStore&&<div style={{fontSize:10,color:"#14b8a6",fontFamily:FM,fontWeight:600,marginTop:2}}>🛒 {item.assignedStore}{item.assignedPrice!=null?" — $"+item.assignedPrice.toFixed(2):""}{mperksEnabled&&isMeijer(item.assignedStore)&&item.assignedPrice!=null&&<span style={{color:"#5eead4"}}> · ${mperksPrice(item.assignedPrice).toFixed(2)} w/ mPerks (est.)</span>}</div>}</div>
         {(()=>{const recallMatch=shoppingListRecallAlerts.find(a=>(a.matched_item_name||"").toLowerCase()===(item.name||"").toLowerCase());if(!recallMatch)return null;const isCritical=recallMatch.severity==="critical";const isPending=recallMatch.severity==="pending";const bg=isCritical?"#4a0e0e":isPending?"#2e1a4a":"#3a2a0e";const fg=isCritical?"#fecaca":isPending?"#ddd6fe":"#fde68a";const bd=isCritical?"#ef4444":isPending?"#8b5cf6":"#d97706";return(<span onClick={e=>{e.stopPropagation();setActiveRecallDetail([recallMatch]);}} title="Possible FDA recall match — tap for details" style={{fontSize:11,fontWeight:700,padding:"3px 8px",borderRadius:20,background:bg,color:fg,border:"1px solid "+bd,cursor:"pointer",flexShrink:0}}>{isCritical?"🚨":isPending?"🆕":"⚠️"} recall?</span>);})()}
         {item.suggestBulk&&<span style={bTag(C.orange)}>📦 bulk</span>}
         <div style={{fontFamily:FM,fontSize:12,color:C.muted}}>{item.qty} {item.unit}</div>
@@ -5630,12 +5639,28 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
   <div style={{background:"#0a1a17",border:"1px solid #14b8a6",borderRadius:12,padding:seniorMode?"16px 20px":"12px 16px",marginBottom:14}}>
     <div style={{fontFamily:FD,fontSize:seniorMode?19:14,color:"#14b8a6"}}>🛒 Smarter Way to Shop — {shoppingAdMatches.length} item{shoppingAdMatches.length!==1?"s":""} on your list found on sale</div>
     <div style={{fontFamily:FM,fontSize:seniorMode?14:10,color:"#5eead4",marginTop:2}}>Tap an item to assign that store + price to your list</div>
+    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:8,paddingTop:8,borderTop:"1px solid #14b8a633"}}>
+      <label style={{display:"flex",alignItems:"center",gap:6,cursor:"pointer",fontSize:seniorMode?14:11,color:"#d1d5db",fontFamily:FM}}>
+        <input type="checkbox" checked={mperksEnabled} onChange={e=>setMperksEnabled(e.target.checked)}/>
+        💳 Show mPerks estimate on Meijer prices
+      </label>
+      <button onClick={()=>setMperksInfoOpen(o=>!o)} style={{background:"transparent",border:"none",color:"#14b8a6",fontSize:seniorMode?13:10,cursor:"pointer",fontWeight:700}}>{mperksInfoOpen?"Hide":"Learn More"}</button>
+    </div>
+    {mperksInfoOpen&&(
+      <div style={{marginTop:6,paddingTop:6,borderTop:"1px solid #14b8a633",fontSize:seniorMode?13:10,color:"#9ca3af",lineHeight:1.6}}>
+        The 1% estimate is based on the flat $10-off-in-store reward at 10,000 mPerks points — $10 on the $1,000 spent to earn it. It's the standard because it's guaranteed and the same for every member, whether you drive a gas vehicle, an EV, or don't drive at all.
+        <br/><br/>
+        If you do drive a gas vehicle, you can get more value redeeming points at the pump instead: 1,000 points gets 10¢/gal off, up to 10,000 points for $1/gal off (the maximum tier), good for up to 30 gallons per fill-up — worth as much as $30 on a full tank for a larger vehicle. Which is worth more to you depends on your tank size and how full it is when you fill.
+        <br/><br/>
+        <a href="https://www.meijer.com/shopping/mPerks.html" target="_blank" rel="noopener noreferrer" style={{color:"#14b8a6",fontWeight:700}}>Sign up for mPerks →</a>
+      </div>
+    )}
     {deepDiscounts.length>0&&(
       <div style={{marginTop:8,paddingTop:8,borderTop:"1px solid #14b8a633"}}>
         <div style={{fontFamily:FM,fontSize:seniorMode?14:10,color:"#f59e0b",letterSpacing:0.4,marginBottom:4,fontWeight:700}}>⚡ DEEP DISCOUNT — {deepDiscounts.length} ITEM{deepDiscounts.length!==1?"S":""}{deepDiscounts.some(m=>m.inventoryModel==="closeout_limited")?" · LIMITED QUANTITIES":""}</div>
         {(expandedShopSaleSection==="deep"?deepDiscounts:deepDiscounts.slice(0,6)).map((m,i)=>{
           const isAssigned=shopping.some(si=>wordsOverlap(m.inventoryItemName,si.name)&&si.assignedStore===m.storeName);
-          return (<div key={i} onClick={()=>assignSaleMatchToShopping(m)} style={{fontSize:seniorMode?16:11,color:"#d1d5db",fontFamily:FM,padding:seniorMode?"6px 0":"3px 0",cursor:"pointer",lineHeight:seniorMode?1.5:1.3}}>{isAssigned?"✓":"•"} <strong style={{color:"#fff"}}>{m.inventoryItemName}</strong> at {m.storeName} — {m.deepDiscountPct}% off{m.inventoryModel==="closeout_limited"&&<span style={{color:"#f59e0b"}}> (limited quantities)</span>}{m.perLbPrice&&<span style={{color:"#f59e0b"}}> · ${m.rawAdPrice.toFixed(2)}{m.unitSize?" ("+m.unitSize+")":""} ≈ ${m.perLbPrice.toFixed(2)}/lb</span>}</div>);
+          return (<div key={i} onClick={()=>assignSaleMatchToShopping(m)} style={{fontSize:seniorMode?16:11,color:"#d1d5db",fontFamily:FM,padding:seniorMode?"6px 0":"3px 0",cursor:"pointer",lineHeight:seniorMode?1.5:1.3}}>{isAssigned?"✓":"•"} <strong style={{color:"#fff"}}>{m.inventoryItemName}</strong> at {m.storeName} — {m.deepDiscountPct}% off{m.inventoryModel==="closeout_limited"&&<span style={{color:"#f59e0b"}}> (limited quantities)</span>}{m.perLbPrice&&<span style={{color:"#f59e0b"}}> · ${m.rawAdPrice.toFixed(2)}{m.unitSize?" ("+m.unitSize+")":""} ≈ ${m.perLbPrice.toFixed(2)}/lb</span>}{mperksEnabled&&isMeijer(m.storeName)&&<span style={{color:"#14b8a6"}}> · ${mperksPrice(m.rawAdPrice).toFixed(2)} w/ mPerks (est.)</span>}</div>);
         })}
         {deepDiscounts.length>6&&<button onClick={()=>setExpandedShopSaleSection(expandedShopSaleSection==="deep"?null:"deep")} style={{background:"transparent",border:"none",color:"#14b8a6",fontFamily:FM,fontSize:seniorMode?15:11,cursor:"pointer",padding:seniorMode?"8px 0":"4px 0",fontWeight:600}}>{expandedShopSaleSection==="deep"?"▲ Show less":"▼ Show all "+deepDiscounts.length}</button>}
       </div>
@@ -5645,7 +5670,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
         <div style={{fontFamily:FM,fontSize:seniorMode?14:10,color:"#22c55e",letterSpacing:0.4,marginBottom:4,fontWeight:700}}>💰 BELOW YOUR USUAL PRICE — {belowAverage.length} ITEM{belowAverage.length!==1?"S":""}</div>
         {(expandedShopSaleSection==="below"?belowAverage:belowAverage.slice(0,6)).map((m,i)=>{
           const isAssigned=shopping.some(si=>wordsOverlap(m.inventoryItemName,si.name)&&si.assignedStore===m.storeName);
-          return (<div key={i} onClick={()=>assignSaleMatchToShopping(m)} style={{fontSize:seniorMode?16:11,color:"#d1d5db",fontFamily:FM,padding:seniorMode?"6px 0":"3px 0",cursor:"pointer",lineHeight:seniorMode?1.5:1.3}}>{isAssigned?"✓":"•"} <strong style={{color:"#fff"}}>{m.inventoryItemName}</strong> at {m.storeName} — ${m.comparableAdPrice?.toFixed(2)} vs. your usual ${m.avgUnitPrice?.toFixed(2)} (save ${m.priceDelta.toFixed(2)}){m.perLbPrice&&<span style={{color:"#22c55e"}}> · {m.unitSize?"("+m.unitSize+") ":""}≈ ${m.perLbPrice.toFixed(2)}/lb</span>}</div>);
+          return (<div key={i} onClick={()=>assignSaleMatchToShopping(m)} style={{fontSize:seniorMode?16:11,color:"#d1d5db",fontFamily:FM,padding:seniorMode?"6px 0":"3px 0",cursor:"pointer",lineHeight:seniorMode?1.5:1.3}}>{isAssigned?"✓":"•"} <strong style={{color:"#fff"}}>{m.inventoryItemName}</strong> at {m.storeName} — ${m.comparableAdPrice?.toFixed(2)} vs. your usual ${m.avgUnitPrice?.toFixed(2)} (save ${m.priceDelta.toFixed(2)}){m.perLbPrice&&<span style={{color:"#22c55e"}}> · {m.unitSize?"("+m.unitSize+") ":""}≈ ${m.perLbPrice.toFixed(2)}/lb</span>}{mperksEnabled&&isMeijer(m.storeName)&&<span style={{color:"#14b8a6"}}> · ${mperksPrice(m.comparableAdPrice).toFixed(2)} w/ mPerks (est.)</span>}</div>);
         })}
         {belowAverage.length>6&&<button onClick={()=>setExpandedShopSaleSection(expandedShopSaleSection==="below"?null:"below")} style={{background:"transparent",border:"none",color:"#14b8a6",fontFamily:FM,fontSize:seniorMode?15:11,cursor:"pointer",padding:seniorMode?"8px 0":"4px 0",fontWeight:600}}>{expandedShopSaleSection==="below"?"▲ Show less":"▼ Show all "+belowAverage.length}</button>}
       </div>
@@ -5655,7 +5680,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
         <div style={{fontFamily:FM,fontSize:seniorMode?14:10,color:"#9ca3af",letterSpacing:0.4,marginBottom:4,fontWeight:700}}>ON SALE — {plainMatches.length} ITEM{plainMatches.length!==1?"S":""}</div>
         {(expandedShopSaleSection==="plain"?plainMatches:plainMatches.slice(0,6)).map((m,i)=>{
           const isAssigned=shopping.some(si=>wordsOverlap(m.inventoryItemName,si.name)&&si.assignedStore===m.storeName);
-          return (<div key={i} onClick={()=>assignSaleMatchToShopping(m)} style={{fontSize:seniorMode?16:11,color:"#d1d5db",fontFamily:FM,padding:seniorMode?"6px 0":"3px 0",cursor:"pointer",lineHeight:seniorMode?1.5:1.3}}>{isAssigned?"✓":"•"} <strong style={{color:"#fff"}}>{m.inventoryItemName}</strong> at {m.storeName}{m.rawAdPrice?" — $"+m.rawAdPrice.toFixed(2):""}{m.perLbPrice&&<span style={{color:"#14b8a6"}}> {m.unitSize?"("+m.unitSize+") ":""}≈ ${m.perLbPrice.toFixed(2)}/lb</span>}</div>);
+          return (<div key={i} onClick={()=>assignSaleMatchToShopping(m)} style={{fontSize:seniorMode?16:11,color:"#d1d5db",fontFamily:FM,padding:seniorMode?"6px 0":"3px 0",cursor:"pointer",lineHeight:seniorMode?1.5:1.3}}>{isAssigned?"✓":"•"} <strong style={{color:"#fff"}}>{m.inventoryItemName}</strong> at {m.storeName}{m.rawAdPrice?" — $"+m.rawAdPrice.toFixed(2):""}{m.perLbPrice&&<span style={{color:"#14b8a6"}}> {m.unitSize?"("+m.unitSize+") ":""}≈ ${m.perLbPrice.toFixed(2)}/lb</span>}{mperksEnabled&&isMeijer(m.storeName)&&m.rawAdPrice&&<span style={{color:"#14b8a6"}}> · ${mperksPrice(m.rawAdPrice).toFixed(2)} w/ mPerks (est.)</span>}</div>);
         })}
         {plainMatches.length>6&&<button onClick={()=>setExpandedShopSaleSection(expandedShopSaleSection==="plain"?null:"plain")} style={{background:"transparent",border:"none",color:"#14b8a6",fontFamily:FM,fontSize:seniorMode?15:11,cursor:"pointer",padding:seniorMode?"8px 0":"4px 0",fontWeight:600}}>{expandedShopSaleSection==="plain"?"▲ Show less":"▼ Show all "+plainMatches.length}</button>}
       </div>
@@ -5747,10 +5772,11 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                   // per-store economics below.
                   const priced=shopping.filter(i=>i.assignedStore);
                   const unpriced=shopping.filter(i=>!i.assignedStore);
+                  const effectivePrice=(i)=>(mperksEnabled&&isMeijer(i.assignedStore)&&i.assignedPrice!=null)?mperksPrice(i.assignedPrice):(i.assignedPrice||0);
                   const storeNames=[...new Set(priced.map(i=>i.assignedStore))];
                   const storeTotals=storeNames.map(store=>{
                     const items=priced.filter(i=>i.assignedStore===store);
-                    const total=items.reduce((sum,i)=>sum+(i.assignedPrice||0),0);
+                    const total=items.reduce((sum,i)=>sum+effectivePrice(i),0);
                     return {store,items,total};
                   }).sort((a,b)=>b.items.length-a.items.length||b.total-a.total);
                   const primary=storeTotals[0];
@@ -5763,7 +5789,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                           <strong style={{color:"#fff"}}>{primary.store}</strong> covers {primary.items.length} of your {priced.length} priced items (${primary.total.toFixed(2)}).
                           {storeTotals.length>1&&<> The other {storeTotals.length-1} store{storeTotals.length>2?"s":""} together cover {priced.length-primary.items.length} item{priced.length-primary.items.length!==1?"s":""} for ${(splitTotal-primary.total).toFixed(2)} — that's the savings on the table if you make the extra stop{storeTotals.length>2?"s":""}.</>}
                         </div>
-                        <div style={{fontFamily:FM,fontSize:seniorMode?13:10,color:C.dim,marginTop:6}}>Based only on prices you've assigned below — not a drive-time or fuel-cost estimate. You know best whether the extra stop is worth your time.</div>
+                        <div style={{fontFamily:FM,fontSize:seniorMode?13:10,color:C.dim,marginTop:6}}>Based only on prices you've assigned below{mperksEnabled?" (Meijer totals include the mPerks estimate)":""} — not a drive-time or fuel-cost estimate. You know best whether the extra stop is worth your time.</div>
                       </div>
                     )}
                     {storeTotals.map(({store,items,total})=>(
