@@ -2097,6 +2097,22 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
     }
   },[mealPlan]);
   useEffect(()=>{try{localStorage.setItem("sk_shoppingList",JSON.stringify(shopping));}catch{}},[shopping]);
+  // Prep Veg (Mixed Sauté Blend) low-stock trigger: whenever the bag count drops below 3, ensure
+  // the fresh ingredients for the next batch (onion, celery, bell peppers) are on the shopping
+  // list. Watches inventory reactively rather than hooking into each individual place the blend
+  // gets decremented (cooking, Made It, manual +/- adjustment) so it can't be missed by whichever
+  // path fires. Idempotent -- safe to re-check on every inventory change since the dedup guard
+  // means it only adds items that aren't already on the list.
+  useEffect(()=>{
+    const veg=inventory.find(i=>i.vegType==="sauteBlend");
+    if(!veg||veg.qty>=3) return;
+    const restockItems=["Onions","Celery","Bell Peppers"];
+    setShopping(prev=>{
+      const toAdd=restockItems.filter(name=>!prev.some(s=>(s.name||"").toLowerCase()===name.toLowerCase()));
+      if(toAdd.length===0) return prev;
+      return [...prev,...toAdd.map(name=>({name,qty:1,unit:"",category:"Produce",checked:false,source:"Prep Veg — running low"}))];
+    });
+  },[inventory]);
   useEffect(()=>{try{localStorage.setItem("sk_saleItems",JSON.stringify(saleItems));}catch{}},[saleItems]);
   // Automatic week rollover — runs once on load. Promotes Preview items to current once their
   // start date arrives, and drops items whose end date has already passed, so stale sale data
