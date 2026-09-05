@@ -1899,7 +1899,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [scanPreview,setScanPreview]=useState(null);
   const [scanB64,setScanB64]=useState(null);
   const [scanMime,setScanMime]=useState("image/jpeg");
-  const [scanResults,setScanResults]=useState(null);const [changeMealModal,setChangeMealModal]=useState(null);const [pairDrinkMeal,setPairDrinkMeal]=useState(null);const [pairDrinkResult,setPairDrinkResult]=useState(null);const [pairDrinkLoading,setPairDrinkLoading]=useState(false);const [pairDrinkCellar,setPairDrinkCellar]=useState(null);const [pairDrinkCellarLoading,setPairDrinkCellarLoading]=useState(false);const [pairDrinkMarkedBottle,setPairDrinkMarkedBottle]=useState(null);const [pairDrinkMarkStatus,setPairDrinkMarkStatus]=useState(null);const [cellarPullStatus,setCellarPullStatus]=useState(null);const [swtsPullStatus,setSwtsPullStatus]=useState(null);const [expandedDay,setExpandedDay]=useState(null);const [changeMealRequest,setChangeMealRequest]=useState("");const [changeMealLoading,setChangeMealLoading]=useState(false);
+  const [scanResults,setScanResults]=useState(null);const [changeMealModal,setChangeMealModal]=useState(null);const [pairDrinkMeal,setPairDrinkMeal]=useState(null);const [pairDrinkResult,setPairDrinkResult]=useState(null);const [pairDrinkLoading,setPairDrinkLoading]=useState(false);const [pairDrinkCellar,setPairDrinkCellar]=useState(null);const [pairDrinkCellarLoading,setPairDrinkCellarLoading]=useState(false);const [pairDrinkMarkedBottle,setPairDrinkMarkedBottle]=useState(null);const [pairDrinkMarkStatus,setPairDrinkMarkStatus]=useState(null);const [cellarPullStatus,setCellarPullStatus]=useState(null);const [swtsPullStatus,setSwtsPullStatus]=useState(null);const [swtsSalePullStatus,setSwtsSalePullStatus]=useState(null);const [expandedDay,setExpandedDay]=useState(null);const [changeMealRequest,setChangeMealRequest]=useState("");const [changeMealLoading,setChangeMealLoading]=useState(false);
   const [scanStage,setScanStage]=useState("upload");
   const [scanMode,setScanMode]=useState("shelf");
   const [saleItems,setSaleItems]=useState(()=>{try{return JSON.parse(localStorage.getItem("sk_saleItems")||"[]");}catch{return [];}});
@@ -5332,6 +5332,28 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
 {/* == MEAL PLAN == */}
         {!loading&&tab==="mealplan"&&(
           <div>
+            {user&&(
+              <button style={{width:"100%",marginBottom:14,padding:seniorMode?"12px 16px":"8px 14px",background:"#f59e0b11",border:"1px solid #f59e0b44",borderRadius:10,color:"#f59e0b",fontFamily:FM,fontWeight:700,fontSize:seniorMode?15:12,cursor:swtsSalePullStatus==="saving"?"not-allowed":"pointer",opacity:swtsSalePullStatus==="saving"?0.6:1,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}
+              onClick={async()=>{
+                if(swtsSalePullStatus==="saving")return;
+                setSwtsSalePullStatus("saving");
+                try{
+                  const {data,error}=await supabase.from("user_data").select("swts_sale_items").eq("user_id",user.id).single();
+                  if(error) throw error;
+                  const cloudItems=(data?.swts_sale_items||[]).filter(i=>i.source==="swts");
+                  if(cloudItems.length===0){setSwtsSalePullStatus("empty");setTimeout(()=>setSwtsSalePullStatus(null),3000);return;}
+                  setSaleItems(prev=>[...prev.filter(i=>i.source!=="swts"),...cloudItems]);
+                  setSwtsSalePullStatus("done:"+cloudItems.length);
+                }catch(e){
+                  console.error("SWTS sale items pull error:",e);
+                  setSwtsSalePullStatus("error");
+                }
+                setTimeout(()=>setSwtsSalePullStatus(null),4000);
+              }}>
+                <span style={{fontSize:16}}>🏷</span>
+                <span>{swtsSalePullStatus==="saving"?"⏳ Checking…":swtsSalePullStatus?.startsWith("done:")?"✓ "+swtsSalePullStatus.split(":")[1]+" deal"+(swtsSalePullStatus.split(":")[1]!=="1"?"s":"")+" pulled in!":swtsSalePullStatus==="empty"?"🏷 Nothing sent from Smarter Way to Shop yet":swtsSalePullStatus==="error"?"✕ Could not check":"🏷 Pull Deals from Smarter Way to Shop"}</span>
+              </button>
+            )}
             {saleItems.length>0&&(()=>{
               const active=saleItems.filter(i=>i.effectiveWeek!=="preview");
               const preview=saleItems.filter(i=>i.effectiveWeek==="preview");
