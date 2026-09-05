@@ -4283,6 +4283,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       }catch(e){console.error("Cellar cooking deduction error:",e);}
     }
     setActiveRecipe(null);
+    setFrViewRecipe(null);
     setCookedConfirm({name:r.name,cellarNote,deductionSummary});
   };
 
@@ -6668,7 +6669,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
       )}
       {/* == COOKED CONFIRM == */}
       {cookedConfirm&&(
-        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300,padding:16}} onClick={()=>setCookedConfirm(null)}>
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:600,padding:16}} onClick={()=>setCookedConfirm(null)}>
           <div style={{background:C.card,border:"1px solid "+C.green+"55",borderRadius:16,padding:26,maxWidth:380,width:"100%",textAlign:"center",maxHeight:"85vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
             <div style={{fontSize:38,marginBottom:10}}>🍳</div>
             <div style={{fontFamily:FD,fontSize:20,color:C.green,marginBottom:8}}>Cooked!</div>
