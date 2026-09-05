@@ -4123,10 +4123,24 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     if(!mealPlan.length) return;
     setLoading(true); setLoadMsg("Building shopping list…");
     try{
+      // Verify every day against its full recipe first -- the meal-plan generation's own
+      // shoppingNeeded/ingredients summary is a lighter, earlier estimate, and is the only way an
+      // ingredient can get missed the way a compact day card and its full recipe once disagreed.
+      // Built as a local cache (not just reading fetchedRecipeCache state) since React state
+      // updates from the fetch loop below wouldn't be visible yet within this same function call.
+      const localCache={...fetchedRecipeCache};
+      const daysNeedingFetch=mealPlan.filter(d=>!localCache[d.meal]);
+      for(let i=0;i<daysNeedingFetch.length;i++){
+        const day=daysNeedingFetch[i];
+        setLoadMsg(`Verifying recipe ${i+1} of ${daysNeedingFetch.length}: ${day.meal}…`);
+        const ingredients=await fetchRecipeIngredientsForCache(day);
+        if(ingredients) localCache[day.meal]=ingredients;
+      }
+      setLoadMsg("Building shopping list…");
       // Re-check against current inventory before consolidating -- d.shoppingNeeded is a snapshot
       // written whenever that meal was planned/regenerated, and goes stale the moment inventory
       // changes afterward (restock, receipt scan, manual add). liveNeeded() re-filters it live.
-      const needed=mealPlan.flatMap(d=>mealPlanStillNeeded(d));
+      const needed=mealPlan.flatMap(d=>mealPlanStillNeeded(d,localCache));
       const raw=await callClaude({
         system:"Return ONLY a JSON array. No other text. Start with [ end with ]. Each: {name,qty,unit,category,checked,suggestBulk}. category is Protein Produce Dairy Pantry Grains Spices Frozen Condiments or Other. checked is false. suggestBulk is boolean.",
         prompt:"Consolidate this shopping list for a family of "+activeProfiles.length+": "+JSON.stringify(needed),
@@ -4216,7 +4230,8 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
   // by a different meal (e.g. Cab Stew Beef) would never surface as needed. This merges both
   // sources so newly-depleted ingredients show up too, while still preserving qty/unit for the
   // ones that were already flagged as missing.
-  const mealPlanStillNeeded=(day)=>{
+  const mealPlanStillNeeded=(day,cacheOverride)=>{
+    const cache=cacheOverride||fetchedRecipeCache;
     const stillMissingFromShoppingList=liveNeeded(day.shoppingNeeded||[]);
     const newlyMissingFromHaveList=liveMissing(day.ingredients||[]).filter(name=>
       !stillMissingFromShoppingList.some(s=>wordsOverlap(name,s.name))
@@ -4226,7 +4241,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     // authoritative ingredient list than the meal-plan generation's own summary -- fold in
     // anything it reveals that wasn't already caught above, so the compact day card and the
     // full recipe never silently disagree about what's actually missing.
-    const cached=fetchedRecipeCache[day.meal];
+    const cached=cache[day.meal];
     if(cached){
       const cachedMissingNames=cached
         .map(ing=>typeof ing==="object"?ing.name:parseIngredientLine(ing).name)
@@ -4235,6 +4250,35 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       result=[...result,...extra.map(name=>({qty:"",unit:"",name}))];
     }
     return result;
+  };
+  // Lean recipe-ingredients-only fetch used to silently verify each meal-plan day before
+  // building the full shopping list -- same generation logic as opening the full recipe, but a
+  // smaller prompt/response (ingredients only, no instructions) since that's all the shopping
+  // list needs. Updates the persistent cache too, so a day fetched this way is also ready if the
+  // person opens its full recipe afterward.
+  const fetchRecipeIngredientsForCache=async(day)=>{
+    const invList=inventory.map(i=>String(i.name||"")).filter(Boolean).join(", ");
+    const knownIngredients=(day.ingredients&&day.ingredients.length)?day.ingredients.join(", "):null;
+    const baseServings=activeProfiles.length||4;
+    try{
+      const cellarInfo=await getCellarCookingBlock();
+      const raw=await callClaude({
+        system:"Recipe AI. Return ONLY valid JSON, no markdown. Single object.",
+        prompt:`Give the ingredient list for a simple home recipe for "${day.meal}" that serves ${baseServings} people. Full inventory on hand: ${invList}.`+(knownIngredients?` Use EXACTLY this ingredient list with its measurements — do not invent a different one: ${knownIngredients}.`:"")+cellarInfo.block+` Return JSON: {ingredients:[{name,qty,unit} objects — qty is a NUMBER, unit is a short string like "cup","tsp","oz","lb" or "" for countable items]}`,
+        maxTokens:600
+      });
+      const text=typeof raw==="string"?raw:Array.isArray(raw)?raw.map(r=>r.text||"").join(""):raw?.content?.[0]?.text||"";
+      const clean=text.replace(/\`\`\`json|\`\`\`/g,"").trim();
+      const s=clean.indexOf("{"),e=clean.lastIndexOf("}");
+      const parsed=JSON.parse(clean.slice(s,e+1));
+      if(Array.isArray(parsed.ingredients)&&parsed.ingredients.length>0){
+        setFetchedRecipeCache(prev=>({...prev,[day.meal]:parsed.ingredients}));
+        return parsed.ingredients;
+      }
+    }catch(err){
+      console.error("Background recipe verification failed for",day.meal,err);
+    }
+    return null;
   };
   // Shared inventory deduction — used by cookRecipe (Meal Plan/Recipes/Make This) and the Desserts
   // handler, so both stay in sync instead of drifting into two half-correct implementations.
