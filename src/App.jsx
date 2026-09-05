@@ -4242,8 +4242,8 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     // anything it reveals that wasn't already caught above, so the compact day card and the
     // full recipe never silently disagree about what's actually missing.
     const cached=cache[day.meal];
-    if(cached){
-      const cachedMissingNames=cached
+    if(cached&&Array.isArray(cached.ingredients)){
+      const cachedMissingNames=cached.ingredients
         .map(ing=>typeof ing==="object"?ing.name:parseIngredientLine(ing).name)
         .filter(name=>name&&!inventory.some(i=>wordsOverlap(name,i.name)&&hasStock(i)));
       const extra=cachedMissingNames.filter(name=>!result.some(r=>wordsOverlap(name,r.name)));
@@ -4272,7 +4272,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       const s=clean.indexOf("{"),e=clean.lastIndexOf("}");
       const parsed=JSON.parse(clean.slice(s,e+1));
       if(Array.isArray(parsed.ingredients)&&parsed.ingredients.length>0){
-        setFetchedRecipeCache(prev=>({...prev,[day.meal]:parsed.ingredients}));
+        setFetchedRecipeCache(prev=>({...prev,[day.meal]:{ingredients:parsed.ingredients}}));
         return parsed.ingredients;
       }
     }catch(err){
@@ -4368,6 +4368,18 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
   };
 
   const openMealPlanRecipe=async(day)=>{
+    // Reuse a previously-generated full recipe if we have one, instead of regenerating -- normal
+    // AI non-determinism means a fresh generation can produce a different instructions/ingredient
+    // list every time, which made the missing-items count appear to change on repeated taps. Only
+    // treat a cache entry as "full" if it actually has instructions -- genShopping's own lean
+    // ingredients-only pre-verification writes to this same cache but shouldn't be mistaken for a
+    // complete recipe here.
+    const cachedFull=fetchedRecipeCache[day.meal];
+    if(cachedFull&&Array.isArray(cachedFull.instructions)&&cachedFull.instructions.length>0){
+      setActiveRecipe(cachedFull);
+      setActiveRecipeServings(cachedFull.servings||activeProfiles.length||4);
+      return;
+    }
     const invList=inventory.map(i=>String(i.name||"")).filter(Boolean).join(", ");
     const knownIngredients=(day.ingredients&&day.ingredients.length)?day.ingredients.join(", "):null;
     const baseServings=activeProfiles.length||4;
@@ -4385,11 +4397,10 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       const s=clean.indexOf("{"),e=clean.lastIndexOf("}");
       const parsed=JSON.parse(clean.slice(s,e+1));
       const finalServings=parseInt(parsed.servings)||baseServings;
-      setActiveRecipe({...parsed,name:parsed.name||day.meal,servings:finalServings});
+      const fullRecipe={...parsed,name:parsed.name||day.meal,servings:finalServings};
+      setActiveRecipe(fullRecipe);
       setActiveRecipeServings(finalServings);
-      if(Array.isArray(parsed.ingredients)&&parsed.ingredients.length>0){
-        setFetchedRecipeCache(prev=>({...prev,[day.meal]:parsed.ingredients}));
-      }
+      setFetchedRecipeCache(prev=>({...prev,[day.meal]:fullRecipe}));
     }catch(err){
       console.error("openMealPlanRecipe generation/parse error:",err);
       setActiveRecipe({name:day.meal,description:"See full recipe online.",time:"~30 min",difficulty:"Easy",servings:baseServings,ingredients:[],instructions:["Tap TAP FOR FULL RECIPE to see detailed instructions online."],missingIngredients:day.shoppingNeeded?.map(s=>s.name)||[],usesFromInventory:[]});
