@@ -109,6 +109,7 @@ const SYNC_MAP = {
   restock_queue:        'sk_restockQueue',
   sale_items:           'sk_saleItems',
   yield_history:        'sk_yieldHistory',
+  fetched_recipe_cache: 'sk_fetchedRecipeCache',
   recipe_site:          'sk_recipeSite',
   shop_partner_name:    'sk_shopPartnerName',
   shop_partner_email:   'sk_shopPartnerEmail',
@@ -272,7 +273,27 @@ export async function saveCloudData(userId) {
   try {
     const row = { user_id: userId, updated_at: new Date().toISOString() };
 
+    // fetched_recipe_cache accumulates passively over time (every meal ever opened, across every
+    // device) rather than being actively curated the way a shopping list is -- a blind overwrite
+    // here risks silently destroying a whole device's worth of cached recipes if another device
+    // happens to save first with a smaller local cache. Merge with whatever's already in the
+    // cloud instead, with local entries taking precedence only for meals it actually has cached.
+    try {
+      const localRaw = localStorage.getItem('sk_fetchedRecipeCache');
+      if (localRaw !== null) {
+        const localCache = JSON.parse(localRaw);
+        const { data: cloudRow } = await supabase
+          .from('user_data')
+          .select('fetched_recipe_cache')
+          .eq('user_id', userId)
+          .maybeSingle();
+        const cloudCache = cloudRow?.fetched_recipe_cache || {};
+        row.fetched_recipe_cache = { ...cloudCache, ...localCache };
+      }
+    } catch(e) {}
+
     Object.entries(SYNC_MAP).forEach(([dbCol, lsKey]) => {
+      if (dbCol === 'fetched_recipe_cache') return; // handled above with a merge, not a raw overwrite
       try {
         const raw = localStorage.getItem(lsKey);
         if (raw === null) return;
