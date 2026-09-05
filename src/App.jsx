@@ -1621,6 +1621,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [newItem,setNewItem]=useState({name:"",qty:"",unit:"",category:"Pantry",location:"Pantry",harvestType:"",isBulkItem:false,bulkUnit:"cup",bulkTrackingMode:"measured",bulkPackageWeight:"",bulkPackageWeightUnit:"lb",bulkPackageCupsOverride:"",bulkPackagePrice:"",bulkLowStockPct:20,bulkEstimatePct:100});
   const [activeRecipe,setActiveRecipe]=useState(null);
   const [activeRecipeServings,setActiveRecipeServings]=useState(4);
+  const [fetchedRecipeCache,setFetchedRecipeCache]=useState({});
   useEffect(()=>{if(activeRecipe)setActiveRecipeServings(activeRecipe.servings||activeProfiles.length||4);},[activeRecipe]);
   const [familySize,setFamilySize]=useState(()=>loadLocal("sk_familySize",3));
   const [familyProfiles,setFamilyProfiles]=useState(()=>loadLocal("sk_familyProfiles",DEFAULT_PROFILES));
@@ -4220,7 +4221,20 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     const newlyMissingFromHaveList=liveMissing(day.ingredients||[]).filter(name=>
       !stillMissingFromShoppingList.some(s=>wordsOverlap(name,s.name))
     );
-    return [...stillMissingFromShoppingList,...newlyMissingFromHaveList.map(name=>({qty:"",unit:"",name}))];
+    let result=[...stillMissingFromShoppingList,...newlyMissingFromHaveList.map(name=>({qty:"",unit:"",name}))];
+    // If the full recipe has already been generated for this meal, it's a more detailed,
+    // authoritative ingredient list than the meal-plan generation's own summary -- fold in
+    // anything it reveals that wasn't already caught above, so the compact day card and the
+    // full recipe never silently disagree about what's actually missing.
+    const cached=fetchedRecipeCache[day.meal];
+    if(cached){
+      const cachedMissingNames=cached
+        .map(ing=>typeof ing==="object"?ing.name:parseIngredientLine(ing).name)
+        .filter(name=>name&&!inventory.some(i=>wordsOverlap(name,i.name)&&hasStock(i)));
+      const extra=cachedMissingNames.filter(name=>!result.some(r=>wordsOverlap(name,r.name)));
+      result=[...result,...extra.map(name=>({qty:"",unit:"",name}))];
+    }
+    return result;
   };
   // Shared inventory deduction — used by cookRecipe (Meal Plan/Recipes/Make This) and the Desserts
   // handler, so both stay in sync instead of drifting into two half-correct implementations.
@@ -4329,6 +4343,9 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       const finalServings=parseInt(parsed.servings)||baseServings;
       setActiveRecipe({...parsed,name:parsed.name||day.meal,servings:finalServings});
       setActiveRecipeServings(finalServings);
+      if(Array.isArray(parsed.ingredients)&&parsed.ingredients.length>0){
+        setFetchedRecipeCache(prev=>({...prev,[day.meal]:parsed.ingredients}));
+      }
     }catch(err){
       console.error("openMealPlanRecipe generation/parse error:",err);
       setActiveRecipe({name:day.meal,description:"See full recipe online.",time:"~30 min",difficulty:"Easy",servings:baseServings,ingredients:[],instructions:["Tap TAP FOR FULL RECIPE to see detailed instructions online."],missingIngredients:day.shoppingNeeded?.map(s=>s.name)||[],usesFromInventory:[]});
@@ -7305,6 +7322,18 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                   missing=parsed.filter(p=>p.name&&!inventory.some(i=>wordsOverlap(p.name,i.name)&&hasStock(i)));
                 }else{
                   missing=liveMissing(activeRecipe.missingIngredients||[]).map(name=>({name,qty:1,unit:"as needed"}));
+                }
+                // If this recipe came from the meal plan (opened via TAP FOR FULL RECIPE), that
+                // triggered a separate AI generation with its own ingredient list -- even instructed
+                // to reuse the original list, wording or an added "salt to taste" can drift. Union in
+                // whatever the compact day card's own NEED check already flagged, so nothing the
+                // person saw on the day card silently disappears just because the full recipe's
+                // separately-generated list phrased things differently.
+                const sourceDay=mealPlan.find(d=>d.meal===activeRecipe.name);
+                if(sourceDay){
+                  const fromDayCard=mealPlanStillNeeded(sourceDay);
+                  const extra=fromDayCard.filter(d=>!missing.some(m=>wordsOverlap(m.name,d.name)));
+                  missing=[...missing,...extra];
                 }
                 if(missing.length===0) return null;
                 return (<button style={{...bBtn("ghost"),flex:2,padding:10,fontSize:12,border:"1px solid "+C.accent,color:C.accent}} onClick={()=>{
