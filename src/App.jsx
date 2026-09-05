@@ -2098,19 +2098,27 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   },[mealPlan]);
   useEffect(()=>{try{localStorage.setItem("sk_shoppingList",JSON.stringify(shopping));}catch{}},[shopping]);
   // Prep Veg (Mixed Sauté Blend) low-stock trigger: whenever the bag count drops below 3, ensure
-  // the fresh ingredients for the next batch (onion, celery, bell peppers) are on the shopping
-  // list. Watches inventory reactively rather than hooking into each individual place the blend
-  // gets decremented (cooking, Made It, manual +/- adjustment) so it can't be missed by whichever
-  // path fires. Idempotent -- safe to re-check on every inventory change since the dedup guard
-  // means it only adds items that aren't already on the list.
+  // the fresh ingredients for the next batch are on the shopping list, in the correct batch ratio
+  // (1 celery, 2 large sweet/Vidalia onions, 2 each of green/red/yellow/orange bell peppers).
+  // Watches inventory reactively rather than hooking into each individual place the blend gets
+  // decremented (cooking, Made It, manual +/- adjustment) so it can't be missed by whichever path
+  // fires. Idempotent -- safe to re-check on every inventory change since the dedup guard means
+  // it only adds items that aren't already on the list.
   useEffect(()=>{
     const veg=inventory.find(i=>i.vegType==="sauteBlend");
     if(!veg||veg.qty>=3) return;
-    const restockItems=["Onions","Celery","Bell Peppers"];
+    const restockItems=[
+      {name:"Celery",qty:1,unit:"stalk"},
+      {name:"Large Sweet or Vidalia Onions",qty:2,unit:""},
+      {name:"Green Bell Peppers",qty:2,unit:""},
+      {name:"Red Bell Peppers",qty:2,unit:""},
+      {name:"Yellow Bell Peppers",qty:2,unit:""},
+      {name:"Orange Bell Peppers",qty:2,unit:""},
+    ];
     setShopping(prev=>{
-      const toAdd=restockItems.filter(name=>!prev.some(s=>(s.name||"").toLowerCase()===name.toLowerCase()));
+      const toAdd=restockItems.filter(r=>!prev.some(s=>(s.name||"").toLowerCase()===r.name.toLowerCase()));
       if(toAdd.length===0) return prev;
-      return [...prev,...toAdd.map(name=>({name,qty:1,unit:"",category:"Produce",checked:false,source:"Prep Veg — running low"}))];
+      return [...prev,...toAdd.map(r=>({name:r.name,qty:r.qty,unit:r.unit,category:"Produce",checked:false,source:"Prep Veg — running low"}))];
     });
   },[inventory]);
   useEffect(()=>{try{localStorage.setItem("sk_saleItems",JSON.stringify(saleItems));}catch{}},[saleItems]);
