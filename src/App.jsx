@@ -4345,7 +4345,30 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
         return i; // bulk item but no unit-compatible match this cook — leave as-is rather than guess
       }
       if(!(r.usesFromInventory||[]).includes(i.name)) return i;
-      if(i.isBulkProtein||i.isDicedVeg) return {...i,qty:Math.max(0,i.qty-1)};
+      if(i.isBulkProtein||i.isDicedVeg){
+        // Previously always deducted exactly 1 portion/bag regardless of how many the recipe
+        // actually called for -- "6 Chicken Thighs" and "1 Chicken Thigh" both only removed 1.
+        // Now looks up the matching recipe ingredient's real quantity and converts it correctly.
+        let amountToDeduct=1; // fallback: preserve old behavior if no matching ingredient found
+        if(Array.isArray(r.ingredients)){
+          const iname=(i.name||"").toLowerCase().trim();
+          const match=r.ingredients.find(ing=>{
+            const n=(typeof ing==="object"?ing.name:ing||"").toLowerCase().trim();
+            return n&&iname&&(n.includes(iname)||iname.includes(n));
+          });
+          if(match&&typeof match==="object"&&match.qty){
+            const calledFor=(parseFloat(match.qty)||1)*scale;
+            if(i.isDicedVeg&&i.cupsPerBag){
+              amountToDeduct=Math.ceil(calledFor/i.cupsPerBag)||1;
+            }else if(i.piecesPerServing){
+              amountToDeduct=Math.ceil(calledFor/i.piecesPerServing)||1;
+            }else{
+              amountToDeduct=Math.round(calledFor)||1;
+            }
+          }
+        }
+        return {...i,qty:Math.max(0,i.qty-amountToDeduct)};
+      }
       return {...i,qty:Math.max(0,+(i.qty-1).toFixed(1))};
     }));
     if(restockAdds.length){
