@@ -6320,7 +6320,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
             {rpMode==="protein"&&(
               <div>
                 {(()=>{
-                  const eligible=inventory.filter(i=>i.category==="Protein"&&!i.isBulkProtein&&(parseFloat(i.qty)||0)>0);
+                  const eligible=inventory.filter(i=>i.category==="Protein"&&(parseFloat(i.qty)||0)>0);
                   if(eligible.length===0) return null;
                   return (
                     <div style={{marginBottom:14}}>
@@ -6329,14 +6329,16 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                         {eligible.map(i=>(
                           <button key={i.id} onClick={()=>{
                             setRpPName(i.name);
-                            if((i.unit||"").toLowerCase()==="lb"||(i.unit||"").toLowerCase()==="lbs"){setRpPMode("weight");setRpPLbs(String(i.qty));}
+                            if(i.isBulkProtein&&i.piecesPerServing){setRpPMode("pieces");setRpPPiecesPerServing(i.piecesPerServing);setRpPPieces("");}
+                            else if(i.isBulkProtein){setRpPMode("weight");setRpPOz(i.portionOz||6);setRpPLbs("");}
+                            else if((i.unit||"").toLowerCase()==="lb"||(i.unit||"").toLowerCase()==="lbs"){setRpPMode("weight");setRpPLbs(String(i.qty));}
                             setRpPPreview(null);
                           }} style={{...bBtn(rpPName===i.name?"orange":"ghost"),padding:"6px 12px",fontSize:12}}>
-                            {i.name} ({i.qty} {i.unit})
+                            {i.name} ({i.isBulkProtein?i.qty+" portions on hand":i.qty+" "+i.unit})
                           </button>
                         ))}
                       </div>
-                      <div style={{fontSize:10,color:C.muted,marginTop:4,fontFamily:FM}}>Tap one to fill in the name (and weight, if in lbs) automatically — the raw item will correctly turn into portions instead of a duplicate entry.</div>
+                      <div style={{fontSize:10,color:C.muted,marginTop:4,fontFamily:FM}}>Tap a raw item to convert it into portions, or an already-portioned item to add a new batch on top — either way it correctly updates that same item instead of creating a duplicate entry.</div>
                     </div>
                   );
                 })()}
