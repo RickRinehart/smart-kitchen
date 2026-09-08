@@ -6329,8 +6329,15 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                         {eligible.map(i=>(
                           <button key={i.id} onClick={()=>{
                             setRpPName(i.name);
-                            if(i.isBulkProtein&&i.piecesPerServing){setRpPMode("pieces");setRpPPiecesPerServing(i.piecesPerServing);setRpPPieces("");}
-                            else if(i.isBulkProtein){setRpPMode("weight");setRpPOz(i.portionOz||6);setRpPLbs("");}
+                            setRpPPrice(""); // clear first so switching items never leaves a stale price behind
+                            // Last batch's total price is a useful starting reference even for an
+                            // already-portioned item getting a new batch added -- it's what was
+                            // actually paid last time, not necessarily today's price, but a far
+                            // better starting point than a blank field the person has to fill from
+                            // memory or a receipt they may not have handy.
+                            const lastBatchPrice=(i.portionPriceHistory&&i.portionPriceHistory.length>0)?i.portionPriceHistory[i.portionPriceHistory.length-1].totalPrice:null;
+                            if(i.isBulkProtein&&i.piecesPerServing){setRpPMode("pieces");setRpPPiecesPerServing(i.piecesPerServing);setRpPPieces("");if(lastBatchPrice) setRpPPrice(String(lastBatchPrice));}
+                            else if(i.isBulkProtein){setRpPMode("weight");setRpPOz(i.portionOz||6);setRpPLbs("");if(lastBatchPrice) setRpPPrice(String(lastBatchPrice));}
                             else{
                               if((i.unit||"").toLowerCase()==="lb"||(i.unit||"").toLowerCase()==="lbs"){setRpPMode("weight");setRpPLbs(String(i.qty));}
                               // Raw items already have a purchase price on file from when they were
@@ -6344,7 +6351,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                           </button>
                         ))}
                       </div>
-                      <div style={{fontSize:10,color:C.muted,marginTop:4,fontFamily:FM}}>Tap a raw item to convert it into portions (fills in name, weight, and purchase price if on file), or an already-portioned item to add a new batch on top — either way it correctly updates that same item instead of creating a duplicate entry.</div>
+                      <div style={{fontSize:10,color:C.muted,marginTop:4,fontFamily:FM}}>Tap a raw item to convert it into portions, or an already-portioned item to add a new batch on top — either way it correctly updates that same item and pre-fills the purchase price from what's on file (your last batch's price for an already-portioned item, so treat it as a starting point to adjust, not necessarily today's price).</div>
                     </div>
                   );
                 })()}
