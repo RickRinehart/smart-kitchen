@@ -2720,7 +2720,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
   },[chatMessages]);
 
   // -- Repackage helpers ------------------------------------------------------
-  const openRepack=(mode)=>{setRpMode(mode);setRpPName("");setRpPLbs("");setRpPOz(6);setRpPPrice("");setRpPPreview(null);setRpHItem("");setRpHRaw("");setRpHOz(16);setRpOpen(true);};
+  const openRepack=(mode,prefill)=>{setRpMode(mode);setRpPName(prefill?.name||"");setRpPLbs(prefill?.lbs?String(prefill.lbs):"");setRpPOz(6);setRpPPrice("");setRpPPreview(null);setRpHItem("");setRpHRaw("");setRpHOz(16);setRpOpen(true);};
   const commitProtein=()=>{
     if(!rpPName) return;
     const isPieces=rpPMode==="pieces";
@@ -2731,14 +2731,21 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     const price=parseFloat(rpPPrice)||0;
     const costPerPortion=(price>0&&portions>0)?+(price/portions).toFixed(2):null;
     const avgOf=(hist)=>hist.length?+(hist.reduce((s,h)=>s+h.costPerPortion,0)/hist.length).toFixed(2):null;
+    let wasConverted=false;
     setInventory(prev=>{
       const idx=prev.findIndex(i=>i.name.toLowerCase()===pName.toLowerCase());
       const today=new Date().toISOString();
       const sizeFields=isPieces?{piecesPerServing:parseFloat(rpPPiecesPerServing)||1,portionOz:null}:{portionOz:rpPOz,piecesPerServing:null};
       if(idx>=0){
+        const alreadyBulk=prev[idx].isBulkProtein;
+        wasConverted=!alreadyBulk;
         const prevHist=prev[idx].portionPriceHistory||[];
         const newHist=costPerPortion!==null?[...prevHist,{costPerPortion,totalPrice:price,lbs:isPieces?null:parseFloat(rpPLbs),pieces:isPieces?parseFloat(rpPPieces):null,portions,date:today}]:prevHist;
-        return prev.map((i,ii)=>ii===idx?{...i,qty:i.qty+portions,isBulkProtein:true,...sizeFields,portionPriceHistory:newHist,avgCostPerPortion:avgOf(newHist)||i.avgCostPerPortion||null,lastCostPerPortion:costPerPortion||i.lastCostPerPortion||null}:i);
+        // If this item wasn't already portion-tracked, its current qty is raw pounds/pieces that
+        // just got fully converted into these portions -- replace, don't add (previously this
+        // added the portion count to the raw-unit qty, e.g. "3 lb" + 8 portions = a nonsense 11).
+        // Once it IS already bulk-tracked, qty is genuinely in portions, so a new batch adds on top.
+        return prev.map((i,ii)=>ii===idx?{...i,qty:alreadyBulk?i.qty+portions:portions,unit:"portions",isBulkProtein:true,...sizeFields,portionPriceHistory:newHist,avgCostPerPortion:avgOf(newHist)||i.avgCostPerPortion||null,lastCostPerPortion:costPerPortion||i.lastCostPerPortion||null}:i);
       }
       const hist=costPerPortion!==null?[{costPerPortion,totalPrice:price,lbs:isPieces?null:parseFloat(rpPLbs),pieces:isPieces?parseFloat(rpPPieces):null,portions,date:today}]:[];
       return [...prev,{id:Date.now(),name:pName,qty:portions,unit:"portions",category:"Protein",location:"Freezer",isBulkProtein:true,...sizeFields,portionPriceHistory:hist,avgCostPerPortion:avgOf(hist),lastCostPerPortion:costPerPortion}];
@@ -3009,6 +3016,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
   const commitScan=()=>{
     const chosen=scanResults.filter(i=>i.selected);
     const hasProteins=chosen.some(i=>i.isProtein||i.category==="Protein");
+    const detectedProteins=chosen.filter(i=>(i.isProtein||i.category==="Protein")&&!i.isBulkProtein);
     const parsePrice=(p)=>{if(!p)return null;const n=parseFloat(String(p).replace(/[^0-9.]/g,""));return(n&&n>0)?n:null;};
     const avgOf=(hist)=>hist.length?+(hist.reduce((s,h)=>s+h.price,0)/hist.length).toFixed(2):null;
     const scanTotal=chosen.reduce((sum,si)=>sum+(parsePrice(si.price)||0),0);
@@ -3104,7 +3112,8 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       setTab("inventory");
       if(hasProteins&&scanMode==="receipt"){
         setTimeout(()=>{
-          showConfirm("Proteins detected in your receipt. Would you like to repackage them into dinner portions now?",()=>openRepack("protein"));
+          const single=detectedProteins.length===1?detectedProteins[0]:null;
+          showConfirm("Proteins detected in your receipt. Would you like to repackage them into dinner portions now?",()=>openRepack("protein",single?{name:single.name,lbs:(single.unit||"").toLowerCase()==="lb"?single.qty:null}:null));
         },600);
       }
     },1500);
@@ -6310,6 +6319,27 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
             </div>
             {rpMode==="protein"&&(
               <div>
+                {(()=>{
+                  const eligible=inventory.filter(i=>i.category==="Protein"&&!i.isBulkProtein&&(parseFloat(i.qty)||0)>0);
+                  if(eligible.length===0) return null;
+                  return (
+                    <div style={{marginBottom:14}}>
+                      <Label>PICK FROM INVENTORY</Label>
+                      <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                        {eligible.map(i=>(
+                          <button key={i.id} onClick={()=>{
+                            setRpPName(i.name);
+                            if((i.unit||"").toLowerCase()==="lb"||(i.unit||"").toLowerCase()==="lbs"){setRpPMode("weight");setRpPLbs(String(i.qty));}
+                            setRpPPreview(null);
+                          }} style={{...bBtn(rpPName===i.name?"orange":"ghost"),padding:"6px 12px",fontSize:12}}>
+                            {i.name} ({i.qty} {i.unit})
+                          </button>
+                        ))}
+                      </div>
+                      <div style={{fontSize:10,color:C.muted,marginTop:4,fontFamily:FM}}>Tap one to fill in the name (and weight, if in lbs) automatically — the raw item will correctly turn into portions instead of a duplicate entry.</div>
+                    </div>
+                  );
+                })()}
                 <div style={{marginBottom:12}}>
                   <Label>PROTEIN NAME</Label>
                   <input style={bInp} spellCheck="true" placeholder="e.g. Chicken Breast" value={rpPName} onChange={e=>{setRpPName(e.target.value);setRpPPreview(null);}}/>
