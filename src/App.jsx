@@ -2335,7 +2335,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
 
   // -- Computed values --------------------------------------------------------
   const blendItem=inventory.find(i=>i.vegType==="sauteBlend")||inventory.find(i=>i.name.toLowerCase().includes("saute")&&i.category==="Frozen");
-  const proteinItems=inventory.filter(i=>(i.isBulkProtein||(i.harvestType==="Protein"&&(i.category==="Wild Harvest"||i.category==="Home Harvest")))&&(parseFloat(i.qty)||0)>0);
+  const proteinItems=inventory.filter(i=>(i.isBulkProtein||i.category==="Protein"||(i.harvestType==="Protein"&&(i.category==="Wild Harvest"||i.category==="Home Harvest")))&&(parseFloat(i.qty)||0)>0);
   const totalPortions=proteinItems.reduce((a,i)=>a+(parseFloat(i.qty)||0),0);
   const condimentItems=inventory.filter(i=>i.isCondiment);
   const activeProfiles=familyProfiles.filter(p=>p.active);
@@ -5014,12 +5014,12 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
             {/* Freezer summary */}
             <div style={{background:C.card,border:"1px solid "+C.borderLight,borderRadius:12,padding:"14px 18px",marginBottom:18,display:"grid",gridTemplateColumns:"1fr auto 1fr",gap:16,alignItems:"start"}}>
               <div>
-                <div style={{fontSize:10,fontFamily:FM,color:C.muted,marginBottom:8,letterSpacing:0.8}}>🥩 PROTEIN PORTIONS</div>
+                <div style={{fontSize:10,fontFamily:FM,color:C.muted,marginBottom:8,letterSpacing:0.8}}>🥩 PROTEINS AVAILABLE</div>
                 {proteinItems.length===0?<div style={{fontSize:12,color:C.dim}}>None</div>:proteinItems.map(i=>(
                   <div key={i.id} style={{fontSize:13,marginBottom:3,display:"flex",gap:8,alignItems:"center"}}>
                     <span style={{color:C.text,fontWeight:600}}>{i.name}</span>
-                    <span style={bTag(i.qty===0?C.red:C.green)}>{i.qty} portions</span>
-                    <span style={{color:C.muted,fontSize:10,fontFamily:FM}}>{i.piecesPerServing?i.piecesPerServing+(i.piecesPerServing===1?" piece ea":" pieces ea"):i.portionOz+"oz ea"}</span>
+                    <span style={bTag(i.qty===0?C.red:C.green)}>{i.qty}{i.isBulkProtein?" portions":" "+(i.unit||"")}</span>
+                    {i.isBulkProtein&&<span style={{color:C.muted,fontSize:10,fontFamily:FM}}>{i.piecesPerServing?i.piecesPerServing+(i.piecesPerServing===1?" piece ea":" pieces ea"):i.portionOz+"oz ea"}</span>}
                   </div>
                 ))}
               </div>
@@ -6331,14 +6331,20 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                             setRpPName(i.name);
                             if(i.isBulkProtein&&i.piecesPerServing){setRpPMode("pieces");setRpPPiecesPerServing(i.piecesPerServing);setRpPPieces("");}
                             else if(i.isBulkProtein){setRpPMode("weight");setRpPOz(i.portionOz||6);setRpPLbs("");}
-                            else if((i.unit||"").toLowerCase()==="lb"||(i.unit||"").toLowerCase()==="lbs"){setRpPMode("weight");setRpPLbs(String(i.qty));}
+                            else{
+                              if((i.unit||"").toLowerCase()==="lb"||(i.unit||"").toLowerCase()==="lbs"){setRpPMode("weight");setRpPLbs(String(i.qty));}
+                              // Raw items already have a purchase price on file from when they were
+                              // scanned -- no reason to make the person retype what the app already knows.
+                              const knownPrice=i.lastPrice||i.price;
+                              if(knownPrice) setRpPPrice(String(knownPrice));
+                            }
                             setRpPPreview(null);
                           }} style={{...bBtn(rpPName===i.name?"orange":"ghost"),padding:"6px 12px",fontSize:12}}>
                             {i.name} ({i.isBulkProtein?i.qty+" portions on hand":i.qty+" "+i.unit})
                           </button>
                         ))}
                       </div>
-                      <div style={{fontSize:10,color:C.muted,marginTop:4,fontFamily:FM}}>Tap a raw item to convert it into portions, or an already-portioned item to add a new batch on top — either way it correctly updates that same item instead of creating a duplicate entry.</div>
+                      <div style={{fontSize:10,color:C.muted,marginTop:4,fontFamily:FM}}>Tap a raw item to convert it into portions (fills in name, weight, and purchase price if on file), or an already-portioned item to add a new batch on top — either way it correctly updates that same item instead of creating a duplicate entry.</div>
                     </div>
                   );
                 })()}
