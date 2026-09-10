@@ -457,9 +457,9 @@ const fetchPartnerAdMatches=async(currentInventory,userId,deepDiscountThresholdP
   const storeIds=markets.map(m=>m.partner_store_id);
   const today=new Date().toISOString().slice(0,10);
   const {data:ads,error:adsErr}=await supabase
-    .from('partner_ads')
-    .select('item_name, canonical_key, regular_price, card_price, compare_at_price, unit_size, department, sale_start, sale_end, partner_stores(name, inventory_model)')
-    .in('partner_store_id',storeIds)
+    .from('partner_ads_resolved')
+    .select('item_name, canonical_key, regular_price, card_price, compare_at_price, unit_size, department, sale_start, sale_end, store_name, store_inventory_model')
+    .in('requesting_store_id',storeIds)
     .or(`sale_start.is.null,sale_start.lte.${today}`)
     .or(`sale_end.is.null,sale_end.gte.${today}`);
   if(adsErr||!ads) return [];
@@ -501,8 +501,8 @@ const fetchPartnerAdMatches=async(currentInventory,userId,deepDiscountThresholdP
       matches.push({
         adItemName:ad.item_name,
         inventoryItemName:inv.name,
-        storeName:ad.partner_stores?.name||null,
-        inventoryModel:ad.partner_stores?.inventory_model||null,
+        storeName:ad.store_name||null,
+        inventoryModel:ad.store_inventory_model||null,
         rawAdPrice,
         unitSize:ad.unit_size||null,
         perLbPrice,
@@ -540,15 +540,15 @@ const fetchAlcoholSaleAds=async(userId)=>{
   const storeIds=markets.map(m=>m.partner_store_id);
   const today=new Date().toISOString().slice(0,10);
   const {data:ads}=await supabase
-    .from('partner_ads')
-    .select('item_name, regular_price, card_price, sale_start, sale_end, department, partner_stores(name)')
-    .in('partner_store_id',storeIds)
+    .from('partner_ads_resolved')
+    .select('item_name, regular_price, card_price, sale_start, sale_end, department, store_name')
+    .in('requesting_store_id',storeIds)
     .ilike('department','%alcohol%')
     .or(`sale_start.is.null,sale_start.lte.${today}`)
     .or(`sale_end.is.null,sale_end.gte.${today}`);
   if(!ads) return [];
   return ads
-    .map(ad=>({name:ad.item_name,price:ad.card_price??ad.regular_price,store:ad.partner_stores?.name||null}))
+    .map(ad=>({name:ad.item_name,price:ad.card_price??ad.regular_price,store:ad.store_name||null}))
     .filter(a=>a.name&&a.price!=null);
 };
 const PROTEIN_TAG_COLOR=(name)=>{
