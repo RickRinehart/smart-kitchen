@@ -2335,7 +2335,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
 
   // -- Computed values --------------------------------------------------------
   const blendItem=inventory.find(i=>i.vegType==="sauteBlend")||inventory.find(i=>i.name.toLowerCase().includes("saute")&&i.category==="Frozen");
-  const proteinItems=inventory.filter(i=>(i.isBulkProtein||i.category==="Protein"||(i.harvestType==="Protein"&&(i.category==="Wild Harvest"||i.category==="Home Harvest")))&&(parseFloat(i.qty)||0)>0);
+  const proteinItems=inventory.filter(i=>(i.isBulkProtein||i.category==="Protein"||(i.isLeftover&&i.isProteinLeftover)||(i.harvestType==="Protein"&&(i.category==="Wild Harvest"||i.category==="Home Harvest")))&&(parseFloat(i.qty)||0)>0);
   const totalPortions=proteinItems.reduce((a,i)=>a+(parseFloat(i.qty)||0),0);
   const condimentItems=inventory.filter(i=>i.isCondiment);
   const activeProfiles=familyProfiles.filter(p=>p.active);
@@ -7659,8 +7659,9 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                     const res=await callClaude({
                       system:`You are a food identification AI. The user has photographed a container of leftovers. 
 Identify the dish, estimate servings remaining, and set a realistic use-by date.
-Respond ONLY with valid JSON: {"dish":"name of the dish","servings":2,"useDays":3,"notes":"any relevant storage tip","confidence":"high|medium|low"}
-useDays is days from today the food is safe to eat (cooked food: 3-4 days typical).`,
+Respond ONLY with valid JSON: {"dish":"name of the dish","servings":2,"useDays":3,"notes":"any relevant storage tip","confidence":"high|medium|low","isProteinBased":true}
+useDays is days from today the food is safe to eat (cooked food: 3-4 days typical).
+isProteinBased is true if the dish is primarily a protein/meat main (meatloaf, chicken, chili, lasagna with meat, pot roast, etc.), false for sides, salads, or vegetable/starch-only dishes.`,
                       prompt:"What leftovers are in this container? Estimate servings and use-by days.",
                       imageBase64:leftoversB64,
                       imageType:leftoversMime,
@@ -7760,6 +7761,10 @@ useDays is days from today the food is safe to eat (cooked food: 3-4 days typica
                 </div>
               </div>
               {leftoversResult.notes&&<div style={{fontSize:12,color:C.muted,marginBottom:12,fontStyle:"italic"}}>💡 {leftoversResult.notes}</div>}
+              <label style={{display:"flex",alignItems:"center",gap:8,marginBottom:12,cursor:"pointer",background:C.bg,borderRadius:8,padding:10}}>
+                <input type="checkbox" checked={!!leftoversResult.isProteinBased} onChange={e=>setLeftoversResult(r=>({...r,isProteinBased:e.target.checked}))}/>
+                <span style={{fontSize:12,color:C.text}}>🥩 This is a protein-based dish (counts toward Proteins Available and meal-plan protein rotation)</span>
+              </label>
               <button style={{...bBtn("primary"),width:"100%",fontSize:13}} onClick={()=>{
                 const useByDate=new Date(Date.now()+leftoversResult.useDays*86400000).toLocaleDateString("en-US",{month:"short",day:"numeric"});
                 const saveLeftover=(photoDataUrl)=>{
@@ -7773,6 +7778,7 @@ useDays is days from today the food is safe to eat (cooked food: 3-4 days typica
                     useBy:useByDate,
                     useDays:leftoversResult.useDays,
                     isLeftover:true,
+                    isProteinLeftover:!!leftoversResult.isProteinBased,
                     addedAt:new Date().toISOString(),
                     photo:photoDataUrl||null
                   };
