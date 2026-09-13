@@ -21,7 +21,7 @@ const FM="'JetBrains Mono', monospace";
 const LOCATIONS=["Pantry","Fridge","Freezer"];
 const LOC_ICONS={Pantry:"🗄",Fridge:"❄",Freezer:"🧊"};
 const LOC_COLORS={Pantry:C.accent,Fridge:C.blue,Freezer:C.purple};
-const CATEGORIES=["Protein","Produce","Dairy","Pantry","Grains","Spices","Frozen","Condiments","Snacks","Beverages","Wild Harvest","Home Harvest","Household","Cleaning","Personal Care","Pet","Other"];
+const CATEGORIES=["Protein","Produce","Dairy","Pantry","Grains","Spices","Frozen","Condiments","Snacks","Beverages","Leftovers","Wild Harvest","Home Harvest","Household","Cleaning","Personal Care","Pet","Other"];
 const KITCHEN_APPLIANCES=[
   {id:"instant_pot",label:"Instant Pot / Pressure Cooker",emoji:"🫕"},
   {id:"air_fryer",label:"Air Fryer",emoji:"🌬"},
@@ -67,7 +67,7 @@ const fiberTargetFor=(p)=>{
   if(onFiberSupplement) base=Math.max(0,base-5);
   return base;
 };
-const CAT_COLORS={Protein:C.red,Produce:C.green,Dairy:C.blue,Pantry:C.accent,Grains:"#c9a96e",Spices:C.purple,Frozen:"#6be3f0",Condiments:"#94a3b8",Snacks:"#f59e0b",Beverages:"#06b6d4",Household:"#84cc16",Cleaning:"#22d3ee",["Personal Care"]:"#e879f9",Pet:"#fb923c",Other:C.muted,"Wild Harvest":"#5a8a2e","Home Harvest":"#2e8a5a"};
+const CAT_COLORS={Protein:C.red,Produce:C.green,Dairy:C.blue,Pantry:C.accent,Grains:"#c9a96e",Spices:C.purple,Frozen:"#6be3f0",Condiments:"#94a3b8",Snacks:"#f59e0b",Beverages:"#06b6d4",Household:"#84cc16",Cleaning:"#22d3ee",["Personal Care"]:"#e879f9",Pet:"#fb923c",Other:C.muted,"Wild Harvest":"#5a8a2e","Home Harvest":"#2e8a5a",Leftovers:"#f97316"};
 // -- Wild Harvest & Home Harvest -----------------------------------------------
 const WILD_SPECIES=[
   {name:"Venison (Steaks)",freezerMonths:9},
@@ -5060,7 +5060,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                   {l!=="All"?LOC_ICONS[l]+" ":""}{l}
                 </button>
               ))}
-              <button onClick={()=>setFilterCat(filterCat==="Wild Harvest"?"All":"Wild Harvest")} style={{...bBtn("ghost"),padding:"6px 10px",fontSize:11,background:filterCat==="Wild Harvest"?"#1a3a1a":"transparent",border:"1px solid "+(filterCat==="Wild Harvest"?"#4c4":C.border),color:filterCat==="Wild Harvest"?"#4c4":C.muted}}>🦌 Wild Harvest</button><button onClick={()=>setFilterCat(filterCat==="Home Harvest"?"All":"Home Harvest")} style={{...bBtn("ghost"),padding:"6px 10px",fontSize:11,background:filterCat==="Home Harvest"?"#1a3a1a":"transparent",border:"1px solid "+(filterCat==="Home Harvest"?"#4c4":C.border),color:filterCat==="Home Harvest"?"#4c4":C.muted}}>🌱 Home Harvest</button><select value={filterCat} onChange={e=>setFilterCat(e.target.value)} style={{...bInp,width:"auto",padding:"7px 12px",fontSize:11}}>
+              <button onClick={()=>setFilterCat(filterCat==="Wild Harvest"?"All":"Wild Harvest")} style={{...bBtn("ghost"),padding:"6px 10px",fontSize:11,background:filterCat==="Wild Harvest"?"#1a3a1a":"transparent",border:"1px solid "+(filterCat==="Wild Harvest"?"#4c4":C.border),color:filterCat==="Wild Harvest"?"#4c4":C.muted}}>🦌 Wild Harvest</button><button onClick={()=>setFilterCat(filterCat==="Home Harvest"?"All":"Home Harvest")} style={{...bBtn("ghost"),padding:"6px 10px",fontSize:11,background:filterCat==="Home Harvest"?"#1a3a1a":"transparent",border:"1px solid "+(filterCat==="Home Harvest"?"#4c4":C.border),color:filterCat==="Home Harvest"?"#4c4":C.muted}}>🌱 Home Harvest</button><button onClick={()=>setFilterCat(filterCat==="Leftovers"?"All":"Leftovers")} style={{...bBtn("ghost"),padding:"6px 10px",fontSize:11,background:filterCat==="Leftovers"?"#3a2410":"transparent",border:"1px solid "+(filterCat==="Leftovers"?"#f97316":C.border),color:filterCat==="Leftovers"?"#f97316":C.muted}}>🥡 Leftovers</button><select value={filterCat} onChange={e=>setFilterCat(e.target.value)} style={{...bInp,width:"auto",padding:"7px 12px",fontSize:11}}>
                 <option>All</option>{CATEGORIES.map(c=><option key={c}>{c}</option>)}
               </select>
               <button style={bBtn("ghost")} onClick={()=>setShowAdd(v=>!v)}>{showAdd?"✕ Cancel":"+ Add"}</button>
