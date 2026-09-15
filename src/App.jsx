@@ -2720,6 +2720,19 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
   },[chatMessages]);
 
   // -- Repackage helpers ------------------------------------------------------
+  // Saves any AI-generated recipe (Make This, Swap Recipe, meal-plan full recipe, etc.) straight
+  // to Family Recipes -- previously the only path was print-to-PDF then re-import, since nothing
+  // wired a save button into the shared recipe view these all funnel through.
+  const saveRecipeToFamily=(recipe)=>{
+    if(!recipe||!recipe.name) return;
+    if(familyRecipes.find(r=>r.name.toLowerCase()===recipe.name.toLowerCase())){
+      showAlert(recipe.name+" is already in Family Recipes.");
+      return;
+    }
+    const{id:_discard,...rest}=recipe;
+    setFamilyRecipes(p=>[...p,{id:Date.now()+Math.random(),...rest,isFamilyRecipe:true}]);
+    showAlert(recipe.name+" saved to Family Recipes!");
+  };
   const openRepack=(mode,prefill)=>{setRpMode(mode);setRpPName(prefill?.name||"");setRpPLbs(prefill?.lbs?String(prefill.lbs):"");setRpPOz(6);setRpPPrice("");setRpPPreview(null);setRpHItem("");setRpHRaw("");setRpHOz(16);setRpOpen(true);};
   const commitProtein=()=>{
     if(!rpPName) return;
@@ -7537,6 +7550,9 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                   showAlert(missing.length+" ingredient"+(missing.length!==1?"s":"")+" added to your shopping list!");
                 }}>🛒 Add Missing ({missing.length})</button>);
               })()}
+              {activeRecipe&&!familyRecipes.some(r=>r.name.toLowerCase()===(activeRecipe.name||"").toLowerCase())&&(
+                <button style={{...bBtn("ghost"),flex:2,padding:10,fontSize:12,border:"1px solid #b45309",color:"#b45309"}} onClick={()=>saveRecipeToFamily(activeRecipe)}>💾 Save to Family Recipes</button>
+              )}
               <button style={{...bBtn("primary"),flex:3,padding:12}} onClick={()=>cookRecipe(activeRecipe,activeRecipeServings)}>🍳 I Cooked This — Update Inventory</button>
             </div>
         </div>
@@ -9080,6 +9096,9 @@ setScaleCalcLoading(false);setTimeout(()=>{if(scaleDevice&&scaleDevice._writeChr
                   </div>
                 </div>
                 <div style={{display:"flex",gap:10}}>
+                  {!familyRecipes.some(r=>r.name.toLowerCase()===(makeThisResult.name||"").toLowerCase())&&(
+                    <button onClick={()=>saveRecipeToFamily(makeThisResult)} style={{...bBtn("ghost"),padding:"10px 12px",fontSize:12,border:"1px solid #b45309",color:"#b45309"}}>💾 Save</button>
+                  )}
                   <button onClick={()=>printRecipeCard(makeThisResult,mealPhotos[makeThisResult.name])} style={{...bBtn("ghost"),padding:"10px 12px",fontSize:12}}>🖨 Print</button>
                   <button onClick={()=>{setMakeThisResult(null);setMakeThisInput("");}} style={{...bBtn("ghost"),flex:1,padding:"10px"}}>← Try Another</button>
                   <button onClick={()=>setMakeThisModal(false)} style={{...bBtn("primary"),flex:1,padding:"10px"}}>Done</button>
