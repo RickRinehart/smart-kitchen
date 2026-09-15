@@ -1811,6 +1811,23 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [makeThisLoading,setMakeThisLoading]=useState(false);
   const [familyRecipesOpen,setFamilyRecipesOpen]=useState(false);
   const [familyRecipes,setFamilyRecipes]=useState(()=>{try{const s=localStorage.getItem("sk_familyRecipes");return s?JSON.parse(s):[];}catch{return [];}});
+  useEffect(()=>{
+    // Self-heals any family recipe saved before the instructions->steps field-name fix -- such a
+    // recipe would have shown a blank Instructions section despite the data actually being there,
+    // just under the wrong key. Runs once per load; harmless no-op once everything's already fixed.
+    setFamilyRecipes(prev=>{
+      let changed=false;
+      const fixed=prev.map(r=>{
+        if((!r.steps||r.steps.length===0)&&Array.isArray(r.instructions)&&r.instructions.length>0){
+          changed=true;
+          const{instructions,...rest}=r;
+          return{...rest,steps:instructions};
+        }
+        return r;
+      });
+      return changed?fixed:prev;
+    });
+  },[]);
   const [frAddMode,setFrAddMode]=useState(null);
   const [frEditRecipe,setFrEditRecipe]=useState(null);
   // Raw text shadow state for the ingredients textarea in the Family Recipes editor. The textarea
@@ -2729,8 +2746,11 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       showAlert(recipe.name+" is already in Family Recipes.");
       return;
     }
-    const{id:_discard,...rest}=recipe;
-    setFamilyRecipes(p=>[...p,{id:Date.now()+Math.random(),...rest,isFamilyRecipe:true}]);
+    // Family Recipes' viewer reads instructions from "steps"; every AI-generated recipe uses
+    // "instructions" instead. Both already use the same {{ing:N}} placeholder format (see
+    // renderStepText), so this is a pure field rename, not a data transformation.
+    const{id:_discard,instructions,...rest}=recipe;
+    setFamilyRecipes(p=>[...p,{id:Date.now()+Math.random(),...rest,steps:instructions||[],isFamilyRecipe:true}]);
     showAlert(recipe.name+" saved to Family Recipes!");
   };
   const openRepack=(mode,prefill)=>{setRpMode(mode);setRpPName(prefill?.name||"");setRpPLbs(prefill?.lbs?String(prefill.lbs):"");setRpPOz(6);setRpPPrice("");setRpPPreview(null);setRpHItem("");setRpHRaw("");setRpHOz(16);setRpOpen(true);};
