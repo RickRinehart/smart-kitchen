@@ -1610,7 +1610,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [appConfirm,setAppConfirm]=useState(null);
   const showConfirm=(message,onConfirm)=>setAppConfirm({message,onConfirm});
   const [appPrompt,setAppPrompt]=useState(null);
-  const showPrompt=(message,defaultValue,onConfirm)=>setAppPrompt({message,value:defaultValue!=null?String(defaultValue):"",onConfirm});
+  const showPrompt=(message,defaultValue,onConfirm,inputType)=>setAppPrompt({message,value:defaultValue!=null?String(defaultValue):"",onConfirm,inputType:inputType||"number"});
   const [saleItemsSavedCue,setSaleItemsSavedCue]=useState(null);
   const [smsSent,setSmsSent]=useState(false);
   const [showSmsHelp,setShowSmsHelp]=useState(false);
@@ -5274,7 +5274,10 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                   <div key={item.id} style={{background:C.card,border:"1px solid "+item.isLow?C.red:C.border,borderRadius:12,padding:13,display:"flex",flexDirection:"column",gap:8}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                       <div>
-                        <div style={{fontWeight:600,fontSize:seniorMode?22:13,lineHeight:1.4}}>{item.name}</div>
+                        <div style={{display:"flex",alignItems:"center",gap:6}}>
+                          <div style={{fontWeight:600,fontSize:seniorMode?22:13,lineHeight:1.4}}>{item.name}</div>
+                          <button title="Edit name" onClick={()=>showPrompt("Edit item name:",item.name,(val)=>{const trimmed=(val||"").trim();if(!trimmed)return;setInventory(p=>p.map(i=>i.id===item.id?{...i,name:trimmed}:i));},"text")} style={{background:"transparent",border:"none",color:C.dim,cursor:"pointer",fontSize:seniorMode?18:12,padding:0}}>✏️</button>
+                        </div>
                         {item.blendNote&&<div style={{fontSize:10,color:C.muted,marginTop:1}}>{item.blendNote}</div>}
                         {item.isLow&&<div style={bTag(C.red)}>⚠ Low</div>}
                       </div>
@@ -6910,7 +6913,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:3000,padding:16}} onClick={()=>setAppPrompt(null)}>
           <div style={{background:C.card,border:"1px solid "+C.border,borderRadius:16,padding:26,maxWidth:380,width:"100%",textAlign:"center"}} onClick={e=>e.stopPropagation()}>
             <div style={{fontSize:seniorMode?17:13,color:C.text,lineHeight:1.6,marginBottom:14,whiteSpace:"pre-wrap"}}>{appPrompt.message}</div>
-            <input type="number" autoFocus value={appPrompt.value} onChange={e=>setAppPrompt(prev=>({...prev,value:e.target.value}))} onKeyDown={e=>{if(e.key==="Enter"){const fn=appPrompt.onConfirm;const val=appPrompt.value;setAppPrompt(null);if(fn)fn(val);}}} style={{width:"100%",padding:"10px 12px",borderRadius:8,border:"1px solid "+C.border,background:C.surface,color:C.text,fontFamily:FM,fontSize:16,textAlign:"center",boxSizing:"border-box",marginBottom:18}}/>
+            <input type={appPrompt.inputType||"number"} autoFocus value={appPrompt.value} onChange={e=>setAppPrompt(prev=>({...prev,value:e.target.value}))} onKeyDown={e=>{if(e.key==="Enter"){const fn=appPrompt.onConfirm;const val=appPrompt.value;setAppPrompt(null);if(fn)fn(val);}}} style={{width:"100%",padding:"10px 12px",borderRadius:8,border:"1px solid "+C.border,background:C.surface,color:C.text,fontFamily:FM,fontSize:16,textAlign:"center",boxSizing:"border-box",marginBottom:18}}/>
             <div style={{display:"flex",gap:8}}>
               <button style={{...bBtn("ghost"),flex:1}} onClick={()=>setAppPrompt(null)}>Cancel</button>
               <button style={{...bBtn("primary"),flex:1}} onClick={()=>{const fn=appPrompt.onConfirm;const val=appPrompt.value;setAppPrompt(null);if(fn)fn(val);}}>OK</button>
