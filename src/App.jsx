@@ -1,7 +1,7 @@
 // Smart Kitchen App v2.1 - April 26 2026
 import React, { useState, useRef, useEffect } from "react"
 import { ViewerCodeManager, JoinAsViewerModal } from "./ViewerCodeManager";
-import { supabase, isCloudDirty } from "./supabaseClient";
+import { supabase, isCloudDirty, saveCloudField } from "./supabaseClient";
 import "./App.css";
 
 // -- Design tokens -------------------------------------------------------------
@@ -1691,8 +1691,19 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
     }
     setPricingLoading(false);
   };
-  const [showWizard,setShowWizard]=useState(()=>{try{const urlHasSignup=window.location.hash.includes("type=signup")||window.location.hash.includes("type=recovery")||sessionStorage.getItem("sk_newSignup")==="1";if(urlHasSignup){sessionStorage.setItem("sk_newSignup","1");return true;}return localStorage.getItem("sk_setupDone")!=="1"&&loadLocal("sk_inventory",[]).length===0;}catch{return false;}});
-  const [wizardStep,setWizardStep]=useState(-3);
+  const [showWizard,setShowWizard]=useState(()=>{try{const urlHasSignup=window.location.hash.includes("type=signup")||window.location.hash.includes("type=recovery")||sessionStorage.getItem("sk_newSignup")==="1";if(urlHasSignup){sessionStorage.setItem("sk_newSignup","1");return true;}return localStorage.getItem("sk_setupDone")!=="1";}catch{return false;}});
+  const [wizardStep,setWizardStep]=useState(()=>{
+    try{
+      if(localStorage.getItem("sk_setupDone")==="1") return -3;
+      const raw=localStorage.getItem("sk_setupStepsConfirmed");
+      if(!raw) return -3;
+      const confirmed=JSON.parse(raw);
+      const order=["step_0","step_1","step_2","step_3","step_4"];
+      const firstUnconfirmed=order.findIndex(k=>!confirmed[k]);
+      if(firstUnconfirmed===-1) return 5;
+      return firstUnconfirmed;
+    }catch{return -3;}
+  });
   const [kitchenAppliances,setKitchenAppliances]=useState(()=>{try{return JSON.parse(localStorage.getItem("sk_appliances")||"[]");}catch{return [];}});
   const [applianceCustomInput,setApplianceCustomInput]=useState("");
   const [showMadeItModal,setShowMadeItModal]=useState(false);
@@ -1805,6 +1816,23 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
     }catch{return false;}
   });
   const dismissReminder=()=>{try{localStorage.setItem("sk_reminderDismissed",new Date().toISOString());}catch{}setShowInventoryReminder(false);};
+  const [showProfileReviewReminder,setShowProfileReviewReminder]=useState(()=>{
+    try{
+      if(localStorage.getItem("sk_setupDone")!=="1") return false;
+      const last=localStorage.getItem("sk_lastProfileReviewAt");
+      if(!last) return true;
+      const daysSince=(Date.now()-new Date(last).getTime())/86400000;
+      return daysSince>=30;
+    }catch{return false;}
+  });
+  const recordProfileReview=()=>{
+    try{
+      const now=new Date().toISOString();
+      localStorage.setItem("sk_lastProfileReviewAt",now);
+      if(user) saveCloudField(user.id,"last_profile_review_at",now).catch(()=>{});
+    }catch{}
+    setShowProfileReviewReminder(false);
+  };
   const dismissInstall=()=>{setShowInstallBanner(false);try{localStorage.setItem("sk_installDismissed","1");}catch{}};
   const [editingProfile,setEditingProfile]=useState(null);
   const [printModal,setPrintModal]=useState(null);
@@ -4201,14 +4229,32 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     }
     setShowMadeItModal(false);setMadeItDay(null);
   };
+  const markStepConfirmed=(stepKey)=>{
+    try{
+      const raw=localStorage.getItem("sk_setupStepsConfirmed");
+      const obj=raw?JSON.parse(raw):{};
+      obj[stepKey]=true;
+      localStorage.setItem("sk_setupStepsConfirmed",JSON.stringify(obj));
+      if(user) saveCloudField(user.id,"setup_steps_confirmed",obj).catch(()=>{});
+    }catch{}
+  };
   const completeWizard=(includePantry=false,openScan=false)=>{
-    if(openScan){try{localStorage.setItem("sk_setupDone","1");}catch{} setShowWizard(false);setTimeout(()=>setScanOpen(true),300);return;}
+    if(openScan){try{localStorage.setItem("sk_setupDone","1");localStorage.setItem("sk_setupCompletedAt",new Date().toISOString());localStorage.setItem("sk_onboardingVersion","v1");markStepConfirmed("kitchen");if(user){saveCloudField(user.id,"setup_completed_at",new Date().toISOString()).catch(()=>{});saveCloudField(user.id,"onboarding_version","v1").catch(()=>{});}}catch{} setShowWizard(false);setTimeout(()=>setScanOpen(true),300);return;}
     const proteins=wizardProteins.map((p,i)=>({id:900+i,name:p.name,qty:parseInt(p.qty)||0,unit:"portions",category:"Protein",location:"Freezer",isBulkProtein:true,portionOz:parseInt(p.oz)||6}));
     const pantry=includePantry?pantryChecklist.filter(i=>i.checked).map(({checked,...i})=>i):[];
     const missing=includePantry?pantryChecklist.filter(i=>!i.checked):[];
     if(proteins.length>0||pantry.length>0) setInventory([...proteins,...pantry]);
     if(missing.length>0){showConfirm("You don't have "+missing.length+" staples. Add them to your Shopping List?",()=>{setShopping(prev=>{const toAdd=missing.filter(m=>!prev.some(p=>(p.name||"").toLowerCase()===m.name.toLowerCase()));return [...prev,...toAdd.map(i=>({name:i.name,qty:i.qty,unit:i.unit,category:i.category,checked:false,suggestBulk:false}))];});setTab("shopping");});}
-    try{ localStorage.setItem("sk_setupDone","1"); }catch{}
+    try{
+      localStorage.setItem("sk_setupDone","1");
+      localStorage.setItem("sk_setupCompletedAt",new Date().toISOString());
+      localStorage.setItem("sk_onboardingVersion","v1");
+      markStepConfirmed("kitchen");
+      if(user){
+        saveCloudField(user.id,"setup_completed_at",new Date().toISOString()).catch(()=>{});
+        saveCloudField(user.id,"onboarding_version","v1").catch(()=>{});
+      }
+    }catch{}
     setShowWizard(false);
     if(openScan){setTimeout(()=>setScanOpen(true),300);setTab("inventory");}
   };
@@ -4876,7 +4922,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
               </div>
               <div style={{display:"flex",gap:8}}>
                 <button style={{...bBtn("ghost"),flex:1}} onClick={()=>setWizardStep(-1)}>← Back</button>
-                <button style={{...bBtn("primary"),flex:2}} onClick={()=>setWizardStep(1)}>Next →</button>
+                <button style={{...bBtn("primary"),flex:2}} onClick={()=>{markStepConfirmed("step_0");setWizardStep(1);}}>Next →</button>
               </div>
             </div>)}
             {wizardStep===1&&(<div>
@@ -4887,7 +4933,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
               ))}
               <div style={{display:"flex",gap:8,marginTop:16}}>
                 <button style={{...bBtn("ghost"),flex:1}} onClick={()=>setWizardStep(0)}>← Back</button>
-                <button style={{...bBtn("primary"),flex:2}} onClick={()=>setWizardStep(2)}>Next →</button>
+                <button style={{...bBtn("primary"),flex:2}} onClick={()=>{markStepConfirmed("step_1");setWizardStep(2);}}>Next →</button>
               </div>
             </div>)}
             {wizardStep===2&&(<div>
@@ -4902,19 +4948,19 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
               {wizardProteins.map((p,i)=><div key={i} style={{fontFamily:FM,fontSize:12,color:C.text,padding:"6px 10px",background:C.card,borderRadius:8,marginBottom:6,display:"flex",justifyContent:"space-between"}}><span>{p.name} — {p.qty} portions ({p.oz}oz)</span><span style={{cursor:"pointer",color:C.red}} onClick={()=>setWizardProteins(prev=>prev.filter((_,j)=>j!==i))}>✕</span></div>)}
               <div style={{display:"flex",gap:8,marginTop:8}}>
                 <button style={{...bBtn("ghost"),flex:1}} onClick={()=>setWizardStep(1)}>← Back</button>
-                <button style={{...bBtn("ghost"),flex:1}} onClick={()=>setWizardStep(3)}>Skip</button>
-                <button style={{...bBtn("primary"),flex:2}} onClick={()=>setWizardStep(3)}>Next →</button>
+                <button style={{...bBtn("ghost"),flex:1}} onClick={()=>{markStepConfirmed("step_2");setWizardStep(3);}}>Skip</button>
+                <button style={{...bBtn("primary"),flex:2}} onClick={()=>{markStepConfirmed("step_2");setWizardStep(3);}}>Next →</button>
               </div>
             </div>)}
             {wizardStep===3&&(<div>
               <div style={{fontFamily:FD,fontSize:seniorMode?28:20,color:C.accent,marginBottom:6}}>📦 Inventory Setup</div>
               <div style={{fontFamily:FM,fontSize:seniorMode?16:13,color:C.muted,marginBottom:20,lineHeight:1.6}}>How do you want to start your pantry inventory?</div>
               <div style={{display:'flex',flexDirection:'column',gap:10}}>
-                <button style={{...bBtn('primary'),padding:seniorMode?'20px':'16px',textAlign:'left'}} onClick={()=>{setPantryChecklist(COMMON_PANTRY.map(i=>({...i,checked:true})));setWizardStep(4);}}>
+                <button style={{...bBtn('primary'),padding:seniorMode?'20px':'16px',textAlign:'left'}} onClick={()=>{markStepConfirmed("step_3");setPantryChecklist(COMMON_PANTRY.map(i=>({...i,checked:true})));setWizardStep(4);}}>
                   <div style={{fontFamily:FD,fontSize:seniorMode?18:14}}>✅ Start with common pantry items</div>
                   <div style={{fontFamily:FM,fontSize:seniorMode?15:12,color:C.muted,marginTop:4}}>We'll pre-check ~30 staples — just uncheck what you don't have</div>
                 </button>
-                <button style={{...bBtn('ghost'),padding:seniorMode?'20px':'16px',textAlign:'left'}} onClick={()=>{setPantryChecklist(COMMON_PANTRY.map(i=>({...i,checked:false})));setWizardStep(4);}}>
+                <button style={{...bBtn('ghost'),padding:seniorMode?'20px':'16px',textAlign:'left'}} onClick={()=>{markStepConfirmed("step_3");setPantryChecklist(COMMON_PANTRY.map(i=>({...i,checked:false})));setWizardStep(4);}}>
                   <div style={{fontFamily:FD,fontSize:seniorMode?18:14}}>🔲 Start from scratch</div>
                   <div style={{fontFamily:FM,fontSize:seniorMode?15:12,color:C.muted,marginTop:4}}>Manually check off what you have</div>
                 </button>
@@ -4941,7 +4987,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
               </div>
               <div style={{display:'flex',gap:8}}>
                 <button style={{...bBtn('ghost'),flex:1}} onClick={()=>setWizardStep(3)}>← Back</button>
-                <button style={{...bBtn('primary'),flex:2}} onClick={()=>{const checked=pantryChecklist.filter(i=>i.checked).map(i=>i.name);if(checked.length>0){const newItems=checked.map(name=>({id:Date.now()+Math.random(),name,quantity:1,unit:'item',category:pantryChecklist.find(p=>p.name===name)?.category||'Pantry',addedDate:new Date().toISOString().split('T')[0]}));setInventory(prev=>[...prev,...newItems.filter(ni=>!prev.some(p=>p.name===ni.name))]);}setWizardStep(5);}}>🎉 Next → Kitchen Setup ({pantryChecklist.filter(i=>i.checked).length} items)</button>
+                <button style={{...bBtn('primary'),flex:2}} onClick={()=>{const checked=pantryChecklist.filter(i=>i.checked).map(i=>i.name);if(checked.length>0){const newItems=checked.map(name=>({id:Date.now()+Math.random(),name,quantity:1,unit:'item',category:pantryChecklist.find(p=>p.name===name)?.category||'Pantry',addedDate:new Date().toISOString().split('T')[0]}));setInventory(prev=>[...prev,...newItems.filter(ni=>!prev.some(p=>p.name===ni.name))]);}markStepConfirmed("step_4");setWizardStep(5);}}>🎉 Next → Kitchen Setup ({pantryChecklist.filter(i=>i.checked).length} items)</button>
               </div>
             </div>)}
             {wizardStep===5&&(<div>
@@ -5023,6 +5069,21 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
           <div style={{display:"flex",gap:8,flexShrink:0}}>
             <button onClick={()=>{dismissReminder();setTab("inventory");}} style={{background:"#22c55e",border:"none",borderRadius:8,color:"#0a0a0a",cursor:"pointer",fontFamily:FM,fontSize:11,fontWeight:600,padding:"5px 12px"}}>✅ Review Now</button>
             <button onClick={dismissReminder} style={{background:"transparent",border:"1px solid #22c55e44",borderRadius:8,color:"#86efac",cursor:"pointer",fontFamily:FM,fontSize:11,padding:"5px 10px"}}>Dismiss</button>
+          </div>
+        </div>
+      )}
+      {showProfileReviewReminder&&(
+        <div style={{background:"#1a1a2e",borderBottom:"2px solid #7c9cff",padding:"10px 16px",paddingRight:180,display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            <span style={{fontSize:20}}>💊</span>
+            <div>
+              <div style={{fontFamily:FM,fontSize:12,fontWeight:600,color:"#7c9cff"}}>Monthly Profile Check</div>
+              <div style={{fontFamily:FM,fontSize:11,color:"#b8c6ff",marginTop:2}}>Anything changed? New medication, new diagnosis, or anything else to update?</div>
+            </div>
+          </div>
+          <div style={{display:"flex",gap:8,flexShrink:0}}>
+            <button onClick={()=>{recordProfileReview();setShowWizard(true);setWizardStep(0);}} style={{background:"#7c9cff",border:"none",borderRadius:8,color:"#0a0a0a",cursor:"pointer",fontFamily:FM,fontSize:11,fontWeight:600,padding:"5px 12px"}}>Yes, Update</button>
+            <button onClick={recordProfileReview} style={{background:"transparent",border:"1px solid #7c9cff44",borderRadius:8,color:"#b8c6ff",cursor:"pointer",fontFamily:FM,fontSize:11,padding:"5px 10px"}}>No, Nothing's Changed</button>
           </div>
         </div>
       )}
