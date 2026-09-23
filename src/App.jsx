@@ -50,7 +50,7 @@ const bpCategory=(sys,dia)=>{
 };
 const fiberTargetFor=(p)=>{
   if(p&&p.fiberTargetG) return p.fiberTargetG;
-  const age=p&&p.age?parseFloat(p.age):null;
+  const age=p&&p.dob?Math.floor((new Date()-new Date(p.dob+"T12:00:00"))/(1000*60*60*24*365.25)):(p&&p.age?parseFloat(p.age):null);
   const sex=p&&p.sex;
   let base;
   if(sex==="Male") base=(age&&age>50)?30:38;
@@ -983,7 +983,7 @@ const OCCASION_EVENT_TYPES=[
   {key:"popup",  label:"Pop Up",      emoji:"🎉", desc:"Spontaneous & fun"}
 ];
 const OCCASION_AUDIENCE_TYPES=[
-  {key:"family",   label:"Family",        emoji:"👨\u200d👩\u200d👧\u200d👦"},
+  {key:"family",   label:"Member Profiles",        emoji:"👨\u200d👩\u200d👧\u200d👦"},
   {key:"kids",     label:"Kids Party",    emoji:"🧒"},
   {key:"adult",    label:"Date Night",    emoji:"💑"},
   {key:"mixed",    label:"Mixed Crowd",   emoji:"🎊"},
@@ -4882,7 +4882,13 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                 <div style={{fontSize:10,fontFamily:FM,color:C.muted,marginBottom:8,letterSpacing:0.8}}>FAMILY SIZE</div>
                 {tier==="medical"?(
                   <div style={{display:"flex",alignItems:"center",gap:10}}>
-                    <input type="number" min="1" value={familySize} onChange={e=>{const n=Math.max(1,parseInt(e.target.value)||1);setFamilySize(n);setFamilyProfiles(p=>{const base=p.length>=n?p:p.concat(Array.from({length:n-p.length},(_,i)=>({id:p.length+i+1,name:"",role:"adult",restriction:"standard",customParams:{},active:true})));return base.map((pr,i)=>({...pr,active:i<n}));});}} style={{width:70,padding:"6px 10px",borderRadius:8,border:"1px solid "+C.accent,background:C.card,color:C.text,fontFamily:FM,fontSize:16,fontWeight:700}}/>
+                    <input type="number" min="1" value={familySize===""?"":familySize} onChange={e=>{
+                    const raw=e.target.value;
+                    if(raw===""){setFamilySize("");return;}
+                    const n=Math.max(1,parseInt(raw)||1);
+                    setFamilySize(n);
+                    setFamilyProfiles(p=>{const base=p.length>=n?p:p.concat(Array.from({length:n-p.length},(_,i)=>({id:p.length+i+1,name:"",role:"adult",restriction:"standard",customParams:{},active:true})));return base.map((pr,i)=>({...pr,active:i<n}));});
+                  }} onBlur={e=>{if(familySize===""){const n=1;setFamilySize(n);setFamilyProfiles(p=>{const base=p.length>=n?p:p.concat(Array.from({length:n-p.length},(_,i)=>({id:p.length+i+1,name:"",role:"adult",restriction:"standard",customParams:{},active:true})));return base.map((pr,i)=>({...pr,active:i<n}));});}}} style={{width:70,padding:"6px 10px",borderRadius:8,border:"1px solid "+C.accent,background:C.card,color:C.text,fontFamily:FM,fontSize:16,fontWeight:700}}/>
                     <span style={{fontSize:12,color:C.muted,fontFamily:FM}}>family members (Medical+ - no limit)</span>
                   </div>
                 ):(
@@ -5434,7 +5440,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                       </div>
                       <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
                         <span style={{...bTag(C.muted),fontSize:seniorMode?14:undefined}}>⏱ {r.time}</span>
-                        <span style={bTag(C.blue)}>👨‍👩‍👧 {activeProfiles.length} people</span>
+                        <span style={bTag(C.blue)}>👨‍👩‍👧 {activeProfiles.length} Servings</span>
                         {r.cellarItem&&<span style={bTag("#7c3aed")}>🍷 {r.cellarItem}</span>}
                         <span style={{...bTag(C.green),fontSize:seniorMode?14:undefined}}>✅ {(r.usesFromInventory||[]).length} on hand</span>
                       </div>
@@ -6272,7 +6278,13 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
               <div style={{fontSize:10,fontFamily:FM,color:C.muted,marginBottom:8,letterSpacing:0.8}}>FAMILY SIZE</div>
               {tier==="medical"?(
                 <div style={{display:"flex",alignItems:"center",gap:10}}>
-                  <input type="number" min="1" value={familySize} onChange={e=>{const n=Math.max(1,parseInt(e.target.value)||1);setFamilySize(n);setFamilyProfiles(p=>{const base=p.length>=n?p:p.concat(Array.from({length:n-p.length},(_,i)=>({id:p.length+i+1,name:"",role:"adult",restriction:"standard",customParams:{},active:true})));return base.map((pr,i)=>({...pr,active:i<n}));});}} style={{width:70,padding:"6px 10px",borderRadius:8,border:"1px solid "+C.accent,background:C.card,color:C.text,fontFamily:FM,fontSize:16,fontWeight:700}}/>
+                  <input type="number" min="1" value={familySize===""?"":familySize} onChange={e=>{
+                    const raw=e.target.value;
+                    if(raw===""){setFamilySize("");return;}
+                    const n=Math.max(1,parseInt(raw)||1);
+                    setFamilySize(n);
+                    setFamilyProfiles(p=>{const base=p.length>=n?p:p.concat(Array.from({length:n-p.length},(_,i)=>({id:p.length+i+1,name:"",role:"adult",restriction:"standard",customParams:{},active:true})));return base.map((pr,i)=>({...pr,active:i<n}));});
+                  }} onBlur={e=>{if(familySize===""){const n=1;setFamilySize(n);setFamilyProfiles(p=>{const base=p.length>=n?p:p.concat(Array.from({length:n-p.length},(_,i)=>({id:p.length+i+1,name:"",role:"adult",restriction:"standard",customParams:{},active:true})));return base.map((pr,i)=>({...pr,active:i<n}));});}}} style={{width:70,padding:"6px 10px",borderRadius:8,border:"1px solid "+C.accent,background:C.card,color:C.text,fontFamily:FM,fontSize:16,fontWeight:700}}/>
                   <span style={{fontSize:12,color:C.muted,fontFamily:FM}}>family members (Medical+ - no limit)</span>
                 </div>
               ):(
