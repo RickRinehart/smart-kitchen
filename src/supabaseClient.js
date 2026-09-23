@@ -116,6 +116,10 @@ const SYNC_MAP = {
   senior_mode:          'sk_seniorMode',
   dark_mode:            'sk_darkMode',
   setup_done:           'sk_setupDone',
+  setup_steps_confirmed: 'sk_setupStepsConfirmed',
+  setup_completed_at:   'sk_setupCompletedAt',
+  onboarding_version:   'sk_onboardingVersion',
+  last_profile_review_at: 'sk_lastProfileReviewAt',
 };
 
 // ── DIRTY TRACKING ───────────────────────────────────────────────────────────
