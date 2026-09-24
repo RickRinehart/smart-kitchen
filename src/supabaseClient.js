@@ -3,6 +3,22 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseKey = import.meta.env.VITE_SUPABASE_KEY
 export const supabase = createClient(supabaseUrl, supabaseKey)
 
+// Every local key the app writes to. Used to fully clear a browser's cached data on sign-out,
+// so one account's data can never bleed into the next person who signs in on the same device --
+// and kept in sync with the Settings "Reset All Data" list, which should always match this one.
+export const ALL_LOCAL_STORAGE_KEYS = [
+  "sk_inventory","sk_familyProfiles","sk_familySize","sk_mealPlan","sk_sportsNights","sk_recipeSite",
+  "sk_seniorMode","sk_setupDone","sk_portionFixV2","sk_installDismissed","sk_reminderDismissed",
+  "sk_saleItems","sk_tempProfiles","sk_activeTab","sk_chatWelcomeDone","sk_tourChoice","sk_tourStep",
+  "sk_guestCaptured","sk_darkMode","sk_recipes","sk_recipeRatings","sk_desserts","sk_dessertRatings",
+  "sk_seenFeature_occasionSystem","sk_seenFeature_smsShoppingList","sk_appliances",
+  "sk_setupStepsConfirmed","sk_setupCompletedAt","sk_onboardingVersion","sk_lastProfileReviewAt",
+  "sk_cuisinePrefs","sk_assistantName","sk_voiceGender","sk_shopPartnerName","sk_shopPartnerEmail",
+  "sk_shopPhone","sk_budgetAmount","sk_budgetPeriod","sk_deliveryService","sk_instacartStore",
+  "sk_chatBubblePos","sk_recallSensitivity","sk_cellarCookingEnabled","sk_guestTrialEmail",
+  "sk_trialStart","sk_newSignup","sk_changeMealHistory"
+];
+
 // Get current user profile including tier and trial info
 export async function getUserProfile(userId) {
   const { data, error } = await supabase
