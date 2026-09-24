@@ -1705,6 +1705,47 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
       return firstUnconfirmed;
     }catch{return -3;}
   });
+  // Local storage is browser-scoped, not account-scoped -- it can carry stale setup-complete
+  // state left over from a DIFFERENT account previously used in this same browser (e.g. testing
+  // multiple signups, or a shared device). The cloud record for the actual signed-in user is the
+  // only real source of truth for "has this account finished setup" -- check it once a real user
+  // is available and correct local state (in either direction) if it disagrees.
+  useEffect(()=>{
+    if(!user) return;
+    let cancelled=false;
+    (async()=>{
+      try{
+        const {data,error}=await supabase.from("user_data").select("setup_done,setup_completed_at,setup_steps_confirmed,onboarding_version").eq("user_id",user.id).single();
+        if(cancelled) return;
+        const cloudDone=!error&&data&&(data.setup_completed_at||data.setup_done===true);
+        if(cloudDone){
+          try{
+            localStorage.setItem("sk_setupDone","1");
+            if(data.setup_completed_at)localStorage.setItem("sk_setupCompletedAt",data.setup_completed_at);
+            if(data.onboarding_version)localStorage.setItem("sk_onboardingVersion",data.onboarding_version);
+          }catch{}
+          setShowWizard(false);
+        } else {
+          // No cloud record, or cloud explicitly shows setup was never completed for THIS
+          // account -- clear any stale local flag from a previous account on this browser and
+          // resume at whatever step the cloud has confirmed (if any), rather than trusting
+          // local state at all.
+          try{
+            localStorage.setItem("sk_setupDone","0");
+            const stepsRaw=data&&data.setup_steps_confirmed?JSON.stringify(data.setup_steps_confirmed):"{}";
+            localStorage.setItem("sk_setupStepsConfirmed",stepsRaw);
+            localStorage.removeItem("sk_setupCompletedAt");
+          }catch{}
+          const confirmed=data&&data.setup_steps_confirmed?data.setup_steps_confirmed:{};
+          const order=["step_0","step_1","step_2","step_3","step_4"];
+          const firstUnconfirmed=order.findIndex(k=>!confirmed[k]);
+          setWizardStep(firstUnconfirmed===-1?-3:firstUnconfirmed);
+          setShowWizard(true);
+        }
+      }catch{}
+    })();
+    return ()=>{cancelled=true;};
+  },[user]);
   const [kitchenAppliances,setKitchenAppliances]=useState(()=>{try{return JSON.parse(localStorage.getItem("sk_appliances")||"[]");}catch{return [];}});
   const [applianceCustomInput,setApplianceCustomInput]=useState("");
   const [cuisinePrefs,setCuisinePrefs]=useState(()=>{try{return JSON.parse(localStorage.getItem("sk_cuisinePrefs")||"[]");}catch{return [];}});
