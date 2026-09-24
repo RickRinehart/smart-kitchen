@@ -265,6 +265,11 @@ const renderStepText=(stepText,ingredients,scale)=>{
     return [scaledQty,p.unit,p.name].filter(Boolean).join(" ");
   });
 };
+// Seeded starter recipe -- every new signup's Family Recipes list starts with this one instead of
+// an empty array (added Sept 2026, ties into the vanilla extract craft-fair giveaway program).
+// Returning users are untouched: the useState initializer below only falls back to this when
+// localStorage has no sk_familyRecipes key yet, i.e. first-ever load on a fresh account.
+const DEFAULT_VANILLA_RECIPE={id:1,name:"Homemade Vanilla Extract",kitchenOf:"Rick's Kitchen",notes:"A Smart Kitchen staple \u2014 makes a wonderful homemade gift, and the bean stays in the bottle for perpetual refills with more vodka.",servings:1,ingredients:[{name:"80-proof vodka",qty:1.72,unit:"L",note:""},{name:"Grade B Madagascar vanilla beans, split lengthwise (66 pieces)",qty:33,unit:"whole beans",note:""}],steps:["Remove 1 cup of vodka to make room for the beans \u2014 save it for topping off later.","Split each bean lengthwise to expose the seeds.","Narrow-necked bottle? Cut split beans in half crosswise for easier insertion.","Add all bean pieces to the vodka. Seal tightly; store in a cool, dark place.","Shake gently once a week.","Steep at least 8 weeks \u2014 best flavor at 3\u20136 months."],rotation:false,frequency:"4week",seasons:[],photo:null,isFamilyRecipe:true};
 // -- Bulk Item Estimator: weight-to-volume conversion is the only place ingredient density matters.
 // Everything downstream (deducting cups/tbsp/tsp/floz as recipes use the item) is a fixed volume
 // ratio and needs no per-ingredient lookup. This table is a starting suggestion only — always
@@ -1964,7 +1969,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [makeThisResult,setMakeThisResult]=useState(null);
   const [makeThisLoading,setMakeThisLoading]=useState(false);
   const [familyRecipesOpen,setFamilyRecipesOpen]=useState(false);
-  const [familyRecipes,setFamilyRecipes]=useState(()=>{try{const s=localStorage.getItem("sk_familyRecipes");return s?JSON.parse(s):[];}catch{return [];}});
+  const [familyRecipes,setFamilyRecipes]=useState(()=>{try{const s=localStorage.getItem("sk_familyRecipes");return s?JSON.parse(s):[DEFAULT_VANILLA_RECIPE];}catch{return [DEFAULT_VANILLA_RECIPE];}});
   useEffect(()=>{
     // Self-heals any family recipe saved before the instructions->steps field-name fix -- such a
     // recipe would have shown a blank Instructions section despite the data actually being there,
