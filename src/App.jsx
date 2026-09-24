@@ -2250,11 +2250,11 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
       window._invSaveTimer=setTimeout(()=>{
         // Only push if something actually changed locally since the last sync -- otherwise a
         // state update caused purely by an incoming cloud load (which always creates a new
-        // array reference, even when content is identical) would blindly re-push 10s later,
+        // array reference, even when content is identical) would blindly re-push moments later,
         // potentially stomping a value the load itself hadn't finished correcting yet.
         if(!isCloudDirty()) return;
         import("./supabaseClient").then(m=>m.saveCloudData(user.id)).catch(()=>{});
-      },10000);
+      },3000);
     }
   },[inventory]);
   useEffect(()=>{
@@ -2264,7 +2264,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
       window._mpSaveTimer=setTimeout(()=>{
         if(!isCloudDirty()) return;
         import("./supabaseClient").then(m=>m.saveCloudData(user.id)).catch(()=>{});
-      },10000);
+      },3000);
     }
   },[mealPlan]);
   useEffect(()=>{try{localStorage.setItem("sk_shoppingList",JSON.stringify(shopping));}catch{}},[shopping]);
@@ -4846,7 +4846,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
 </div>
 <div style={{background:"#EEF1F8",borderRadius:10,padding:16,marginTop:12}}>
 <div style={{fontFamily:FD,fontSize:14,fontWeight:600,color:"#1A2344",marginBottom:4}}>🌐 Cloud Sync</div>
-<div style={{fontSize:12,color:"#888",fontFamily:FM,marginBottom:10}}>Your data syncs automatically every 5 minutes and when you switch apps. Tap to sync now.</div>
+<div style={{fontSize:12,color:"#888",fontFamily:FM,marginBottom:10}}>Your data saves automatically a few seconds after any change, every 5 minutes in the background, and whenever you close or switch away from the app. Tap to sync now.</div>
 {!isViewer&&<button style={{...bBtn("primary"),width:"100%",marginBottom:8}} onClick={async()=>{
   if(!user){showAlert("Sign in to use cloud sync.");return;}
   const ok=await import("./supabaseClient").then(m=>m.saveCloudData(user.id));
