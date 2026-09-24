@@ -5,7 +5,7 @@ import App from "./App";
 import AuthModal from "./AuthModal";
 import { GuestViewerModal } from "./ViewerCodeManager";
 import SubscriptionModal from "./SubscriptionModal";
-import { supabase, getUserProfile, trialDaysRemaining, markTouchpoint, loadCloudData, saveCloudData, getViewerRole, isCloudDirty } from "./supabaseClient";
+import { supabase, getUserProfile, trialDaysRemaining, markTouchpoint, loadCloudData, saveCloudData, getViewerRole, isCloudDirty, ALL_LOCAL_STORAGE_KEYS } from "./supabaseClient";
 import "./index.css";
 
 // Pre-auth accessibility toggles shown next to Sign In button
@@ -367,8 +367,12 @@ function Root() {
 
   async function handleSignOut() {
     await supabase.auth.signOut();
+    // Clear all locally-cached app data so this account's information can never bleed into
+    // whoever signs in next on this same browser/device.
+    try{ALL_LOCAL_STORAGE_KEYS.forEach(k=>localStorage.removeItem(k));}catch{}
     setUser(null);
     setUserProfile(null);
+    window.location.reload();
   }
 
   // Admin bypass — always full access
