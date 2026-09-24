@@ -1639,7 +1639,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [seniorMode,setSeniorMode]=useState(()=>{try{return localStorage.getItem("sk_seniorMode")==="1";}catch{return false;}});
   const [seniorPromptDismissed,setSeniorPromptDismissed]=useState(()=>{try{return localStorage.getItem("sk_seniorPromptDismissed")==="1";}catch{return false;}});
   const [showSeniorPrompt,setShowSeniorPrompt]=useState(false);
-  const [darkMode,setDarkMode]=useState(()=>{try{return localStorage.getItem("sk_darkMode")!=="0";}catch{return true;}});
+  const [darkMode,setDarkMode]=useState(()=>{try{return localStorage.getItem("sk_darkMode")==="1";}catch{return false;}});
   const [cellarCookingEnabled,setCellarCookingEnabled]=useState(()=>{try{return localStorage.getItem("sk_cellarCookingEnabled")!=="0";}catch{return true;}});
   const [cellarInvDisplay,setCellarInvDisplay]=useState(null);
   const [cellarInvLoading,setCellarInvLoading]=useState(false);
