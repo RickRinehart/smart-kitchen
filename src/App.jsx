@@ -1090,6 +1090,14 @@ const FEATURE_ANNOUNCEMENTS=[
     quickReplies:["Show me!","How do I add it?","Maybe later"],
     tab:"mealPlan",
     digest:"**Smarter Way to Shop** — compares your preferred stores' weekly ads against your own inventory, plus Deep Discount Alerts for steep, limited-quantity deals on items you actually buy"
+  },
+  {
+    key:"vanillaStarterRecipe",
+    title:"New: Bonus Starter Recipe for New Members",
+    intro:(name)=>`Hi ${name}! \ud83c\udf66 A small one, but a fun one.\n\nBrand-new Smart Kitchen members now find a **Homemade Vanilla Extract** recipe already waiting for them in Family Recipes on day one — straight from our own kitchen. It won't retroactively show up in an existing account like yours, but if you'd ever like the recipe, just ask and I can walk you through it.\n\nJust wanted you to know it's there for anyone new joining your household!`,
+    quickReplies:["Nice!","Send me the recipe"],
+    tab:null,
+    digest:"**Bonus starter recipe** — new members now get a Homemade Vanilla Extract recipe pre-loaded in Family Recipes"
   }
 ];
 // -- Cellar Cooking-Use Registry — mirrors the pour-size category matching in Pair a Drink --
