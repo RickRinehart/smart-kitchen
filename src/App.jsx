@@ -1739,6 +1739,24 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
     }
     setCuisinePantryLoading(null);
   };
+  const getCuisineChecklistItems=()=>{
+    const seen=new Set(COMMON_PANTRY.map(i=>i.name.toLowerCase()));
+    const out=[];
+    const catLabel={pantry:"Pantry",protein:"Protein",produce:"Produce",dairy:"Dairy"};
+    cuisinePrefs.forEach(c=>{
+      const data=cuisinePantryCache[c];
+      if(!data) return;
+      ["pantry","protein","produce","dairy"].forEach(k=>{
+        (data[k]||[]).forEach(name=>{
+          const key=String(name).toLowerCase();
+          if(seen.has(key)) return;
+          seen.add(key);
+          out.push({id:"cuisine-"+key.replace(/[^a-z0-9]/g,""),name,qty:1,unit:"item",category:catLabel[k],location:"Pantry",fromCuisine:true});
+        });
+      });
+    });
+    return out;
+  };
   const cuisineItemHaveIt=(itemName)=>inventory.some(i=>wordsOverlap(itemName,i.name)&&(parseFloat(i.qty)||0)>0);
   const addCuisineItemToInventory=(itemName,category)=>{
     if(inventory.some(i=>wordsOverlap(itemName,i.name))){setCuisineAddedFeedback(prev=>({...prev,[itemName]:"inv"}));return;}
@@ -2247,6 +2265,16 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   useEffect(()=>{try{localStorage.setItem("sk_familyProfiles",JSON.stringify(familyProfiles));}catch{}},[familyProfiles]);
   useEffect(()=>{try{localStorage.setItem("sk_appliances",JSON.stringify(kitchenAppliances));}catch{}},[kitchenAppliances]);
   useEffect(()=>{try{localStorage.setItem("sk_cuisinePrefs",JSON.stringify(cuisinePrefs));}catch{}},[cuisinePrefs]);
+  useEffect(()=>{
+    if(wizardStep!==4) return;
+    const fresh=getCuisineChecklistItems();
+    if(fresh.length===0) return;
+    setPantryChecklist(prev=>{
+      const existing=new Set(prev.map(i=>i.name.toLowerCase()));
+      const toAdd=fresh.filter(i=>!existing.has(i.name.toLowerCase())).map(i=>({...i,checked:true}));
+      return toAdd.length>0?[...prev,...toAdd]:prev;
+    });
+  },[cuisinePantryCache,wizardStep]);
   useEffect(()=>{try{localStorage.setItem("sk_tempProfiles",JSON.stringify(tempProfiles));}catch{}},[tempProfiles]);
   useEffect(()=>{try{localStorage.setItem("sk_seniorMode",seniorMode?"1":"0");}catch{}},[seniorMode]);
   // Suppress wizard when signed in OR in viewer mode
@@ -4930,15 +4958,15 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                 <div style={{fontSize:10,fontFamily:FM,color:C.muted,marginBottom:8,letterSpacing:0.8}}>FAVORITE CUISINES <span style={{fontWeight:400}}>(optional, pick as many as you like)</span></div>
                 <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:8}}>
                   {CUISINE_OPTIONS.map(c=>{const on=cuisinePrefs.includes(c);return(
-                    <button key={c} onClick={()=>setCuisinePrefs(prev=>on?prev.filter(x=>x!==c):[...prev,c])}
+                    <button key={c} onClick={()=>{setCuisinePrefs(prev=>on?prev.filter(x=>x!==c):[...prev,c]);if(!on)fetchCuisinePantry(c);}}
                       style={{padding:"6px 12px",borderRadius:16,border:"1px solid "+(on?C.accent:C.border),background:on?C.accent+"22":"transparent",color:on?C.accent:C.text,fontFamily:FM,fontSize:12,cursor:"pointer"}}>
                       {c}{on?" ✓":""}
                     </button>
                   );})}
                 </div>
                 <div style={{display:"flex",gap:6}}>
-                  <input value={cuisineCustomInput} onChange={e=>setCuisineCustomInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&cuisineCustomInput.trim()){const val=cuisineCustomInput.trim();if(!cuisinePrefs.includes(val))setCuisinePrefs(prev=>[...prev,val]);setCuisineCustomInput("");}}} placeholder="Add another cuisine..." style={{flex:1,background:C.surface,border:"1px solid "+C.border,borderRadius:6,padding:"5px 8px",color:C.text,fontFamily:FM,fontSize:11,outline:"none"}}/>
-                  <button onClick={()=>{const val=cuisineCustomInput.trim();if(val&&!cuisinePrefs.includes(val)){setCuisinePrefs(prev=>[...prev,val]);setCuisineCustomInput("");}}} style={{...bBtn("primary"),padding:"5px 10px",fontSize:11}}>+ Add</button>
+                  <input value={cuisineCustomInput} onChange={e=>setCuisineCustomInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&cuisineCustomInput.trim()){const val=cuisineCustomInput.trim();if(!cuisinePrefs.includes(val)){setCuisinePrefs(prev=>[...prev,val]);fetchCuisinePantry(val);}setCuisineCustomInput("");}}} placeholder="Add another cuisine..." style={{flex:1,background:C.surface,border:"1px solid "+C.border,borderRadius:6,padding:"5px 8px",color:C.text,fontFamily:FM,fontSize:11,outline:"none"}}/>
+                  <button onClick={()=>{const val=cuisineCustomInput.trim();if(val&&!cuisinePrefs.includes(val)){setCuisinePrefs(prev=>[...prev,val]);fetchCuisinePantry(val);setCuisineCustomInput("");}}} style={{...bBtn("primary"),padding:"5px 10px",fontSize:11}}>+ Add</button>
                 </div>
               </div>
               <div style={{background:C.card,borderRadius:10,padding:14,marginBottom:14}}>
@@ -5025,11 +5053,11 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
               <div style={{fontFamily:FD,fontSize:seniorMode?28:20,color:C.accent,marginBottom:6}}>📦 Inventory Setup</div>
               <div style={{fontFamily:FM,fontSize:seniorMode?16:13,color:C.muted,marginBottom:20,lineHeight:1.6}}>How do you want to start your pantry inventory?</div>
               <div style={{display:'flex',flexDirection:'column',gap:10}}>
-                <button style={{...bBtn('primary'),padding:seniorMode?'20px':'16px',textAlign:'left'}} onClick={()=>{markStepConfirmed("step_3");setPantryChecklist(COMMON_PANTRY.map(i=>({...i,checked:true})));setWizardStep(4);}}>
+                <button style={{...bBtn('primary'),padding:seniorMode?'20px':'16px',textAlign:'left'}} onClick={()=>{markStepConfirmed("step_3");setPantryChecklist([...COMMON_PANTRY.map(i=>({...i,checked:true})),...getCuisineChecklistItems().map(i=>({...i,checked:true}))]);setWizardStep(4);}}>
                   <div style={{fontFamily:FD,fontSize:seniorMode?18:14}}>✅ Start with common pantry items</div>
                   <div style={{fontFamily:FM,fontSize:seniorMode?15:12,color:C.muted,marginTop:4}}>We'll pre-check ~30 staples — just uncheck what you don't have</div>
                 </button>
-                <button style={{...bBtn('ghost'),padding:seniorMode?'20px':'16px',textAlign:'left'}} onClick={()=>{markStepConfirmed("step_3");setPantryChecklist(COMMON_PANTRY.map(i=>({...i,checked:false})));setWizardStep(4);}}>
+                <button style={{...bBtn('ghost'),padding:seniorMode?'20px':'16px',textAlign:'left'}} onClick={()=>{markStepConfirmed("step_3");setPantryChecklist([...COMMON_PANTRY.map(i=>({...i,checked:false})),...getCuisineChecklistItems().map(i=>({...i,checked:true}))]);setWizardStep(4);}}>
                   <div style={{fontFamily:FD,fontSize:seniorMode?18:14}}>🔲 Start from scratch</div>
                   <div style={{fontFamily:FM,fontSize:seniorMode?15:12,color:C.muted,marginTop:4}}>Manually check off what you have</div>
                 </button>
@@ -5045,6 +5073,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
             {wizardStep===4&&(<div>
               <div style={{fontFamily:FD,fontSize:seniorMode?28:20,color:C.accent,marginBottom:6}}>🧺 Pantry Checklist</div>
               <div style={{fontFamily:FM,fontSize:seniorMode?16:13,color:C.muted,marginBottom:12,lineHeight:1.6}}>Check off what you have on hand:</div>
+              {cuisinePrefs.some(c=>!cuisinePantryCache[c])&&<div style={{background:"#1a2e1a",borderRadius:8,padding:"8px 12px",marginBottom:12,fontFamily:FM,fontSize:11,color:"#86efac"}}>⏳ Still finding common items for one or more of your cuisines — give it a moment before hitting Back if the list looks short.</div>}
               <div style={{maxHeight:320,overflowY:'auto',marginBottom:12}}>
                 {pantryChecklist.map((item,idx)=>(
                   <div key={idx} style={{display:'flex',alignItems:'center',gap:10,padding:seniorMode?'12px 4px':'8px 4px',borderBottom:'1px solid '+C.border}}>
