@@ -366,6 +366,20 @@ function Root() {
   }, [userProfile, user]);
 
   async function handleSignOut() {
+    // Flush any unsaved local changes to the cloud BEFORE clearing anything. Clearing local
+    // data first (as this used to do) can permanently destroy edits that were never synced --
+    // this must never happen again, so a failed save blocks the destructive part of sign-out
+    // entirely rather than proceeding anyway.
+    if (user) {
+      const saved = await saveCloudData(user.id).catch(() => false);
+      if (!saved) {
+        const proceedAnyway = window.confirm(
+          "We couldn't save your latest changes to the cloud (check your connection). " +
+          "Signing out now will lose anything not yet saved. Sign out anyway?"
+        );
+        if (!proceedAnyway) return;
+      }
+    }
     await supabase.auth.signOut();
     // Clear all locally-cached app data so this account's information can never bleed into
     // whoever signs in next on this same browser/device.
