@@ -290,6 +290,62 @@ export function restoreFromBackup() {
 }
 
 // Save all user data from localStorage to Supabase
+let _cachedAccessToken = null;
+export function setCachedAccessToken(token) { _cachedAccessToken = token; }
+export function getCachedAccessToken() { return _cachedAccessToken; }
+
+// Synchronous version of the row-builder saveCloudData uses, for contexts (page unload,
+// backgrounding) where there's no time to wait on an async network call. Deliberately skips
+// fetched_recipe_cache -- that field needs an async cloud-merge read to avoid clobbering another
+// device's cache, which isn't safe to attempt here. Everything else (inventory, meal_plan,
+// family_profiles, and the rest of SYNC_MAP) is included, since those are exactly the fields a
+// lost edit actually matters for.
+export function buildBeaconRow(userId) {
+  const row = { user_id: userId };
+  Object.entries(SYNC_MAP).forEach(([dbCol, lsKey]) => {
+    if (dbCol === 'fetched_recipe_cache') return;
+    try {
+      const raw = localStorage.getItem(lsKey);
+      if (raw === null) return;
+      try {
+        let parsed = JSON.parse(raw);
+        if (dbCol === 'inventory' && Array.isArray(parsed)) {
+          parsed = parsed.map(item => { const { photo, image, imageData, ...rest } = item; return rest; });
+        }
+        if (dbCol === 'family_recipes' && Array.isArray(parsed)) {
+          parsed = parsed.map(r => { const { photo, ...rest } = r; return rest; });
+        }
+        if (dbCol === 'meal_plan' && Array.isArray(parsed)) {
+          parsed = parsed.map(day => { if (!day) return day; const { photo, ...rest } = day; return rest; });
+        }
+        row[dbCol] = parsed;
+      } catch {
+        if (raw === '1' || raw === 'true') row[dbCol] = true;
+        else if (raw === '0' || raw === 'false') row[dbCol] = false;
+        else row[dbCol] = raw;
+      }
+    } catch(e) {}
+  });
+  return row;
+}
+
+// Best-effort, survives-page-teardown save. Uses sendBeacon, which the browser guarantees to
+// attempt even as the page is closing or being backgrounded -- unlike a normal fetch(), which
+// mobile browsers can and do cut off mid-flight the moment a tab is suspended. This is the actual
+// fix for "made an edit, closed the app, edit was never saved" -- the 10s debounce timer and the
+// visibilitychange handler both rely on fetch() completing, which nothing here can guarantee.
+export function beaconSave(userId) {
+  try {
+    if (!isCloudDirty()) return false;
+    const token = getCachedAccessToken();
+    if (!token) return false;
+    const row = buildBeaconRow(userId);
+    const payload = JSON.stringify({ access_token: token, row });
+    const blob = new Blob([payload], { type: 'application/json' });
+    return navigator.sendBeacon('/api/beacon-save', blob);
+  } catch(e) { return false; }
+}
+
 export async function saveCloudData(userId) {
   try {
     const row = { user_id: userId, updated_at: new Date().toISOString() };
