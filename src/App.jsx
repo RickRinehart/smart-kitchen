@@ -22,7 +22,7 @@ const LOCATIONS=["Pantry","Fridge","Freezer"];
 const LOC_ICONS={Pantry:"🗄",Fridge:"❄",Freezer:"🧊"};
 const LOC_COLORS={Pantry:C.accent,Fridge:C.blue,Freezer:C.purple};
 const CATEGORIES=["Protein","Produce","Dairy","Pantry","Grains","Spices","Frozen","Condiments","Snacks","Beverages","Leftovers","Wild Harvest","Home Harvest","Household","Cleaning","Personal Care","Pet","Other"];
-const CUISINE_OPTIONS=["Mexican","Italian","Mediterranean","Chinese","Indian","Thai","Japanese","American","Southern/Soul Food","Greek","French","Middle Eastern","Korean","Cajun/Creole","Vietnamese"];
+const CUISINE_OPTIONS=["Mexican","Italian","Mediterranean","Chinese","Indian","Thai","Japanese","American","Southern/Soul Food","Greek","French","Middle Eastern","Korean","Cajun/Creole","Vietnamese","Kosher","Halal"];
 const KITCHEN_APPLIANCES=[
   {id:"instant_pot",label:"Instant Pot / Pressure Cooker",emoji:"🫕"},
   {id:"air_fryer",label:"Air Fryer",emoji:"🌬"},
