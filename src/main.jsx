@@ -5,7 +5,7 @@ import App from "./App";
 import AuthModal from "./AuthModal";
 import { GuestViewerModal } from "./ViewerCodeManager";
 import SubscriptionModal from "./SubscriptionModal";
-import { supabase, getUserProfile, trialDaysRemaining, markTouchpoint, loadCloudData, saveCloudData, getViewerRole, isCloudDirty, ALL_LOCAL_STORAGE_KEYS } from "./supabaseClient";
+import { supabase, getUserProfile, trialDaysRemaining, markTouchpoint, loadCloudData, saveCloudData, getViewerRole, isCloudDirty, ALL_LOCAL_STORAGE_KEYS, setCachedAccessToken, beaconSave } from "./supabaseClient";
 import "./index.css";
 
 // Pre-auth accessibility toggles shown next to Sign In button
@@ -244,6 +244,7 @@ function Root() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setUser(session.user);
+        setCachedAccessToken(session.access_token);
         // Check if this user is a viewer of someone else's account
         getViewerRole(session.user.id).then(role => {
           if (role) {
@@ -278,10 +279,14 @@ function Root() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
         setUser(session.user);
+        setCachedAccessToken(session.access_token);
         getUserProfile(session.user.id).then(setUserProfile);
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
         setUserProfile(null);
+        setCachedAccessToken(null);
+      } else if (event === 'TOKEN_REFRESHED') {
+        setCachedAccessToken(session?.access_token || null);
       }
     });
 
@@ -297,17 +302,51 @@ function Root() {
     // re-push a stale snapshot over top of a fresher save from another device.
     const handleVisibility = () => {
       if (document.visibilityState === "hidden" && isCloudDirty()) {
+        // Fire both: sendBeacon is the one that actually survives the tab being suspended or
+        // killed a moment later, which is the exact scenario a normal fetch()-based save can't
+        // reliably handle on mobile. The regular saveCloudData attempt is kept alongside it for
+        // the common case where the tab isn't torn down (just switched away from, still fully
+        // alive) -- no reason not to let both try.
         supabase.auth.getUser().then(({data}) => {
-          if (data?.user) saveCloudData(data.user.id).catch(()=>{});
+          if (data?.user) {
+            saveCloudData(data.user.id).catch(()=>{});
+            beaconSave(data.user.id);
+          }
         });
       }
     };
-    document.addEventListener("visibilitychange", handleVisibility);
+document.addEventListener("visibilitychange", handleVisibility);
     return () => {
       subscription.unsubscribe();
       document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, []);
+
+  // pagehide fires specifically when the page is being torn down (closed, navigated away from,
+  // or backgrounded in a way the OS may not resume) -- this is the actual moment a beacon needs
+  // to fire for the "closed the app" scenario, and it can't wait on an async getUser() lookup the
+  // way the visibility handler above does, since the page may not survive long enough for that to
+  // resolve. Kept as its own effect (re-registered whenever the signed-in user changes) so it
+  // always closes over the current user, without touching the auth-subscription effect above.
+  useEffect(() => {
+    if (!user) return;
+    const handlePageHide = () => {
+      if (isCloudDirty()) beaconSave(user.id);
+    };
+    window.addEventListener("pagehide", handlePageHide);
+    return () => window.removeEventListener("pagehide", handlePageHide);
+  }, [user]);
+
+  // Real periodic auto-save, matching what the Cloud Sync settings text has always claimed but
+  // never actually did -- a genuine safety net for a session left open and idle, independent of
+  // the app-switch and page-teardown saves above.
+  useEffect(() => {
+    if (!user) return;
+    const interval = setInterval(() => {
+      if (isCloudDirty()) saveCloudData(user.id).catch(() => {});
+    }, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [user]);
 
   // Load guest viewer data on startup (no account needed)
   useEffect(() => {
