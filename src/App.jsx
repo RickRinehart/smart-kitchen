@@ -1715,9 +1715,22 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
     let cancelled=false;
     (async()=>{
       try{
-        const {data,error}=await supabase.from("user_data").select("setup_done,setup_completed_at,setup_steps_confirmed,onboarding_version").eq("user_id",user.id).single();
+        const {data,error}=await supabase.from("user_data").select("setup_done,setup_completed_at,setup_steps_confirmed,onboarding_version,inventory,family_profiles").eq("user_id",user.id).single();
         if(cancelled) return;
-        const cloudDone=!error&&data&&(data.setup_completed_at||data.setup_done===true);
+        // An account with real inventory or family profiles already has clearly completed setup
+        // at some point, regardless of whether the tracking flag itself was ever correctly
+        // written -- that flag didn't exist for a long time, so plenty of established accounts
+        // never had it set. Treat substantial existing data as proof of completion and backfill
+        // the flag quietly, rather than sending a real, active account back through the wizard.
+        const hasRealData=!error&&data&&((Array.isArray(data.inventory)&&data.inventory.length>=5)||(Array.isArray(data.family_profiles)&&data.family_profiles.length>=1));
+        const cloudDone=!error&&data&&(data.setup_completed_at||data.setup_done===true||hasRealData);
+        if(cloudDone&&hasRealData&&!(data.setup_completed_at||data.setup_done===true)){
+          // Backfill silently -- this account was clearly already set up, the flag just never
+          // caught up to reality.
+          const nowIso=new Date().toISOString();
+          saveCloudField(user.id,"setup_completed_at",nowIso).catch(()=>{});
+          saveCloudField(user.id,"setup_done",true).catch(()=>{});
+        }
         if(cloudDone){
           try{
             localStorage.setItem("sk_setupDone","1");
