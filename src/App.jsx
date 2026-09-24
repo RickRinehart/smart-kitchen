@@ -22,6 +22,7 @@ const LOCATIONS=["Pantry","Fridge","Freezer"];
 const LOC_ICONS={Pantry:"🗄",Fridge:"❄",Freezer:"🧊"};
 const LOC_COLORS={Pantry:C.accent,Fridge:C.blue,Freezer:C.purple};
 const CATEGORIES=["Protein","Produce","Dairy","Pantry","Grains","Spices","Frozen","Condiments","Snacks","Beverages","Leftovers","Wild Harvest","Home Harvest","Household","Cleaning","Personal Care","Pet","Other"];
+const CUISINE_OPTIONS=["Mexican","Italian","Mediterranean","Chinese","Indian","Thai","Japanese","American","Southern/Soul Food","Greek","French","Middle Eastern","Korean","Cajun/Creole","Vietnamese"];
 const KITCHEN_APPLIANCES=[
   {id:"instant_pot",label:"Instant Pot / Pressure Cooker",emoji:"🫕"},
   {id:"air_fryer",label:"Air Fryer",emoji:"🌬"},
@@ -1706,6 +1707,8 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   });
   const [kitchenAppliances,setKitchenAppliances]=useState(()=>{try{return JSON.parse(localStorage.getItem("sk_appliances")||"[]");}catch{return [];}});
   const [applianceCustomInput,setApplianceCustomInput]=useState("");
+  const [cuisinePrefs,setCuisinePrefs]=useState(()=>{try{return JSON.parse(localStorage.getItem("sk_cuisinePrefs")||"[]");}catch{return [];}});
+  const [cuisineCustomInput,setCuisineCustomInput]=useState("");
   const [showMadeItModal,setShowMadeItModal]=useState(false);
   const [madeItDay,setMadeItDay]=useState(null);
   const [madeItSides,setMadeItSides]=useState([]);
@@ -2202,6 +2205,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   useEffect(()=>{try{localStorage.setItem("sk_familySize",JSON.stringify(familySize));}catch{}},[familySize]);
   useEffect(()=>{try{localStorage.setItem("sk_familyProfiles",JSON.stringify(familyProfiles));}catch{}},[familyProfiles]);
   useEffect(()=>{try{localStorage.setItem("sk_appliances",JSON.stringify(kitchenAppliances));}catch{}},[kitchenAppliances]);
+  useEffect(()=>{try{localStorage.setItem("sk_cuisinePrefs",JSON.stringify(cuisinePrefs));}catch{}},[cuisinePrefs]);
   useEffect(()=>{try{localStorage.setItem("sk_tempProfiles",JSON.stringify(tempProfiles));}catch{}},[tempProfiles]);
   useEffect(()=>{try{localStorage.setItem("sk_seniorMode",seniorMode?"1":"0");}catch{}},[seniorMode]);
   // Suppress wizard when signed in OR in viewer mode
@@ -2508,6 +2512,9 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
       const customAppliances=kitchenAppliances.filter(id=>!KITCHEN_APPLIANCES.some(a=>a.id===id));
       const all=[...standardLabel,...customAppliances];
       if(all.length>0) s+="AVAILABLE COOKING EQUIPMENT beyond standard stovetop/oven/microwave (use these methods where appropriate to add variety): "+all.join(", ")+". ";
+    }
+    if(cuisinePrefs.length>0){
+      s+="PREFERRED CUISINES (lean toward these styles often, but don't exclude other cuisines entirely — variety still matters): "+cuisinePrefs.join(", ")+". ";
     }
     return s;
   };
@@ -4878,6 +4885,21 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
             {wizardStep===0&&(<div>
               <div style={{fontFamily:FD,fontSize:20,color:C.accent,marginBottom:6}}>👨‍👩‍👧 Family Profile</div>
               <div style={{fontFamily:"system-ui,-apple-system,sans-serif",fontSize:13,color:C.muted,marginBottom:16,lineHeight:1.6}}>Tell us about your household so meal plans respect everyone's needs.</div>
+              <div style={{background:C.card,borderRadius:10,padding:14,marginBottom:14}}>
+                <div style={{fontSize:10,fontFamily:FM,color:C.muted,marginBottom:8,letterSpacing:0.8}}>FAVORITE CUISINES <span style={{fontWeight:400}}>(optional, pick as many as you like)</span></div>
+                <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:8}}>
+                  {CUISINE_OPTIONS.map(c=>{const on=cuisinePrefs.includes(c);return(
+                    <button key={c} onClick={()=>setCuisinePrefs(prev=>on?prev.filter(x=>x!==c):[...prev,c])}
+                      style={{padding:"6px 12px",borderRadius:16,border:"1px solid "+(on?C.accent:C.border),background:on?C.accent+"22":"transparent",color:on?C.accent:C.text,fontFamily:FM,fontSize:12,cursor:"pointer"}}>
+                      {c}{on?" ✓":""}
+                    </button>
+                  );})}
+                </div>
+                <div style={{display:"flex",gap:6}}>
+                  <input value={cuisineCustomInput} onChange={e=>setCuisineCustomInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&cuisineCustomInput.trim()){const val=cuisineCustomInput.trim();if(!cuisinePrefs.includes(val))setCuisinePrefs(prev=>[...prev,val]);setCuisineCustomInput("");}}} placeholder="Add another cuisine..." style={{flex:1,background:C.surface,border:"1px solid "+C.border,borderRadius:6,padding:"5px 8px",color:C.text,fontFamily:FM,fontSize:11,outline:"none"}}/>
+                  <button onClick={()=>{const val=cuisineCustomInput.trim();if(val&&!cuisinePrefs.includes(val)){setCuisinePrefs(prev=>[...prev,val]);setCuisineCustomInput("");}}} style={{...bBtn("primary"),padding:"5px 10px",fontSize:11}}>+ Add</button>
+                </div>
+              </div>
               <div style={{background:C.card,borderRadius:10,padding:14,marginBottom:14}}>
                 <div style={{fontSize:10,fontFamily:FM,color:C.muted,marginBottom:8,letterSpacing:0.8}}>FAMILY SIZE</div>
                 {tier==="medical"?(
