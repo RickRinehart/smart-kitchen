@@ -120,6 +120,7 @@ const SYNC_MAP = {
   setup_completed_at:   'sk_setupCompletedAt',
   onboarding_version:   'sk_onboardingVersion',
   last_profile_review_at: 'sk_lastProfileReviewAt',
+  cuisine_prefs:        'sk_cuisinePrefs',
 };
 
 // ── DIRTY TRACKING ───────────────────────────────────────────────────────────
