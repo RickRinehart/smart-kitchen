@@ -2367,7 +2367,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   useEffect(()=>{try{localStorage.setItem("sk_sportsNights",JSON.stringify(sportsNights));}catch{}},[sportsNights]);
   useEffect(()=>{try{localStorage.setItem("sk_activeTab",tab);}catch{}},[tab]);
   useEffect(()=>{
-    if(showWizard){
+    if(showWizard&&user){
       const t=setTimeout(()=>{
         setChatOpen(true);
         const alreadyDone=chatWelcomeDone;
@@ -2380,7 +2380,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
       },1000);
       return ()=>clearTimeout(t);
     }
-  },[showWizard]);
+  },[showWizard,user]);
   // Guest email capture — show after 3 min if not signed in and not already captured
   useEffect(()=>{
     if(user||guestCaptured) return;
@@ -4849,7 +4849,6 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
               >
                 Create Free Account →
               </button>
-              <div style={{fontFamily:"system-ui,-apple-system,sans-serif",fontSize:11,color:C.muted,textAlign:"center"}}>30 days full access — no credit card required</div>
               {onShowGuestViewer&&<button onClick={onShowGuestViewer} style={{background:"transparent",border:"none",color:"#a78bfa",fontFamily:FM,fontSize:seniorMode?15:12,cursor:"pointer",marginTop:4,textDecoration:"underline",display:"block",width:"100%",padding:"8px 0"}}>👁 Have a family code? View their kitchen</button>}
               <div style={{fontFamily:"system-ui",fontSize:seniorMode?14:11,color:C.muted,textAlign:"center",marginTop:10,lineHeight:1.6}}>30-day free trial · No credit card required · Cancel anytime</div>
             </div>)}
