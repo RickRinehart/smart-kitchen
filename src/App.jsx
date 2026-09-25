@@ -1851,6 +1851,10 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [leftoversResult,setLeftoversResult]=useState(null);
   const [leftoversLoading,setLeftoversLoading]=useState(false);
   const [leftoversError,setLeftoversError]=useState("");
+  const [leftoversLogMember,setLeftoversLogMember]=useState(null);
+  const [leftoversLogServings,setLeftoversLogServings]=useState(1);
+  const [leftoversLogged,setLeftoversLogged]=useState(false);
+  const [leftoversLogging,setLeftoversLogging]=useState(false);
   const [subQuery,setSubQuery]=useState("");
   const [subResult,setSubResult]=useState(null);
   const [subLoading,setSubLoading]=useState(false);
@@ -8314,10 +8318,11 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                   try{
                     const res=await callClaude({
                       system:`You are a food identification AI. The user has photographed a container of leftovers. 
-Identify the dish, estimate servings remaining, and set a realistic use-by date.
-Respond ONLY with valid JSON: {"dish":"name of the dish","servings":2,"useDays":3,"notes":"any relevant storage tip","confidence":"high|medium|low","isProteinBased":true}
+Identify the dish, estimate servings remaining, set a realistic use-by date, and estimate nutrition PER SERVING (not for the whole container).
+Respond ONLY with valid JSON: {"dish":"name of the dish","servings":2,"useDays":3,"notes":"any relevant storage tip","confidence":"high|medium|low","isProteinBased":true,"caloriesPerServing":0,"proteinPerServing_g":0,"carbsPerServing_g":0,"fatPerServing_g":0,"satFatPerServing_g":0,"sugarPerServing_g":0,"fiberPerServing_g":0,"sodiumPerServing_mg":0}
 useDays is days from today the food is safe to eat (cooked food: 3-4 days typical).
-isProteinBased is true if the dish is primarily a protein/meat main (meatloaf, chicken, chili, lasagna with meat, pot roast, etc.), false for sides, salads, or vegetable/starch-only dishes.`,
+isProteinBased is true if the dish is primarily a protein/meat main (meatloaf, chicken, chili, lasagna with meat, pot roast, etc.), false for sides, salads, or vegetable/starch-only dishes.
+The *PerServing nutrition fields are for ONE serving as you've defined "servings" above, not the total container.`,
                       prompt:"What leftovers are in this container? Estimate servings and use-by days.",
                       imageBase64:leftoversB64,
                       imageType:leftoversMime,
@@ -8421,6 +8426,60 @@ isProteinBased is true if the dish is primarily a protein/meat main (meatloaf, c
                 <input type="checkbox" checked={!!leftoversResult.isProteinBased} onChange={e=>setLeftoversResult(r=>({...r,isProteinBased:e.target.checked}))}/>
                 <span style={{fontSize:12,color:C.text}}>🥩 This is a protein-based dish (counts toward Proteins Available and meal-plan protein rotation)</span>
               </label>
+              {leftoversResult.caloriesPerServing!=null&&(
+                <div style={{background:C.bg,borderRadius:8,padding:10,marginBottom:12}}>
+                  <div style={{fontSize:10,color:C.muted,marginBottom:6,letterSpacing:0.8}}>ESTIMATED NUTRITION (PER SERVING)</div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6}}>
+                    {[["Protein",leftoversResult.proteinPerServing_g,"g","#3b82f6"],
+                      ["Calories",leftoversResult.caloriesPerServing,"cal","#f59e0b"],
+                      ["Carbs",leftoversResult.carbsPerServing_g,"g","#22c55e"],
+                      ["Sat. Fat",leftoversResult.satFatPerServing_g,"g","#dc2626"],
+                      ["Sugar",leftoversResult.sugarPerServing_g,"g","#f97316"],
+                      ["Fiber",leftoversResult.fiberPerServing_g,"g","#8b5cf6"]
+                    ].map(([label,val,unit,color])=>(
+                      <div key={label} style={{background:C.card,borderRadius:8,padding:"6px 8px",textAlign:"center"}}>
+                        <div style={{fontFamily:FM,fontSize:9,color:"#666",marginBottom:2}}>{label}</div>
+                        <div style={{fontFamily:FD,fontSize:13,color:color}}>{val??"-"}<span style={{fontSize:9,color:"#555"}}> {unit}</span></div>
+                      </div>
+                    ))}
+                  </div>
+                  {(()=>{const logMembers=familyProfiles.filter(p=>p.guidedPlateMode||hasAnyDietFlag(p)||p.guidedPlateMode!==undefined);const members=logMembers.length>0?logMembers:familyProfiles;const activeLogMember=leftoversLogMember||members[0]||null;return(
+                    <div style={{marginTop:10,borderTop:"1px solid "+C.border,paddingTop:10}}>
+                      <div style={{fontSize:10,color:C.muted,marginBottom:6,letterSpacing:0.8}}>LOG THIS TO NUTRITION JOURNAL</div>
+                      {members.length>1&&(<div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:8}}>{members.map(p=>(<button key={p.id||p.name} onClick={()=>setLeftoversLogMember(p)} style={{padding:"5px 12px",borderRadius:16,border:"1px solid "+(activeLogMember?.name===p.name?"#10b981":C.border),background:activeLogMember?.name===p.name?"#10b98122":"transparent",color:activeLogMember?.name===p.name?"#10b981":C.muted,fontFamily:FM,fontSize:11,cursor:"pointer",fontWeight:activeLogMember?.name===p.name?700:400}}>{p.name||"Member"}</button>))}</div>)}
+                      <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                        <div style={{display:"flex",alignItems:"center",gap:6}}>
+                          <span style={{fontSize:11,color:C.muted}}>Servings eating now:</span>
+                          <input type="number" min="0.5" step="0.5" value={leftoversLogServings} onChange={e=>setLeftoversLogServings(e.target.value)} style={{width:56,background:C.surface,border:"1px solid "+C.border,borderRadius:6,padding:"4px 8px",color:C.text,fontFamily:FM,fontSize:12}}/>
+                        </div>
+                        <button disabled={leftoversLogging} onClick={async()=>{
+                          setLeftoversLogging(true);
+                          const mult=parseFloat(leftoversLogServings)||1;
+                          await logNutrition({
+                            memberName:activeLogMember?.name||null,
+                            itemName:leftoversResult.dish,
+                            calories:leftoversResult.caloriesPerServing!=null?leftoversResult.caloriesPerServing*mult:null,
+                            protein_g:leftoversResult.proteinPerServing_g!=null?leftoversResult.proteinPerServing_g*mult:null,
+                            carbs_g:leftoversResult.carbsPerServing_g!=null?leftoversResult.carbsPerServing_g*mult:null,
+                            fat_g:leftoversResult.fatPerServing_g!=null?leftoversResult.fatPerServing_g*mult:null,
+                            sat_fat_g:leftoversResult.satFatPerServing_g!=null?leftoversResult.satFatPerServing_g*mult:null,
+                            sugar_g:leftoversResult.sugarPerServing_g!=null?leftoversResult.sugarPerServing_g*mult:null,
+                            fiber_g:leftoversResult.fiberPerServing_g!=null?leftoversResult.fiberPerServing_g*mult:null,
+                            sodium_mg:leftoversResult.sodiumPerServing_mg!=null?leftoversResult.sodiumPerServing_mg*mult:null,
+                            source:"photo",
+                            sessionId:"Leftovers",
+                          });
+                          setLeftoversLogging(false);
+                          setLeftoversLogged(true);
+                          setTimeout(()=>setLeftoversLogged(false),2500);
+                        }} style={{flex:1,background:leftoversLogged?"#10b981":"#3b82f6",border:"none",borderRadius:8,padding:"8px 12px",color:"#fff",fontFamily:FM,fontSize:12,fontWeight:700,cursor:"pointer",opacity:leftoversLogging?0.6:1}}>
+                          {leftoversLogging?"⏳ Logging...":leftoversLogged?"✓ Logged!":"📗 Log Nutrition"+(activeLogMember?.name?" for "+activeLogMember.name:"")}
+                        </button>
+                      </div>
+                    </div>
+                  );})()}
+                </div>
+              )}
               <button style={{...bBtn("primary"),width:"100%",fontSize:13}} onClick={()=>{
                 const useByDate=new Date(Date.now()+leftoversResult.useDays*86400000).toLocaleDateString("en-US",{month:"short",day:"numeric"});
                 const saveLeftover=(photoDataUrl)=>{
