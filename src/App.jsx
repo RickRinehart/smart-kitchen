@@ -1585,7 +1585,11 @@ function FoodJournal({user,supabase,familyProfiles,can,seniorMode,C,FM,FD,
       setJournalNutrition(parsed);
       if(parsed.servingDescription) setJournalWeight(""); // photo estimate covers the whole visible serving; no separate weight needed
     }catch(err){
-      setJournalPhotoError("Could not identify this photo — try better lighting, or enter the food manually below.");
+      const offline=typeof navigator!=="undefined"&&navigator.onLine===false;
+      const looksNetworky=offline||/network|fetch|failed to fetch|timeout|NetworkError/i.test(err?.message||"");
+      setJournalPhotoError(looksNetworky
+        ? (offline?"You're offline — your photo is saved.":"Connection trouble.")+" "
+        : "Could not identify this photo — try better lighting, or enter the food manually below. ");
     }
     setJournalPhotoLoading(false);
   };
@@ -1712,19 +1716,33 @@ function FoodJournal({user,supabase,familyProfiles,can,seniorMode,C,FM,FD,
         </div>
         {journalMealType==="Blood Pressure"&&(<div style={{marginBottom:16}}><div style={{fontFamily:FM,fontSize:10,color:"#888",marginBottom:8,letterSpacing:0.8}}>BLOOD PRESSURE READING</div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:8}}><div><div style={{fontFamily:FM,fontSize:9,color:"#666",marginBottom:4}}>SYSTOLIC</div><input type="number" value={journalSystolic} onChange={e=>setJournalSystolic(e.target.value)} placeholder="120" style={{width:"100%",background:C.surface,border:"1px solid #444",borderRadius:8,padding:"10px 12px",color:C.text,fontFamily:FM,fontSize:seniorMode?16:14,boxSizing:"border-box"}}/></div><div><div style={{fontFamily:FM,fontSize:9,color:"#666",marginBottom:4}}>DIASTOLIC</div><input type="number" value={journalDiastolic} onChange={e=>setJournalDiastolic(e.target.value)} placeholder="80" style={{width:"100%",background:C.surface,border:"1px solid #444",borderRadius:8,padding:"10px 12px",color:C.text,fontFamily:FM,fontSize:seniorMode?16:14,boxSizing:"border-box"}}/></div><div><div style={{fontFamily:FM,fontSize:9,color:"#666",marginBottom:4}}>PULSE (OPTIONAL)</div><input type="number" value={journalPulse} onChange={e=>setJournalPulse(e.target.value)} placeholder="72" style={{width:"100%",background:C.surface,border:"1px solid #444",borderRadius:8,padding:"10px 12px",color:C.text,fontFamily:FM,fontSize:seniorMode?16:14,boxSizing:"border-box"}}/></div></div>{journalSystolic&&journalDiastolic&&(()=>{const cat=bpCategory(journalSystolic,journalDiastolic);if(!cat)return null;return(<div style={{background:cat.color+"18",border:"1px solid "+cat.color+"66",borderRadius:8,padding:"8px 12px",marginBottom:4}}><span style={{fontFamily:FM,fontSize:12,color:cat.color,fontWeight:700}}>{cat.label}</span>{cat.note&&<span style={{fontFamily:FM,fontSize:11,color:cat.color,marginLeft:8}}>— {cat.note}</span>}</div>);})()}<div style={{fontFamily:FM,fontSize:10,color:"#555",marginTop:4}}>Categories follow standard clinical ranges for informational purposes. Your physician is the final authority on your care — Smart Kitchen only assists with day-to-day implementation.</div></div>)}{journalMealType!=="Blood Pressure"&&(<>
         <div style={{marginBottom:14}}>
-          <div style={{fontFamily:FM,fontSize:10,color:"#888",marginBottom:6,letterSpacing:0.8}}>SNAP A PHOTO {activeMember?.name?("(for "+activeMember.name+")"):""}</div>
+          <div style={{fontFamily:FM,fontSize:10,color:"#888",marginBottom:6,letterSpacing:0.8}}>PHOTO {activeMember?.name?("(for "+activeMember.name+")"):""}</div>
           <input type="file" accept="image/*" capture="environment" id="journalPhotoInput" style={{display:"none"}} onChange={e=>{const f=e.target.files?.[0];if(f) handleJournalPhoto(f);}}/>
-          <div onClick={()=>document.getElementById("journalPhotoInput").click()}
-            style={{border:"2px dashed "+(journalPhoto?"#10b981":"#444"),borderRadius:10,minHeight:journalPhoto?undefined:84,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",overflow:"hidden",transition:"border 0.2s",background:C.surface}}>
-            {journalPhoto
-              ? <img src={journalPhoto} alt="" style={{width:"100%",maxHeight:180,objectFit:"cover"}}/>
-              : <div style={{textAlign:"center",padding:12}}>
-                  <div style={{fontSize:26,marginBottom:4}}>📷</div>
-                  <div style={{fontFamily:FM,fontSize:seniorMode?14:12,color:"#888"}}>Tap to photograph your plate or a restaurant menu item</div>
-                </div>}
-          </div>
+          <input type="file" accept="image/*" id="journalPhotoGalleryInput" style={{display:"none"}} onChange={e=>{const f=e.target.files?.[0];if(f) handleJournalPhoto(f);}}/>
+          {journalPhoto
+            ? <div onClick={()=>{if(journalPhotoError) analyzeJournalPhoto(journalPhoto);}}
+                style={{border:"2px dashed "+(journalPhotoError?"#f59e0b":"#10b981"),borderRadius:10,cursor:journalPhotoError?"pointer":"default",overflow:"hidden",transition:"border 0.2s",background:C.surface}}>
+                <img src={journalPhoto} alt="" style={{width:"100%",maxHeight:180,objectFit:"cover",display:"block"}}/>
+              </div>
+            : <div style={{display:"flex",gap:8}}>
+                <div onClick={()=>document.getElementById("journalPhotoInput").click()}
+                  style={{flex:1,border:"2px dashed #444",borderRadius:10,minHeight:84,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",background:C.surface,textAlign:"center",padding:12}}>
+                  <div>
+                    <div style={{fontSize:24,marginBottom:4}}>📷</div>
+                    <div style={{fontFamily:FM,fontSize:seniorMode?13:11,color:"#888"}}>Take Photo</div>
+                  </div>
+                </div>
+                <div onClick={()=>document.getElementById("journalPhotoGalleryInput").click()}
+                  style={{flex:1,border:"2px dashed #444",borderRadius:10,minHeight:84,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",background:C.surface,textAlign:"center",padding:12}}>
+                  <div>
+                    <div style={{fontSize:24,marginBottom:4}}>🖼</div>
+                    <div style={{fontFamily:FM,fontSize:seniorMode?13:11,color:"#888"}}>Choose from Gallery</div>
+                  </div>
+                </div>
+              </div>}
+          {!journalPhoto&&<div style={{fontFamily:FM,fontSize:10,color:"#666",marginTop:6,textAlign:"center"}}>No signal right now? Snap the photo anyway (or pick one you already took) -- it saves with the entry and you can log the nutrition whenever you're back online.</div>}
           {journalPhotoLoading&&<div style={{fontFamily:FM,fontSize:11,color:"#f59e0b",marginTop:6,textAlign:"center"}}>⏳ Identifying food and estimating nutrition...</div>}
-          {journalPhotoError&&<div style={{fontFamily:FM,fontSize:11,color:"#dc2626",marginTop:6}}>{journalPhotoError}</div>}
+          {journalPhotoError&&<div style={{fontFamily:FM,fontSize:11,color:"#f59e0b",marginTop:6,textAlign:"center"}}>⚠ {journalPhotoError} <span onClick={()=>analyzeJournalPhoto(journalPhoto)} style={{textDecoration:"underline",cursor:"pointer",fontWeight:700}}>Tap to retry</span></div>}
           {journalPhoto&&!journalPhotoLoading&&<button onClick={()=>{setJournalPhoto(null);setJournalPhotoError("");setJournalNutrition(null);setJournalFoodName("");}} style={{marginTop:6,background:"transparent",border:"none",color:"#666",fontFamily:FM,fontSize:11,cursor:"pointer",textDecoration:"underline"}}>Retake / remove photo</button>}
         </div>
         <div style={{display:"flex",alignItems:"center",gap:8,margin:"4px 0 14px"}}>
