@@ -5633,7 +5633,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
           </button>
         </div>
         <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
-          <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px"}} onClick={()=>setProfileModalOpen(true)}>👨‍👩‍👧 Family</button>
+          <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px"}} onClick={()=>setProfileModalOpen(true)}>👨‍👩‍👧 Members</button>
           <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px"}} onClick={()=>openRepack("veg")}>🫕 Prep Veg</button>
           <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px"}} onClick={()=>openRepack("protein")} disabled={isViewer}>🥩 Repackage</button>
           <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px"}} onClick={()=>{setScanOpen(true);setScanStage("upload");setScanResults(null);setScanPreview(null);setScanB64(null);setScanMode("shelf");}} disabled={isViewer}>📷 Scan</button>       <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px"}} onClick={()=>{
@@ -6782,7 +6782,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
           <div style={{background:C.surface,border:"1px solid "+C.borderLight,borderRadius:18,padding:22,maxWidth:600,width:"100%",maxHeight:"90vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
               <div>
-                <div style={{fontFamily:FD,fontSize:24,color:C.accent}}>👨‍👩‍👧 Family Profiles</div>
+                <div style={{fontFamily:FD,fontSize:24,color:C.accent}}>👨‍👩‍👧 Members</div>
                 <div style={{fontSize:11,color:C.muted,fontFamily:FM,marginTop:3}}>Meal plans adapt to each person's needs</div>
               </div>
               <button onClick={()=>setProfileModalOpen(false)} style={{background:"transparent",border:"none",color:C.muted,cursor:"pointer",fontSize:20}}>✕</button>
