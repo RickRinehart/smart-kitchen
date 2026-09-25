@@ -1416,7 +1416,7 @@ function NutritionDashboard({familyProfiles,user,supabase,seniorMode,C,FM,FD,ref
       .order("logged_at",{ascending:true})
       .then(({data})=>setWeekLog(data||[]));
   },[user?.id,refreshKey]);
-  const allQualifying=familyProfiles.filter(p=>p.guidedPlateMode||hasAnyDietFlag(p));
+  const allQualifying=familyProfiles;
   // Filter log by selected member when multiple members exist
   const filteredLog=allQualifying.length>1&&selectedMember
     ?todayLog.filter(r=>r.member_name===selectedMember)
@@ -1508,8 +1508,10 @@ function FoodJournal({user,supabase,familyProfiles,can,seniorMode,C,FM,FD,
   journalRecentItems,setJournalRecentItems,
   logNutrition,callClaude,onSaved,onClose
 }){
-  const allQualifying=familyProfiles.filter(p=>p.guidedPlateMode||hasAnyDietFlag(p)||p.guidedPlateMode!==undefined);
-  const members=allQualifying.length>0?allQualifying:familyProfiles;
+  // Food Journal logging is for any household member, medical flags or not -- filtering down to
+  // only "qualifying" (Guided Plate Mode / diet-flagged) profiles silently hid anyone who hadn't
+  // touched those features yet, even in a household where two people are both tracking food.
+  const members=familyProfiles;
   const activeMember=journalMember||(members[0]||null);
   const mealTypes=["Breakfast","Morning Snack","Lunch","Afternoon Snack","Dinner","Evening Snack","Water/Hydration","Protein Shake","Other","Blood Pressure"];
   const [journalSystolic,setJournalSystolic]=React.useState("");
@@ -8461,7 +8463,7 @@ The *PerServing nutrition fields are for ONE serving as you've defined "servings
                       </div>
                     ))}
                   </div>
-                  {(()=>{const logMembers=familyProfiles.filter(p=>p.guidedPlateMode||hasAnyDietFlag(p)||p.guidedPlateMode!==undefined);const members=logMembers.length>0?logMembers:familyProfiles;const activeLogMember=leftoversLogMember||members[0]||null;return(
+                  {(()=>{const members=familyProfiles;const activeLogMember=leftoversLogMember||members[0]||null;return(
                     <div style={{marginTop:10,borderTop:"1px solid "+C.border,paddingTop:10}}>
                       <div style={{fontSize:10,color:C.muted,marginBottom:6,letterSpacing:0.8}}>LOG THIS TO NUTRITION JOURNAL</div>
                       {members.length>1&&(<div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:8}}>{members.map(p=>(<button key={p.id||p.name} onClick={()=>setLeftoversLogMember(p)} style={{padding:"5px 12px",borderRadius:16,border:"1px solid "+(activeLogMember?.name===p.name?"#10b981":C.border),background:activeLogMember?.name===p.name?"#10b98122":"transparent",color:activeLogMember?.name===p.name?"#10b981":C.muted,fontFamily:FM,fontSize:11,cursor:"pointer",fontWeight:activeLogMember?.name===p.name?700:400}}>{p.name||"Member"}</button>))}</div>)}
