@@ -1505,7 +1505,7 @@ function NutritionDashboard({familyProfiles,user,supabase,seniorMode,C,FM,FD,ref
 }
 
 // -- Food Journal Component -------------------------------------------------
-function FoodJournal({user,supabase,familyProfiles,can,seniorMode,C,FM,FD,
+function FoodJournal({user,supabase,familyProfiles,setFamilyProfiles,can,seniorMode,C,FM,FD,
   journalMember,setJournalMember,journalMealType,setJournalMealType,
   journalFoodName,setJournalFoodName,journalWeight,setJournalWeight,
   journalWeightUnit,setJournalWeightUnit,journalDateTime,setJournalDateTime,
@@ -1519,7 +1519,9 @@ function FoodJournal({user,supabase,familyProfiles,can,seniorMode,C,FM,FD,
   // touched those features yet, even in a household where two people are both tracking food.
   const members=familyProfiles.filter(p=>p.active);
   const activeMember=journalMember||(members[0]||null);
-  const mealTypes=["Breakfast","Morning Snack","Lunch","Afternoon Snack","Dinner","Evening Snack","Water/Hydration","Protein Shake","Other","Blood Pressure"];
+  const mealTypes=["Breakfast","Morning Snack","Lunch","Afternoon Snack","Dinner","Evening Snack","Water/Hydration","Protein Shake","Other","Blood Pressure","Weigh-In"];
+  const [journalWeighIn,setJournalWeighIn]=React.useState("");
+  const [journalWeighInUnit,setJournalWeighInUnit]=React.useState("lbs");
   const [journalSystolic,setJournalSystolic]=React.useState("");
   const [journalPhoto,setJournalPhoto]=React.useState(null);
   const [journalPhotoLoading,setJournalPhotoLoading]=React.useState(false);
@@ -1602,6 +1604,26 @@ function FoodJournal({user,supabase,familyProfiles,can,seniorMode,C,FM,FD,
     setJournalPhotoLoading(false);
   };
   const saveEntry=async()=>{
+    if(journalMealType==="Weigh-In"){
+      if(!journalWeighIn) return;
+      setJournalSaving(true);
+      const lbs=journalWeighInUnit==="kg"?parseFloat(journalWeighIn)*2.20462:parseFloat(journalWeighIn);
+      await logNutrition({
+        memberName:activeMember?.name||null,
+        itemName:"Weigh-In",
+        loggedAt:journalDateTime?new Date(journalDateTime).toISOString():new Date().toISOString(),
+        bodyWeightLbs:lbs||null,
+        source:"food_journal",
+        sessionId:"Weigh-In",
+      });
+      if(activeMember&&setFamilyProfiles) setFamilyProfiles(p=>p.map(pr=>pr.id===activeMember.id?{...pr,lastWeighInAt:new Date().toISOString()}:pr));
+      setJournalSaving(false);
+      setJournalSuccess(true);
+      if(onSaved) onSaved();
+      setJournalWeighIn("");
+      setTimeout(()=>setJournalSuccess(false),2500);
+      return;
+    }
     if(journalMealType==="Blood Pressure"){
       if(!journalSystolic||!journalDiastolic) return;
       setJournalSaving(true);
@@ -1722,7 +1744,7 @@ function FoodJournal({user,supabase,familyProfiles,can,seniorMode,C,FM,FD,
           <input type="datetime-local" value={journalDateTime} onChange={e=>setJournalDateTime(e.target.value)}
             style={{width:"100%",background:C.surface,border:"1px solid #444",borderRadius:8,padding:"10px 12px",color:C.text,fontFamily:FM,fontSize:seniorMode?15:13,boxSizing:"border-box"}}/>
         </div>
-        {journalMealType==="Blood Pressure"&&(<div style={{marginBottom:16}}><div style={{fontFamily:FM,fontSize:10,color:"#888",marginBottom:8,letterSpacing:0.8}}>BLOOD PRESSURE READING</div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:8}}><div><div style={{fontFamily:FM,fontSize:9,color:"#666",marginBottom:4}}>SYSTOLIC</div><input type="number" value={journalSystolic} onChange={e=>setJournalSystolic(e.target.value)} placeholder="120" style={{width:"100%",background:C.surface,border:"1px solid #444",borderRadius:8,padding:"10px 12px",color:C.text,fontFamily:FM,fontSize:seniorMode?16:14,boxSizing:"border-box"}}/></div><div><div style={{fontFamily:FM,fontSize:9,color:"#666",marginBottom:4}}>DIASTOLIC</div><input type="number" value={journalDiastolic} onChange={e=>setJournalDiastolic(e.target.value)} placeholder="80" style={{width:"100%",background:C.surface,border:"1px solid #444",borderRadius:8,padding:"10px 12px",color:C.text,fontFamily:FM,fontSize:seniorMode?16:14,boxSizing:"border-box"}}/></div><div><div style={{fontFamily:FM,fontSize:9,color:"#666",marginBottom:4}}>PULSE (OPTIONAL)</div><input type="number" value={journalPulse} onChange={e=>setJournalPulse(e.target.value)} placeholder="72" style={{width:"100%",background:C.surface,border:"1px solid #444",borderRadius:8,padding:"10px 12px",color:C.text,fontFamily:FM,fontSize:seniorMode?16:14,boxSizing:"border-box"}}/></div></div>{journalSystolic&&journalDiastolic&&(()=>{const cat=bpCategory(journalSystolic,journalDiastolic);if(!cat)return null;return(<div style={{background:cat.color+"18",border:"1px solid "+cat.color+"66",borderRadius:8,padding:"8px 12px",marginBottom:4}}><span style={{fontFamily:FM,fontSize:12,color:cat.color,fontWeight:700}}>{cat.label}</span>{cat.note&&<span style={{fontFamily:FM,fontSize:11,color:cat.color,marginLeft:8}}>— {cat.note}</span>}</div>);})()}<div style={{fontFamily:FM,fontSize:10,color:"#555",marginTop:4}}>Categories follow standard clinical ranges for informational purposes. Your physician is the final authority on your care — Smart Kitchen only assists with day-to-day implementation.</div></div>)}{journalMealType!=="Blood Pressure"&&(<>
+        {journalMealType==="Blood Pressure"&&(<div style={{marginBottom:16}}><div style={{fontFamily:FM,fontSize:10,color:"#888",marginBottom:8,letterSpacing:0.8}}>BLOOD PRESSURE READING</div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:8}}><div><div style={{fontFamily:FM,fontSize:9,color:"#666",marginBottom:4}}>SYSTOLIC</div><input type="number" value={journalSystolic} onChange={e=>setJournalSystolic(e.target.value)} placeholder="120" style={{width:"100%",background:C.surface,border:"1px solid #444",borderRadius:8,padding:"10px 12px",color:C.text,fontFamily:FM,fontSize:seniorMode?16:14,boxSizing:"border-box"}}/></div><div><div style={{fontFamily:FM,fontSize:9,color:"#666",marginBottom:4}}>DIASTOLIC</div><input type="number" value={journalDiastolic} onChange={e=>setJournalDiastolic(e.target.value)} placeholder="80" style={{width:"100%",background:C.surface,border:"1px solid #444",borderRadius:8,padding:"10px 12px",color:C.text,fontFamily:FM,fontSize:seniorMode?16:14,boxSizing:"border-box"}}/></div><div><div style={{fontFamily:FM,fontSize:9,color:"#666",marginBottom:4}}>PULSE (OPTIONAL)</div><input type="number" value={journalPulse} onChange={e=>setJournalPulse(e.target.value)} placeholder="72" style={{width:"100%",background:C.surface,border:"1px solid #444",borderRadius:8,padding:"10px 12px",color:C.text,fontFamily:FM,fontSize:seniorMode?16:14,boxSizing:"border-box"}}/></div></div>{journalSystolic&&journalDiastolic&&(()=>{const cat=bpCategory(journalSystolic,journalDiastolic);if(!cat)return null;return(<div style={{background:cat.color+"18",border:"1px solid "+cat.color+"66",borderRadius:8,padding:"8px 12px",marginBottom:4}}><span style={{fontFamily:FM,fontSize:12,color:cat.color,fontWeight:700}}>{cat.label}</span>{cat.note&&<span style={{fontFamily:FM,fontSize:11,color:cat.color,marginLeft:8}}>— {cat.note}</span>}</div>);})()}<div style={{fontFamily:FM,fontSize:10,color:"#555",marginTop:4}}>Categories follow standard clinical ranges for informational purposes. Your physician is the final authority on your care — Smart Kitchen only assists with day-to-day implementation.</div></div>)}{journalMealType==="Weigh-In"&&(<div style={{marginBottom:16}}><div style={{fontFamily:FM,fontSize:10,color:"#888",marginBottom:8,letterSpacing:0.8}}>CURRENT WEIGHT{activeMember?.name?" ("+activeMember.name+")":""}</div><div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:8}}><input type="number" value={journalWeighIn} onChange={e=>setJournalWeighIn(e.target.value)} placeholder="e.g. 185" style={{width:"100%",background:C.surface,border:"1px solid #444",borderRadius:8,padding:"12px 14px",color:C.text,fontFamily:FM,fontSize:seniorMode?18:16,boxSizing:"border-box"}}/><select value={journalWeighInUnit} onChange={e=>setJournalWeighInUnit(e.target.value)} style={{background:C.surface,border:"1px solid #444",borderRadius:8,padding:"10px 12px",color:C.text,fontFamily:FM,fontSize:seniorMode?15:13,cursor:"pointer"}}><option value="lbs">lbs</option><option value="kg">kg</option></select></div>{activeMember?.goalWeightLbs&&journalWeighIn&&(()=>{const lbs=journalWeighInUnit==="kg"?parseFloat(journalWeighIn)*2.20462:parseFloat(journalWeighIn);const diff=lbs-activeMember.goalWeightLbs;return(<div style={{fontFamily:FM,fontSize:11,color:"#888",marginTop:8}}>{Math.abs(diff)<1?"🎯 At goal weight!":diff>0?(Math.abs(diff).toFixed(1)+" lbs above your "+activeMember.goalWeightLbs+" lb goal"):(Math.abs(diff).toFixed(1)+" lbs below your "+activeMember.goalWeightLbs+" lb goal")}</div>);})()}<div style={{fontFamily:FM,fontSize:10,color:"#555",marginTop:8}}>For guidance only. Consult your healthcare provider for specific weight management recommendations.</div></div>)}{journalMealType!=="Blood Pressure"&&journalMealType!=="Weigh-In"&&(<>
         <div style={{marginBottom:14}}>
           <div style={{fontFamily:FM,fontSize:10,color:"#888",marginBottom:6,letterSpacing:0.8}}>PHOTO {activeMember?.name?("(for "+activeMember.name+")"):""}</div>
           <input type="file" accept="image/*" capture="environment" id="journalPhotoInput" style={{display:"none"}} onChange={e=>{const f=e.target.files?.[0];if(f) handleJournalPhoto(f);}}/>
@@ -1834,12 +1856,12 @@ function FoodJournal({user,supabase,familyProfiles,can,seniorMode,C,FM,FD,
             ✅ Logged! Dashboard updated.
           </div>
         )}
-        <button onClick={saveEntry} disabled={journalMealType==="Blood Pressure"?(!journalSystolic||!journalDiastolic||journalSaving):(!journalFoodName.trim()||journalSaving)}
-          style={{width:"100%",background:(journalMealType==="Blood Pressure"?(journalSystolic&&journalDiastolic):journalFoodName.trim())?"#10b981":"#333",border:"none",borderRadius:10,
-          padding:seniorMode?"16px":"12px",color:(journalMealType==="Blood Pressure"?(journalSystolic&&journalDiastolic):journalFoodName.trim())?"#fff":"#666",
-          fontFamily:FM,fontSize:seniorMode?20:15,fontWeight:700,cursor:(journalMealType==="Blood Pressure"?(journalSystolic&&journalDiastolic):journalFoodName.trim())?"pointer":"default",
+        <button onClick={saveEntry} disabled={journalMealType==="Blood Pressure"?(!journalSystolic||!journalDiastolic||journalSaving):journalMealType==="Weigh-In"?(!journalWeighIn||journalSaving):(!journalFoodName.trim()||journalSaving)}
+          style={{width:"100%",background:(journalMealType==="Blood Pressure"?(journalSystolic&&journalDiastolic):journalMealType==="Weigh-In"?journalWeighIn:journalFoodName.trim())?"#10b981":"#333",border:"none",borderRadius:10,
+          padding:seniorMode?"16px":"12px",color:(journalMealType==="Blood Pressure"?(journalSystolic&&journalDiastolic):journalMealType==="Weigh-In"?journalWeighIn:journalFoodName.trim())?"#fff":"#666",
+          fontFamily:FM,fontSize:seniorMode?20:15,fontWeight:700,cursor:(journalMealType==="Blood Pressure"?(journalSystolic&&journalDiastolic):journalMealType==="Weigh-In"?journalWeighIn:journalFoodName.trim())?"pointer":"default",
           marginBottom:8,opacity:journalSaving?0.6:1}}>
-          {journalSaving?"⏳ Saving...":journalMealType==="Blood Pressure"?"🩺 Log Blood Pressure":"📗 Log This Entry"}
+          {journalSaving?"⏳ Saving...":journalMealType==="Blood Pressure"?"🩺 Log Blood Pressure":journalMealType==="Weigh-In"?"⚖ Log Weight":"📗 Log This Entry"}
         </button>
         <div style={{fontFamily:FM,fontSize:10,color:"#555",textAlign:"center",marginTop:4}}>For guidance only. Consult your healthcare provider for specific dietary recommendations.</div>
       </div>
@@ -2348,6 +2370,16 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [scaleDevice,setScaleDevice]=useState(null);
   // -- Food Journal state ------------------------------------------------
   const [showJournal,setShowJournal]=useState(false);
+  const [showWeighInPrompt,setShowWeighInPrompt]=useState(null);
+  // How many days between weigh-ins for each frequency choice.
+  const WEIGH_IN_INTERVAL_DAYS={weekly:7,biweekly:14,monthly:30};
+  const isWeighInDue=(p)=>{
+    if(!p||!p.weighInEnabled) return false;
+    if(!p.lastWeighInAt) return true;
+    const days=WEIGH_IN_INTERVAL_DAYS[p.weighInFrequency||"weekly"]||7;
+    const dueAt=new Date(p.lastWeighInAt).getTime()+days*86400000;
+    return Date.now()>=dueAt;
+  };
   const [dashRefreshKey,setDashRefreshKey]=useState(0);
   const [journalMember,setJournalMember]=useState(null);
   const [journalMealType,setJournalMealType]=useState("Meal");
@@ -2842,6 +2874,21 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
     },3000);
     return ()=>clearTimeout(t);
   },[showWizard,seenAnnouncements,user?.id]);
+  useEffect(()=>{
+    if(showWizard) return;
+    const t=setTimeout(()=>{
+      const dueProfile=familyProfiles.filter(p=>p.active).find(p=>{
+        if(!isWeighInDue(p)) return false;
+        try{
+          const snoozeUntil=localStorage.getItem("sk_weighInSnooze_"+p.id);
+          if(snoozeUntil&&Date.now()<parseInt(snoozeUntil)) return false;
+        }catch{}
+        return true;
+      });
+      if(dueProfile) setShowWeighInPrompt(dueProfile);
+    },4000);
+    return ()=>clearTimeout(t);
+  },[showWizard,familyProfiles]);
 
   const submitGuestEmail=async()=>{
     if(!guestEmail||!guestEmail.includes("@")) return;
@@ -4053,6 +4100,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
         systolic_mmhg:entry.systolic_mmhg||null,
         diastolic_mmhg:entry.diastolic_mmhg||null,
         pulse_bpm:entry.pulse_bpm||null,
+        body_weight_lbs:entry.bodyWeightLbs||null,
         source:entry.source||"scale",
         session_id:entry.sessionId||null,
         logged_at:entry.loggedAt||new Date().toISOString(),
@@ -6916,7 +6964,23 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                               {profile.dietApproach==="Custom / Physician-Directed Diet"&&<input style={{...bInp,marginTop:6,fontSize:12}} placeholder="Describe custom dietary plan..." value={profile.customPlanNote||""} onChange={e=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,customPlanNote:e.target.value}:pr))}/>}
                                 </div>
                               </div>
-                              <div style={{marginTop:8,display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}><div><div style={{fontFamily:FM,fontSize:10,color:C.muted,marginBottom:4,letterSpacing:0.8}}>DAILY PROTEIN TARGET (g)</div><input style={{...bInp,fontSize:12}} type="number" placeholder="e.g. 75 (auto if blank)" value={profile.proteinTargetG||""} onChange={e=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,proteinTargetG:e.target.value?parseFloat(e.target.value):undefined}:pr))}/></div><div><div style={{fontFamily:FM,fontSize:10,color:C.muted,marginBottom:4,letterSpacing:0.8}}>GOAL WEIGHT (lbs, optional)</div><input style={{...bInp,fontSize:12}} type="number" placeholder="e.g. 165" value={profile.goalWeightLbs||""} onChange={e=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,goalWeightLbs:e.target.value?parseFloat(e.target.value):undefined}:pr))}/></div></div><div style={{marginTop:8,display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}><div><div style={{fontFamily:FM,fontSize:10,color:C.muted,marginBottom:4,letterSpacing:0.8}}>HEIGHT (optional)</div><input style={{...bInp,fontSize:12}} placeholder="e.g. 5ft 8in" value={profile.heightStr||""} onChange={e=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,heightStr:e.target.value}:pr))}/></div><div><div style={{fontFamily:FM,fontSize:10,color:C.muted,marginBottom:4,letterSpacing:0.8}}>ACTIVITY LEVEL</div><div style={{display:"flex",gap:4}}>{["Light","Moderate","Active"].map(lvl=>(<button key={lvl} onClick={()=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,activityLevel:pr.activityLevel===lvl?null:lvl}:pr))} style={{flex:1,padding:"3px 4px",borderRadius:20,border:"1px solid "+(profile.activityLevel===lvl?"#22c55e":C.border),background:profile.activityLevel===lvl?"#22c55e18":"transparent",color:profile.activityLevel===lvl?"#22c55e":C.muted,fontFamily:FM,fontSize:10,cursor:"pointer"}}>{lvl}</button>))}</div></div></div><div style={{marginTop:8,display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}><div><div style={{fontFamily:FM,fontSize:10,color:C.muted,marginBottom:4,letterSpacing:0.8}}>AGE (optional)</div><input style={{...bInp,fontSize:12}} type="number" placeholder="e.g. 69" value={profile.age||""} onChange={e=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,age:e.target.value?parseFloat(e.target.value):undefined}:pr))}/></div><div><div style={{fontFamily:FM,fontSize:10,color:C.muted,marginBottom:4,letterSpacing:0.8}}>SEX (optional)</div><div style={{display:"flex",gap:4}}>{["Male","Female"].map(sx=>(<button key={sx} onClick={()=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,sex:pr.sex===sx?null:sx}:pr))} style={{flex:1,padding:"3px 4px",borderRadius:20,border:"1px solid "+(profile.sex===sx?"#8b5cf6":C.border),background:profile.sex===sx?"#8b5cf618":"transparent",color:profile.sex===sx?"#8b5cf6":C.muted,fontFamily:FM,fontSize:10,cursor:"pointer"}}>{sx}</button>))}</div></div></div><div style={{marginTop:8}}><div style={{fontFamily:FM,fontSize:10,color:C.muted,marginBottom:4,letterSpacing:0.8}}>DAILY FIBER TARGET (g)</div><div style={{display:"flex",gap:8,alignItems:"center"}}><input style={{...bInp,fontSize:12,maxWidth:80}} type="number" placeholder={String(fiberTargetFor(profile))+" (auto)"} value={profile.fiberTargetG||""} onChange={e=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,fiberTargetG:e.target.value?parseFloat(e.target.value):undefined}:pr))}/><div style={{fontFamily:FM,fontSize:10,color:C.muted,lineHeight:1.4}}>Auto-calculated from age and sex ({fiberTargetFor({...profile,fiberTargetG:undefined})}g suggested). Enter a number here to override with a physician-directed target.</div></div></div><div style={{marginTop:8}}><div style={{fontFamily:FM,fontSize:10,color:C.muted,marginBottom:4,letterSpacing:0.8}}>WW DAILY POINTS BUDGET (optional)</div><div style={{display:"flex",gap:8,alignItems:"center"}}><input style={{...bInp,fontSize:12,maxWidth:80}} type="number" placeholder="e.g. 23" value={profile.wwPointsBudget||""} onChange={e=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,wwPointsBudget:e.target.value?parseFloat(e.target.value):undefined}:pr))}/><div style={{fontFamily:FM,fontSize:10,color:C.muted,lineHeight:1.4}}>Enter your WW-assigned daily budget. Smart Kitchen estimates compatible Points from weighed food.</div></div></div>
+                              <div style={{marginTop:8,display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}><div><div style={{fontFamily:FM,fontSize:10,color:C.muted,marginBottom:4,letterSpacing:0.8}}>DAILY PROTEIN TARGET (g)</div><input style={{...bInp,fontSize:12}} type="number" placeholder="e.g. 75 (auto if blank)" value={profile.proteinTargetG||""} onChange={e=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,proteinTargetG:e.target.value?parseFloat(e.target.value):undefined}:pr))}/></div><div><div style={{fontFamily:FM,fontSize:10,color:C.muted,marginBottom:4,letterSpacing:0.8}}>GOAL WEIGHT (lbs, optional)</div><input style={{...bInp,fontSize:12}} type="number" placeholder="e.g. 165" value={profile.goalWeightLbs||""} onChange={e=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,goalWeightLbs:e.target.value?parseFloat(e.target.value):undefined}:pr))}/></div></div>
+                              {profile.goalWeightLbs&&(
+                                <div style={{marginTop:8,background:C.surface,borderRadius:8,padding:10}}>
+                                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                                    <div style={{fontFamily:FM,fontSize:10,color:C.muted,letterSpacing:0.8}}>PERIODIC WEIGH-IN REMINDERS</div>
+                                    <button onClick={()=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,weighInEnabled:!pr.weighInEnabled}:pr))} style={{background:profile.weighInEnabled?"#22c55e":"transparent",border:"2px solid #22c55e",borderRadius:20,padding:"3px 12px",fontFamily:FM,fontSize:10,fontWeight:700,color:profile.weighInEnabled?"#fff":"#22c55e",cursor:"pointer"}}>{profile.weighInEnabled?"ON":"OFF"}</button>
+                                  </div>
+                                  {profile.weighInEnabled&&(
+                                    <div style={{marginTop:8,display:"flex",gap:4}}>
+                                      {[["weekly","Weekly"],["biweekly","Every 2 Weeks"],["monthly","Monthly"]].map(([k,label])=>(
+                                        <button key={k} onClick={()=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,weighInFrequency:k}:pr))} style={{flex:1,padding:"5px 4px",borderRadius:16,border:"1px solid "+((profile.weighInFrequency||"weekly")===k?"#22c55e":C.border),background:(profile.weighInFrequency||"weekly")===k?"#22c55e18":"transparent",color:(profile.weighInFrequency||"weekly")===k?"#22c55e":C.muted,fontFamily:FM,fontSize:10,cursor:"pointer"}}>{label}</button>
+                                      ))}
+                                    </div>
+                                  )}
+                                  {profile.weighInEnabled&&<div style={{fontFamily:FM,fontSize:10,color:C.muted,marginTop:6,lineHeight:1.4}}>Smart Kitchen will remind {profile.name||"this member"} to record their current weight on this schedule. Weigh-ins log through Food Journal (📗 LOG → Weigh-In).</div>}
+                                </div>
+                              )}<div style={{marginTop:8,display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}><div><div style={{fontFamily:FM,fontSize:10,color:C.muted,marginBottom:4,letterSpacing:0.8}}>HEIGHT (optional)</div><input style={{...bInp,fontSize:12}} placeholder="e.g. 5ft 8in" value={profile.heightStr||""} onChange={e=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,heightStr:e.target.value}:pr))}/></div><div><div style={{fontFamily:FM,fontSize:10,color:C.muted,marginBottom:4,letterSpacing:0.8}}>ACTIVITY LEVEL</div><div style={{display:"flex",gap:4}}>{["Light","Moderate","Active"].map(lvl=>(<button key={lvl} onClick={()=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,activityLevel:pr.activityLevel===lvl?null:lvl}:pr))} style={{flex:1,padding:"3px 4px",borderRadius:20,border:"1px solid "+(profile.activityLevel===lvl?"#22c55e":C.border),background:profile.activityLevel===lvl?"#22c55e18":"transparent",color:profile.activityLevel===lvl?"#22c55e":C.muted,fontFamily:FM,fontSize:10,cursor:"pointer"}}>{lvl}</button>))}</div></div></div><div style={{marginTop:8,display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}><div><div style={{fontFamily:FM,fontSize:10,color:C.muted,marginBottom:4,letterSpacing:0.8}}>AGE (optional)</div><input style={{...bInp,fontSize:12}} type="number" placeholder="e.g. 69" value={profile.age||""} onChange={e=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,age:e.target.value?parseFloat(e.target.value):undefined}:pr))}/></div><div><div style={{fontFamily:FM,fontSize:10,color:C.muted,marginBottom:4,letterSpacing:0.8}}>SEX (optional)</div><div style={{display:"flex",gap:4}}>{["Male","Female"].map(sx=>(<button key={sx} onClick={()=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,sex:pr.sex===sx?null:sx}:pr))} style={{flex:1,padding:"3px 4px",borderRadius:20,border:"1px solid "+(profile.sex===sx?"#8b5cf6":C.border),background:profile.sex===sx?"#8b5cf618":"transparent",color:profile.sex===sx?"#8b5cf6":C.muted,fontFamily:FM,fontSize:10,cursor:"pointer"}}>{sx}</button>))}</div></div></div><div style={{marginTop:8}}><div style={{fontFamily:FM,fontSize:10,color:C.muted,marginBottom:4,letterSpacing:0.8}}>DAILY FIBER TARGET (g)</div><div style={{display:"flex",gap:8,alignItems:"center"}}><input style={{...bInp,fontSize:12,maxWidth:80}} type="number" placeholder={String(fiberTargetFor(profile))+" (auto)"} value={profile.fiberTargetG||""} onChange={e=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,fiberTargetG:e.target.value?parseFloat(e.target.value):undefined}:pr))}/><div style={{fontFamily:FM,fontSize:10,color:C.muted,lineHeight:1.4}}>Auto-calculated from age and sex ({fiberTargetFor({...profile,fiberTargetG:undefined})}g suggested). Enter a number here to override with a physician-directed target.</div></div></div><div style={{marginTop:8}}><div style={{fontFamily:FM,fontSize:10,color:C.muted,marginBottom:4,letterSpacing:0.8}}>WW DAILY POINTS BUDGET (optional)</div><div style={{display:"flex",gap:8,alignItems:"center"}}><input style={{...bInp,fontSize:12,maxWidth:80}} type="number" placeholder="e.g. 23" value={profile.wwPointsBudget||""} onChange={e=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,wwPointsBudget:e.target.value?parseFloat(e.target.value):undefined}:pr))}/><div style={{fontFamily:FM,fontSize:10,color:C.muted,lineHeight:1.4}}>Enter your WW-assigned daily budget. Smart Kitchen estimates compatible Points from weighed food.</div></div></div>
                             </div>
                             <div style={{marginBottom:8}}>
                               <Label>ALLERGIES</Label>
@@ -7914,6 +7978,37 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
             </button>
             <div style={{fontFamily:FM,fontSize:11,color:C.muted,marginTop:4,lineHeight:1.5}}>
               You can always change this later using the <strong>🔤 Senior</strong> button in the menu.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showWeighInPrompt&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:700,padding:20}} onClick={()=>setShowWeighInPrompt(null)}>
+          <div style={{background:C.surface,border:"1px solid "+C.borderLight,borderRadius:16,padding:28,maxWidth:360,width:"100%",textAlign:"center"}} onClick={e=>e.stopPropagation()}>
+            <div style={{fontSize:48,marginBottom:10}}>⚖</div>
+            <div style={{fontFamily:FD,fontSize:22,fontWeight:700,color:C.accent,marginBottom:8}}>Weigh-In Time{showWeighInPrompt.name?" — "+showWeighInPrompt.name:""}</div>
+            <div style={{fontFamily:FM,fontSize:15,color:C.muted,marginBottom:24,lineHeight:1.7}}>
+              {(showWeighInPrompt.weighInFrequency==="monthly"?"It's been about a month":showWeighInPrompt.weighInFrequency==="biweekly"?"It's been about two weeks":"It's been about a week")} since {showWeighInPrompt.name||"this member"}'s last recorded weight. Time to log a new one?
+            </div>
+            <button onClick={()=>{
+                setJournalMember(showWeighInPrompt);
+                setJournalMealType("Weigh-In");
+                setShowJournal(true);
+                setShowWeighInPrompt(null);
+              }}
+              style={{...bBtn("primary"),width:"100%",padding:"14px",fontSize:16,marginBottom:12,borderRadius:10}}>
+              ⚖ Log My Weight Now
+            </button>
+            <button onClick={()=>{
+                try{localStorage.setItem("sk_weighInSnooze_"+showWeighInPrompt.id,String(Date.now()+86400000));}catch{}
+                setShowWeighInPrompt(null);
+              }}
+              style={{...bBtn("ghost"),width:"100%",padding:"12px",fontSize:14,border:"1px solid "+C.border,color:C.text,borderRadius:10,marginBottom:8}}>
+              Remind Me Tomorrow
+            </button>
+            <div style={{fontFamily:FM,fontSize:11,color:C.muted,marginTop:4,lineHeight:1.5}}>
+              Change this schedule anytime in Members → Edit → Periodic Weigh-In Reminders.
             </div>
           </div>
         </div>
@@ -10542,7 +10637,7 @@ setScaleCalcLoading(false);setTimeout(()=>{if(scaleDevice&&scaleDevice._writeChr
     )}
     {showJournal&&can.medicalCompliance&&(
       <FoodJournal
-        user={user} supabase={supabase} familyProfiles={familyProfiles}
+        user={user} supabase={supabase} familyProfiles={familyProfiles} setFamilyProfiles={setFamilyProfiles}
         can={can} seniorMode={seniorMode} C={C} FM={FM} FD={FD}
         journalMember={journalMember} setJournalMember={setJournalMember}
         journalMealType={journalMealType} setJournalMealType={setJournalMealType}
