@@ -9419,7 +9419,7 @@ setScaleCalcLoading(false);setTimeout(()=>{if(scaleDevice&&scaleDevice._writeChr
                   Connect your Bluetooth kitchen scale to weigh portions and get instant calorie estimates.
                 </div>
                 <div style={{fontFamily:FM,fontSize:11,color:C.muted,marginBottom:16}}>
-                  Compatible: <strong style={{color:C.text}}>Etekcity Nutrition Scale</strong> (ENS-L221S) · Service 0xFFF0
+                  Compatible: <strong style={{color:C.text}}>Etekcity Nutrition Scale</strong> (ENS-L221S)
                 </div>
                 <button onClick={()=>setShowScaleConnectPrimer(true)} disabled={scaleConnecting||!navigator.bluetooth}
                   style={{...bBtn("primary"),padding:"12px 24px",fontSize:14,opacity:(!navigator.bluetooth)?0.5:1}}>
@@ -9493,7 +9493,7 @@ setScaleCalcLoading(false);setTimeout(()=>{if(scaleDevice&&scaleDevice._writeChr
             <div style={{background:C.surface,borderRadius:10,padding:12,marginTop:14}}>
               <div style={{fontFamily:FM,fontSize:11,fontWeight:700,color:C.text,marginBottom:4}}>Recommended Scale</div>
               <div style={{fontFamily:FM,fontSize:11,color:C.muted,lineHeight:1.5}}>
-                <strong style={{color:C.text}}>Etekcity Nutrition Scale</strong> — confirmed compatible (BLE FFF0/FFF1/FFF2).<br/>
+                <strong style={{color:C.text}}>Etekcity Nutrition Scale</strong> — confirmed compatible.<br/>
                 Search “Etekcity Nutrition Scale ENS-L221S” on Amazon.
               </div>
             </div>
