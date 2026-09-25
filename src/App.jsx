@@ -1513,6 +1513,9 @@ function FoodJournal({user,supabase,familyProfiles,can,seniorMode,C,FM,FD,
   const activeMember=journalMember||(members[0]||null);
   const mealTypes=["Breakfast","Morning Snack","Lunch","Afternoon Snack","Dinner","Evening Snack","Water/Hydration","Protein Shake","Other","Blood Pressure"];
   const [journalSystolic,setJournalSystolic]=React.useState("");
+  const [journalPhoto,setJournalPhoto]=React.useState(null);
+  const [journalPhotoLoading,setJournalPhotoLoading]=React.useState(false);
+  const [journalPhotoError,setJournalPhotoError]=React.useState("");
   const [journalDiastolic,setJournalDiastolic]=React.useState("");
   const [journalPulse,setJournalPulse]=React.useState("");
   const weightUnits=["oz","g","ml","fl oz","lbs","cups"];
@@ -1543,6 +1546,48 @@ function FoodJournal({user,supabase,familyProfiles,can,seniorMode,C,FM,FD,
       if(s!==-1&&e!==-1){try{setJournalNutrition(JSON.parse(clean.slice(s,e+1)));}catch{}}
     }catch{}
     setJournalCalcLoading(false);
+  };
+  const handleJournalPhoto=(file)=>{
+    if(!file) return;
+    const img=new Image();
+    const url=URL.createObjectURL(file);
+    img.onload=()=>{
+      const canvas=document.createElement("canvas");
+      const max=900;
+      const ratio=Math.min(max/img.width,max/img.height,1);
+      canvas.width=img.width*ratio;canvas.height=img.height*ratio;
+      const ctx=canvas.getContext("2d");
+      ctx.drawImage(img,0,0,canvas.width,canvas.height);
+      URL.revokeObjectURL(url);
+      const dataUrl=canvas.toDataURL("image/jpeg",0.85);
+      setJournalPhoto(dataUrl);
+      setJournalPhotoError("");
+      analyzeJournalPhoto(dataUrl);
+    };
+    img.src=url;
+  };
+  const analyzeJournalPhoto=async(dataUrl)=>{
+    setJournalPhotoLoading(true);setJournalPhotoError("");setJournalNutrition(null);
+    try{
+      const raw=await callClaude({
+        system:"Nutrition AI analyzing a photo of a plate of food or a restaurant menu item. Identify what it is and estimate nutrition for the visible serving. Return ONLY valid JSON: {foodName,servingDescription,calories,protein_g,carbs_g,fat_g,sat_fat_g,sugar_g,fiber_g,sodium_mg}. Numbers only, no units in the number fields. foodName should be short (e.g. \"Grilled chicken with rice and broccoli\"). servingDescription should describe the estimated portion size in a few words (e.g. \"~1.5 cups, restaurant portion\").",
+        prompt:"Identify this food and estimate its nutrition. Return JSON only.",
+        imageBase64:dataUrl.split(",")[1],
+        imageType:"image/jpeg",
+        maxTokens:300
+      });
+      const text=typeof raw==="string"?raw:Array.isArray(raw?.content)?raw.content.map(b=>b.text||"").join(""):raw?.content?.[0]?.text||"";
+      const clean=text.replace(/```json|```/g,"").trim();
+      const s=clean.indexOf("{");const e=clean.lastIndexOf("}");
+      if(s===-1||e===-1) throw new Error("no json");
+      const parsed=JSON.parse(clean.slice(s,e+1));
+      setJournalFoodName(parsed.foodName||"Photo-logged item");
+      setJournalNutrition(parsed);
+      if(parsed.servingDescription) setJournalWeight(""); // photo estimate covers the whole visible serving; no separate weight needed
+    }catch(err){
+      setJournalPhotoError("Could not identify this photo — try better lighting, or enter the food manually below.");
+    }
+    setJournalPhotoLoading(false);
   };
   const saveEntry=async()=>{
     if(journalMealType==="Blood Pressure"){
@@ -1589,7 +1634,7 @@ function FoodJournal({user,supabase,familyProfiles,can,seniorMode,C,FM,FD,
       fiber_g:journalNutrition?.fiber_g||null,
       sodium_mg:journalNutrition?.sodium_mg||null,
       wwPoints:wwPts,
-      source:"food_journal",
+      source:journalPhoto?"photo":"food_journal",
       sessionId:journalMealType,
     });
     try{
@@ -1604,6 +1649,8 @@ function FoodJournal({user,supabase,familyProfiles,can,seniorMode,C,FM,FD,
     setJournalFoodName("");
     setJournalWeight("");
     setJournalNutrition(null);
+    setJournalPhoto(null);
+    setJournalPhotoError("");
     setTimeout(()=>setJournalSuccess(false),2500);
   };
   React.useEffect(()=>{
@@ -1663,7 +1710,29 @@ function FoodJournal({user,supabase,familyProfiles,can,seniorMode,C,FM,FD,
           <input type="datetime-local" value={journalDateTime} onChange={e=>setJournalDateTime(e.target.value)}
             style={{width:"100%",background:C.surface,border:"1px solid #444",borderRadius:8,padding:"10px 12px",color:C.text,fontFamily:FM,fontSize:seniorMode?15:13,boxSizing:"border-box"}}/>
         </div>
-        {journalMealType==="Blood Pressure"&&(<div style={{marginBottom:16}}><div style={{fontFamily:FM,fontSize:10,color:"#888",marginBottom:8,letterSpacing:0.8}}>BLOOD PRESSURE READING</div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:8}}><div><div style={{fontFamily:FM,fontSize:9,color:"#666",marginBottom:4}}>SYSTOLIC</div><input type="number" value={journalSystolic} onChange={e=>setJournalSystolic(e.target.value)} placeholder="120" style={{width:"100%",background:C.surface,border:"1px solid #444",borderRadius:8,padding:"10px 12px",color:C.text,fontFamily:FM,fontSize:seniorMode?16:14,boxSizing:"border-box"}}/></div><div><div style={{fontFamily:FM,fontSize:9,color:"#666",marginBottom:4}}>DIASTOLIC</div><input type="number" value={journalDiastolic} onChange={e=>setJournalDiastolic(e.target.value)} placeholder="80" style={{width:"100%",background:C.surface,border:"1px solid #444",borderRadius:8,padding:"10px 12px",color:C.text,fontFamily:FM,fontSize:seniorMode?16:14,boxSizing:"border-box"}}/></div><div><div style={{fontFamily:FM,fontSize:9,color:"#666",marginBottom:4}}>PULSE (OPTIONAL)</div><input type="number" value={journalPulse} onChange={e=>setJournalPulse(e.target.value)} placeholder="72" style={{width:"100%",background:C.surface,border:"1px solid #444",borderRadius:8,padding:"10px 12px",color:C.text,fontFamily:FM,fontSize:seniorMode?16:14,boxSizing:"border-box"}}/></div></div>{journalSystolic&&journalDiastolic&&(()=>{const cat=bpCategory(journalSystolic,journalDiastolic);if(!cat)return null;return(<div style={{background:cat.color+"18",border:"1px solid "+cat.color+"66",borderRadius:8,padding:"8px 12px",marginBottom:4}}><span style={{fontFamily:FM,fontSize:12,color:cat.color,fontWeight:700}}>{cat.label}</span>{cat.note&&<span style={{fontFamily:FM,fontSize:11,color:cat.color,marginLeft:8}}>— {cat.note}</span>}</div>);})()}<div style={{fontFamily:FM,fontSize:10,color:"#555",marginTop:4}}>Categories follow standard clinical ranges for informational purposes. Your physician is the final authority on your care — Smart Kitchen only assists with day-to-day implementation.</div></div>)}{journalMealType!=="Blood Pressure"&&(<><div style={{marginBottom:12}}>
+        {journalMealType==="Blood Pressure"&&(<div style={{marginBottom:16}}><div style={{fontFamily:FM,fontSize:10,color:"#888",marginBottom:8,letterSpacing:0.8}}>BLOOD PRESSURE READING</div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:8}}><div><div style={{fontFamily:FM,fontSize:9,color:"#666",marginBottom:4}}>SYSTOLIC</div><input type="number" value={journalSystolic} onChange={e=>setJournalSystolic(e.target.value)} placeholder="120" style={{width:"100%",background:C.surface,border:"1px solid #444",borderRadius:8,padding:"10px 12px",color:C.text,fontFamily:FM,fontSize:seniorMode?16:14,boxSizing:"border-box"}}/></div><div><div style={{fontFamily:FM,fontSize:9,color:"#666",marginBottom:4}}>DIASTOLIC</div><input type="number" value={journalDiastolic} onChange={e=>setJournalDiastolic(e.target.value)} placeholder="80" style={{width:"100%",background:C.surface,border:"1px solid #444",borderRadius:8,padding:"10px 12px",color:C.text,fontFamily:FM,fontSize:seniorMode?16:14,boxSizing:"border-box"}}/></div><div><div style={{fontFamily:FM,fontSize:9,color:"#666",marginBottom:4}}>PULSE (OPTIONAL)</div><input type="number" value={journalPulse} onChange={e=>setJournalPulse(e.target.value)} placeholder="72" style={{width:"100%",background:C.surface,border:"1px solid #444",borderRadius:8,padding:"10px 12px",color:C.text,fontFamily:FM,fontSize:seniorMode?16:14,boxSizing:"border-box"}}/></div></div>{journalSystolic&&journalDiastolic&&(()=>{const cat=bpCategory(journalSystolic,journalDiastolic);if(!cat)return null;return(<div style={{background:cat.color+"18",border:"1px solid "+cat.color+"66",borderRadius:8,padding:"8px 12px",marginBottom:4}}><span style={{fontFamily:FM,fontSize:12,color:cat.color,fontWeight:700}}>{cat.label}</span>{cat.note&&<span style={{fontFamily:FM,fontSize:11,color:cat.color,marginLeft:8}}>— {cat.note}</span>}</div>);})()}<div style={{fontFamily:FM,fontSize:10,color:"#555",marginTop:4}}>Categories follow standard clinical ranges for informational purposes. Your physician is the final authority on your care — Smart Kitchen only assists with day-to-day implementation.</div></div>)}{journalMealType!=="Blood Pressure"&&(<>
+        <div style={{marginBottom:14}}>
+          <div style={{fontFamily:FM,fontSize:10,color:"#888",marginBottom:6,letterSpacing:0.8}}>SNAP A PHOTO {activeMember?.name?("(for "+activeMember.name+")"):""}</div>
+          <input type="file" accept="image/*" capture="environment" id="journalPhotoInput" style={{display:"none"}} onChange={e=>{const f=e.target.files?.[0];if(f) handleJournalPhoto(f);}}/>
+          <div onClick={()=>document.getElementById("journalPhotoInput").click()}
+            style={{border:"2px dashed "+(journalPhoto?"#10b981":"#444"),borderRadius:10,minHeight:journalPhoto?undefined:84,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",overflow:"hidden",transition:"border 0.2s",background:C.surface}}>
+            {journalPhoto
+              ? <img src={journalPhoto} alt="" style={{width:"100%",maxHeight:180,objectFit:"cover"}}/>
+              : <div style={{textAlign:"center",padding:12}}>
+                  <div style={{fontSize:26,marginBottom:4}}>📷</div>
+                  <div style={{fontFamily:FM,fontSize:seniorMode?14:12,color:"#888"}}>Tap to photograph your plate or a restaurant menu item</div>
+                </div>}
+          </div>
+          {journalPhotoLoading&&<div style={{fontFamily:FM,fontSize:11,color:"#f59e0b",marginTop:6,textAlign:"center"}}>⏳ Identifying food and estimating nutrition...</div>}
+          {journalPhotoError&&<div style={{fontFamily:FM,fontSize:11,color:"#dc2626",marginTop:6}}>{journalPhotoError}</div>}
+          {journalPhoto&&!journalPhotoLoading&&<button onClick={()=>{setJournalPhoto(null);setJournalPhotoError("");setJournalNutrition(null);setJournalFoodName("");}} style={{marginTop:6,background:"transparent",border:"none",color:"#666",fontFamily:FM,fontSize:11,cursor:"pointer",textDecoration:"underline"}}>Retake / remove photo</button>}
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:8,margin:"4px 0 14px"}}>
+          <div style={{flex:1,height:1,background:"#333"}}/>
+          <div style={{fontFamily:FM,fontSize:10,color:"#555"}}>OR ENTER MANUALLY</div>
+          <div style={{flex:1,height:1,background:"#333"}}/>
+        </div>
+        <div style={{marginBottom:12}}>
           <div style={{fontFamily:FM,fontSize:10,color:"#888",marginBottom:4,letterSpacing:0.8}}>WHAT DID YOU EAT OR DRINK?</div>
           <input value={journalFoodName} onChange={e=>{setJournalFoodName(e.target.value);setJournalNutrition(null);}}
             placeholder="e.g. Protein shake, Chicken broth, Greek yogurt..."
@@ -1705,6 +1774,7 @@ function FoodJournal({user,supabase,familyProfiles,can,seniorMode,C,FM,FD,
         {journalNutrition&&(
           <div style={{background:C.surface,borderRadius:10,padding:12,marginBottom:16,border:"1px solid #444"}}>
             <div style={{fontFamily:FM,fontSize:10,color:"#888",marginBottom:8,letterSpacing:0.8}}>ESTIMATED NUTRITION</div>
+            {journalNutrition.servingDescription&&<div style={{fontFamily:FM,fontSize:11,color:"#888",marginBottom:8,fontStyle:"italic"}}>Estimated serving: {journalNutrition.servingDescription}</div>}
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6}}>
               {[["Protein",journalNutrition.protein_g,"g","#3b82f6"],
                 ["Calories",journalNutrition.calories,"cal","#f59e0b"],
