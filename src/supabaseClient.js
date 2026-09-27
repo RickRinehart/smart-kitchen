@@ -16,7 +16,14 @@ export const ALL_LOCAL_STORAGE_KEYS = [
   "sk_cuisinePrefs","sk_assistantName","sk_voiceGender","sk_shopPartnerName","sk_shopPartnerEmail",
   "sk_shopPhone","sk_budgetAmount","sk_budgetPeriod","sk_deliveryService","sk_instacartStore",
   "sk_chatBubblePos","sk_recallSensitivity","sk_cellarCookingEnabled","sk_guestTrialEmail",
-  "sk_trialStart","sk_newSignup","sk_changeMealHistory"
+  "sk_trialStart","sk_newSignup","sk_changeMealHistory",
+  // These are all actively synced to the cloud via SYNC_MAP but were missing from this list,
+  // meaning sign-out never cleared them locally -- so one account's family recipes, shopping
+  // list, restock queue, and history data could silently survive in the browser and leak into
+  // whichever account signs in next on the same device. Keep this list in sync with SYNC_MAP's
+  // localStorage keys below; anything synced to the cloud must also be cleared here.
+  "sk_familyRecipes","sk_madeItHistory","sk_leftoverHistory","sk_shoppingList","sk_restockQueue",
+  "sk_yieldHistory","sk_fetchedRecipeCache"
 ];
 
 // Get current user profile including tier and trial info
