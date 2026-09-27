@@ -2002,7 +2002,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [filterLoc,setFilterLoc]=useState("All");
   const [showAdd,setShowAdd]=useState(false);
   const [showRejected,setShowRejected]=useState(()=>{try{const v=localStorage.getItem("sk_showRejected");return v===null?true:v==="true";}catch{return true;}});
-  const [newItem,setNewItem]=useState({name:"",qty:"",unit:"",category:"Pantry",location:"Pantry",harvestType:"",isBulkItem:false,bulkUnit:"cup",bulkTrackingMode:"measured",bulkPackageWeight:"",bulkPackageWeightUnit:"lb",bulkPackageCupsOverride:"",bulkPackagePrice:"",bulkLowStockPct:20,bulkEstimatePct:100});
+  const [newItem,setNewItem]=useState({name:"",qty:"1",unit:"",category:"Pantry",location:"Pantry",harvestType:"",isBulkItem:false,bulkUnit:"cup",bulkTrackingMode:"measured",bulkPackageWeight:"",bulkPackageWeightUnit:"lb",bulkPackageCupsOverride:"",bulkPackagePrice:"",bulkLowStockPct:20,bulkEstimatePct:100});
   const [activeRecipe,setActiveRecipe]=useState(null);
   const [activeRecipeServings,setActiveRecipeServings]=useState(4);
   const [fetchedRecipeCache,setFetchedRecipeCache]=useState(()=>{try{return JSON.parse(localStorage.getItem("sk_fetchedRecipeCache")||"{}");}catch{return {};}});
@@ -5178,7 +5178,13 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     }
   };
   const addItem=()=>{
-    if(!newItem.name||!newItem.qty) return;
+    // Qty's placeholder text ("1") can look like a real value at a glance even when the field
+    // was never actually touched -- newItem.qty is still "" underneath, which silently failed
+    // this whole function with zero feedback. Now: qty defaults to a real "1" (not just a
+    // placeholder) so leaving it alone just works, and any other missing requirement tells the
+    // user exactly what's missing instead of the Add button silently doing nothing.
+    if(!newItem.name){showAlert("Please enter an item name.");return;}
+    if(!newItem.qty){showAlert("Please enter a quantity.");return;}
     const isProtein=newItem.category==="Protein";
     const isHarvestProtein=(newItem.category==="Wild Harvest"||newItem.category==="Home Harvest")&&newItem.harvestType==="Protein";
     const item={...newItem,id:Date.now(),qty:parseFloat(newItem.qty)};
@@ -5206,7 +5212,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       item.bulkCostPerUnit=item.bulkPackagePrice&&item.bulkTotalUnits?+(item.bulkPackagePrice/item.bulkTotalUnits).toFixed(4):0;
     }
     setInventory(p=>[...p,item]);
-    setNewItem({name:"",qty:"",unit:"",category:"Pantry",location:"Pantry",harvestType:"",isBulkItem:false,bulkUnit:"cup",bulkTrackingMode:"measured",bulkPackageWeight:"",bulkPackageWeightUnit:"lb",bulkPackageCupsOverride:"",bulkPackagePrice:"",bulkLowStockPct:20,bulkEstimatePct:100});
+    setNewItem({name:"",qty:"1",unit:"",category:"Pantry",location:"Pantry",harvestType:"",isBulkItem:false,bulkUnit:"cup",bulkTrackingMode:"measured",bulkPackageWeight:"",bulkPackageWeightUnit:"lb",bulkPackageCupsOverride:"",bulkPackagePrice:"",bulkLowStockPct:20,bulkEstimatePct:100});
     setShowAdd(false);
   };
 
