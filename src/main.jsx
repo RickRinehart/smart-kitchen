@@ -277,7 +277,34 @@ function Root() {
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+      if (event === 'SIGNED_IN') {
+        setUser(session.user);
+        setCachedAccessToken(session.access_token);
+        getUserProfile(session.user.id).then(setUserProfile);
+        // CRITICAL: this fires on every sign-in, not just the very first page load -- including
+        // switching accounts within the same open tab (e.g. creating/confirming a new account
+        // while already signed in as someone else, which never routes through handleSignOut's
+        // cleanup). Without this, local storage keeps showing whichever account was active
+        // before, tagged under the NEW account's user.id -- and the periodic dirty-save (5-min
+        // timer, tab-hidden save) can then push that stale, wrong-account snapshot up and
+        // silently overwrite the newly-signed-in account's real cloud data. force=true here
+        // (unlike the initial-mount load) because this is a genuine account switch: whatever is
+        // sitting in local storage belongs to a different account, not fresher unsaved edits of
+        // this one, so it should never be protected from the authoritative cloud pull.
+        getViewerRole(session.user.id).then(role => {
+          if (role) {
+            setViewerRole(role);
+            loadCloudData(role.owner_user_id, true).then(loaded => {
+              if (loaded) window.dispatchEvent(new Event("sk_cloud_loaded"));
+            }).catch(() => {});
+          } else {
+            setViewerRole(null);
+            loadCloudData(session.user.id, true).then(loaded => {
+              if (loaded) window.dispatchEvent(new Event("sk_cloud_loaded"));
+            }).catch(() => {});
+          }
+        }).catch(() => {});
+      } else if (event === 'USER_UPDATED') {
         setUser(session.user);
         setCachedAccessToken(session.access_token);
         getUserProfile(session.user.id).then(setUserProfile);
