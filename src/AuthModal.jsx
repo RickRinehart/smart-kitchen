@@ -43,7 +43,7 @@ export default function AuthModal({ onClose, onSuccess, initialMode = 'signup', 
       });
     } catch(e) { console.warn('Mailchimp subscribe failed:', e); }
     setLoading(false)
-    setMessage('Account created! Check your email to confirm, then sign in.')
+    setMessage('Account created! Please close this tab, then open the confirmation email we just sent and tap the button in it. Don\u2019t see it after a minute or two? Check your Spam or Junk folder.')
     setMode('signin')
   }
 
@@ -64,7 +64,7 @@ export default function AuthModal({ onClose, onSuccess, initialMode = 'signup', 
     const { error } = await supabase.auth.resetPasswordForEmail(email)
     setLoading(false)
     if (error) { setError(error.message); return }
-    setMessage('Password reset email sent. Check your inbox.')
+    setMessage('Password reset email sent. Check your inbox \u2014 and your Spam or Junk folder if you don\u2019t see it.')
   }
 
   return (
@@ -90,7 +90,7 @@ export default function AuthModal({ onClose, onSuccess, initialMode = 'signup', 
         )}
 
         {error && <div style={styles.error}>{error}</div>}
-        {message && <div style={styles.success}>{message}</div>}
+        {message && <div style={{...styles.success, fontSize: sz(14), lineHeight: 1.6}}>{message}</div>}
 
         <div style={styles.form}>
           {mode === 'signup' && (
