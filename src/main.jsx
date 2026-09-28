@@ -611,7 +611,17 @@ document.addEventListener("visibilitychange", handleVisibility);
   if (!user && showSplash) {
     return (
       <WelcomeSplash
-        onGetStarted={() => dismissSplash(() => { setAuthMode("signup"); setShowAuthModal(true); })}
+        onGetStarted={() => dismissSplash(() => {
+          // A new visitor lands on the app's own setup wizard, whose first step is a welcome +
+          // "Create Free Account" that leads into the trial signup form -- the better path: it
+          // echoes the address the confirmation went to (catches typos), reminds them to check
+          // spam, sets the trial metadata, and sends the welcome email. Only fall back to the
+          // generic sign-up modal if that wizard has already been completed on this device
+          // (so it won't appear and the visitor would otherwise have no obvious way to sign up).
+          let wizardWillShow = true;
+          try { wizardWillShow = localStorage.getItem("sk_setupDone") !== "1"; } catch {}
+          if (!wizardWillShow) { setAuthMode("signup"); setShowAuthModal(true); }
+        })}
         onSignIn={() => dismissSplash(() => { setAuthMode("signin"); setShowAuthModal(true); })}
       />
     );
