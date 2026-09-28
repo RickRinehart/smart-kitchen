@@ -210,8 +210,8 @@ export default async function handler(req, res) {
   if (action === 'nutrition-report') {
     const { toEmail, memberName, dateRange, dailyData, weeklyAvgs, narrative, bpReadings, recallAlerts } = req.body;
     if (!toEmail) return res.status(400).json({ error: 'Missing email' });
-    const resendKey = process.env.RESEND_API_KEY;
-    if (!resendKey) return res.status(500).json({ error: 'Missing RESEND_API_KEY' });
+    const resendKey = process.env.RESEND_API_KEY_RGDL;
+    if (!resendKey) return res.status(500).json({ error: 'Missing RESEND_API_KEY_RGDL' });
 
     const rowsHtml = (dailyData||[]).map(d => `
       <tr style="border-bottom:1px solid #eee;">
@@ -296,7 +296,8 @@ export default async function handler(req, res) {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          from: 'Smart Kitchen <noreply@rinehartra.com>',
+          from: 'Smart Kitchen <hello@mail.rgdigitallabs.com>',
+          reply_to: 'thesmartkitchenapp@gmail.com',
           to: [toEmail],
           subject: `Your Nutrition Report - ${memberName||'Smart Kitchen'} - ${dateRange||''}`,
           html
@@ -314,8 +315,8 @@ export default async function handler(req, res) {
   if (action === 'escalation') {
     const { userName, tier, tag, userMsg, profile } = req.body;
     if (!tag || !userMsg) return res.status(400).json({ error: 'Missing required fields' });
-    const resendKey = process.env.RESEND_API_KEY;
-    if (!resendKey) return res.status(500).json({ error: 'Missing RESEND_API_KEY' });
+    const resendKey = process.env.RESEND_API_KEY_RGDL;
+    if (!resendKey) return res.status(500).json({ error: 'Missing RESEND_API_KEY_RGDL' });
 
     const tagColors = {
       'Bug': '#dc2626',
@@ -356,7 +357,7 @@ export default async function handler(req, res) {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          from: 'Smart Kitchen <noreply@rinehartra.com>',
+          from: 'Smart Kitchen <hello@mail.rgdigitallabs.com>',
           to: ['thesmartkitchenapp@gmail.com'],
           subject: `Smart Kitchen ${tag} — ${userName || 'Unknown user'} (${tier || 'Unknown'})`,
           html,
@@ -379,7 +380,7 @@ export default async function handler(req, res) {
 
   if (!toEmail || !items) return res.status(400).json({ error: 'Missing required fields' });
 
-  const resendKey = process.env.RESEND_API_KEY;
+  const resendKey = process.env.RESEND_API_KEY_RGDL;
 
   // If items carry an assigned store (set via the Smarter Way to Shop tap-to-assign flow),
   // mirror the on-screen store-grouped view -- store first, category within each store, with
@@ -498,7 +499,7 @@ export default async function handler(req, res) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        from: 'Smart Kitchen <noreply@rinehartra.com>',
+        from: 'Smart Kitchen <hello@mail.rgdigitallabs.com>',
         reply_to: 'thesmartkitchenapp@gmail.com',
         to: [toEmail],
         subject: 'Your Smart Kitchen Shopping List',
