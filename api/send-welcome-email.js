@@ -6,8 +6,8 @@ export default async function handler(req, res) {
 
   const emailEvent = event === 'plan_confirmed' ? 'plan_confirmed' : 'trial_signup';
 
-  const resendKey = process.env.RESEND_API_KEY;
-  if (!resendKey) return res.status(500).json({ error: 'Missing RESEND_API_KEY' });
+  const resendKey = process.env.RESEND_API_KEY_RGDL;
+  if (!resendKey) return res.status(500).json({ error: 'Missing RESEND_API_KEY_RGDL' });
 
   const firstName = name ? name.split(' ')[0] : 'there';
   const appUrl = 'https://smart-kitchen-opal.vercel.app';
@@ -126,7 +126,8 @@ export default async function handler(req, res) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'Rick Rinehart — Smart Kitchen <noreply@rinehartra.com>',
+        from: 'Rick Rinehart — Smart Kitchen <hello@mail.rgdigitallabs.com>',
+        reply_to: 'thesmartkitchenapp@gmail.com',
         to: [email],
         subject: emailEvent === 'plan_confirmed'
           ? `You're on the ${tier ? tier.charAt(0).toUpperCase() + tier.slice(1) : ''} plan — here's what's included`
