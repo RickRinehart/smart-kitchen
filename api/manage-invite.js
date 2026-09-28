@@ -34,8 +34,8 @@ async function handleSend(req, res) {
     }
   }
 
-  const resendKey = process.env.RESEND_API_KEY;
-  if (!resendKey) return res.status(500).json({ error: 'Missing RESEND_API_KEY' });
+  const resendKey = process.env.RESEND_API_KEY_RGDL;
+  if (!resendKey) return res.status(500).json({ error: 'Missing RESEND_API_KEY_RGDL' });
 
   // Generate unique invite code
   let invite_code = generateCode();
@@ -95,7 +95,7 @@ async function handleSend(req, res) {
   const emailRes = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from: 'Smart Kitchen <noreply@rinehartra.com>', to: invitee_email, subject: `${ownerFirst} invited you to their Smart Kitchen account`, html: htmlBody })
+    body: JSON.stringify({ from: 'Smart Kitchen <hello@mail.rgdigitallabs.com>', reply_to: 'thesmartkitchenapp@gmail.com', to: invitee_email, subject: `${ownerFirst} invited you to their Smart Kitchen account`, html: htmlBody })
   });
 
   if (!emailRes.ok) {
@@ -143,7 +143,7 @@ async function handleAccept(req, res) {
     .eq('id', invite.id);
 
   // Notify owner
-  const resendKey = process.env.RESEND_API_KEY;
+  const resendKey = process.env.RESEND_API_KEY_RGDL;
   if (resendKey && invite.owner_email) {
     const roleLabel = invite.role === 'manager' ? 'Manager' : 'Viewer';
     const inviteeName = invitee_name || invitee_email || 'Someone';
@@ -166,7 +166,7 @@ async function handleAccept(req, res) {
     await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: 'Smart Kitchen <noreply@rinehartra.com>', to: invite.owner_email, subject: `${inviteeName} accepted your Smart Kitchen ${roleLabel} invitation`, html: htmlBody })
+      body: JSON.stringify({ from: 'Smart Kitchen <hello@mail.rgdigitallabs.com>', reply_to: 'thesmartkitchenapp@gmail.com', to: invite.owner_email, subject: `${inviteeName} accepted your Smart Kitchen ${roleLabel} invitation`, html: htmlBody })
     });
   }
 
