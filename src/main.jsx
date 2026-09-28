@@ -216,12 +216,106 @@ const modalStyles = {
   }
 };
 
+// First-visit welcome splash -- shown once per browser to any signed-out visitor before they see
+// the app or the sign-in button, so a cold visitor (e.g. someone arriving via an insurance
+// carrier's link, with no in-person pitch behind them) gets context instead of landing straight
+// on a login screen. Deliberately generic for now -- a future version will accept the referring
+// carrier (e.g. via a ?ref= link) and personalize this with carrier-provided intro copy; that's
+// a separate, larger build. This version is the same content for every visitor.
+function WelcomeSplash({ onGetStarted, onSignIn }) {
+  // Same large-text preference the rest of the app uses (sk_seniorMode) -- respected here and
+  // toggleable right on the splash, since this screen now sits in front of the pre-login bar
+  // that normally carries that toggle.
+  const large = (() => { try { return localStorage.getItem("sk_seniorMode") === "1"; } catch { return false; } })();
+  const s = (n) => Math.round(n * (large ? 1.3 : 1));
+  const toggleLarge = () => {
+    try { localStorage.setItem("sk_seniorMode", large ? "0" : "1"); } catch {}
+    window.location.reload();
+  };
+  return (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 1200, background: "#1A2344",
+      display: "flex", alignItems: "center", justifyContent: "center", padding: 24,
+      overflowY: "auto",
+    }}>
+      <button onClick={toggleLarge} title={large ? "Normal Text" : "Large Text"} style={{
+        position: "fixed", top: 12, right: 12, background: large ? "#C8963E" : "transparent",
+        border: "1px solid #C8963E88", borderRadius: 8, padding: "4px 10px", cursor: "pointer",
+        fontSize: 14, color: large ? "#000" : "#C8963E", fontWeight: 700,
+      }}>{large ? "Aa\u2713" : "Aa"}</button>
+      <div style={{ maxWidth: 480, width: "100%", textAlign: "center", padding: "20px 0" }}>
+        <div style={{ fontFamily: "Georgia, 'Times New Roman', serif", fontWeight: "bold", color: "#C8963E", fontSize: s(34), marginBottom: 6 }}>
+          Smart Kitchen<span style={{ fontSize: s(16), verticalAlign: "super" }}>™</span>
+        </div>
+        <div style={{ color: "#ffffff", fontSize: s(15), marginBottom: 28, opacity: 0.85 }}>
+          Meal Planning Made Simple — For You and Your Family
+        </div>
+
+        <div style={{ color: "#ffffff", fontSize: s(15), lineHeight: 1.7, marginBottom: 24, textAlign: "left" }}>
+          Smart Kitchen was built to answer one exhausting question every household knows:
+          <em> "What's for dinner?"</em> It plans meals from what's already in your kitchen,
+          tracks your groceries automatically, and can manage diabetic, low-sodium, and other
+          special diets — enforced, not just suggested.
+        </div>
+
+        <div style={{ background: "#ffffff10", border: "1px solid #C8963E44", borderRadius: 12, padding: "16px 18px", marginBottom: 24, textAlign: "left" }}>
+          <div style={{ color: "#C8963E", fontSize: s(11), fontWeight: 700, letterSpacing: "0.08em", marginBottom: 10 }}>WHAT TO EXPECT</div>
+          {[
+            "A full week of dinners, planned around what you already have",
+            "Automatic dietary compliance for 19 medical conditions and diet plans",
+            "Every household member gets their own profile and their own plate",
+            "30 days free, full access — no credit card required to start",
+          ].map(line => (
+            <div key={line} style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 8, color: "#ffffff", fontSize: s(13.5), lineHeight: 1.5 }}>
+              <span style={{ color: "#C8963E" }}>•</span><span>{line}</span>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ color: "#AEB4CC", fontSize: s(12), lineHeight: 1.6, marginBottom: 28 }}>
+          🔒 Your information is never sold or shared with third parties.
+        </div>
+
+        <button onClick={onGetStarted} style={{
+          width: "100%", background: "#C8963E", border: "none", borderRadius: 12,
+          padding: "16px", color: "#000", fontFamily: "'DM Sans', sans-serif", fontSize: s(17),
+          fontWeight: 700, cursor: "pointer", marginBottom: 14,
+        }}>
+          Get Started — It's Free
+        </button>
+        <button onClick={onSignIn} style={{
+          background: "transparent", border: "none", color: "#AEB4CC",
+          fontSize: s(13), cursor: "pointer",
+        }}>
+          Already have an account? Sign In
+        </button>
+
+        <div style={{ color: "#5a6389", fontSize: 10, marginTop: 32 }}>
+          RG Digital Labs, LLC &middot; Veteran-Owned &middot; Grand Rapids, Michigan
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Root() {
   const [user, setUser] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showGuestViewer, setShowGuestViewer] = useState(false);
   const [showSubModal, setShowSubModal] = useState(false);
+  // Shown once per browser to a signed-out visitor. Checked lazily so a returning visitor who
+  // already clicked through (or an existing signed-in user) never sees it again on this device.
+  const [showSplash, setShowSplash] = useState(() => {
+    try {
+      // Never interrupt an email-confirmation or password-reset redirect, or a guest viewer
+      // who's already joined someone's household -- those people arrived with a specific purpose.
+      const h = window.location.hash || "";
+      if (h.includes("type=signup") || h.includes("type=recovery") || h.includes("access_token")) return false;
+      if (localStorage.getItem("sk_guest_viewer")) return false;
+      return localStorage.getItem("sk_seenSplash") !== "1";
+    } catch { return true; }
+  });
   const [viewerRole, setViewerRole] = useState(() => {
     // Check for guest viewer session in localStorage
     try {
@@ -243,6 +337,7 @@ function Root() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
+        try { localStorage.setItem("sk_seenSplash", "1"); } catch {}
         setUser(session.user);
         setCachedAccessToken(session.access_token);
         // Check if this user is a viewer of someone else's account
@@ -496,6 +591,30 @@ document.addEventListener("visibilitychange", handleVisibility);
     setShowTouchpoint(false);
     if (!user) { setAuthMode("signup"); setShowAuthModal(true); }
     else setShowSubModal(true);
+  }
+
+  function dismissSplash(nextAction) {
+    try { localStorage.setItem("sk_seenSplash", "1"); } catch {}
+    setShowSplash(false);
+    if (nextAction) nextAction();
+  }
+
+  // First-visit gate: a signed-out visitor who hasn't seen this yet gets ONLY the splash --
+  // nothing else in the tree below (App, the sign-in button, any modal) renders until they
+  // click through. A signed-in user, or anyone who's already dismissed it on this device, skips
+  // straight past this and sees the app exactly as before.
+  if (showSplash && !authReady) {
+    // Session check still in flight -- hold on a blank brand-colored screen rather than flashing
+    // either the app or the splash at someone who may turn out to be signed in.
+    return <div style={{ position: "fixed", inset: 0, background: "#1A2344" }} />;
+  }
+  if (!user && showSplash) {
+    return (
+      <WelcomeSplash
+        onGetStarted={() => dismissSplash(() => { setAuthMode("signup"); setShowAuthModal(true); })}
+        onSignIn={() => dismissSplash(() => { setAuthMode("signin"); setShowAuthModal(true); })}
+      />
+    );
   }
 
   return (
