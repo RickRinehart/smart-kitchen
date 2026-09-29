@@ -8463,7 +8463,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                 </div>
               )}
             </div>
-            <button onClick={()=>{setShowFitnessPanel(false);setEditingProfile(profile.id);}} style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.border}}>Edit {profile.name||"Member"}'s Profile</button>
+            <button onClick={()=>{setShowFitnessPanel(false);setProfileModalOpen(true);setEditingProfile(profile.id);}} style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.border}}>Edit {profile.name||"Member"}'s Profile</button>
           </div>
         </div>
         );
