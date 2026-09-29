@@ -1,5 +1,5 @@
 ﻿// Smart Kitchen App v2.3 - May 2026
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import AuthModal from "./AuthModal";
@@ -333,12 +333,21 @@ function Root() {
   });
   const [authMode, setAuthMode] = useState("signup");
   const [authReady, setAuthReady] = useState(false);
+  // Tracks whichever user.id this tab has already loaded cloud data for, so the SIGNED_IN
+  // handler below can tell a genuine account switch (different id -- force an authoritative
+  // cloud pull) apart from Supabase re-firing SIGNED_IN for the SAME already-active session
+  // (a tab regaining focus, a token refresh, reconnecting after the phone locks -- all routine,
+  // not a switch). Forcing the pull on every SIGNED_IN event, regardless of whether the user
+  // actually changed, clobbers real in-progress local edits with a stale cloud snapshot the
+  // moment one of those routine re-fires happens to land mid-edit.
+  const activeUserIdRef = useRef(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         try { localStorage.setItem("sk_seenSplash", "1"); } catch {}
         setUser(session.user);
+        activeUserIdRef.current = session.user.id;
         setCachedAccessToken(session.access_token);
         // Check if this user is a viewer of someone else's account
         getViewerRole(session.user.id).then(role => {
@@ -376,16 +385,17 @@ function Root() {
         setUser(session.user);
         setCachedAccessToken(session.access_token);
         getUserProfile(session.user.id).then(setUserProfile);
-        // CRITICAL: this fires on every sign-in, not just the very first page load -- including
-        // switching accounts within the same open tab (e.g. creating/confirming a new account
-        // while already signed in as someone else, which never routes through handleSignOut's
-        // cleanup). Without this, local storage keeps showing whichever account was active
-        // before, tagged under the NEW account's user.id -- and the periodic dirty-save (5-min
-        // timer, tab-hidden save) can then push that stale, wrong-account snapshot up and
-        // silently overwrite the newly-signed-in account's real cloud data. force=true here
-        // (unlike the initial-mount load) because this is a genuine account switch: whatever is
-        // sitting in local storage belongs to a different account, not fresher unsaved edits of
-        // this one, so it should never be protected from the authoritative cloud pull.
+        // Only treat this as a genuine account switch -- and only then force an authoritative
+        // cloud pull -- when the signed-in user is actually different from whoever this tab
+        // already had active. Supabase also fires SIGNED_IN for routine same-account re-auth
+        // (tab regaining focus, token refresh, reconnecting after the phone locks), and forcing
+        // an overwrite on every one of those clobbers real in-progress local edits with a stale
+        // cloud snapshot whenever one lands mid-edit. For a same-user re-fire, skip the pull
+        // entirely -- there is nothing to reconcile, the tab is already showing this account's
+        // current state.
+        const isSwitch = activeUserIdRef.current !== null && activeUserIdRef.current !== session.user.id;
+        activeUserIdRef.current = session.user.id;
+        if (!isSwitch) return;
         getViewerRole(session.user.id).then(role => {
           if (role) {
             setViewerRole(role);
@@ -407,6 +417,7 @@ function Root() {
         setUser(null);
         setUserProfile(null);
         setCachedAccessToken(null);
+        activeUserIdRef.current = null;
       } else if (event === 'TOKEN_REFRESHED') {
         setCachedAccessToken(session?.access_token || null);
       }
