@@ -917,12 +917,14 @@ const calcGoalCalorieTarget=(profile,maintenance,weightLbs)=>{
   const diff=weightLbs-profile.goalWeightLbs;
   if(Math.abs(diff)<1) return {calories:maintenance,direction:"maintain"};
   const direction=diff>0?-1:1;
-  const weeklyCapCals=(weightLbs*0.01)*3500;
+  const age=profileAgeFor(profile);
+  const weeklyCapPct=(age&&age>=65)?0.0075:0.01; // gentler rate of change for 65+
+  const weeklyCapCals=(weightLbs*weeklyCapPct)*3500;
   const dailyCapCals=Math.round(weeklyCapCals/7);
   let calories=maintenance+direction*dailyCapCals;
   const floor=profile.sex==="Male"?1500:1200;
   if(direction<0) calories=Math.max(calories,floor);
-  return {calories:Math.round(calories),direction:direction<0?"deficit":"surplus",floor:direction<0?floor:null};
+  return {calories:Math.round(calories),direction:direction<0?"deficit":"surplus",floor:direction<0?floor:null,weeklyCapPct};
 };
 // Per-kg protein target with a senior bump to help protect lean muscle. Manual override always
 // wins, matching every other target field in this app (fiber, WW points) -- the "(auto if blank)"
@@ -1461,6 +1463,14 @@ const FEATURE_ANNOUNCEMENTS=[
     quickReplies:["Show me!","How does it work?","Maybe later"],
     tab:"mealPlan",
     digest:"**Suggested Daily Calorie & Protein Targets** — calculated per member from weight, height, age, sex, and activity level, with a doctor-confirm step before any deficit/surplus target takes effect"
+  },
+  {
+    key:"fitnessPanel",
+    title:"New: Fitness Button",
+    intro:(name)=>`Hi ${name}! 💪 There's a new **Fitness** button next to Scale and Cuisines.\n\nIt's a quick way to check any family member's weight trend and daily targets without opening their full profile — and to log a new weigh-in on the spot.\n\nWant me to show you where?`,
+    quickReplies:["Show me!","Maybe later"],
+    tab:"mealPlan",
+    digest:"**Fitness button** — quick weight trend and daily targets for any family member, without opening their full profile"
   },
   {
     key:"vanillaStarterRecipe",
@@ -2455,6 +2465,15 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [weightHistoryCache,setWeightHistoryCache]=useState({});
   const [showWeightHistory,setShowWeightHistory]=useState(null);
   const [showCalorieConfirm,setShowCalorieConfirm]=useState(null);
+  const [showFitnessPanel,setShowFitnessPanel]=useState(false);
+  const [fitnessMemberId,setFitnessMemberId]=useState(null);
+  useEffect(()=>{
+    if(!showFitnessPanel||!fitnessMemberId) return;
+    if(weightHistoryCache[fitnessMemberId]) return;
+    const profile=familyProfiles.find(p=>p.id===fitnessMemberId);
+    if(profile) loadWeightHistory(profile);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[showFitnessPanel,fitnessMemberId]);
   // Dedupe multiple same-day weigh-ins (keep the LAST one that day), sort ascending by date,
   // and compute the summary numbers the history view and profile-sync display both need.
   const loadWeightHistory=async(profile)=>{
@@ -5935,6 +5954,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
           <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px",border:"1px solid #b45309",color:"#b45309"}} onClick={()=>{setFamilyRecipesOpen(true);setFrAddMode(null);setFrEditRecipe(null);setFrViewRecipe(null);}}>📖 Family Recipes</button>
           {(restrictedProfiles.length>0||can.medicalCompliance)&&<button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px",border:"1px solid #dc2626",color:"#dc2626",fontWeight:600}} onClick={()=>{setCanIHaveOpen(true);setCanIHaveImg(null);setCanIHaveResult(null);setCanIHaveText("");}}>Can I Have This?</button>}
           {can.medicalCompliance&&<button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px",border:"1px solid #3b82f6",color:"#3b82f6",fontWeight:600}} onClick={()=>{setShowScaleModal(true);setScaleError("");setScaleCalcResult(null);}}>⚖ Scale</button>}
+          {can.medicalCompliance&&<button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px",border:"1px solid #10b981",color:"#10b981",fontWeight:600}} onClick={()=>{setShowFitnessPanel(true);setFitnessMemberId((activeProfiles[0]||familyProfiles[0])?.id||null);}}>💪 Fitness</button>}
           <button style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px",border:"1px solid "+C.accent,color:C.accent,fontWeight:600}} onClick={()=>{setShowOccasionPlanner(true);setOccasionStep("form");setOccasionResult(null);setOccasionDate("");}}>🎉 Plan Occasion</button>
           <button onClick={voiceState==="listening"?stopListening:voiceState==="speaking"?stopListening:startListening} style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px",border:"2px solid "+(voiceState==="listening"?"#ef4444":voiceState==="speaking"?"#C8963E":voiceState==="processing"?"#8b5cf6":"#1A2344"),color:voiceState==="listening"?"#ef4444":voiceState==="speaking"?"#C8963E":voiceState==="processing"?"#8b5cf6":"#1A2344",fontWeight:700,minWidth:seniorMode?90:70}} title={"Hey "+assistantName()+" — tap to speak"}>{voiceState==="listening"?"🔴 Listening...":voiceState==="processing"?"⏳ Thinking...":voiceState==="speaking"?"🔊 Speaking...":("🎙 Hey "+assistantName())}</button>
           <button onClick={()=>setShowCuisinePanel(true)} style={{...bBtn("ghost"),fontSize:seniorMode?14:11,padding:seniorMode?"10px 16px":"7px 12px",border:"2px solid #C8963E",color:"#C8963E",fontWeight:700}} title="Add or explore cuisines">🌍 Cuisines</button>
@@ -7247,7 +7267,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                                         const isActive=profile.calorieTarget===goalCalc.calories&&profile.calorieTargetSource==="auto";
                                         return(
                                           <div>
-                                            <div style={{fontFamily:FM,fontSize:12,color:goalCalc.direction==="deficit"?"#f59e0b":"#3b82f6",marginBottom:6}}>Suggested {goalCalc.direction}: <strong>{goalCalc.calories} cal/day</strong>{goalCalc.floor?(" (floor "+goalCalc.floor+")"):""}</div>
+                                            <div style={{fontFamily:FM,fontSize:12,color:goalCalc.direction==="deficit"?"#f59e0b":"#3b82f6",marginBottom:6}}>Suggested {goalCalc.direction}: <strong>{goalCalc.calories} cal/day</strong> ({(goalCalc.weeklyCapPct*100).toFixed(2).replace(/\.?0+$/,"")}%/week{goalCalc.floor?(", floor "+goalCalc.floor):""})</div>
                                             {isActive?(
                                               <div style={{fontFamily:FM,fontSize:11,color:"#22c55e"}}>✓ Set as {profile.name||"this member"}'s active target</div>
                                             ):(
@@ -8379,6 +8399,71 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                 <button onClick={()=>{setShowWeightHistory(null);setJournalMember(showWeightHistory);setJournalMealType("Weigh-In");setShowJournal(true);}} style={{...bBtn("ghost"),width:"100%",marginTop:14,border:"1px solid "+C.accent,color:C.accent}}>⚖ Log New Weigh-In</button>
               </div>
             )}
+          </div>
+        </div>
+        );
+      })()}
+
+      {showFitnessPanel&&(()=>{
+        const members=activeProfiles.length?activeProfiles:familyProfiles;
+        const profile=members.find(p=>p.id===fitnessMemberId)||members[0];
+        if(!profile) return(
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:700,padding:16}} onClick={()=>setShowFitnessPanel(false)}>
+            <div style={{background:C.card,borderRadius:16,padding:24,maxWidth:360,width:"100%",textAlign:"center"}} onClick={e=>e.stopPropagation()}>
+              <div style={{fontFamily:FM,fontSize:13,color:C.muted,marginBottom:16}}>Add a family member first to use Fitness tracking.</div>
+              <button onClick={()=>setShowFitnessPanel(false)} style={{...bBtn("ghost"),width:"100%"}}>Close</button>
+            </div>
+          </div>
+        );
+        const wh=weightHistoryCache[profile.id];
+        const weightLbs=wh?.latest?.lbs;
+        const exclReason=targetsAutoExclusionReason(profile);
+        const maint=calcMaintenanceCalories(profile,weightLbs);
+        const goalCalc=(!exclReason&&!maint.missing)?calcGoalCalorieTarget(profile,maint.maintenance,weightLbs):null;
+        const changeVal=wh?.baseline&&wh?.latest&&wh.baseline.date!==wh.latest.date?wh.latest.lbs-wh.baseline.lbs:0;
+        return(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:700,padding:16}} onClick={()=>setShowFitnessPanel(false)}>
+          <div style={{background:C.card,border:"1px solid #10b98155",borderRadius:18,padding:24,maxWidth:440,width:"100%",maxHeight:"88vh",overflowY:"auto",position:"relative"}} onClick={e=>e.stopPropagation()}>
+            <button onClick={()=>setShowFitnessPanel(false)} aria-label="Close" style={{position:"absolute",top:14,right:14,background:"transparent",border:"none",color:C.muted,fontSize:22,lineHeight:1,cursor:"pointer",padding:4,zIndex:1}}>✕</button>
+            <div style={{fontFamily:FD,fontSize:20,color:"#10b981",marginBottom:14,paddingRight:28}}>💪 Fitness</div>
+            {members.length>1&&<div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:16}}>
+              {members.map(p=>(<button key={p.id} onClick={()=>setFitnessMemberId(p.id)} style={{padding:"5px 12px",borderRadius:20,border:"1px solid "+(profile.id===p.id?"#10b981":C.border),background:profile.id===p.id?"#10b98122":"transparent",color:profile.id===p.id?"#10b981":C.muted,fontFamily:FM,fontSize:11,fontWeight:600,cursor:"pointer"}}>{p.name||"Member"}</button>))}
+            </div>}
+            <div style={{background:C.surface,borderRadius:10,padding:14,marginBottom:12}}>
+              <div style={{fontFamily:FM,fontSize:10,color:C.muted,marginBottom:8,letterSpacing:0.8}}>WEIGHT</div>
+              {!wh||wh.loading?(
+                <div style={{fontFamily:FM,fontSize:12,color:C.muted}}>Loading...</div>
+              ):!wh.latest?(
+                <div>
+                  <div style={{fontFamily:FM,fontSize:12,color:C.muted,marginBottom:8}}>No weigh-ins logged yet.</div>
+                  <button onClick={()=>{setShowFitnessPanel(false);setJournalMember(profile);setJournalMealType("Weigh-In");setShowJournal(true);}} style={{...bBtn("ghost"),fontSize:11,padding:"5px 10px",border:"1px solid #10b981",color:"#10b981"}}>⚖ Log Weight Now</button>
+                </div>
+              ):(
+                <div>
+                  <div style={{fontFamily:FM,fontSize:18,fontWeight:700,color:C.text}}>{wh.latest.lbs.toFixed(1)} lbs</div>
+                  <div style={{fontFamily:FM,fontSize:10,color:C.muted,marginBottom:8}}>as of {new Date(wh.latest.date).toLocaleDateString()}{changeVal!==0?(" — "+(changeVal>0?"+":"")+changeVal.toFixed(1)+" lbs since first weigh-in"):""}</div>
+                  <div style={{display:"flex",gap:8}}>
+                    <button onClick={()=>{setShowFitnessPanel(false);setShowWeightHistory(profile);}} style={{...bBtn("ghost"),flex:1,fontSize:11,padding:"5px 8px",border:"1px solid "+C.border}}>📈 View History</button>
+                    <button onClick={()=>{setShowFitnessPanel(false);setJournalMember(profile);setJournalMealType("Weigh-In");setShowJournal(true);}} style={{...bBtn("ghost"),flex:1,fontSize:11,padding:"5px 8px",border:"1px solid #10b981",color:"#10b981"}}>⚖ Log New</button>
+                  </div>
+                </div>
+              )}
+            </div>
+            <div style={{background:C.surface,borderRadius:10,padding:14,marginBottom:12}}>
+              <div style={{fontFamily:FM,fontSize:10,color:C.muted,marginBottom:8,letterSpacing:0.8}}>DAILY TARGETS</div>
+              {exclReason?(
+                <div style={{fontFamily:FM,fontSize:11,color:C.muted,lineHeight:1.5}}>Because of {exclReason}, use the clinician-set target entered in {profile.name||"this member"}'s profile{profile.calorieTarget?(": "+profile.calorieTarget+" cal/day"):"."}</div>
+              ):maint.missing?(
+                <div style={{fontFamily:FM,fontSize:11,color:C.muted,lineHeight:1.5}}>Add {maint.missing.join(", ")} in {profile.name||"this member"}'s profile to calculate targets.</div>
+              ):(
+                <div>
+                  <div style={{fontFamily:FM,fontSize:13,color:C.text,marginBottom:4}}>Maintenance: <strong>{maint.maintenance} cal/day</strong></div>
+                  {goalCalc&&goalCalc.direction!=="maintain"&&<div style={{fontFamily:FM,fontSize:12,color:goalCalc.direction==="deficit"?"#f59e0b":"#3b82f6",marginBottom:4}}>Suggested {goalCalc.direction}: <strong>{goalCalc.calories} cal/day</strong></div>}
+                  <div style={{fontFamily:FM,fontSize:12,color:C.text}}>Protein: <strong>{calcProteinTargetG(profile,maint.weightKg)||"--"}g/day</strong></div>
+                </div>
+              )}
+            </div>
+            <button onClick={()=>{setShowFitnessPanel(false);setEditingProfile(profile.id);}} style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.border}}>Edit {profile.name||"Member"}'s Profile</button>
           </div>
         </div>
         );
