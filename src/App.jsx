@@ -1376,6 +1376,14 @@ const FEATURE_ANNOUNCEMENTS=[
     digest:"**Smarter Way to Shop** — compares your preferred stores' weekly ads against your own inventory, plus Deep Discount Alerts for steep, limited-quantity deals on items you actually buy"
   },
   {
+    key:"weightHistory",
+    title:"New: Weight History & Trend Chart",
+    intro:(name)=>`Hi ${name}! ⚖ Your weigh-ins now go somewhere.\n\nEvery weigh-in you've logged was actually being saved all along — it just had nowhere to show up. Now each family member's WEIGHT field in their profile shows their latest logged weight automatically, and tapping **View Weight History** opens a trend chart with a 7-day average line, your baseline, current weight, and change to date.\n\nWant me to show you where?`,
+    quickReplies:["Show me!","How does it work?","Maybe later"],
+    tab:"mealPlan",
+    digest:"**Weight History & Trend Chart** — each member's profile now shows their latest logged weight automatically, with a full trend chart (baseline, current, change, 7-day average) under View Weight History"
+  },
+  {
     key:"vanillaStarterRecipe",
     title:"New: Bonus Starter Recipe for New Members",
     intro:(name)=>`Hi ${name}! \ud83c\udf66 A small one, but a fun one.\n\nBrand-new Smart Kitchen members now find a **Homemade Vanilla Extract** recipe already waiting for them in Family Recipes on day one — straight from our own kitchen. It won't retroactively show up in an existing account like yours, but if you'd ever like the recipe, just ask and I can walk you through it.\n\nJust wanted you to know it's there for anyone new joining your household!`,
@@ -2365,6 +2373,44 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   };
   const dismissInstall=()=>{setShowInstallBanner(false);try{localStorage.setItem("sk_installDismissed","1");}catch{}};
   const [editingProfile,setEditingProfile]=useState(null);
+  const [weightHistoryCache,setWeightHistoryCache]=useState({});
+  const [showWeightHistory,setShowWeightHistory]=useState(null);
+  // Dedupe multiple same-day weigh-ins (keep the LAST one that day), sort ascending by date,
+  // and compute the summary numbers the history view and profile-sync display both need.
+  const loadWeightHistory=async(profile)=>{
+    if(!user?.id||!profile) return;
+    setWeightHistoryCache(prev=>({...prev,[profile.id]:{...(prev[profile.id]||{}),loading:true}}));
+    try{
+      const {data,error}=await supabase.from("nutrition_log")
+        .select("logged_at,body_weight_lbs")
+        .eq("user_id",user.id)
+        .eq("member_name",profile.name||"")
+        .not("body_weight_lbs","is",null)
+        .order("logged_at",{ascending:true});
+      if(error) throw error;
+      const byDay={};
+      (data||[]).forEach(row=>{
+        const day=(row.logged_at||"").slice(0,10);
+        if(!day) return;
+        // rows already come back oldest-first, so the last one seen for a given day is the latest that day
+        byDay[day]={date:row.logged_at,lbs:parseFloat(row.body_weight_lbs)};
+      });
+      const rows=Object.values(byDay).sort((a,b)=>new Date(a.date)-new Date(b.date));
+      const baseline=rows[0]||null;
+      const latest=rows[rows.length-1]||null;
+      setWeightHistoryCache(prev=>({...prev,[profile.id]:{loading:false,rows,baseline,latest}}));
+    }catch(e){
+      setWeightHistoryCache(prev=>({...prev,[profile.id]:{loading:false,rows:[],baseline:null,latest:null,error:true}}));
+    }
+  };
+  useEffect(()=>{
+    if(!editingProfile) return;
+    const profile=familyProfiles.find(p=>p.id===editingProfile);
+    if(!profile) return;
+    if(weightHistoryCache[editingProfile]) return;
+    loadWeightHistory(profile);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[editingProfile]);
   const [printModal,setPrintModal]=useState(null);
   const [emailSentModal,setEmailSentModal]=useState(null);
   const [upgradeModal,setUpgradeModal]=useState(null);
@@ -7011,7 +7057,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                               {Array.from({length:12},(_,i)=>i).map(i=><option key={i} value={i}>{i} in</option>)}
                             </select>
                           </>);})()}</div></div>
-                          <div><Label>WEIGHT <span style={{fontWeight:400,color:C.muted,fontSize:9}}>(lbs, optional)</span></Label><input type="number" style={bInp} placeholder="e.g. 180" value={profile.currentWeightLbs||""} onChange={e=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,currentWeightLbs:e.target.value?parseFloat(e.target.value):undefined}:pr))}/></div>
+                          <div><Label>WEIGHT <span style={{fontWeight:400,color:C.muted,fontSize:9}}>(lbs)</span></Label>{(()=>{const wh=weightHistoryCache[profile.id];if(!wh||wh.loading){return <div style={{fontFamily:FM,fontSize:12,color:C.muted,padding:"9px 0"}}>Loading...</div>;}if(!wh.latest){return(<div><div style={{fontFamily:FM,fontSize:12,color:C.muted,marginBottom:6}}>No weigh-ins logged yet</div><button onClick={()=>{setJournalMember(profile);setJournalMealType("Weigh-In");setShowJournal(true);}} style={{...bBtn("ghost"),fontSize:11,padding:"5px 10px",border:"1px solid "+C.accent,color:C.accent}}>⚖ Log Weight Now</button></div>);}const diff=wh.baseline&&wh.latest&&wh.baseline.date!==wh.latest.date?wh.latest.lbs-wh.baseline.lbs:0;return(<div><div style={{fontFamily:FM,fontSize:16,fontWeight:700,color:C.text}}>{wh.latest.lbs.toFixed(1)} lbs</div><div style={{fontFamily:FM,fontSize:10,color:C.muted,marginBottom:6}}>as of {new Date(wh.latest.date).toLocaleDateString()}{diff!==0?(" \u2014 "+(diff>0?"+":"")+diff.toFixed(1)+" lbs since first weigh-in"):""}</div><button onClick={()=>setShowWeightHistory(profile)} style={{...bBtn("ghost"),fontSize:11,padding:"5px 10px",border:"1px solid "+C.border,color:C.text}}>📈 View Weight History</button></div>);})()}</div>
                         </div>
                         <div>
                           <Label>ROLE</Label>
@@ -8145,6 +8191,77 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
           </div>
         </div>
       )}
+
+      {showWeightHistory&&(()=>{
+        const wh=weightHistoryCache[showWeightHistory.id]||{rows:[]};
+        const rows=wh.rows||[];
+        const goal=showWeightHistory.goalWeightLbs;
+        // 7-day rolling average: for each point, average every point within the prior 6 days (inclusive)
+        const withAvg=rows.map((r,i)=>{
+          const cutoff=new Date(r.date).getTime()-6*86400000;
+          const window=rows.slice(0,i+1).filter(x=>new Date(x.date).getTime()>=cutoff);
+          const avg=window.reduce((s,x)=>s+x.lbs,0)/window.length;
+          return {...r,avg};
+        });
+        const W=560,H=220,padL=42,padR=14,padT=14,padB=28;
+        let chart=null;
+        if(rows.length>=2){
+          const lbsVals=rows.map(r=>r.lbs).concat(goal?[goal]:[]);
+          const minLbs=Math.min(...lbsVals)-2,maxLbs=Math.max(...lbsVals)+2;
+          const t0=new Date(rows[0].date).getTime(),t1=new Date(rows[rows.length-1].date).getTime();
+          const xFor=t=>padL+((t-t0)/Math.max(1,(t1-t0)))*(W-padL-padR);
+          const yFor=lbs=>padT+(1-((lbs-minLbs)/Math.max(1,(maxLbs-minLbs))))*(H-padT-padB);
+          const rawPts=rows.map(r=>xFor(new Date(r.date).getTime())+","+yFor(r.lbs)).join(" ");
+          const avgPts=withAvg.map(r=>xFor(new Date(r.date).getTime())+","+yFor(r.avg)).join(" ");
+          chart=(
+            <svg viewBox={"0 0 "+W+" "+H} style={{width:"100%",height:"auto",background:C.surface,borderRadius:10}}>
+              {goal&&<line x1={padL} x2={W-padR} y1={yFor(goal)} y2={yFor(goal)} stroke="#22c55e" strokeWidth={1.5} strokeDasharray="4,4"/>}
+              {goal&&<text x={W-padR} y={yFor(goal)-4} textAnchor="end" fontSize="9" fill="#22c55e" fontFamily={FM}>Goal {goal} lbs</text>}
+              <polyline points={rawPts} fill="none" stroke={C.border} strokeWidth={1.5}/>
+              <polyline points={avgPts} fill="none" stroke="#3b82f6" strokeWidth={2.5}/>
+              {rows.map((r,i)=>(<circle key={i} cx={xFor(new Date(r.date).getTime())} cy={yFor(r.lbs)} r={2.5} fill={C.border}/>))}
+              <text x={padL} y={H-8} fontSize="9" fill={C.muted} fontFamily={FM}>{new Date(rows[0].date).toLocaleDateString()}</text>
+              <text x={W-padR} y={H-8} textAnchor="end" fontSize="9" fill={C.muted} fontFamily={FM}>{new Date(rows[rows.length-1].date).toLocaleDateString()}</text>
+            </svg>
+          );
+        }
+        const baseline=wh.baseline,latest=wh.latest;
+        const changeVal=baseline&&latest&&baseline.date!==latest.date?latest.lbs-baseline.lbs:0;
+        return(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:700,padding:16}} onClick={()=>setShowWeightHistory(null)}>
+          <div style={{background:C.card,border:"1px solid "+C.border,borderRadius:18,padding:24,maxWidth:600,width:"100%",maxHeight:"88vh",overflowY:"auto",position:"relative"}} onClick={e=>e.stopPropagation()}>
+            <button onClick={()=>setShowWeightHistory(null)} aria-label="Close" style={{position:"absolute",top:14,right:14,background:"transparent",border:"none",color:C.muted,fontSize:22,lineHeight:1,cursor:"pointer",padding:4,zIndex:1}}>✕</button>
+            <div style={{fontFamily:FD,fontSize:20,color:C.accent,marginBottom:4,paddingRight:28}}>⚖ Weight History{showWeightHistory.name?" — "+showWeightHistory.name:""}</div>
+            {rows.length===0?(
+              <div>
+                <div style={{fontFamily:FM,fontSize:13,color:C.muted,margin:"20px 0"}}>No weigh-ins logged yet for {showWeightHistory.name||"this member"}.</div>
+                <button onClick={()=>{setShowWeightHistory(null);setJournalMember(showWeightHistory);setJournalMealType("Weigh-In");setShowJournal(true);}} style={{...bBtn("primary"),width:"100%",padding:12}}>⚖ Log First Weigh-In</button>
+              </div>
+            ):(
+              <div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,margin:"12px 0 16px"}}>
+                  <div style={{background:C.surface,borderRadius:8,padding:"10px 8px",textAlign:"center"}}><div style={{fontFamily:FM,fontSize:9,color:C.muted,letterSpacing:0.6}}>BASELINE</div><div style={{fontFamily:FM,fontSize:15,fontWeight:700,color:C.text}}>{baseline.lbs.toFixed(1)}</div></div>
+                  <div style={{background:C.surface,borderRadius:8,padding:"10px 8px",textAlign:"center"}}><div style={{fontFamily:FM,fontSize:9,color:C.muted,letterSpacing:0.6}}>CURRENT</div><div style={{fontFamily:FM,fontSize:15,fontWeight:700,color:C.text}}>{latest.lbs.toFixed(1)}</div></div>
+                  <div style={{background:C.surface,borderRadius:8,padding:"10px 8px",textAlign:"center"}}><div style={{fontFamily:FM,fontSize:9,color:C.muted,letterSpacing:0.6}}>CHANGE</div><div style={{fontFamily:FM,fontSize:15,fontWeight:700,color:changeVal===0?C.text:(changeVal>0?"#f59e0b":"#22c55e")}}>{changeVal===0?"\u2014":((changeVal>0?"+":"")+changeVal.toFixed(1))}</div></div>
+                </div>
+                {chart||<div style={{fontFamily:FM,fontSize:12,color:C.muted,textAlign:"center",padding:"20px 0"}}>Log one more weigh-in to see a trend line.</div>}
+                <div style={{fontFamily:FM,fontSize:9,color:C.muted,marginTop:6,marginBottom:14}}><span style={{color:"#3b82f6"}}>━</span> 7-day average &nbsp; <span style={{color:C.border}}>━</span> individual weigh-ins{goal?<span> &nbsp; <span style={{color:"#22c55e"}}>┅</span> goal</span>:null}</div>
+                <div style={{fontFamily:FM,fontSize:10,color:C.muted,marginBottom:6,letterSpacing:0.6}}>ALL ENTRIES</div>
+                <div style={{maxHeight:180,overflowY:"auto",border:"1px solid "+C.border,borderRadius:8}}>
+                  {rows.slice().reverse().map((r,i)=>(
+                    <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"7px 12px",borderBottom:i<rows.length-1?"1px solid "+C.border:"none",fontFamily:FM,fontSize:12}}>
+                      <span style={{color:C.muted}}>{new Date(r.date).toLocaleDateString()}</span>
+                      <span style={{color:C.text,fontWeight:600}}>{r.lbs.toFixed(1)} lbs</span>
+                    </div>
+                  ))}
+                </div>
+                <button onClick={()=>{setShowWeightHistory(null);setJournalMember(showWeightHistory);setJournalMealType("Weigh-In");setShowJournal(true);}} style={{...bBtn("ghost"),width:"100%",marginTop:14,border:"1px solid "+C.accent,color:C.accent}}>⚖ Log New Weigh-In</button>
+              </div>
+            )}
+          </div>
+        </div>
+        );
+      })()}
 
       {photoPromptMeal&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:600,padding:20}} onClick={()=>setPhotoPromptMeal(null)}>
@@ -10840,7 +10957,7 @@ setScaleCalcLoading(false);setTimeout(()=>{if(scaleDevice&&scaleDevice._writeChr
         journalSuccess={journalSuccess} setJournalSuccess={setJournalSuccess}
         journalRecentItems={journalRecentItems} setJournalRecentItems={setJournalRecentItems}
         logNutrition={logNutrition} callClaude={callClaude}
-        onSaved={()=>setDashRefreshKey(k=>k+1)}
+        onSaved={()=>{setDashRefreshKey(k=>k+1);if(journalMealType==="Weigh-In"&&journalMember){setWeightHistoryCache(prev=>{const next={...prev};delete next[journalMember.id];return next;});loadWeightHistory(journalMember);}}}
         onClose={()=>setShowJournal(false)}
       />
     )}
