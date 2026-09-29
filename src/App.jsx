@@ -1473,6 +1473,14 @@ const FEATURE_ANNOUNCEMENTS=[
     digest:"**Fitness button** — quick weight trend and daily targets for any family member, without opening their full profile"
   },
   {
+    key:"activityTracking",
+    title:"New: Activity Tracking",
+    intro:(name)=>`Hi ${name}! 🏃 The Fitness button now tracks activity too.\n\nEnter today's steps, active calories, and workout minutes for any family member — or just snap a screenshot of their phone's Health app summary and Smart Kitchen reads the numbers off it automatically.\n\nWant me to show you where?`,
+    quickReplies:["Show me!","Maybe later"],
+    tab:"mealPlan",
+    digest:"**Activity tracking** in the Fitness panel — manual steps/calories/workout entry, or scan a screenshot of the phone's Health app summary"
+  },
+  {
     key:"vanillaStarterRecipe",
     title:"New: Bonus Starter Recipe for New Members",
     intro:(name)=>`Hi ${name}! \ud83c\udf66 A small one, but a fun one.\n\nBrand-new Smart Kitchen members now find a **Homemade Vanilla Extract** recipe already waiting for them in Family Recipes on day one — straight from our own kitchen. It won't retroactively show up in an existing account like yours, but if you'd ever like the recipe, just ask and I can walk you through it.\n\nJust wanted you to know it's there for anyone new joining your household!`,
@@ -2467,6 +2475,107 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [showCalorieConfirm,setShowCalorieConfirm]=useState(null);
   const [showFitnessPanel,setShowFitnessPanel]=useState(false);
   const [fitnessMemberId,setFitnessMemberId]=useState(null);
+  const [activityCache,setActivityCache]=useState({});
+  const [activityDraft,setActivityDraft]=useState({steps:"",active_kcal:"",workout_min:""});
+  const [activityDraftSource,setActivityDraftSource]=useState("manual");
+  const [activityScanLoading,setActivityScanLoading]=useState(false);
+  const [activityScanError,setActivityScanError]=useState("");
+  const [activitySaving,setActivitySaving]=useState(false);
+  const todayStr=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
+  const loadActivityToday=async(profile)=>{
+    if(!user?.id||!profile) return;
+    setActivityCache(prev=>({...prev,[profile.id]:{...(prev[profile.id]||{}),loading:true}}));
+    try{
+      const {data,error}=await supabase.from("member_activity")
+        .select("steps,active_kcal,workout_min,date,source")
+        .eq("user_id",user.id)
+        .eq("member_name",profile.name||"")
+        .eq("date",todayStr())
+        .maybeSingle();
+      if(error) throw error;
+      setActivityCache(prev=>({...prev,[profile.id]:{loading:false,today:data||null}}));
+      setActivityDraft({steps:data?.steps||"",active_kcal:data?.active_kcal||"",workout_min:data?.workout_min||""});
+      setActivityDraftSource(data?.source||"manual");
+    }catch(e){
+      setActivityCache(prev=>({...prev,[profile.id]:{loading:false,today:null,error:true}}));
+    }
+  };
+  const saveActivityToday=async(profile,source)=>{
+    if(!user?.id||!profile) return;
+    setActivitySaving(true);
+    try{
+      const row={
+        user_id:user.id,
+        member_name:profile.name||"",
+        date:todayStr(),
+        steps:activityDraft.steps?parseInt(activityDraft.steps):null,
+        active_kcal:activityDraft.active_kcal?parseFloat(activityDraft.active_kcal):null,
+        workout_min:activityDraft.workout_min?parseFloat(activityDraft.workout_min):null,
+        source:source||activityDraftSource||"manual",
+        updated_at:new Date().toISOString()
+      };
+      const {error}=await supabase.from("member_activity").upsert([row],{onConflict:"user_id,member_name,date"});
+      if(error) throw error;
+      setActivityCache(prev=>({...prev,[profile.id]:{loading:false,today:row}}));
+    }catch(e){
+      showAlert("Could not save activity — please try again.");
+    }
+    setActivitySaving(false);
+  };
+  const analyzeActivityScreenshot=async(dataUrl)=>{
+    setActivityScanLoading(true);setActivityScanError("");
+    try{
+      const raw=await callClaude({
+        system:"You are reading a screenshot of a phone's health/fitness app summary screen (Apple Health, Samsung Health, Google Fit, Fitbit app, or similar) for one day. Extract today's step count, active/exercise calories burned (not total/resting calories -- just the active portion if shown separately, otherwise your best estimate of active calories), and workout/exercise minutes if shown. Return ONLY valid JSON: {steps,active_kcal,workout_min}. Use null for any value not visible in the screenshot. Numbers only, no units, no commas in numbers.",
+        prompt:"Read this health app screenshot and return the JSON.",
+        imageBase64:dataUrl.split(",")[1],
+        imageType:"image/jpeg",
+        maxTokens:200
+      });
+      const text=typeof raw==="string"?raw:Array.isArray(raw?.content)?raw.content.map(b=>b.text||"").join(""):raw?.content?.[0]?.text||"";
+      const clean=text.replace(/```json|```/g,"").trim();
+      const s=clean.indexOf("{");const e=clean.lastIndexOf("}");
+      if(s===-1||e===-1) throw new Error("no json");
+      const parsed=JSON.parse(clean.slice(s,e+1));
+      if(parsed.steps==null&&parsed.active_kcal==null&&parsed.workout_min==null){
+        setActivityScanError("Could not find step, calorie, or workout numbers in that screenshot — try a clearer crop of the summary screen, or enter the numbers manually below.");
+      }else{
+        setActivityDraft(prev=>({
+          steps:parsed.steps!=null?String(parsed.steps):prev.steps,
+          active_kcal:parsed.active_kcal!=null?String(parsed.active_kcal):prev.active_kcal,
+          workout_min:parsed.workout_min!=null?String(parsed.workout_min):prev.workout_min
+        }));
+        setActivityDraftSource("screenshot_scan");
+      }
+    }catch(err){
+      const offline=typeof navigator!=="undefined"&&navigator.onLine===false;
+      setActivityScanError(offline?"You're offline — try again once you're back online.":"Could not read this screenshot — try better lighting/cropping, or enter the numbers manually below.");
+    }
+    setActivityScanLoading(false);
+  };
+  const handleActivityScreenshot=(file)=>{
+    if(!file) return;
+    const img=new Image();
+    const url=URL.createObjectURL(file);
+    img.onload=()=>{
+      const canvas=document.createElement("canvas");
+      const max=900;
+      const ratio=Math.min(max/img.width,max/img.height,1);
+      canvas.width=img.width*ratio;canvas.height=img.height*ratio;
+      const ctx=canvas.getContext("2d");
+      ctx.drawImage(img,0,0,canvas.width,canvas.height);
+      URL.revokeObjectURL(url);
+      const dataUrl=canvas.toDataURL("image/jpeg",0.85);
+      analyzeActivityScreenshot(dataUrl);
+    };
+    img.src=url;
+  };
+  useEffect(()=>{
+    if(!showFitnessPanel||!fitnessMemberId) return;
+    const profile=familyProfiles.find(p=>p.id===fitnessMemberId);
+    if(profile) loadActivityToday(profile);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[showFitnessPanel,fitnessMemberId]);
   useEffect(()=>{
     if(!showFitnessPanel||!fitnessMemberId) return;
     if(weightHistoryCache[fitnessMemberId]) return;
@@ -8462,6 +8571,27 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                   <div style={{fontFamily:FM,fontSize:12,color:C.text}}>Protein: <strong>{calcProteinTargetG(profile,maint.weightKg)||"--"}g/day</strong></div>
                 </div>
               )}
+            </div>
+            <div style={{background:C.surface,borderRadius:10,padding:14,marginBottom:12}}>
+              <div style={{fontFamily:FM,fontSize:10,color:C.muted,marginBottom:8,letterSpacing:0.8}}>TODAY'S ACTIVITY</div>
+              <div style={{display:"flex",gap:8,marginBottom:10}}>
+                <label style={{...bBtn("ghost"),flex:1,cursor:activityScanLoading?"default":"pointer",fontSize:11,padding:"7px 8px",border:"1px solid #10b981",color:"#10b981",textAlign:"center",opacity:activityScanLoading?0.6:1}}>
+                  {activityScanLoading?"⏳ Reading...":"📷 Scan Health App"}
+                  <input type="file" accept="image/*" capture="environment" style={{display:"none"}} disabled={activityScanLoading} onChange={e=>{const f=e.target.files?.[0];if(f) handleActivityScreenshot(f);e.target.value="";}}/>
+                </label>
+                <label style={{...bBtn("ghost"),flex:1,cursor:activityScanLoading?"default":"pointer",fontSize:11,padding:"7px 8px",border:"1px solid "+C.border,color:C.text,textAlign:"center",opacity:activityScanLoading?0.6:1}}>
+                  🖼 Gallery
+                  <input type="file" accept="image/*" style={{display:"none"}} disabled={activityScanLoading} onChange={e=>{const f=e.target.files?.[0];if(f) handleActivityScreenshot(f);e.target.value="";}}/>
+                </label>
+              </div>
+              {activityScanError&&<div style={{fontFamily:FM,fontSize:10,color:"#f59e0b",marginBottom:8,lineHeight:1.5}}>⚠ {activityScanError}</div>}
+              <div style={{fontFamily:FM,fontSize:9,color:C.muted,marginBottom:8}}>Screenshot your phone's Health app summary — Smart Kitchen reads off the numbers, or enter them yourself below.</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6,marginBottom:10}}>
+                <div><div style={{fontFamily:FM,fontSize:9,color:C.muted,marginBottom:3}}>STEPS</div><input type="number" value={activityDraft.steps} onChange={e=>{setActivityDraft(d=>({...d,steps:e.target.value}));setActivityDraftSource("manual");}} placeholder="0" style={{...bInp,fontSize:12,padding:"6px 8px"}}/></div>
+                <div><div style={{fontFamily:FM,fontSize:9,color:C.muted,marginBottom:3}}>ACTIVE CAL</div><input type="number" value={activityDraft.active_kcal} onChange={e=>{setActivityDraft(d=>({...d,active_kcal:e.target.value}));setActivityDraftSource("manual");}} placeholder="0" style={{...bInp,fontSize:12,padding:"6px 8px"}}/></div>
+                <div><div style={{fontFamily:FM,fontSize:9,color:C.muted,marginBottom:3}}>WORKOUT MIN</div><input type="number" value={activityDraft.workout_min} onChange={e=>{setActivityDraft(d=>({...d,workout_min:e.target.value}));setActivityDraftSource("manual");}} placeholder="0" style={{...bInp,fontSize:12,padding:"6px 8px"}}/></div>
+              </div>
+              <button onClick={()=>saveActivityToday(profile)} disabled={activitySaving} style={{...bBtn("primary"),width:"100%",padding:9,fontSize:12,opacity:activitySaving?0.6:1}}>{activitySaving?"Saving...":"Save Today's Activity"}</button>
             </div>
             <button onClick={()=>{setShowFitnessPanel(false);setProfileModalOpen(true);setEditingProfile(profile.id);}} style={{...bBtn("ghost"),width:"100%",border:"1px solid "+C.border}}>Edit {profile.name||"Member"}'s Profile</button>
           </div>
