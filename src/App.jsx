@@ -864,6 +864,77 @@ const medicalConditionsOf=(p)=>{
   return p.medicalCondition?[p.medicalCondition]:[];
 };
 
+// -- Calorie/protein targets engine (Task 2) --------------------------------
+// Plain arithmetic only, never the AI -- Claude explains and shapes meals around these numbers,
+// it never decides them. Conditions/medications below never get an auto-calculated deficit or
+// surplus target: these people need a clinician-set number, not a formula, because a generic
+// calorie-math approach can be actively wrong or unsafe for them.
+const TARGETS_AUTO_EXCLUDED_CONDITIONS=["Bariatric Post-Surgical Diet","Renal Diet (CKD)","Diabetic Renal Diet (CKD + Diabetes)"];
+const GLP1_MED_KEYWORDS=["ozempic","wegovy","semaglutide","mounjaro","zepbound","tirzepatide","trulicity","dulaglutide","victoza","liraglutide","saxenda","rybelsus"];
+const INSULIN_MED_KEYWORDS=["insulin","lantus","humalog","novolog","levemir","tresiba","basaglar","toujeo","fiasp","humulin"];
+const targetsAutoExclusionReason=(p)=>{
+  const conds=medicalConditionsOf(p);
+  const hit=conds.find(c=>TARGETS_AUTO_EXCLUDED_CONDITIONS.includes(c));
+  if(hit) return hit;
+  const meds=(p.medications||[]).map(m=>(m.name||"").toLowerCase());
+  if(meds.some(m=>GLP1_MED_KEYWORDS.some(k=>m.includes(k)))) return "GLP-1 medication";
+  const isDiabetic=conds.some(c=>c.includes("Diabetic"));
+  if(isDiabetic&&meds.some(m=>INSULIN_MED_KEYWORDS.some(k=>m.includes(k)))) return "insulin-dependent diabetes";
+  return null;
+};
+const profileAgeFor=(p)=>{
+  if(!p) return null;
+  if(p.dob) return Math.floor((new Date()-new Date(p.dob+"T12:00:00"))/(1000*60*60*24*365.25));
+  if(p.age) return parseFloat(p.age);
+  return null;
+};
+// Mifflin-St Jeor. Requires weight (lbs, from the latest logged weigh-in), height, age, sex, and
+// activity level -- returns which of those are missing instead of guessing at any of them, since
+// a wrong activity multiplier or a made-up sex skews every number that follows.
+const calcMaintenanceCalories=(profile,weightLbs)=>{
+  const missing=[];
+  if(!weightLbs) missing.push("a logged weigh-in");
+  const feet=parseFloat(profile.heightFeet),inches=parseFloat(profile.heightInches);
+  if(profile.heightFeet==null||profile.heightFeet==="") missing.push("height");
+  const age=profileAgeFor(profile);
+  if(!age) missing.push("age or date of birth");
+  if(!profile.sex) missing.push("sex");
+  if(!profile.activityLevel) missing.push("activity level");
+  if(missing.length) return {missing};
+  const kg=weightLbs*0.453592;
+  const cm=((feet||0)*12+(inches||0))*2.54;
+  const bmr=10*kg+6.25*cm-5*age+(profile.sex==="Male"?5:-161);
+  const ACTIVITY_MULTIPLIERS={Light:1.375,Moderate:1.55,Active:1.725};
+  const maintenance=bmr*ACTIVITY_MULTIPLIERS[profile.activityLevel];
+  return {bmr:Math.round(bmr),maintenance:Math.round(maintenance),weightKg:kg,age};
+};
+// Deficit/surplus toward goal weight: capped at ~1% body weight/week (the standard safe-rate
+// guideline), and never below a calorie floor. Only called for profiles that passed the exclusion
+// check above -- for everyone else, maintenance is shown as information only, with no deficit math
+// applied, and the clinician's own entered number is what's tracked against.
+const calcGoalCalorieTarget=(profile,maintenance,weightLbs)=>{
+  if(!profile.goalWeightLbs||!weightLbs||!maintenance) return null;
+  const diff=weightLbs-profile.goalWeightLbs;
+  if(Math.abs(diff)<1) return {calories:maintenance,direction:"maintain"};
+  const direction=diff>0?-1:1;
+  const weeklyCapCals=(weightLbs*0.01)*3500;
+  const dailyCapCals=Math.round(weeklyCapCals/7);
+  let calories=maintenance+direction*dailyCapCals;
+  const floor=profile.sex==="Male"?1500:1200;
+  if(direction<0) calories=Math.max(calories,floor);
+  return {calories:Math.round(calories),direction:direction<0?"deficit":"surplus",floor:direction<0?floor:null};
+};
+// Per-kg protein target with a senior bump to help protect lean muscle. Manual override always
+// wins, matching every other target field in this app (fiber, WW points) -- the "(auto if blank)"
+// placeholder on that field previously had nothing behind it; this is that calculation.
+const calcProteinTargetG=(profile,weightKg)=>{
+  if(profile.proteinTargetG) return Math.round(profile.proteinTargetG);
+  if(!weightKg) return null;
+  const age=profileAgeFor(profile);
+  const perKg=(age&&age>=65)?1.2:1.0;
+  return Math.round(weightKg*perKg);
+};
+
 const ROLE_LABELS={adult:"Adult","teen-athlete":"Teen Athlete",child:"Child",senior:"Senior"};
 
 const DEFAULT_PROFILES=[
@@ -1382,6 +1453,14 @@ const FEATURE_ANNOUNCEMENTS=[
     quickReplies:["Show me!","How does it work?","Maybe later"],
     tab:"mealPlan",
     digest:"**Weight History & Trend Chart** — each member's profile now shows their latest logged weight automatically, with a full trend chart (baseline, current, change, 7-day average) under View Weight History"
+  },
+  {
+    key:"calorieTargets",
+    title:"New: Suggested Daily Calorie & Protein Targets",
+    intro:(name)=>`Hi ${name}! 🎯 Smart Kitchen can now suggest daily calorie and protein targets for each family member — based on their weight, height, age, sex, and activity level, with a safe weekly-change cap toward their goal weight.\n\nFor members on certain diets or medications, it steps aside and lets you enter your clinician's own number instead. And any deficit or surplus target always asks you to confirm with your doctor first.\n\nWant me to show you where?`,
+    quickReplies:["Show me!","How does it work?","Maybe later"],
+    tab:"mealPlan",
+    digest:"**Suggested Daily Calorie & Protein Targets** — calculated per member from weight, height, age, sex, and activity level, with a doctor-confirm step before any deficit/surplus target takes effect"
   },
   {
     key:"vanillaStarterRecipe",
@@ -2375,6 +2454,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [editingProfile,setEditingProfile]=useState(null);
   const [weightHistoryCache,setWeightHistoryCache]=useState({});
   const [showWeightHistory,setShowWeightHistory]=useState(null);
+  const [showCalorieConfirm,setShowCalorieConfirm]=useState(null);
   // Dedupe multiple same-day weigh-ins (keep the LAST one that day), sort ascending by date,
   // and compute the summary numbers the history view and profile-sync display both need.
   const loadWeightHistory=async(profile)=>{
@@ -7141,6 +7221,47 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                               {profile.dietApproach==="Custom / Physician-Directed Diet"&&<input style={{...bInp,marginTop:6,fontSize:12}} placeholder="Describe custom dietary plan..." value={profile.customPlanNote||""} onChange={e=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,customPlanNote:e.target.value}:pr))}/>}
                               </div>)}
                               <div style={{marginTop:8,display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}><div><div style={{fontFamily:FM,fontSize:10,color:C.muted,marginBottom:4,letterSpacing:0.8}}>DAILY PROTEIN TARGET (g)</div><input style={{...bInp,fontSize:12}} type="number" placeholder="e.g. 75 (auto if blank)" value={profile.proteinTargetG||""} onChange={e=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,proteinTargetG:e.target.value?parseFloat(e.target.value):undefined}:pr))}/></div><div><div style={{fontFamily:FM,fontSize:10,color:C.muted,marginBottom:4,letterSpacing:0.8}}>GOAL WEIGHT (lbs, optional)</div><input style={{...bInp,fontSize:12}} type="number" placeholder="e.g. 165" value={profile.goalWeightLbs||""} onChange={e=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,goalWeightLbs:e.target.value?parseFloat(e.target.value):undefined}:pr))}/></div></div>
+                              {(()=>{
+                                const wh=weightHistoryCache[profile.id];
+                                const weightLbs=wh?.latest?.lbs;
+                                const exclReason=targetsAutoExclusionReason(profile);
+                                const maint=calcMaintenanceCalories(profile,weightLbs);
+                                return(
+                                <div style={{marginTop:8,background:C.surface,borderRadius:10,padding:12}}>
+                                  <div style={{fontFamily:FM,fontSize:10,color:C.muted,marginBottom:6,letterSpacing:0.8}}>DAILY TARGETS</div>
+                                  {exclReason?(
+                                    <div>
+                                      <div style={{fontFamily:FM,fontSize:11,color:"#f59e0b",marginBottom:8,lineHeight:1.5}}>Because of {exclReason}, Smart Kitchen doesn't auto-calculate a calorie target for {profile.name||"this member"} — enter what your clinician has set instead.</div>
+                                      <input style={{...bInp,fontSize:12}} type="number" placeholder="Clinician-set daily calorie target" value={profile.calorieTarget||""} onChange={e=>setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,calorieTarget:e.target.value?parseFloat(e.target.value):undefined,calorieTargetSource:"clinician"}:pr))}/>
+                                    </div>
+                                  ):maint.missing?(
+                                    <div style={{fontFamily:FM,fontSize:11,color:C.muted,lineHeight:1.5}}>Add {maint.missing.join(", ")} to calculate a suggested calorie target.</div>
+                                  ):(
+                                    <div>
+                                      <div style={{fontFamily:FM,fontSize:12,color:C.text,marginBottom:6}}>Maintenance: <strong>{maint.maintenance} cal/day</strong></div>
+                                      {(()=>{
+                                        const goalCalc=calcGoalCalorieTarget(profile,maint.maintenance,weightLbs);
+                                        if(!goalCalc||goalCalc.direction==="maintain"){
+                                          return <div style={{fontFamily:FM,fontSize:10,color:C.muted}}>{profile.goalWeightLbs?"Already at goal weight.":"Set a goal weight above for a suggested deficit/surplus target."}</div>;
+                                        }
+                                        const isActive=profile.calorieTarget===goalCalc.calories&&profile.calorieTargetSource==="auto";
+                                        return(
+                                          <div>
+                                            <div style={{fontFamily:FM,fontSize:12,color:goalCalc.direction==="deficit"?"#f59e0b":"#3b82f6",marginBottom:6}}>Suggested {goalCalc.direction}: <strong>{goalCalc.calories} cal/day</strong>{goalCalc.floor?(" (floor "+goalCalc.floor+")"):""}</div>
+                                            {isActive?(
+                                              <div style={{fontFamily:FM,fontSize:11,color:"#22c55e"}}>✓ Set as {profile.name||"this member"}'s active target</div>
+                                            ):(
+                                              <button onClick={()=>setShowCalorieConfirm({profileId:profile.id,goalCalc})} style={{...bBtn("ghost"),fontSize:11,padding:"5px 10px",border:"1px solid "+C.accent,color:C.accent}}>Set as My Target</button>
+                                            )}
+                                          </div>
+                                        );
+                                      })()}
+                                      <div style={{fontFamily:FM,fontSize:11,color:C.muted,marginTop:8}}>Suggested protein: <strong>{calcProteinTargetG(profile,maint.weightKg)||"--"}g/day</strong></div>
+                                    </div>
+                                  )}
+                                </div>
+                                );
+                              })()}
                               {profile.goalWeightLbs&&(
                                 <div style={{marginTop:8,background:C.surface,borderRadius:8,padding:10}}>
                                   <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
@@ -8258,6 +8379,26 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                 <button onClick={()=>{setShowWeightHistory(null);setJournalMember(showWeightHistory);setJournalMealType("Weigh-In");setShowJournal(true);}} style={{...bBtn("ghost"),width:"100%",marginTop:14,border:"1px solid "+C.accent,color:C.accent}}>⚖ Log New Weigh-In</button>
               </div>
             )}
+          </div>
+        </div>
+        );
+      })()}
+
+      {showCalorieConfirm&&(()=>{
+        const profile=familyProfiles.find(p=>p.id===showCalorieConfirm.profileId);
+        const gc=showCalorieConfirm.goalCalc;
+        if(!profile||!gc) return null;
+        return(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:750,padding:16}} onClick={()=>setShowCalorieConfirm(null)}>
+          <div style={{background:C.card,border:"1px solid #f59e0b55",borderRadius:16,padding:26,maxWidth:400,width:"100%"}} onClick={e=>e.stopPropagation()}>
+            <div style={{fontFamily:FD,fontSize:20,color:"#f59e0b",marginBottom:10}}>⚕ Confirm With Your Doctor</div>
+            <div style={{fontFamily:FM,fontSize:13,color:C.text,lineHeight:1.6,marginBottom:16}}>
+              This {gc.direction} target for {profile.name||"this member"} (<strong>{gc.calories} cal/day</strong>) comes from a standard formula — it isn't personalized medical advice. Please confirm with a doctor or dietitian before following a calorie {gc.direction}, especially with any existing health condition.
+            </div>
+            <div style={{display:"flex",gap:8}}>
+              <button onClick={()=>setShowCalorieConfirm(null)} style={{flex:1,...bBtn("ghost"),border:"1px solid "+C.border}}>Cancel</button>
+              <button onClick={()=>{setFamilyProfiles(p=>p.map(pr=>pr.id===profile.id?{...pr,calorieTarget:gc.calories,calorieTargetSource:"auto",calorieTargetConfirmedAt:new Date().toISOString()}:pr));setShowCalorieConfirm(null);}} style={{flex:1,...bBtn("primary")}}>I've Confirmed, Set It</button>
+            </div>
           </div>
         </div>
         );
