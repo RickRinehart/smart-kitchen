@@ -73,7 +73,7 @@ export default function AuthModal({ onClose, onSuccess, initialMode = 'signup', 
         {/* Accessibility toggles */}
         <div style={{position:'absolute',top:12,right:44,display:'flex',gap:6}}>
           <button onClick={toggleLightMode} title={lightMode?"Dark Mode":"Light Mode"} style={{background:'none',border:'1px solid #ddd',borderRadius:8,padding:'4px 8px',cursor:'pointer',fontSize:sz(14),color:'#6b728e'}}>{lightMode?'🌙':'☀️'}</button>
-          <button onClick={toggleLargeText} title={largeText?"Normal Text":"Large Text"} style={{background:largeText?'#1a2344':'none',border:'1px solid '+(largeText?'#1a2344':'#ddd'),borderRadius:8,padding:'4px 8px',cursor:'pointer',fontSize:sz(14),color:largeText?'#fff':'#6b728e'}}>{largeText?'Aa✓':'Aa'}</button>
+          <button onClick={toggleLargeText} title={largeText?"Normal Text":"Large Text"} style={{background:largeText?'#1B3D2F':'none',border:'1px solid '+(largeText?'#1B3D2F':'#ddd'),borderRadius:8,padding:'4px 8px',cursor:'pointer',fontSize:sz(14),color:largeText?'#fff':'#6b728e'}}>{largeText?'Aa✓':'Aa'}</button>
         </div>
         <div style={styles.header}>
           <div style={{...styles.logo,fontSize:sz(18)}}>🍽️ Smart Kitchen</div>
@@ -190,9 +190,9 @@ const styles = {
     width: '100%', maxWidth: '420px', boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
   },
   header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' },
-  logo: { fontSize: '18px', fontWeight: '700', color: '#1a2344' },
+  logo: { fontSize: '18px', fontWeight: '700', color: '#1B3D2F' },
   closeBtn: { background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', color: '#888', padding: '4px' },
-  title: { margin: '0 0 8px', fontSize: '22px', fontWeight: '700', color: '#1a2344' },
+  title: { margin: '0 0 8px', fontSize: '22px', fontWeight: '700', color: '#1B3D2F' },
   subtitle: { margin: '0 0 20px', fontSize: '14px', color: '#666' },
   error: { background: '#fff0f0', border: '1px solid #ffcccc', borderRadius: '8px', padding: '10px 14px', marginBottom: '16px', fontSize: '14px', color: '#cc0000' },
   success: { background: '#f0fff4', border: '1px solid #c3e6cb', borderRadius: '8px', padding: '10px 14px', marginBottom: '16px', fontSize: '14px', color: '#155724' },
