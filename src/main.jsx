@@ -235,7 +235,7 @@ function WelcomeSplash({ onGetStarted, onSignIn }) {
   return (
     <div style={{
       position: "fixed", inset: 0, zIndex: 1200, background: "#1B3D2F",
-      display: "flex", alignItems: "center", justifyContent: "center", padding: 24,
+      display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 24,
       overflowY: "auto",
     }}>
       <button onClick={toggleLarge} title={large ? "Normal Text" : "Large Text"} style={{
@@ -243,8 +243,8 @@ function WelcomeSplash({ onGetStarted, onSignIn }) {
         border: "1px solid #C8963E88", borderRadius: 8, padding: "4px 10px", cursor: "pointer",
         fontSize: 14, color: large ? "#000" : "#C8963E", fontWeight: 700,
       }}>{large ? "Aa\u2713" : "Aa"}</button>
-      <div style={{ maxWidth: 480, width: "100%", textAlign: "center", padding: "20px 0" }}>
-        <img src="/logo-lockup.jpg" alt="Smart Kitchen" style={{ width: s(220), maxWidth: "70%", height: "auto", borderRadius: 24, marginBottom: 24, boxShadow: "0 10px 36px rgba(0,0,0,0.5)" }}/>
+      <div style={{ maxWidth: 480, width: "100%", textAlign: "center", padding: "36px 0 20px" }}>
+        <img src="/logo-lockup.jpg" alt="Smart Kitchen" style={{ width: s(160), maxWidth: "55%", height: "auto", borderRadius: 20, marginBottom: 20, boxShadow: "0 10px 36px rgba(0,0,0,0.5)" }}/>
         <div style={{ color: "#ffffff", fontSize: s(15), marginBottom: 28, opacity: 0.85 }}>
           Meal Planning Made Simple — For You and Your Family
         </div>
