@@ -32,7 +32,7 @@ function AccessibilityToggles() {
   return (
     <>
       <button onClick={toggleTheme} title={isLight ? "Dark Mode" : "Light Mode"} style={{background:"none",border:"1px solid #444",borderRadius:8,padding:"3px 8px",cursor:"pointer",fontSize:13,color:"#888"}}>{isLight ? "🌙" : "☀️"}</button>
-      <button onClick={toggleText} title={isLarge ? "Normal Text" : "Large Text"} style={{background:isLarge?"#1a2344":"none",border:"1px solid #444",borderRadius:8,padding:"3px 8px",cursor:"pointer",fontSize:13,color:isLarge?"#fff":"#888"}}>{isLarge ? "Aa✓" : "Aa"}</button>
+      <button onClick={toggleText} title={isLarge ? "Normal Text" : "Large Text"} style={{background:isLarge?"#1B3D2F":"none",border:"1px solid #444",borderRadius:8,padding:"3px 8px",cursor:"pointer",fontSize:13,color:isLarge?"#fff":"#888"}}>{isLarge ? "Aa✓" : "Aa"}</button>
     </>
   );
 }
@@ -189,7 +189,7 @@ const modalStyles = {
     textAlign: "center"
   },
   icon: { fontSize: "40px", marginBottom: "12px" },
-  title: { margin: "0 0 12px", fontSize: "20px", fontWeight: "700", color: "#1a2344" },
+  title: { margin: "0 0 12px", fontSize: "20px", fontWeight: "700", color: "#1B3D2F" },
   body: { margin: "0 0 20px", fontSize: "15px", color: "#555", lineHeight: "1.5" },
   upgradeBtn: {
     display: "block", width: "100%", padding: "14px", borderRadius: "8px",
@@ -234,7 +234,7 @@ function WelcomeSplash({ onGetStarted, onSignIn }) {
   };
   return (
     <div style={{
-      position: "fixed", inset: 0, zIndex: 1200, background: "#1A2344",
+      position: "fixed", inset: 0, zIndex: 1200, background: "#1B3D2F",
       display: "flex", alignItems: "center", justifyContent: "center", padding: 24,
       overflowY: "auto",
     }}>
@@ -244,9 +244,7 @@ function WelcomeSplash({ onGetStarted, onSignIn }) {
         fontSize: 14, color: large ? "#000" : "#C8963E", fontWeight: 700,
       }}>{large ? "Aa\u2713" : "Aa"}</button>
       <div style={{ maxWidth: 480, width: "100%", textAlign: "center", padding: "20px 0" }}>
-        <div style={{ fontFamily: "Georgia, 'Times New Roman', serif", fontWeight: "bold", color: "#C8963E", fontSize: s(34), marginBottom: 6 }}>
-          Smart Kitchen<span style={{ fontSize: s(16), verticalAlign: "super" }}>™</span>
-        </div>
+        <img src="/logo-lockup.jpg" alt="Smart Kitchen" style={{ width: s(220), maxWidth: "70%", height: "auto", borderRadius: 24, marginBottom: 24, boxShadow: "0 10px 36px rgba(0,0,0,0.5)" }}/>
         <div style={{ color: "#ffffff", fontSize: s(15), marginBottom: 28, opacity: 0.85 }}>
           Meal Planning Made Simple — For You and Your Family
         </div>
@@ -258,7 +256,7 @@ function WelcomeSplash({ onGetStarted, onSignIn }) {
           special diets — enforced, not just suggested.
         </div>
 
-        <div style={{ background: "#ffffff10", border: "1px solid #C8963E44", borderRadius: 12, padding: "16px 18px", marginBottom: 24, textAlign: "left" }}>
+        <div style={{ background: "#24523F", border: "1px solid #C8963E44", borderRadius: 12, padding: "16px 18px", marginBottom: 24, textAlign: "left" }}>
           <div style={{ color: "#C8963E", fontSize: s(11), fontWeight: 700, letterSpacing: "0.08em", marginBottom: 10 }}>WHAT TO EXPECT</div>
           {[
             "A full week of dinners, planned around what you already have",
@@ -617,7 +615,7 @@ document.addEventListener("visibilitychange", handleVisibility);
   if (showSplash && !authReady) {
     // Session check still in flight -- hold on a blank brand-colored screen rather than flashing
     // either the app or the splash at someone who may turn out to be signed in.
-    return <div style={{ position: "fixed", inset: 0, background: "#1A2344" }} />;
+    return <div style={{ position: "fixed", inset: 0, background: "#1B3D2F" }} />;
   }
   if (!user && showSplash) {
     return (
