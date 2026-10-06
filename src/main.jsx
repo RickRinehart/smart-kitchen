@@ -308,8 +308,12 @@ function Root() {
     try {
       // Never interrupt an email-confirmation or password-reset redirect, or a guest viewer
       // who's already joined someone's household -- those people arrived with a specific purpose.
+      // Modern Supabase email links use PKCE: the redirect carries a ?code= query param rather
+      // than the old #access_token= hash fragment, so both forms need checking here.
       const h = window.location.hash || "";
+      const q = window.location.search || "";
       if (h.includes("type=signup") || h.includes("type=recovery") || h.includes("access_token")) return false;
+      if (q.includes("code=")) return false;
       if (localStorage.getItem("sk_guest_viewer")) return false;
       return localStorage.getItem("sk_seenSplash") !== "1";
     } catch { return true; }
@@ -341,7 +345,21 @@ function Root() {
   const activeUserIdRef = useRef(null);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // PKCE email-confirmation / password-reset return trip: Supabase's confirmation link
+    // redirects here with ?code=XXXX in the query string. The email itself is already
+    // confirmed server-side by that point regardless -- but the browser's own session is
+    // never established until this code is explicitly exchanged for one. Without this, the
+    // person is genuinely confirmed yet still shows up signed-out, landing back on Create
+    // Account instead of either being signed in or sent to Sign In.
+    const codeParams = new URLSearchParams(window.location.search);
+    const authCode = codeParams.get("code");
+    const codeExchange = authCode
+      ? supabase.auth.exchangeCodeForSession(authCode).then(() => {
+          window.history.replaceState({}, "", window.location.pathname);
+        }).catch(() => {})
+      : Promise.resolve();
+
+    codeExchange.then(() => supabase.auth.getSession()).then(({ data: { session } }) => {
       if (session?.user) {
         try { localStorage.setItem("sk_seenSplash", "1"); } catch {}
         setUser(session.user);
