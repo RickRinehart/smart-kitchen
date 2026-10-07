@@ -1512,6 +1512,14 @@ const FEATURE_ANNOUNCEMENTS=[
     digest:"**Swap one ingredient** — change a single item in a meal-plan recipe (e.g. Brussels sprouts to green beans) without replacing the whole meal"
   },
   {
+    key:"haveItShopping",
+    title:"New: \"Have it\" on the Shopping List",
+    intro:(name)=>`Hi ${name}! ✓ Shopping list says you need something you already have? Tap **Have it** on that item. It comes off the list and Inventory is updated to show you have it, so it won't come back next time.\n\nMade a mistake? There's an Undo for a few seconds.\n\nWant me to show you where?`,
+    quickReplies:["Show me!","Maybe later"],
+    tab:"shopping",
+    digest:"**Have it** button on the Shopping List — removes an item you already have and marks it in stock in Inventory (with Undo)"
+  },
+  {
     key:"vanillaStarterRecipe",
     title:"New: Bonus Starter Recipe for New Members",
     intro:(name)=>`Hi ${name}! \ud83c\udf66 A small one, but a fun one.\n\nBrand-new Smart Kitchen members now find a **Homemade Vanilla Extract** recipe already waiting for them in Family Recipes on day one — straight from our own kitchen. It won't retroactively show up in an existing account like yours, but if you'd ever like the recipe, just ask and I can walk you through it.\n\nJust wanted you to know it's there for anyone new joining your household!`,
@@ -2854,6 +2862,62 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
     }));
     if(matchedCount>0) showAlert("Assigned "+m.inventoryItemName+" to "+m.storeName+(price!=null?" at $"+price.toFixed(2):"")+".");
   };
+  // -- "Have it": the shopping list says we need something but we already have it. Takes it off the list AND
+  // makes Inventory say it's in stock, so it doesn't just come back the next time the list is built (the
+  // list is driven by inventory). Different from "Restock Checked Items", which means "I bought it" and ADDS
+  // the quantity on top. This never invents a purchase: an item already in stock is left untouched, one at 0
+  // is set to 1, and a missing one is added with a nominal 1. There's an Undo for a few seconds.
+  const [haveItToast,setHaveItToast]=useState(null);
+  const haveItTimer=useRef(null);
+  const haveItFromShopping=(item)=>{
+    if(isViewer||!item) return;
+    const nm=String(item.name||"").trim();
+    const lc=nm.toLowerCase();
+    const idxInList=shopping.indexOf(item);
+    let invPrev=null,invAdded=null,msg="";
+    // Smart Cellar wishlist items (marked by category/source) live in the Cellar app, not Inventory
+    if(item.category==="Smart Cellar"||item.source==="Smart Cellar Advisor"){
+      msg=nm+" removed from your list (Smart Cellar items aren't tracked in Inventory).";
+    }else{
+      // best matching inventory row: exact name first, else a row whose name contains ALL of this item's
+      // words; among those prefer one with no stock (that's the row that made it look "needed")
+      const cands=inventory.map(i=>({i,exact:String(i.name||"").trim().toLowerCase()===lc,covers:swapCovers(i.name,nm)}))
+        .filter(x=>x.exact||x.covers)
+        .sort((x,y)=>((y.exact?1:0)-(x.exact?1:0))||((hasStock(x.i)?1:0)-(hasStock(y.i)?1:0)));
+      const best=cands[0]&&cands[0].i;
+      if(best&&hasStock(best)){
+        msg=nm+" is already in stock in Inventory, so I just took it off your list.";
+      }else if(best){
+        invPrev=best;
+        const upd=best.isBulkItem?{...best,bulkQtyRemaining:parseFloat(best.bulkTotalUnits)||1}:{...best,qty:1};
+        setInventory(prev=>prev.map(i=>(i.id===best.id&&i.name===best.name)?upd:i));
+        msg=nm+" is off your list and marked in stock (1). Adjust the amount in Inventory if you like.";
+      }else{
+        const cat=item.category||"Pantry";
+        const loc=(cat==="Protein"||cat==="Frozen")?"Freezer":(cat==="Produce"||cat==="Dairy")?"Fridge":"Pantry";
+        const row={id:Date.now()+Math.random(),name:nm,qty:1,unit:cat==="Protein"?"portions":"item",category:cat,location:loc,...(cat==="Protein"?{isBulkProtein:true,portionOz:6}:{})};
+        invAdded=row.id;
+        setInventory(prev=>[...prev,row]);
+        msg=nm+" is off your list and added to Inventory (1). Adjust the amount if you like.";
+      }
+    }
+    setShopping(prev=>{
+      const k=prev.indexOf(item);
+      return k>=0?prev.filter((s,j)=>j!==k):prev.filter(s=>!(String(s.name||"").trim().toLowerCase()===lc&&!s.checked));
+    });
+    clearTimeout(haveItTimer.current);
+    setHaveItToast({message:msg,item,index:idxInList>=0?idxInList:0,invPrev,invAdded});
+    haveItTimer.current=setTimeout(()=>setHaveItToast(null),9000);
+  };
+  const undoHaveIt=()=>{
+    const u=haveItToast;
+    if(!u) return;
+    clearTimeout(haveItTimer.current);
+    setShopping(prev=>{const n=[...prev];n.splice(Math.min(u.index,n.length),0,u.item);return n;});
+    if(u.invAdded!=null) setInventory(prev=>prev.filter(i=>i.id!==u.invAdded));
+    else if(u.invPrev) setInventory(prev=>prev.map(i=>(i.id===u.invPrev.id&&i.name===u.invPrev.name)?u.invPrev:i));
+    setHaveItToast(null);
+  };
   const renderShopItem=(item)=>{
     const gi=shopping.indexOf(item);
     const isEditing=editingShoppingIdx===gi;
@@ -2874,6 +2938,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
         {(()=>{const recallMatch=shoppingListRecallAlerts.find(a=>(a.matched_item_name||"").toLowerCase()===(item.name||"").toLowerCase());if(!recallMatch)return null;const isCritical=recallMatch.severity==="critical";const isPending=recallMatch.severity==="pending";const bg=isCritical?"#4a0e0e":isPending?"#2e1a4a":"#3a2a0e";const fg=isCritical?"#fecaca":isPending?"#ddd6fe":"#fde68a";const bd=isCritical?"#ef4444":isPending?"#8b5cf6":"#d97706";return(<span onClick={e=>{e.stopPropagation();setActiveRecallDetail([recallMatch]);}} title="Possible FDA recall match — tap for details" style={{fontSize:11,fontWeight:700,padding:"3px 8px",borderRadius:20,background:bg,color:fg,border:"1px solid "+bd,cursor:"pointer",flexShrink:0}}>{isCritical?"🚨":isPending?"🆕":"⚠️"} recall?</span>);})()}
         {item.suggestBulk&&<span style={bTag(C.orange)}>📦 bulk</span>}
         <div style={{fontFamily:FM,fontSize:12,color:C.muted}}>{item.qty} {item.unit}</div>
+        {!item.checked&&<button onClick={e=>{e.stopPropagation();haveItFromShopping(item);}} disabled={isViewer} title="We already have this: take it off the list and mark it in stock in Inventory" style={{background:"transparent",border:"1px solid "+C.green,borderRadius:6,cursor:"pointer",color:C.green,fontFamily:FM,fontSize:seniorMode?14:10,fontWeight:700,padding:seniorMode?"6px 10px":"3px 7px",flexShrink:0}}>✓ Have it</button>}
         <button onClick={e=>{e.stopPropagation();setEditShopDraft({name:item.name,qty:String(item.qty??""),unit:item.unit||""});setEditingShoppingIdx(gi);}} title="Got something different? Edit before restocking" style={{background:"transparent",border:"none",cursor:"pointer",fontSize:13,padding:"2px 4px",color:C.muted,flexShrink:0}}>✏️</button>
       </div>
     );
@@ -8823,6 +8888,15 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
         </div>
         );
       })()}
+
+      {haveItToast&&(
+        <div style={{position:"fixed",left:12,right:12,bottom:96,zIndex:3300,display:"flex",justifyContent:"center",pointerEvents:"none"}}>
+          <div style={{pointerEvents:"auto",background:C.card,border:"1px solid "+C.accent,borderRadius:12,padding:seniorMode?"14px 18px":"10px 14px",display:"flex",alignItems:"center",gap:12,maxWidth:440,boxShadow:"0 6px 24px rgba(0,0,0,0.45)",fontFamily:FM,fontSize:seniorMode?15:12,color:C.text,lineHeight:1.45}}>
+            <span style={{flex:1}}>✓ {haveItToast.message}</span>
+            <button onClick={undoHaveIt} style={{...bBtn("ghost"),padding:seniorMode?"8px 14px":"6px 12px",fontSize:seniorMode?14:12,border:"1px solid "+C.accent,color:C.accent,flexShrink:0}}>Undo</button>
+          </div>
+        </div>
+      )}
 
       {ingredientSwap&&(()=>{
         const st=ingredientSwap;
