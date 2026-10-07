@@ -3,7 +3,7 @@ import { setViewerCode, getViewerCode, getActiveViewers, revokeViewer, revokeAll
 
 const PURPLE = '#4a1d96'
 const LIGHT_PURPLE = '#f5f3ff'
-const NAVY = '#1A2344'
+const NAVY = '#1B3D2F'
 
 export function ViewerCodeManager({ user, isViewer, viewerRole }) {
   const [code, setCode] = useState('')

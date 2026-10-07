@@ -46,8 +46,8 @@ function TrialCountdown({ daysLeft, onUpgrade }) {
   const warning = daysLeft <= 10;
   const color = urgent ? "#cc0000" : warning ? "#e07b39" : "#888";
   const isDark = document.body.classList.contains("sk-dark");
-  const bg = urgent ? "#fff0f0" : warning ? "#fff8ee" : isDark ? "#1e1e2e" : "#f0f0f0";
-  const border = urgent ? "1px solid #ffcccc" : warning ? "1px solid #f5d9b0" : isDark ? "1px solid #333" : "1px solid #ccc";
+  const bg = urgent ? "#fff0f0" : warning ? "#fff8ee" : isDark ? "#24523F" : "#f0f0f0";
+  const border = urgent ? "1px solid #ffcccc" : warning ? "1px solid #f5d9b0" : isDark ? "1px solid #2f6a52" : "1px solid #ccc";
   return (
     <span style={{
       fontSize: "11px", color, background: bg,
@@ -666,8 +666,8 @@ document.addEventListener("visibilitychange", handleVisibility);
           <>
             <span style={{
               fontSize: "9px", color: "#888", whiteSpace: "nowrap", overflow: "hidden", maxWidth: "60px", textOverflow: "ellipsis", display: "none",
-              background: document.body.classList.contains("sk-dark") ? "#1e1e2e" : "#f0f0f0", padding: "3px 6px",
-              borderRadius: "10px", border: document.body.classList.contains("sk-dark") ? "1px solid #333" : "1px solid #ccc"
+              background: document.body.classList.contains("sk-dark") ? "#24523F" : "#f0f0f0", padding: "3px 6px",
+              borderRadius: "10px", border: document.body.classList.contains("sk-dark") ? "1px solid #2f6a52" : "1px solid #ccc"
             }}>
               {tierLabel}
             </span>

@@ -4,8 +4,8 @@
   "description": "AI-powered meal planning for your family",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#1A2344",
-  "theme_color": "#1A2344",
+  "background_color": "#1B3D2F",
+  "theme_color": "#1B3D2F",
   "orientation": "portrait",
   "icons": [
     {

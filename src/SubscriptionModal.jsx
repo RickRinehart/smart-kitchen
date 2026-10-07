@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 
-const NAVY = '#1A2344'
+const NAVY = '#1B3D2F'
 const GOLD = '#C8963E'
 const GREEN = '#1A7A4A'
 const BLUE = '#1D4ED8'
