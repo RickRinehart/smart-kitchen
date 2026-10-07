@@ -8785,6 +8785,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
         const ingLabel=(ing)=>[(ing.qty!==""&&ing.qty!=null)?formatScaledQty(ing.qty):"",ing.unit,ing.name].filter(Boolean).join(" ");
         const warn=(txt)=>txt?<div style={{fontFamily:FM,fontSize:fs-1,color:"#f59e0b",marginBottom:10,lineHeight:1.5}}>⚠ {txt}</div>:null;
         let body=null;
+        let footer=null;
         if(st.step==="loading"){
           body=<div style={{fontFamily:FM,fontSize:fs,color:C.muted,padding:"24px 0",textAlign:"center"}}>Getting the recipe ready…</div>;
         }else if(st.step==="pick"){
@@ -8828,18 +8829,22 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
             <div style={{fontFamily:FM,fontSize:fs,color:C.text,marginBottom:12}}>Here's the change:</div>
             {renamed&&<div style={blk}><div style={lbl}>NAME</div><div style={{fontFamily:FM,fontSize:fs-1,color:C.muted,textDecoration:"line-through"}}>{st.recipe.name}</div><div style={{fontFamily:FM,fontSize:fs,color:C.text}}>{pv.recipe.name}</div></div>}
             <div style={blk}><div style={lbl}>INGREDIENT</div><div style={{fontFamily:FM,fontSize:fs-1,color:C.muted,textDecoration:"line-through"}}>{ingLabel(pv.oldIng)}</div><div style={{fontFamily:FM,fontSize:fs,color:C.text}}>→ {ingLabel(pv.newIng)}</div></div>
-            {changed.length>0&&<div style={blk}><div style={lbl}>{sameLen?"STEPS THAT CHANGE":"NEW STEPS"}</div>
+            {changed.length>0&&<div style={blk}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,marginBottom:6}}>
+                <div style={{...lbl,marginBottom:0}}>{sameLen?"STEPS THAT CHANGE":"NEW STEPS"}</div>
+                {sameLen&&<button onClick={()=>setIngredientSwap(s=>s?{...s,showOrig:!s.showOrig}:s)} style={{background:"transparent",border:"none",color:C.accent,cursor:"pointer",fontFamily:FM,fontSize:fs-3,padding:"2px 0",textDecoration:"underline"}}>{st.showOrig?"Hide original wording":"Show original wording"}</button>}
+              </div>
               {changed.map(i=>(<div key={i} style={{marginBottom:8,fontFamily:FM,fontSize:fs-1,lineHeight:1.5}}>
-                {sameLen&&<div style={{color:C.muted,textDecoration:"line-through"}}>{renderStepText(oldSteps[i],st.recipe.ingredients,1)}</div>}
+                {sameLen&&st.showOrig&&<div style={{color:C.muted,textDecoration:"line-through"}}>{renderStepText(oldSteps[i],st.recipe.ingredients,1)}</div>}
                 <div style={{color:C.text}}>{(i+1)+". "+renderStepText(newSteps[i],pv.recipe.ingredients,1)}</div>
               </div>))}
             </div>}
             {pv.needsToBuy&&<div style={{fontFamily:FM,fontSize:fs-1,color:"#f59e0b",marginBottom:10,lineHeight:1.5}}>🛒 You don't have {pv.newIng.name} — it will show in this meal's NEED list.</div>}
             {renamed&&recipeRatings[st.recipe.name]&&<div style={{fontFamily:FM,fontSize:fs-2,color:C.muted,marginBottom:10,lineHeight:1.5}}>Note: your star rating belongs to the old version, so the new one starts unrated.</div>}
-            <div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:6}}>
-              <button onClick={applyIngredientSwap} style={{...bBtn("primary"),flex:2,padding:12}}>Apply change</button>
-              <button onClick={()=>setIngredientSwap(s=>s?{...s,step:"replace",error:""}:s)} style={{...ghost,flex:1}}>‹ Back</button>
-            </div>
+          </div>);
+          footer=(<div style={{display:"flex",gap:8}}>
+            <button onClick={applyIngredientSwap} style={{...bBtn("primary"),flex:2,padding:12}}>Apply change</button>
+            <button onClick={()=>setIngredientSwap(s=>s?{...s,step:"replace",error:""}:s)} style={{...ghost,flex:1}}>‹ Back</button>
           </div>);
         }else if(st.step==="done"){
           const rs=st.result;
@@ -8853,11 +8858,14 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
         }
         return(
           <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.78)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:3200,padding:16}} onClick={()=>setIngredientSwap(null)}>
-            <div style={{background:C.card,border:"1px solid "+C.border,borderRadius:16,padding:22,maxWidth:480,width:"100%",maxHeight:"86vh",overflowY:"auto",position:"relative"}} onClick={e=>e.stopPropagation()}>
-              <button onClick={()=>setIngredientSwap(null)} aria-label="Close" style={{position:"absolute",top:12,right:12,background:"transparent",border:"none",color:C.muted,fontSize:22,lineHeight:1,cursor:"pointer",padding:4}}>✕</button>
-              <div style={{fontFamily:FD,fontSize:seniorMode?22:19,fontWeight:700,color:C.text,marginBottom:2,paddingRight:28}}>✏️ Change an ingredient</div>
-              <div style={{fontFamily:FM,fontSize:fs-2,color:C.muted,marginBottom:14,lineHeight:1.4}}>{st.dayLabel}: {st.mealName}</div>
-              {body}
+            <div style={{background:C.card,border:"1px solid "+C.border,borderRadius:16,maxWidth:480,width:"100%",maxHeight:"86vh",display:"flex",flexDirection:"column",position:"relative",overflow:"hidden"}} onClick={e=>e.stopPropagation()}>
+              <button onClick={()=>setIngredientSwap(null)} aria-label="Close" style={{position:"absolute",top:12,right:12,zIndex:1,background:"transparent",border:"none",color:C.muted,fontSize:22,lineHeight:1,cursor:"pointer",padding:4}}>✕</button>
+              <div style={{padding:"22px 22px 12px",overflowY:"auto",flex:1}}>
+                <div style={{fontFamily:FD,fontSize:seniorMode?22:19,fontWeight:700,color:C.text,marginBottom:2,paddingRight:28}}>✏️ Change an ingredient</div>
+                <div style={{fontFamily:FM,fontSize:fs-2,color:C.muted,marginBottom:14,lineHeight:1.4}}>{st.dayLabel}: {st.mealName}</div>
+                {body}
+              </div>
+              {footer&&<div style={{padding:"12px 22px 16px",borderTop:"1px solid "+C.border,background:C.card,flexShrink:0}}>{footer}</div>}
             </div>
           </div>
         );
