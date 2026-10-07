@@ -5532,6 +5532,13 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     const text=typeof raw==="string"?raw:Array.isArray(raw)?raw.map(r=>r.text||"").join(""):raw?.content?.[0]?.text||"";
     return JSON.parse(text.slice(text.indexOf("{"),text.lastIndexOf("}")+1));
   };
+  // Matching in the swap flow is deliberately STRICTER than the app-wide head-noun match. That one treats
+  // any two "...squash" or "...potatoes" as the same item (butternut = acorn, sweet potatoes = hash
+  // browns), which is fine for "do I roughly have this" but wrong when deciding what to ADD to or REMOVE
+  // from the shopping list. Here a name covers another only if it contains ALL of that name's words.
+  const swapWords=(s)=>significantWords(s).map(w=>w.replace(/ies$/,"y").replace(/oes$/,"o").replace(/s$/,""));
+  const swapCovers=(haystack,need)=>{const n=swapWords(need),h=swapWords(haystack);return n.length>0&&n.every(w=>h.includes(w));};
+  const swapInStock=(name)=>inventory.some(i=>swapCovers(i.name,name)&&hasStock(i));
   const openIngredientSwap=async(day)=>{
     if(isViewer||!day) return;
     setIngredientSwap({dayLabel:day.day,mealName:day.meal,step:"loading"});
@@ -5565,7 +5572,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
         maxTokens:500
       });
       const parsed=swapParseJSON(raw);
-      const sugs=(parsed.suggestions||[]).filter(x=>x&&x.name).slice(0,6).map(x=>({name:String(x.name),why:String(x.why||""),have:inventory.some(i=>wordsOverlap(x.name,i.name)&&hasStock(i))}));
+      const sugs=(parsed.suggestions||[]).filter(x=>x&&x.name).slice(0,6).map(x=>({name:String(x.name),why:String(x.why||""),have:swapInStock(x.name)}));
       sugs.sort((x,y)=>(y.have?1:0)-(x.have?1:0));
       setIngredientSwap(s=>(s&&s.step==="replace"&&s.ingIdx===idx)?{...s,suggestions:sugs,sugLoading:false}:s);
     }catch(err){
@@ -5599,13 +5606,14 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       const badPlaceholder=steps.some(x=>(String(x).match(/\{\{ing:(\d+)\}\}/g)||[]).some(p=>parseInt(p.replace(/\D/g,""),10)>=ingredients.length));
       if(badPlaceholder) throw new Error("bad placeholder");
       const inStock=(n)=>inventory.some(i=>wordsOverlap(n,i.name)&&hasStock(i));
+      const stockOf=(ing,k)=>k===idx?swapInStock(ing.name):inStock(ing.name);
       const newRecipe={...recipe,
         name:String(parsed.name||recipe.name).trim()||recipe.name,
         description:typeof parsed.description==="string"?parsed.description:(recipe.description||""),
         ingredients,instructions:steps,
-        usesFromInventory:ingredients.filter(i=>inStock(i.name)).map(i=>i.name),
-        missingIngredients:ingredients.filter(i=>!inStock(i.name)).map(i=>i.name)};
-      setIngredientSwap(s=>s?{...s,busy:false,step:"preview",preview:{recipe:newRecipe,oldIng:old,newIng:ingredients[idx],needsToBuy:!inStock(ingredients[idx].name)}}:s);
+        usesFromInventory:ingredients.filter((ing,k)=>stockOf(ing,k)).map(i=>i.name),
+        missingIngredients:ingredients.filter((ing,k)=>!stockOf(ing,k)).map(i=>i.name)};
+      setIngredientSwap(s=>s?{...s,busy:false,step:"preview",preview:{recipe:newRecipe,oldIng:old,newIng:ingredients[idx],needsToBuy:!swapInStock(ingredients[idx].name)}}:s);
     }catch(err){
       console.error("requestSwapPreview:",err);
       setIngredientSwap(s=>s?{...s,busy:false,error:"Couldn't make that swap cleanly. Try a different replacement."}:s);
@@ -5621,9 +5629,9 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     // 2. the day card follows (title, and its own fallback shopping estimate)
     setMealPlan(prev=>prev.map(d=>{
       if(d.day!==st.dayLabel) return d;
-      const kept=(d.shoppingNeeded||[]).filter(s=>!wordsOverlap(oldIng.name,s.name));
+      const kept=(d.shoppingNeeded||[]).filter(s=>!swapCovers(s.name,oldIng.name));
       const add=needsToBuy?[{qty:newIng.qty,unit:newIng.unit,name:newIng.name}]:[];
-      return {...d,meal:newName,shoppingNeeded:[...kept,...add],ingredients:Array.isArray(d.ingredients)?d.ingredients.map(x=>wordsOverlap(oldIng.name,x)?newIng.name:x):d.ingredients};
+      return {...d,meal:newName,shoppingNeeded:[...kept,...add],ingredients:Array.isArray(d.ingredients)?d.ingredients.map(x=>swapCovers(x,oldIng.name)?newIng.name:x):d.ingredients};
     }));
     // 3. a photo follows a rename; a star rating is for the old dish, so it doesn't
     if(newName!==oldName) setMealPhotos(prev=>(prev[oldName]&&!prev[newName])?{...prev,[newName]:prev[oldName]}:prev);
@@ -5633,10 +5641,10 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     const usedElsewhere=mealPlan.some(d=>{
       if(d.day===st.dayLabel) return false;
       const c=fetchedRecipeCache[d.meal];
-      return !!(c&&Array.isArray(c.ingredients)&&c.ingredients.some(x=>wordsOverlap(oldIng.name,typeof x==="object"?x.name:parseIngredientLine(x).name)));
+      return !!(c&&Array.isArray(c.ingredients)&&c.ingredients.some(x=>{const nm=typeof x==="object"?x.name:parseIngredientLine(x).name;return swapCovers(nm,oldIng.name)||swapCovers(oldIng.name,nm);}));
     });
-    const oldOnList=shopping.find(s=>wordsOverlap(oldIng.name,s.name)&&!s.checked);
-    const newOnList=shopping.some(s=>wordsOverlap(newIng.name,s.name));
+    const oldOnList=shopping.find(s=>swapCovers(s.name,oldIng.name)&&!s.checked);
+    const newOnList=shopping.some(s=>swapCovers(s.name,newIng.name));
     setIngredientSwap(s=>s?{...s,step:"done",result:{newName,oldIng,newIng,
       removeOld:(oldOnList&&!usedElsewhere)?oldOnList.name:null,
       addNew:(needsToBuy&&!newOnList)?newIng:null,
@@ -8839,7 +8847,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                 <div style={{color:C.text}}>{(i+1)+". "+renderStepText(newSteps[i],pv.recipe.ingredients,1)}</div>
               </div>))}
             </div>}
-            {pv.needsToBuy&&<div style={{fontFamily:FM,fontSize:fs-1,color:"#f59e0b",marginBottom:10,lineHeight:1.5}}>🛒 You don't have {pv.newIng.name} — it will show in this meal's NEED list.</div>}
+            {pv.needsToBuy&&<div style={{fontFamily:FM,fontSize:fs-1,color:"#f59e0b",marginBottom:10,lineHeight:1.5}}>🛒 {shopping.some(s=>swapCovers(s.name,pv.newIng.name))?(pv.newIng.name+" is already on your shopping list."):("You don't have "+pv.newIng.name+". After you apply, you can add it to your shopping list in one tap.")}</div>}
             {renamed&&recipeRatings[st.recipe.name]&&<div style={{fontFamily:FM,fontSize:fs-2,color:C.muted,marginBottom:10,lineHeight:1.5}}>Note: your star rating belongs to the old version, so the new one starts unrated.</div>}
           </div>);
           footer=(<div style={{display:"flex",gap:8}}>
@@ -8851,8 +8859,8 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
           body=(<div>
             <div style={{fontFamily:FM,fontSize:fs,color:"#3ecf8e",fontWeight:700,marginBottom:6}}>✓ Swapped {rs.oldIng.name} for {rs.newIng.name}</div>
             <div style={{fontFamily:FM,fontSize:fs-1,color:C.muted,marginBottom:14,lineHeight:1.5}}>{st.dayLabel} is now: <span style={{color:C.text}}>{rs.newName}</span></div>
-            {rs.removeOld&&<button onClick={()=>{setShopping(prev=>prev.filter(s=>!wordsOverlap(rs.oldIng.name,s.name)));setIngredientSwap(s=>s?{...s,result:{...s.result,removeOld:null}}:s);}} style={rowBtn}><span>Remove {rs.removeOld} from my shopping list</span><span style={{color:C.accent,flexShrink:0}}>Remove</span></button>}
-            {rs.addNew&&<button onClick={()=>{setShopping(prev=>prev.some(s=>wordsOverlap(rs.addNew.name,s.name))?prev:[...prev,{name:rs.addNew.name,qty:rs.addNew.qty||1,unit:rs.addNew.unit||"",category:rs.category||"Pantry",checked:false,suggestBulk:false,source:"Meal Plan: "+rs.newName}]);setIngredientSwap(s=>s?{...s,result:{...s.result,addNew:null}}:s);}} style={rowBtn}><span>Add {rs.addNew.name} to my shopping list</span><span style={{color:C.accent,flexShrink:0}}>Add</span></button>}
+            {rs.removeOld&&<button onClick={()=>{setShopping(prev=>prev.filter(s=>!(swapCovers(s.name,rs.oldIng.name)&&!s.checked)));setIngredientSwap(s=>s?{...s,result:{...s.result,removeOld:null}}:s);}} style={rowBtn}><span>Remove {rs.removeOld} from my shopping list</span><span style={{color:C.accent,flexShrink:0}}>Remove</span></button>}
+            {rs.addNew&&<button onClick={()=>{setShopping(prev=>prev.some(s=>swapCovers(s.name,rs.addNew.name))?prev:[...prev,{name:rs.addNew.name,qty:rs.addNew.qty||1,unit:rs.addNew.unit||"",category:rs.category||"Pantry",checked:false,suggestBulk:false,source:"Meal Plan: "+rs.newName}]);setIngredientSwap(s=>s?{...s,result:{...s.result,addNew:null}}:s);}} style={rowBtn}><span>Add {rs.addNew.name} to my shopping list</span><span style={{color:C.accent,flexShrink:0}}>Add</span></button>}
             <button onClick={()=>setIngredientSwap(null)} style={{...bBtn("primary"),width:"100%",padding:12,marginTop:6}}>Done</button>
           </div>);
         }
