@@ -1481,6 +1481,14 @@ const FEATURE_ANNOUNCEMENTS=[
     digest:"**Activity tracking** in the Fitness panel — manual steps/calories/workout entry, or scan a screenshot of the phone's Health app summary"
   },
   {
+    key:"ingredientSwap",
+    title:"New: Swap One Ingredient",
+    intro:(name)=>`Hi ${name}! ✏️ You can now change a single ingredient in a meal plan dinner without replacing the whole meal.\n\nTap **Swap ingredient** on a day (or inside its recipe), pick what to change — like swapping Brussels sprouts for green beans — and Smart Kitchen updates just that part of the recipe, its steps, and your shopping needs.\n\nWant me to show you where?`,
+    quickReplies:["Show me!","Maybe later"],
+    tab:"mealPlan",
+    digest:"**Swap one ingredient** — change a single item in a meal-plan recipe (e.g. Brussels sprouts to green beans) without replacing the whole meal"
+  },
+  {
     key:"vanillaStarterRecipe",
     title:"New: Bonus Starter Recipe for New Members",
     intro:(name)=>`Hi ${name}! \ud83c\udf66 A small one, but a fun one.\n\nBrand-new Smart Kitchen members now find a **Homemade Vanilla Extract** recipe already waiting for them in Family Recipes on day one — straight from our own kitchen. It won't retroactively show up in an existing account like yours, but if you'd ever like the recipe, just ask and I can walk you through it.\n\nJust wanted you to know it's there for anyone new joining your household!`,
@@ -2474,6 +2482,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [showWeightHistory,setShowWeightHistory]=useState(null);
   const [showCalorieConfirm,setShowCalorieConfirm]=useState(null);
   const [showFitnessPanel,setShowFitnessPanel]=useState(false);
+  const [ingredientSwap,setIngredientSwap]=useState(null);
   const [fitnessMemberId,setFitnessMemberId]=useState(null);
   const [activityCache,setActivityCache]=useState({});
   const [activityDraft,setActivityDraft]=useState({steps:"",active_kcal:"",workout_min:""});
@@ -5460,6 +5469,27 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     setCookedConfirm({name:r.name,cellarNote,deductionSummary});
   };
 
+  // Generates (and caches) the full recipe for a meal-plan day. Shared by openMealPlanRecipe and the
+  // single-ingredient swap, so there is exactly one copy of the recipe prompt.
+  const generateMealPlanRecipe=async(day)=>{
+    const invList=inventory.filter(i=>(parseFloat(i.qty)??1)>0).map(i=>String(i.name||"")).filter(Boolean).join(", ");
+    const knownIngredients=(day.ingredients&&day.ingredients.length)?day.ingredients.join(", "):null;
+    const baseServings=activeProfiles.length||4;
+    const cellarInfo=await getCellarCookingBlock();
+    const raw=await callClaude({
+      system:"Recipe AI. Return ONLY valid JSON, no markdown. Single object.",
+      prompt:`Give a simple home recipe for "${day.meal}" that serves ${baseServings} people. Full inventory on hand: ${invList}.`+(knownIngredients?` Use EXACTLY this ingredient list with its measurements — do not invent a different one: ${knownIngredients}.`:"")+cellarInfo.block+` CRITICAL: if the recipe name itself specifies a cooking method or technique (e.g. "Sous Vide," "Air Fryer," "Slow Cooker," "Grilled," "Instant Pot," "Smoked"), the instructions MUST actually use that exact method with its correct temperatures/times — never keep a technique in the name while writing different, more conventional instructions (e.g. a "Sous Vide" title paired with plain stovetop pan-searing is wrong; sous vide requires stating the water bath temperature and time, with a quick sear only as the finishing step). If a named technique isn't practical for a home kitchen without specialized equipment, rename the recipe to match what the instructions actually do rather than leaving a mismatched name. CRITICAL: every food named in the recipe name — each vegetable, side dish, sauce or topping (e.g. the mushrooms in "with Rice and Mushrooms", or the Brussels sprouts and sweet potatoes in "Roasted Brussels Sprouts and Sweet Potatoes") — MUST be in the ingredients list and used in the instructions, so the recipe actually makes the dish its name promises. Likewise do NOT add ingredients the dish does not need (no unrelated sides or garnishes). Return JSON: {name,description,time,difficulty,servings,ingredients:[{name,qty,unit} objects — qty is a NUMBER (use decimals for fractions, e.g. 0.5 for 1/2 cup, 0.25 for 1/4 tsp), unit is a short string like "cup","tsp","tbsp","oz","lb" or "" for countable items like eggs],instructions:[4-6 short strings — CRITICAL: every step that references a measured ingredient MUST use a {{ing:N}} placeholder instead of typing a number, where N is that ingredient's zero-based index in the ingredients array. Never type a literal quantity or unit for a measured ingredient — always use the placeholder so amounts stay accurate when the recipe is scaled to a different serving size.],usesFromInventory:[items from inventory used],missingIngredients:[items NOT in inventory]`+cellarInfo.schemaField+`}`,
+      maxTokens:1500
+    });
+    const text=typeof raw==="string"?raw:Array.isArray(raw)?raw.map(r=>r.text||"").join(""):raw?.content?.[0]?.text||"";
+    const clean=text.replace(/\`\`\`json|\`\`\`/g,"").trim();
+    const s=clean.indexOf("{"),e=clean.lastIndexOf("}");
+    const parsed=JSON.parse(clean.slice(s,e+1));
+    const finalServings=parseInt(parsed.servings)||baseServings;
+    const fullRecipe={...parsed,name:parsed.name||day.meal,servings:finalServings};
+    setFetchedRecipeCache(prev=>({...prev,[day.meal]:fullRecipe}));
+    return fullRecipe;
+  };
   const openMealPlanRecipe=async(day,force)=>{
     // Reuse a previously-generated full recipe if we have one, instead of regenerating -- normal
     // AI non-determinism means a fresh generation can produce a different instructions/ingredient
@@ -5473,31 +5503,144 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       setActiveRecipeServings(cachedFull.servings||activeProfiles.length||4);
       return;
     }
-    const invList=inventory.filter(i=>(parseFloat(i.qty)??1)>0).map(i=>String(i.name||"")).filter(Boolean).join(", ");
-    const knownIngredients=(day.ingredients&&day.ingredients.length)?day.ingredients.join(", "):null;
     const baseServings=activeProfiles.length||4;
     setActiveRecipe({name:day.meal,description:"Loading recipe...",time:"...",difficulty:"Easy",servings:baseServings,ingredients:[],instructions:[],missingIngredients:[],usesFromInventory:[]});
     setActiveRecipeServings(baseServings);
     try{
-      const cellarInfo=await getCellarCookingBlock();
-      const raw=await callClaude({
-        system:"Recipe AI. Return ONLY valid JSON, no markdown. Single object.",
-        prompt:`Give a simple home recipe for "${day.meal}" that serves ${baseServings} people. Full inventory on hand: ${invList}.`+(knownIngredients?` Use EXACTLY this ingredient list with its measurements — do not invent a different one: ${knownIngredients}.`:"")+cellarInfo.block+` CRITICAL: if the recipe name itself specifies a cooking method or technique (e.g. "Sous Vide," "Air Fryer," "Slow Cooker," "Grilled," "Instant Pot," "Smoked"), the instructions MUST actually use that exact method with its correct temperatures/times — never keep a technique in the name while writing different, more conventional instructions (e.g. a "Sous Vide" title paired with plain stovetop pan-searing is wrong; sous vide requires stating the water bath temperature and time, with a quick sear only as the finishing step). If a named technique isn't practical for a home kitchen without specialized equipment, rename the recipe to match what the instructions actually do rather than leaving a mismatched name. CRITICAL: every food named in the recipe name — each vegetable, side dish, sauce or topping (e.g. the mushrooms in "with Rice and Mushrooms", or the Brussels sprouts and sweet potatoes in "Roasted Brussels Sprouts and Sweet Potatoes") — MUST be in the ingredients list and used in the instructions, so the recipe actually makes the dish its name promises. Likewise do NOT add ingredients the dish does not need (no unrelated sides or garnishes). Return JSON: {name,description,time,difficulty,servings,ingredients:[{name,qty,unit} objects — qty is a NUMBER (use decimals for fractions, e.g. 0.5 for 1/2 cup, 0.25 for 1/4 tsp), unit is a short string like "cup","tsp","tbsp","oz","lb" or "" for countable items like eggs],instructions:[4-6 short strings — CRITICAL: every step that references a measured ingredient MUST use a {{ing:N}} placeholder instead of typing a number, where N is that ingredient's zero-based index in the ingredients array. Never type a literal quantity or unit for a measured ingredient — always use the placeholder so amounts stay accurate when the recipe is scaled to a different serving size.],usesFromInventory:[items from inventory used],missingIngredients:[items NOT in inventory]`+cellarInfo.schemaField+`}`,
-        maxTokens:1500
-      });
-      const text=typeof raw==="string"?raw:Array.isArray(raw)?raw.map(r=>r.text||"").join(""):raw?.content?.[0]?.text||"";
-      const clean=text.replace(/\`\`\`json|\`\`\`/g,"").trim();
-      const s=clean.indexOf("{"),e=clean.lastIndexOf("}");
-      const parsed=JSON.parse(clean.slice(s,e+1));
-      const finalServings=parseInt(parsed.servings)||baseServings;
-      const fullRecipe={...parsed,name:parsed.name||day.meal,servings:finalServings};
+      const fullRecipe=await generateMealPlanRecipe(day);
       setActiveRecipe(fullRecipe);
-      setActiveRecipeServings(finalServings);
-      setFetchedRecipeCache(prev=>({...prev,[day.meal]:fullRecipe}));
+      setActiveRecipeServings(fullRecipe.servings);
     }catch(err){
       console.error("openMealPlanRecipe generation/parse error:",err);
       setActiveRecipe({name:day.meal,description:"See full recipe online.",time:"~30 min",difficulty:"Easy",servings:baseServings,ingredients:[],instructions:["Tap TAP FOR FULL RECIPE to see detailed instructions online."],missingIngredients:day.shoppingNeeded?.map(s=>s.name)||[],usesFromInventory:[]});
     }
+  };
+  // -- Swap ONE ingredient in a meal-plan recipe (e.g. Brussels sprouts -> green beans) without replacing
+  // the whole meal. The edited recipe becomes the meal's recipe, so the day card, its NEED list, the
+  // shopping list and the calendar summary all follow it automatically. Only the replaced ingredient
+  // is taken from the AI's answer; every other ingredient is kept from the original recipe in code,
+  // so the AI can't quietly change anything else.
+  const swapRecipeComplete=(r)=>!!(r&&Array.isArray(r.ingredients)&&r.ingredients.length>0&&Array.isArray(r.instructions)&&r.instructions.length>0);
+  const swapNormIngredients=(list)=>(list||[]).map(ing=>(ing&&typeof ing==="object")?{name:String(ing.name||""),qty:ing.qty??"",unit:String(ing.unit||"")}:(p=>({name:p.name,qty:p.qty,unit:p.unit}))(parseIngredientLine(ing)));
+  const swapIsProtein=(ing,day)=>{
+    // The protein is tied to portion tracking (inventory deduction), so it's changed via Change Meal.
+    const prot=String((day&&day.proteinUsed)||"").replace(/\(.*?\)/g,"").trim();
+    if(prot&&wordsOverlap(ing.name,prot)) return true;
+    return inventory.some(i=>wordsOverlap(ing.name,i.name)&&(i.category==="Protein"||i.isBulkProtein));
+  };
+  const swapParseJSON=(raw)=>{
+    const text=typeof raw==="string"?raw:Array.isArray(raw)?raw.map(r=>r.text||"").join(""):raw?.content?.[0]?.text||"";
+    return JSON.parse(text.slice(text.indexOf("{"),text.lastIndexOf("}")+1));
+  };
+  const openIngredientSwap=async(day)=>{
+    if(isViewer||!day) return;
+    setIngredientSwap({dayLabel:day.day,mealName:day.meal,step:"loading"});
+    try{
+      let recipe=fetchedRecipeCache[day.meal];
+      if(!swapRecipeComplete(recipe)) recipe=await generateMealPlanRecipe(day);
+      if(!swapRecipeComplete(recipe)) throw new Error("no recipe");
+      recipe={...recipe,ingredients:swapNormIngredients(recipe.ingredients)};
+      setIngredientSwap(s=>s?{...s,recipe,step:"pick"}:s);
+    }catch(err){
+      console.error("openIngredientSwap:",err);
+      setIngredientSwap(null);
+      showAlert("Couldn't load that recipe to edit it. Please try again.");
+    }
+  };
+  const pickSwapIngredient=async(idx)=>{
+    const st=ingredientSwap;
+    if(!st||!st.recipe) return;
+    const recipe=st.recipe, ing=recipe.ingredients[idx];
+    const day=mealPlan.find(d=>d.day===st.dayLabel);
+    if(swapIsProtein(ing,day)){
+      setIngredientSwap(s=>s?{...s,error:"That's the main protein, which is tied to your portion tracking. Use Change Meal to switch proteins."}:s);
+      return;
+    }
+    setIngredientSwap(s=>s?{...s,step:"replace",ingIdx:idx,suggestions:[],sugLoading:true,custom:"",error:""}:s);
+    try{
+      const invList=inventory.filter(hasStock).map(i=>String(i.name||"")).filter(Boolean).join(", ");
+      const raw=await callClaude({
+        system:"Cooking assistant. Return ONLY valid JSON, no markdown.",
+        prompt:"Recipe: \""+recipe.name+"\". Ingredients: "+recipe.ingredients.map(x=>x.name).join(", ")+". The cook wants to replace \""+ing.name+"\" with something else that suits this exact dish and plays the same role in the meal. Inventory on hand: "+invList+". Suggest up to 6 replacements: put items the cook already has in inventory FIRST (at most 3 of them), then others that are easy to buy. Return JSON: {\"suggestions\":[{\"name\":\"string\",\"why\":\"max 8 words\"}]}",
+        maxTokens:500
+      });
+      const parsed=swapParseJSON(raw);
+      const sugs=(parsed.suggestions||[]).filter(x=>x&&x.name).slice(0,6).map(x=>({name:String(x.name),why:String(x.why||""),have:inventory.some(i=>wordsOverlap(x.name,i.name)&&hasStock(i))}));
+      sugs.sort((x,y)=>(y.have?1:0)-(x.have?1:0));
+      setIngredientSwap(s=>(s&&s.step==="replace"&&s.ingIdx===idx)?{...s,suggestions:sugs,sugLoading:false}:s);
+    }catch(err){
+      setIngredientSwap(s=>s?{...s,suggestions:[],sugLoading:false}:s);
+    }
+  };
+  const requestSwapPreview=async(replacement)=>{
+    const st=ingredientSwap;
+    const rep=String(replacement||"").trim();
+    if(!st||!st.recipe||!rep) return;
+    const recipe=st.recipe, idx=st.ingIdx, old=recipe.ingredients[idx];
+    setIngredientSwap(s=>s?{...s,busy:true,error:""}:s);
+    try{
+      const raw=await callClaude({
+        system:"Recipe editor. Return ONLY valid JSON, no markdown. Make the smallest change that satisfies the request.",
+        prompt:"Here is a recipe as JSON: "+JSON.stringify({name:recipe.name,description:recipe.description||"",servings:recipe.servings,ingredients:recipe.ingredients,instructions:recipe.instructions})
+          +" Make exactly ONE change: replace ingredient #"+idx+" (\""+old.name+"\") with \""+rep+"\". Rules: "
+          +"(1) Ingredient #"+idx+" becomes a {name,qty,unit} object for the replacement, with a sensible amount for "+(recipe.servings||4)+" servings (qty is a NUMBER). Every other ingredient stays EXACTLY as written, in the same order. "
+          +"(2) Rewrite ONLY the instruction steps that mention the old ingredient, adapting method, temperature and timing to the replacement. Every other step stays word-for-word. Keep the {{ing:N}} placeholders and their indexes valid, and never type a literal quantity for a measured ingredient. "
+          +"(3) If the recipe name mentions the old ingredient, change only that part of the name to the replacement; otherwise keep the name exactly. "
+          +"(4) Keep the description unchanged unless it mentions the old ingredient. "
+          +"Return JSON: {\"name\":\"\",\"description\":\"\",\"ingredients\":[...],\"instructions\":[...]}",
+        maxTokens:1800
+      });
+      const parsed=swapParseJSON(raw);
+      const aiIng=Array.isArray(parsed.ingredients)?parsed.ingredients[idx]:null;
+      if(!aiIng||typeof aiIng!=="object"||!aiIng.name) throw new Error("bad ingredient");
+      const ingredients=recipe.ingredients.map((ing,i)=>i===idx?{name:String(aiIng.name),qty:parseFloat(aiIng.qty)||1,unit:String(aiIng.unit||"")}:ing);
+      const steps=Array.isArray(parsed.instructions)?parsed.instructions.map(x=>typeof x==="string"?x:((x&&x.text)||"")):null;
+      if(!steps||steps.length===0||steps.some(x=>!String(x).trim())) throw new Error("bad steps");
+      const badPlaceholder=steps.some(x=>(String(x).match(/\{\{ing:(\d+)\}\}/g)||[]).some(p=>parseInt(p.replace(/\D/g,""),10)>=ingredients.length));
+      if(badPlaceholder) throw new Error("bad placeholder");
+      const inStock=(n)=>inventory.some(i=>wordsOverlap(n,i.name)&&hasStock(i));
+      const newRecipe={...recipe,
+        name:String(parsed.name||recipe.name).trim()||recipe.name,
+        description:typeof parsed.description==="string"?parsed.description:(recipe.description||""),
+        ingredients,instructions:steps,
+        usesFromInventory:ingredients.filter(i=>inStock(i.name)).map(i=>i.name),
+        missingIngredients:ingredients.filter(i=>!inStock(i.name)).map(i=>i.name)};
+      setIngredientSwap(s=>s?{...s,busy:false,step:"preview",preview:{recipe:newRecipe,oldIng:old,newIng:ingredients[idx],needsToBuy:!inStock(ingredients[idx].name)}}:s);
+    }catch(err){
+      console.error("requestSwapPreview:",err);
+      setIngredientSwap(s=>s?{...s,busy:false,error:"Couldn't make that swap cleanly. Try a different replacement."}:s);
+    }
+  };
+  const applyIngredientSwap=()=>{
+    const st=ingredientSwap;
+    if(!st||!st.preview) return;
+    const {recipe:newRecipe,oldIng,newIng,needsToBuy}=st.preview;
+    const oldName=st.mealName, newName=newRecipe.name;
+    // 1. the edited recipe becomes this meal's recipe
+    setFetchedRecipeCache(prev=>({...prev,[newName]:newRecipe}));
+    // 2. the day card follows (title, and its own fallback shopping estimate)
+    setMealPlan(prev=>prev.map(d=>{
+      if(d.day!==st.dayLabel) return d;
+      const kept=(d.shoppingNeeded||[]).filter(s=>!wordsOverlap(oldIng.name,s.name));
+      const add=needsToBuy?[{qty:newIng.qty,unit:newIng.unit,name:newIng.name}]:[];
+      return {...d,meal:newName,shoppingNeeded:[...kept,...add],ingredients:Array.isArray(d.ingredients)?d.ingredients.map(x=>wordsOverlap(oldIng.name,x)?newIng.name:x):d.ingredients};
+    }));
+    // 3. a photo follows a rename; a star rating is for the old dish, so it doesn't
+    if(newName!==oldName) setMealPhotos(prev=>(prev[oldName]&&!prev[newName])?{...prev,[newName]:prev[oldName]}:prev);
+    // 4. keep an open recipe window in sync
+    if(activeRecipe&&activeRecipe.name===oldName) setActiveRecipe(newRecipe);
+    // 5. work out what's left to tidy on the shopping list
+    const usedElsewhere=mealPlan.some(d=>{
+      if(d.day===st.dayLabel) return false;
+      const c=fetchedRecipeCache[d.meal];
+      return !!(c&&Array.isArray(c.ingredients)&&c.ingredients.some(x=>wordsOverlap(oldIng.name,typeof x==="object"?x.name:parseIngredientLine(x).name)));
+    });
+    const oldOnList=shopping.find(s=>wordsOverlap(oldIng.name,s.name)&&!s.checked);
+    const newOnList=shopping.some(s=>wordsOverlap(newIng.name,s.name));
+    setIngredientSwap(s=>s?{...s,step:"done",result:{newName,oldIng,newIng,
+      removeOld:(oldOnList&&!usedElsewhere)?oldOnList.name:null,
+      addNew:(needsToBuy&&!newOnList)?newIng:null,
+      category:(oldOnList&&oldOnList.category)||"Pantry"}}:s);
   };
   const addItem=()=>{
     // Qty's placeholder text ("1") can look like a real value at a glance even when the field
@@ -6788,6 +6931,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                           });
                           showAlert(needed.length+" ingredient"+(needed.length!==1?"s":"")+" added to your shopping list!");
                         }} style={{background:"transparent",border:"1px solid "+C.accent,borderRadius:seniorMode?10:6,color:C.accent,cursor:"pointer",fontFamily:FM,fontSize:seniorMode?16:11,padding:seniorMode?"10px 16px":"8px 14px",flexShrink:0,fontWeight:600}}>🛒 Add Missing ({mealPlanStillNeeded(day).length})</button>}
+                        <button onClick={()=>openIngredientSwap(day)} disabled={isViewer} style={{background:"transparent",border:"1px solid "+C.border,borderRadius:seniorMode?10:6,color:C.text,cursor:"pointer",fontFamily:FM,fontSize:seniorMode?16:11,padding:seniorMode?"10px 16px":"8px 14px",flexShrink:0,fontWeight:600}}>✏️ Swap ingredient</button>
                         <button onClick={()=>{const active=familyProfiles.filter(p=>p.active);setPlateStep(0);setPlateComponents([]);setPlateCumulativeG(0);setPlateSessionId(Date.now().toString());setPlateCoachNote("");setShowPlateSummary(false);setScaleCalcResult(null);setScaleError("");setPlateSuggestedComponents([]);setPlateCurrentComponentIdx(-1);setPlateComponentsLoading(true);setPlateLogPhoto(null);setPlateLogPhotoResult(null);setPlateLogPhotoError("");setPlateLogSaved(false);if(active.length===1){const activeP=active[0];setPlateSession({active:true,memberName:activeP.name||"",mealName:day.meal,mealDay:day.day,activeProfile:activeP,dayObj:day});setPlatePendingMeal(null);setPlateQualifyingMembers([]);}else{setPlatePendingMeal(day);setPlateQualifyingMembers(active);setPlateSession({active:true,memberName:"",mealName:day.meal,mealDay:day.day,activeProfile:null,dayObj:day});}setShowScaleModal(true);buildComponentsFromDay(day).then(comps=>{setPlateSuggestedComponents(active.length===1?filterComponentsForDiet(comps,active[0]):comps);setPlateComponentsLoading(false);}).catch(()=>setPlateComponentsLoading(false));}} style={{background:"#10b98122",border:"1px solid #10b981",borderRadius:seniorMode?10:6,color:"#10b981",cursor:"pointer",fontFamily:FM,fontSize:seniorMode?16:11,padding:seniorMode?"10px 16px":"6px 12px",flexShrink:0,fontWeight:600}} disabled={isViewer}>🍽 Plating Guide</button>
                         <button onClick={()=>setPhotoPromptMeal(day.meal)} style={{background:"transparent",border:"1px solid "+C.border,borderRadius:seniorMode?10:6,color:C.muted,cursor:"pointer",fontFamily:FM,fontSize:seniorMode?16:12,padding:seniorMode?"10px 14px":"8px 12px",flexShrink:0}} title="Add photo" disabled={isViewer}>📸 {mealPhotos[day.meal]?"Change":"Photo"}</button>
                         <button onClick={()=>{setChangeMealModal(i);setChangeMealRequest("");}} style={{background:"transparent",border:"1px solid "+C.border,borderRadius:seniorMode?10:4,color:C.muted,fontFamily:FM,fontSize:seniorMode?18:11,padding:seniorMode?"12px 20px":"8px 14px",cursor:"pointer",flexShrink:0}} disabled={isViewer}>🔄 Change Meal</button>
@@ -8630,6 +8774,95 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
         );
       })()}
 
+      {ingredientSwap&&(()=>{
+        const st=ingredientSwap;
+        const fs=seniorMode?17:13;
+        const day=mealPlan.find(d=>d.day===st.dayLabel);
+        const rowBtn={display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,width:"100%",textAlign:"left",background:C.surface,border:"1px solid "+C.border,borderRadius:10,padding:seniorMode?"14px 14px":"10px 12px",marginBottom:8,color:C.text,fontFamily:FM,fontSize:fs,cursor:"pointer"};
+        const ghost={...bBtn("ghost"),fontSize:seniorMode?15:12,padding:seniorMode?"12px 16px":"9px 14px"};
+        const lbl={fontFamily:FM,fontSize:fs-3,color:C.muted,letterSpacing:0.8,marginBottom:4};
+        const blk={background:C.surface,borderRadius:10,padding:12,marginBottom:10};
+        const ingLabel=(ing)=>[(ing.qty!==""&&ing.qty!=null)?formatScaledQty(ing.qty):"",ing.unit,ing.name].filter(Boolean).join(" ");
+        const warn=(txt)=>txt?<div style={{fontFamily:FM,fontSize:fs-1,color:"#f59e0b",marginBottom:10,lineHeight:1.5}}>⚠ {txt}</div>:null;
+        let body=null;
+        if(st.step==="loading"){
+          body=<div style={{fontFamily:FM,fontSize:fs,color:C.muted,padding:"24px 0",textAlign:"center"}}>Getting the recipe ready…</div>;
+        }else if(st.step==="pick"){
+          body=(<div>
+            <div style={{fontFamily:FM,fontSize:fs-1,color:C.muted,marginBottom:12,lineHeight:1.5}}>Which ingredient do you want to change? Everything else in the recipe stays the same.</div>
+            {warn(st.error)}
+            {st.recipe.ingredients.map((ing,i)=>{const prot=swapIsProtein(ing,day);return(
+              <button key={i} onClick={()=>pickSwapIngredient(i)} style={{...rowBtn,opacity:prot?0.55:1}}>
+                <span>{ingLabel(ing)}</span>
+                <span style={{fontSize:fs-2,color:prot?C.muted:C.accent,flexShrink:0}}>{prot?"🔒 protein":"Swap ›"}</span>
+              </button>);})}
+          </div>);
+        }else if(st.step==="replace"){
+          const old=st.recipe.ingredients[st.ingIdx];
+          body=(<div>
+            <div style={{fontFamily:FM,fontSize:fs,color:C.text,marginBottom:12,lineHeight:1.5}}>Replace <strong style={{color:C.accent}}>{old.name}</strong> with…</div>
+            {warn(st.error)}
+            {st.busy?(<div style={{fontFamily:FM,fontSize:fs,color:C.muted,padding:"20px 0",textAlign:"center"}}>Working out the change…</div>):(<div>
+              {st.sugLoading&&<div style={{fontFamily:FM,fontSize:fs-1,color:C.muted,marginBottom:10}}>Finding ideas that suit this dish…</div>}
+              {(st.suggestions||[]).map((sg,i)=>(
+                <button key={i} onClick={()=>requestSwapPreview(sg.name)} style={rowBtn}>
+                  <span><strong>{sg.name}</strong>{sg.why?<span style={{color:C.muted,fontSize:fs-2}}> — {sg.why}</span>:null}</span>
+                  {sg.have&&<span style={{fontSize:fs-2,color:"#3ecf8e",flexShrink:0}}>✓ have it</span>}
+                </button>))}
+              <div style={{fontFamily:FM,fontSize:fs-2,color:C.muted,margin:"10px 0 6px"}}>Or type your own</div>
+              <div style={{display:"flex",gap:8}}>
+                <input value={st.custom||""} onChange={e=>{const v=e.target.value;setIngredientSwap(s=>s?{...s,custom:v}:s);}} placeholder="e.g. green beans" style={{...bInp,flex:1,fontSize:fs}}/>
+                <button onClick={()=>requestSwapPreview(st.custom)} disabled={!(st.custom||"").trim()} style={{...bBtn("primary"),padding:"0 16px",opacity:(st.custom||"").trim()?1:0.5}}>Use</button>
+              </div>
+              <button onClick={()=>setIngredientSwap(s=>s?{...s,step:"pick",error:""}:s)} style={{...ghost,marginTop:14}}>‹ Back</button>
+            </div>)}
+          </div>);
+        }else if(st.step==="preview"){
+          const pv=st.preview;
+          const oldSteps=st.recipe.instructions.map(x=>typeof x==="string"?x:((x&&x.text)||""));
+          const newSteps=pv.recipe.instructions;
+          const sameLen=oldSteps.length===newSteps.length;
+          const changed=sameLen?newSteps.map((x,i)=>i).filter(i=>newSteps[i]!==oldSteps[i]):newSteps.map((x,i)=>i);
+          const renamed=pv.recipe.name!==st.recipe.name;
+          body=(<div>
+            <div style={{fontFamily:FM,fontSize:fs,color:C.text,marginBottom:12}}>Here's the change:</div>
+            {renamed&&<div style={blk}><div style={lbl}>NAME</div><div style={{fontFamily:FM,fontSize:fs-1,color:C.muted,textDecoration:"line-through"}}>{st.recipe.name}</div><div style={{fontFamily:FM,fontSize:fs,color:C.text}}>{pv.recipe.name}</div></div>}
+            <div style={blk}><div style={lbl}>INGREDIENT</div><div style={{fontFamily:FM,fontSize:fs-1,color:C.muted,textDecoration:"line-through"}}>{ingLabel(pv.oldIng)}</div><div style={{fontFamily:FM,fontSize:fs,color:C.text}}>→ {ingLabel(pv.newIng)}</div></div>
+            {changed.length>0&&<div style={blk}><div style={lbl}>{sameLen?"STEPS THAT CHANGE":"NEW STEPS"}</div>
+              {changed.map(i=>(<div key={i} style={{marginBottom:8,fontFamily:FM,fontSize:fs-1,lineHeight:1.5}}>
+                {sameLen&&<div style={{color:C.muted,textDecoration:"line-through"}}>{renderStepText(oldSteps[i],st.recipe.ingredients,1)}</div>}
+                <div style={{color:C.text}}>{(i+1)+". "+renderStepText(newSteps[i],pv.recipe.ingredients,1)}</div>
+              </div>))}
+            </div>}
+            {pv.needsToBuy&&<div style={{fontFamily:FM,fontSize:fs-1,color:"#f59e0b",marginBottom:10,lineHeight:1.5}}>🛒 You don't have {pv.newIng.name} — it will show in this meal's NEED list.</div>}
+            {renamed&&recipeRatings[st.recipe.name]&&<div style={{fontFamily:FM,fontSize:fs-2,color:C.muted,marginBottom:10,lineHeight:1.5}}>Note: your star rating belongs to the old version, so the new one starts unrated.</div>}
+            <div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:6}}>
+              <button onClick={applyIngredientSwap} style={{...bBtn("primary"),flex:2,padding:12}}>Apply change</button>
+              <button onClick={()=>setIngredientSwap(s=>s?{...s,step:"replace",error:""}:s)} style={{...ghost,flex:1}}>‹ Back</button>
+            </div>
+          </div>);
+        }else if(st.step==="done"){
+          const rs=st.result;
+          body=(<div>
+            <div style={{fontFamily:FM,fontSize:fs,color:"#3ecf8e",fontWeight:700,marginBottom:6}}>✓ Swapped {rs.oldIng.name} for {rs.newIng.name}</div>
+            <div style={{fontFamily:FM,fontSize:fs-1,color:C.muted,marginBottom:14,lineHeight:1.5}}>{st.dayLabel} is now: <span style={{color:C.text}}>{rs.newName}</span></div>
+            {rs.removeOld&&<button onClick={()=>{setShopping(prev=>prev.filter(s=>!wordsOverlap(rs.oldIng.name,s.name)));setIngredientSwap(s=>s?{...s,result:{...s.result,removeOld:null}}:s);}} style={rowBtn}><span>Remove {rs.removeOld} from my shopping list</span><span style={{color:C.accent,flexShrink:0}}>Remove</span></button>}
+            {rs.addNew&&<button onClick={()=>{setShopping(prev=>prev.some(s=>wordsOverlap(rs.addNew.name,s.name))?prev:[...prev,{name:rs.addNew.name,qty:rs.addNew.qty||1,unit:rs.addNew.unit||"",category:rs.category||"Pantry",checked:false,suggestBulk:false,source:"Meal Plan: "+rs.newName}]);setIngredientSwap(s=>s?{...s,result:{...s.result,addNew:null}}:s);}} style={rowBtn}><span>Add {rs.addNew.name} to my shopping list</span><span style={{color:C.accent,flexShrink:0}}>Add</span></button>}
+            <button onClick={()=>setIngredientSwap(null)} style={{...bBtn("primary"),width:"100%",padding:12,marginTop:6}}>Done</button>
+          </div>);
+        }
+        return(
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.78)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:3200,padding:16}} onClick={()=>setIngredientSwap(null)}>
+            <div style={{background:C.card,border:"1px solid "+C.border,borderRadius:16,padding:22,maxWidth:480,width:"100%",maxHeight:"86vh",overflowY:"auto",position:"relative"}} onClick={e=>e.stopPropagation()}>
+              <button onClick={()=>setIngredientSwap(null)} aria-label="Close" style={{position:"absolute",top:12,right:12,background:"transparent",border:"none",color:C.muted,fontSize:22,lineHeight:1,cursor:"pointer",padding:4}}>✕</button>
+              <div style={{fontFamily:FD,fontSize:seniorMode?22:19,fontWeight:700,color:C.text,marginBottom:2,paddingRight:28}}>✏️ Change an ingredient</div>
+              <div style={{fontFamily:FM,fontSize:fs-2,color:C.muted,marginBottom:14,lineHeight:1.4}}>{st.dayLabel}: {st.mealName}</div>
+              {body}
+            </div>
+          </div>
+        );
+      })()}
+
       {showCalorieConfirm&&(()=>{
         const profile=familyProfiles.find(p=>p.id===showCalorieConfirm.profileId);
         const gc=showCalorieConfirm.goalCalc;
@@ -8894,6 +9127,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
             <div style={{display:"flex",gap:8,marginTop:10}}>
               <button style={{...bBtn("ghost"),flex:1,padding:10,fontSize:12}} onClick={()=>printRecipeCard(activeRecipe,mealPhotos[activeRecipe.name],activeRecipeServings)}>&#128424; Print</button>
               {(()=>{const srcDay=mealPlan.find(d=>d.meal===activeRecipe.name);return (srcDay&&!isViewer)?(<button style={{...bBtn("ghost"),flex:1,padding:10,fontSize:12}} onClick={()=>showConfirm("Replace this recipe with a freshly generated one? The current version will be lost.",()=>openMealPlanRecipe(srcDay,true))}>&#128260; Regenerate</button>):null;})()}
+              {(()=>{const srcDay2=mealPlan.find(d=>d.meal===activeRecipe.name);return (srcDay2&&!isViewer)?(<button style={{...bBtn("ghost"),flex:1,padding:10,fontSize:12}} onClick={()=>openIngredientSwap(srcDay2)}>✏️ Swap ingredient</button>):null;})()}
               {(()=>{
                 const scale=activeRecipeServings/(activeRecipe.servings||4);
                 const hasStructured=Array.isArray(activeRecipe.ingredients)&&activeRecipe.ingredients.some(ing=>typeof ing==="object");
