@@ -937,6 +937,29 @@ const calcProteinTargetG=(profile,weightKg)=>{
   return Math.round(weightKg*perKg);
 };
 
+// Item families where the VARIETY makes it a different thing. Used by the ingredient matcher so that
+// two names sharing a last word ("...squash", "...potatoes", "...broth") are only treated as the same
+// item when their varieties don't clash. Each family is a list of groups; a group maps a variety word
+// (singular form) to its canonical variety. Words not listed here never cause a mismatch, so brand names
+// and descriptive words are safe. Add to this table to teach the app a new distinction.
+const VARIETY_FAMILIES={
+  squash:[{acorn:"acorn",butternut:"butternut",spaghetti:"spaghetti",kabocha:"kabocha",delicata:"delicata",buttercup:"buttercup",summer:"summer",yellow:"summer"}],
+  potato:[{sweet:"sweet",russet:"russet",idaho:"russet",red:"red",yellow:"yellow",gold:"yellow",golden:"yellow",yukon:"yellow",fingerling:"fingerling",hash:"hash",hashbrown:"hash",mashed:"mashed"}],
+  bean:[{green:"green",string:"green",black:"black",kidney:"kidney",pinto:"pinto",lima:"lima",baked:"baked",refried:"refried"}],
+  cheese:[{cheddar:"cheddar",mozzarella:"mozzarella",parmesan:"parmesan",swiss:"swiss",provolone:"provolone",feta:"feta",cream:"cream",american:"american",colby:"colby",jack:"jack",gouda:"gouda",ricotta:"ricotta",cottage:"cottage",goat:"goat",blue:"blue"}],
+  broth:[{chicken:"chicken",beef:"beef",vegetable:"vegetable",turkey:"turkey",pork:"pork",fish:"fish",seafood:"seafood"}],
+  stock:[{chicken:"chicken",beef:"beef",vegetable:"vegetable",turkey:"turkey",pork:"pork",fish:"fish",seafood:"seafood"}],
+  milk:[{almond:"almond",soy:"soy",oat:"oat",coconut:"coconut",whole:"whole",skim:"skim",condensed:"condensed",evaporated:"evaporated"}],
+  sugar:[{brown:"brown",powdered:"powdered",confectioner:"powdered",granulated:"granulated",white:"granulated"}],
+  oil:[{olive:"olive",sesame:"sesame",coconut:"coconut",peanut:"peanut",avocado:"avocado"}],
+  sauce:[{soy:"soy",tomato:"tomato",hot:"hot",bbq:"bbq",barbecue:"bbq",worcestershire:"worcestershire",teriyaki:"teriyaki",alfredo:"alfredo",enchilada:"enchilada",hoisin:"hoisin",oyster:"oyster",fish:"fish",buffalo:"buffalo",sriracha:"sriracha",cranberry:"cranberry",tartar:"tartar",cocktail:"cocktail"}],
+  flour:[{almond:"almond",coconut:"coconut",rye:"rye",wheat:"wheat"}],
+  tomato:[{roma:"roma",plum:"roma",cherry:"cherry",grape:"grape",beefsteak:"beefsteak",heirloom:"heirloom"}],
+  mushroom:[{bella:"cremini",cremini:"cremini",portobello:"cremini",shiitake:"shiitake",button:"button",white:"button",oyster:"oyster"}],
+  lettuce:[{romaine:"romaine",iceberg:"iceberg",butter:"butter",leaf:"leaf"}],
+  pepper:[{bell:"bell",jalapeno:"jalapeno",serrano:"serrano",habanero:"habanero",cayenne:"cayenne",poblano:"poblano"},{red:"red",green:"green",yellow:"yellow",orange:"orange"}]
+};
+
 const ROLE_LABELS={adult:"Adult","teen-athlete":"Teen Athlete",child:"Child",senior:"Senior"};
 
 const DEFAULT_PROFILES=[
@@ -5247,10 +5270,29 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
   // significant word, so "chicken broth" (recipe) silently counted as "already have" whenever
   // "chicken breast" was in inventory -- swallowing genuinely missing ingredients.
   const headNoun=(s)=>{const w=significantWords(s);return w.length?w[w.length-1]:null;};
+  // A last-word match alone is too coarse where the last word names a whole FAMILY of different items
+  // ("butternut squash" vs "acorn squash", "sweet potatoes" vs "hash brown potatoes", "chicken broth" vs
+  // "beef broth"). When BOTH names carry a recognised variety from the same family and those varieties
+  // don't overlap, they are different items. If either name is generic or has no recognised variety the
+  // loose match still applies (see VARIETY_FAMILIES), so brand names can't cause false mismatches.
+  const varietyStem=(w)=>w.replace(/ies$/,"y").replace(/oes$/,"o").replace(/s$/,"");
+  const varietyConflict=(a,b)=>{
+    const fam=VARIETY_FAMILIES[varietyStem(headNoun(a)||"")];
+    if(!fam) return false;
+    // raw words (not significantWords): that filter drops words like "whole", which can be a variety ("whole" vs "almond" milk)
+    const rawWords=(s)=>String(s||"").toLowerCase().replace(/[^a-z0-9\s]/g," ").split(/\s+/).filter(Boolean).map(varietyStem);
+    const ta=rawWords(a),tb=rawWords(b);
+    return fam.some(group=>{
+      const va=new Set(ta.filter(w=>group[w]).map(w=>group[w]));
+      const vb=new Set(tb.filter(w=>group[w]).map(w=>group[w]));
+      if(!va.size||!vb.size) return false;
+      return ![...va].some(v=>vb.has(v));
+    });
+  };
   const wordsOverlap=(a,b)=>{
     const ha=headNoun(a),hb=headNoun(b);
     if(!ha||!hb) return false;
-    return ha===hb;
+    return ha===hb&&!varietyConflict(a,b);
   };
   // An inventory entry only counts as "have it" if it actually has stock remaining -- a
   // depleted item (qty 0, or bulkQtyRemaining 0 for bulk-tracked items) still exists as a row
