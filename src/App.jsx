@@ -4724,21 +4724,25 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
   },[]);
 
   // Fetch food recall alerts and sensitivity preference once the user is known
+  const loadRecallAlerts=async()=>{
+    if(!user) return;
+    try{
+      const {data,error}=await supabase
+        .from("user_recall_alerts")
+        .select("id,recall_id,matched_item_name,severity,list_type,created_at,recalls(product_description,reason_for_recall,classification,recall_initiation_date)")
+        .eq("user_id",user.id)
+        .eq("read",false)
+        .order("created_at",{ascending:false});
+      if(!error&&data){
+        setRecallAlerts(data.filter(a=>(a.list_type||"inventory")==="inventory"));
+        setShoppingListRecallAlerts(data.filter(a=>a.list_type==="shopping_list"));
+      }
+    }catch{}
+  };
   useEffect(()=>{
     if(!user) return;
+    loadRecallAlerts();
     (async()=>{
-      try{
-        const {data,error}=await supabase
-          .from("user_recall_alerts")
-          .select("id,recall_id,matched_item_name,severity,list_type,created_at,recalls(product_description,reason_for_recall,classification,recall_initiation_date)")
-          .eq("user_id",user.id)
-          .eq("read",false)
-          .order("created_at",{ascending:false});
-        if(!error&&data){
-          setRecallAlerts(data.filter(a=>(a.list_type||"inventory")==="inventory"));
-          setShoppingListRecallAlerts(data.filter(a=>a.list_type==="shopping_list"));
-        }
-      }catch{}
       try{
         const {data:ud}=await supabase.from("user_data").select("recall_match_sensitivity").eq("user_id",user.id).single();
         if(ud&&ud.recall_match_sensitivity) setRecallSensitivity(ud.recall_match_sensitivity);
@@ -4746,11 +4750,25 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     })();
   },[user]);
 
-  const dismissRecallAlert=(alertId)=>{
-    setRecallAlerts(prev=>prev.filter(a=>a.id!==alertId));
-    setShoppingListRecallAlerts(prev=>prev.filter(a=>a.id!==alertId));
-    supabase.from("user_recall_alerts").update({read:true}).eq("id",alertId).then(()=>{}).catch(()=>{});
+  // Mark one or more recall alerts as reviewed. Hides them everywhere they're shown -- the banner,
+  // the shopping-list badges, AND the detail window, which renders its own snapshot of the list taken
+  // when it was opened (that snapshot never updated before, so Dismiss looked like it did nothing).
+  // The saved flag is what keeps them hidden next time: the daily check never re-adds a dismissed
+  // match, it only adds new ones.
+  const dismissRecallAlerts=(ids)=>{
+    if(!ids||!ids.length||!user) return;
+    setRecallAlerts(prev=>prev.filter(a=>!ids.includes(a.id)));
+    setShoppingListRecallAlerts(prev=>prev.filter(a=>!ids.includes(a.id)));
+    setActiveRecallDetail(prev=>{
+      if(!prev) return prev;
+      const left=prev.filter(a=>!ids.includes(a.id));
+      return left.length>0?left:null;
+    });
+    supabase.from("user_recall_alerts").update({read:true}).in("id",ids).eq("user_id",user.id).then(({error})=>{
+      if(error){showAlert("Couldn't save that dismissal, so it may come back. Please try again.");loadRecallAlerts();}
+    }).catch(()=>{loadRecallAlerts();});
   };
+  const dismissRecallAlert=(alertId)=>dismissRecallAlerts([alertId]);
 
   // Fetch Deep Discount Alerts (Smarter Way to Shop) once the user is known -- same pattern as
   // recall alerts above: computed server-side by a daily cron, just read here, never computed
@@ -5909,7 +5927,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                 {hasCritical?"FDA Food Safety Alert":"FDA Food Recall Notice"} — {recallAlerts.length} item{recallAlerts.length!==1?"s":""} in your inventory possibly {recallAlerts.length!==1?"match":"matches"} a recent recall by name. Tap for details.
               </span>
             </div>
-            <button onClick={()=>setShowRecallBanner(false)} style={{background:"transparent",border:"1px solid "+(hasCritical?"#ef4444":"#d97706"),borderRadius:8,color:hasCritical?"#fecaca":"#fde68a",cursor:"pointer",fontFamily:"Arial",fontSize:12,padding:"6px 12px"}}>Dismiss</button>
+            <button onClick={()=>{const ids=recallAlerts.map(a=>a.id);if(hasCritical){showConfirm("One or more of these is a critical (Class I) recall. Mark them all as reviewed and hide this notice?",()=>dismissRecallAlerts(ids));}else{dismissRecallAlerts(ids);}}} style={{background:"transparent",border:"1px solid "+(hasCritical?"#ef4444":"#d97706"),borderRadius:8,color:hasCritical?"#fecaca":"#fde68a",cursor:"pointer",fontFamily:"Arial",fontSize:12,padding:"6px 12px"}}>Dismiss</button>
           </div>
         );
       })()}
@@ -8003,6 +8021,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                 </div>
               );
             })}
+            {activeRecallDetail.length>1&&<button onClick={()=>dismissRecallAlerts(activeRecallDetail.map(a=>a.id))} style={{...bBtn("ghost"),width:"100%",fontSize:12,padding:"9px 12px",marginBottom:8}}>Dismiss all {activeRecallDetail.length}</button>}
             <div style={{fontSize:11,color:C.muted,fontFamily:FM,textAlign:"center",marginTop:6,paddingTop:10,borderTop:"1px solid "+C.border}}>
               Based on FDA Food Enforcement data, matched by product name. Always check packaging lot numbers against the official FDA recall notice before discarding or continuing to use a product.
             </div>
