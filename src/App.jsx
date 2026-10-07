@@ -5177,7 +5177,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
         const day=daysNeedingFetch[i];
         setLoadMsg(`Verifying recipe ${i+1} of ${daysNeedingFetch.length}: ${day.meal}…`);
         const ingredients=await fetchRecipeIngredientsForCache(day);
-        if(ingredients) localCache[day.meal]=ingredients;
+        if(ingredients) localCache[day.meal]={ingredients};
       }
       setLoadMsg("Building shopping list…");
       // Re-check against current inventory before consolidating -- d.shoppingNeeded is a snapshot
@@ -5291,6 +5291,17 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
   };
   const mealPlanStillNeeded=(day,cacheOverride)=>{
     const cache=cacheOverride||fetchedRecipeCache;
+    // Once a meal's full recipe exists, THAT is the single source of truth for what the meal needs.
+    // The day card's own shoppingNeeded comes from a separate, earlier AI call that never saw the
+    // recipe, so it can list things the recipe doesn't use at all (e.g. avocados on a pasta night)
+    // -- and the old logic could only ever ADD to that list, never take a wrong item off. The card's
+    // estimate below is now just the fallback for days whose recipe hasn't been generated yet.
+    const authoritative=cache[day.meal];
+    if(authoritative&&Array.isArray(authoritative.ingredients)&&authoritative.ingredients.length>0){
+      return authoritative.ingredients
+        .map(ing=>(ing&&typeof ing==="object")?{qty:ing.qty??"",unit:ing.unit||"",name:ing.name||""}:parseIngredientLine(ing))
+        .filter(p=>p&&p.name&&!inventory.some(i=>wordsOverlap(p.name,i.name)&&hasStock(i)));
+    }
     const stillMissingFromShoppingList=liveNeeded(day.shoppingNeeded||[]);
     const newlyMissingFromHaveList=liveMissing(day.ingredients||[]).filter(name=>
       !stillMissingFromShoppingList.some(s=>wordsOverlap(name,s.name))
@@ -5323,7 +5334,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       const cellarInfo=await getCellarCookingBlock();
       const raw=await callClaude({
         system:"Recipe AI. Return ONLY valid JSON, no markdown. Single object.",
-        prompt:`Give the ingredient list for a simple home recipe for "${day.meal}" that serves ${baseServings} people. Full inventory on hand: ${invList}.`+(knownIngredients?` Use EXACTLY this ingredient list with its measurements — do not invent a different one: ${knownIngredients}.`:"")+cellarInfo.block+` Return JSON: {ingredients:[{name,qty,unit} objects — qty is a NUMBER, unit is a short string like "cup","tsp","oz","lb" or "" for countable items]}`,
+        prompt:`Give the ingredient list for a simple home recipe for "${day.meal}" that serves ${baseServings} people. Full inventory on hand: ${invList}.`+(knownIngredients?` Use EXACTLY this ingredient list with its measurements — do not invent a different one: ${knownIngredients}.`:"")+cellarInfo.block+` CRITICAL: include every food named in the recipe name (each vegetable, side, sauce or topping), and do NOT add ingredients the dish does not need. Return JSON: {ingredients:[{name,qty,unit} objects — qty is a NUMBER, unit is a short string like "cup","tsp","oz","lb" or "" for countable items]}`,
         maxTokens:600
       });
       const text=typeof raw==="string"?raw:Array.isArray(raw)?raw.map(r=>r.text||"").join(""):raw?.content?.[0]?.text||"";
@@ -5449,7 +5460,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     setCookedConfirm({name:r.name,cellarNote,deductionSummary});
   };
 
-  const openMealPlanRecipe=async(day)=>{
+  const openMealPlanRecipe=async(day,force)=>{
     // Reuse a previously-generated full recipe if we have one, instead of regenerating -- normal
     // AI non-determinism means a fresh generation can produce a different instructions/ingredient
     // list every time, which made the missing-items count appear to change on repeated taps. Only
@@ -5457,7 +5468,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     // ingredients-only pre-verification writes to this same cache but shouldn't be mistaken for a
     // complete recipe here.
     const cachedFull=fetchedRecipeCache[day.meal];
-    if(cachedFull&&Array.isArray(cachedFull.instructions)&&cachedFull.instructions.length>0){
+    if(!force&&cachedFull&&Array.isArray(cachedFull.instructions)&&cachedFull.instructions.length>0){
       setActiveRecipe(cachedFull);
       setActiveRecipeServings(cachedFull.servings||activeProfiles.length||4);
       return;
@@ -5471,7 +5482,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       const cellarInfo=await getCellarCookingBlock();
       const raw=await callClaude({
         system:"Recipe AI. Return ONLY valid JSON, no markdown. Single object.",
-        prompt:`Give a simple home recipe for "${day.meal}" that serves ${baseServings} people. Full inventory on hand: ${invList}.`+(knownIngredients?` Use EXACTLY this ingredient list with its measurements — do not invent a different one: ${knownIngredients}.`:"")+cellarInfo.block+` CRITICAL: if the recipe name itself specifies a cooking method or technique (e.g. "Sous Vide," "Air Fryer," "Slow Cooker," "Grilled," "Instant Pot," "Smoked"), the instructions MUST actually use that exact method with its correct temperatures/times — never keep a technique in the name while writing different, more conventional instructions (e.g. a "Sous Vide" title paired with plain stovetop pan-searing is wrong; sous vide requires stating the water bath temperature and time, with a quick sear only as the finishing step). If a named technique isn't practical for a home kitchen without specialized equipment, rename the recipe to match what the instructions actually do rather than leaving a mismatched name. Return JSON: {name,description,time,difficulty,servings,ingredients:[{name,qty,unit} objects — qty is a NUMBER (use decimals for fractions, e.g. 0.5 for 1/2 cup, 0.25 for 1/4 tsp), unit is a short string like "cup","tsp","tbsp","oz","lb" or "" for countable items like eggs],instructions:[4-6 short strings — CRITICAL: every step that references a measured ingredient MUST use a {{ing:N}} placeholder instead of typing a number, where N is that ingredient's zero-based index in the ingredients array. Never type a literal quantity or unit for a measured ingredient — always use the placeholder so amounts stay accurate when the recipe is scaled to a different serving size.],usesFromInventory:[items from inventory used],missingIngredients:[items NOT in inventory]`+cellarInfo.schemaField+`}`,
+        prompt:`Give a simple home recipe for "${day.meal}" that serves ${baseServings} people. Full inventory on hand: ${invList}.`+(knownIngredients?` Use EXACTLY this ingredient list with its measurements — do not invent a different one: ${knownIngredients}.`:"")+cellarInfo.block+` CRITICAL: if the recipe name itself specifies a cooking method or technique (e.g. "Sous Vide," "Air Fryer," "Slow Cooker," "Grilled," "Instant Pot," "Smoked"), the instructions MUST actually use that exact method with its correct temperatures/times — never keep a technique in the name while writing different, more conventional instructions (e.g. a "Sous Vide" title paired with plain stovetop pan-searing is wrong; sous vide requires stating the water bath temperature and time, with a quick sear only as the finishing step). If a named technique isn't practical for a home kitchen without specialized equipment, rename the recipe to match what the instructions actually do rather than leaving a mismatched name. CRITICAL: every food named in the recipe name — each vegetable, side dish, sauce or topping (e.g. the mushrooms in "with Rice and Mushrooms", or the Brussels sprouts and sweet potatoes in "Roasted Brussels Sprouts and Sweet Potatoes") — MUST be in the ingredients list and used in the instructions, so the recipe actually makes the dish its name promises. Likewise do NOT add ingredients the dish does not need (no unrelated sides or garnishes). Return JSON: {name,description,time,difficulty,servings,ingredients:[{name,qty,unit} objects — qty is a NUMBER (use decimals for fractions, e.g. 0.5 for 1/2 cup, 0.25 for 1/4 tsp), unit is a short string like "cup","tsp","tbsp","oz","lb" or "" for countable items like eggs],instructions:[4-6 short strings — CRITICAL: every step that references a measured ingredient MUST use a {{ing:N}} placeholder instead of typing a number, where N is that ingredient's zero-based index in the ingredients array. Never type a literal quantity or unit for a measured ingredient — always use the placeholder so amounts stay accurate when the recipe is scaled to a different serving size.],usesFromInventory:[items from inventory used],missingIngredients:[items NOT in inventory]`+cellarInfo.schemaField+`}`,
         maxTokens:1500
       });
       const text=typeof raw==="string"?raw:Array.isArray(raw)?raw.map(r=>r.text||"").join(""):raw?.content?.[0]?.text||"";
@@ -5578,7 +5589,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
           day.proteinUsed?"Protein: "+day.proteinUsed:"",
           (day.sauteBagsUsed||0)>0?"Saute blend: "+day.sauteBagsUsed+" bag":"",
           day.sideUsed?"Side: "+day.sideUsed:"",
-          liveNeeded(day.shoppingNeeded).length>0?"Need: "+liveNeeded(day.shoppingNeeded).map(s=>s.name).join(", "):"All on hand",
+          mealPlanStillNeeded(day).length>0?"Need: "+mealPlanStillNeeded(day).map(s=>s.name).join(", "):"All on hand",
         ].filter(Boolean).join(" | ");
         return "https://calendar.google.com/calendar/render?action=TEMPLATE"+
           "&text="+encodeURIComponent("Dinner: "+day.meal)+
@@ -8882,6 +8893,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
             })()}
             <div style={{display:"flex",gap:8,marginTop:10}}>
               <button style={{...bBtn("ghost"),flex:1,padding:10,fontSize:12}} onClick={()=>printRecipeCard(activeRecipe,mealPhotos[activeRecipe.name],activeRecipeServings)}>&#128424; Print</button>
+              {(()=>{const srcDay=mealPlan.find(d=>d.meal===activeRecipe.name);return (srcDay&&!isViewer)?(<button style={{...bBtn("ghost"),flex:1,padding:10,fontSize:12}} onClick={()=>showConfirm("Replace this recipe with a freshly generated one? The current version will be lost.",()=>openMealPlanRecipe(srcDay,true))}>&#128260; Regenerate</button>):null;})()}
               {(()=>{
                 const scale=activeRecipeServings/(activeRecipe.servings||4);
                 const hasStructured=Array.isArray(activeRecipe.ingredients)&&activeRecipe.ingredients.some(ing=>typeof ing==="object");
@@ -8892,14 +8904,11 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                 }else{
                   missing=liveMissing(activeRecipe.missingIngredients||[]).map(name=>({name,qty:1,unit:"as needed"}));
                 }
-                // If this recipe came from the meal plan (opened via TAP FOR FULL RECIPE), that
-                // triggered a separate AI generation with its own ingredient list -- even instructed
-                // to reuse the original list, wording or an added "salt to taste" can drift. Union in
-                // whatever the compact day card's own NEED check already flagged, so nothing the
-                // person saw on the day card silently disappears just because the full recipe's
-                // separately-generated list phrased things differently.
+                // A recipe with structured ingredients IS the source of truth, and the day card's own NEED list is
+                // now derived from this same recipe, so there's nothing to union in. Only recipes without
+                // structured ingredients (legacy text-only) still borrow the day card's needs.
                 const sourceDay=mealPlan.find(d=>d.meal===activeRecipe.name);
-                if(sourceDay){
+                if(sourceDay&&!hasStructured){
                   const fromDayCard=mealPlanStillNeeded(sourceDay);
                   const extra=fromDayCard.filter(d=>!missing.some(m=>wordsOverlap(m.name,d.name)));
                   missing=[...missing,...extra];
