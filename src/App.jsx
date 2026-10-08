@@ -2527,6 +2527,10 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [showCalorieConfirm,setShowCalorieConfirm]=useState(null);
   const [showFitnessPanel,setShowFitnessPanel]=useState(false);
   const [ingredientSwap,setIngredientSwap]=useState(null);
+  const [newShopItem,setNewShopItem]=useState({name:"",qty:"1",unit:"",category:"Pantry",catTouched:false});
+  const [shopAddNote,setShopAddNote]=useState(null);
+  const shopAddRef=useRef(null);
+  const shopAddNoteTimer=useRef(null);
   const [fitnessMemberId,setFitnessMemberId]=useState(null);
   const [activityCache,setActivityCache]=useState({});
   const [activityDraft,setActivityDraft]=useState({steps:"",active_kcal:"",workout_min:""});
@@ -2948,6 +2952,65 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   };
   // OK: accept the change and close the bar right away (nothing is undone)
   const dismissHaveIt=()=>{clearTimeout(haveItTimer.current);setHaveItToast(null);};
+  // -- Manually add an item to the shopping list. Before this, items only arrived from meal plans, recipes, swaps and
+  // Add Missing -- there was no way to just type "paper towels". The category is pre-selected from your Inventory
+  // (if you already track the item) or from the item name, and you can change it. Typing "2 lbs ground beef" fills
+  // in the quantity and unit for you (only when a real unit word is present, so "12 grain bread" stays as typed).
+  // New names flow into the instant FDA recall check automatically, like any other add.
+  const guessShopCategory=(name)=>{
+    const n=String(name||"").trim().toLowerCase();
+    if(!n) return "Pantry";
+    const inv=inventory.find(i=>String(i.name||"").trim().toLowerCase()===n)||inventory.find(i=>swapCovers(i.name,n));
+    if(inv&&CATEGORIES.includes(inv.category)) return inv.category;
+    if(/\b(peanut|almond|cashew|nut|apple|cookie)\s+butter\b/.test(n)) return "Pantry";
+    if(/\b(dog|cat|pet)\s+(food|treats?)\b|\bcat\s+litter\b|\blitter\b/.test(n)) return "Pet";
+    if(/\b(shampoo|conditioner|toothpaste|toothbrush|deodorant|razors?|body wash|lotion|floss|mouthwash)\b/.test(n)) return "Personal Care";
+    if(/\b(detergent|bleach|cleaner|dish soap|dishwasher|windex|disinfectant|sponges?|laundry)\b/.test(n)) return "Cleaning";
+    if(/\b(paper towels?|toilet paper|napkins?|trash bags?|garbage bags?|foil|plastic wrap|parchment|zip(?:per)? bags?|light bulbs?|batteries)\b/.test(n)) return "Household";
+    if(/\b(creamer|half and half)\b/.test(n)) return "Dairy";
+    if(/\b(broth|stock|bouillon)\b/.test(n)) return "Pantry";
+    // specific spice phrases first, so "black pepper" is a spice but "bell peppers" are produce
+    if(/\b(pepper flakes|crushed red pepper|black pepper|ground pepper|white pepper|peppercorns?|cayenne|chili powder|paprika|cinnamon|oregano|basil|cumin|nutmeg|garlic powder|onion powder|bay leaves|seasoning|spice)\b/.test(n)) return "Spices";
+    if(/\b(bell|jalape\w*|serrano|poblano|banana|sweet|green|red|yellow|orange)\s+peppers?\b|\bpeppers\b/.test(n)) return "Produce";
+    // drinks before produce/protein so "orange juice" isn't an orange and "root beer" isn't beef
+    if(/\b(bottled water|sparkling water|seltzer|soda|juice|coffee|tea|beer|wine|lemonade|kombucha)\b/.test(n)) return "Beverages";
+    if(/\b(chicken|beef|pork|steak|sausage|bacon|turkey|ham|fish|salmon|shrimp|ground|roast|ribs?|chops?|brisket|tilapia|cod)\b/.test(n)) return "Protein";
+    if(/\b(milk|cheese|butter|yogurt|cream|eggs?)\b/.test(n)) return "Dairy";
+    if(/\b(apples?|bananas?|lettuce|tomato(?:es)?|onions?|potato(?:es)?|carrots?|celery|berries|berry|squash|broccoli|spinach|garlic|cucumbers?|avocados?|fruit|vegetables?|mushrooms?|corn|lemons?|limes?|oranges?|grapes?|kale|cabbage|zucchini|asparagus|cauliflower|peaches|pears?|melon)\b/.test(n)) return "Produce";
+    if(/\b(frozen|ice cream|popsicles?)\b/.test(n)) return "Frozen";
+    if(/\b(chips|crackers|cookies|popcorn|pretzels|granola bars?|candy)\b/.test(n)) return "Snacks";
+    if(/\b(rice|pasta|noodles?|bread|cereal|oats|tortillas?|flour)\b/.test(n)) return "Grains";
+    if(/\b(ketchup|mustard|mayo|mayonnaise|dressing|salsa|vinegar|soy sauce|hot sauce|bbq sauce|syrup)\b/.test(n)) return "Condiments";
+    if(/\b(salt|pepper|thyme)\b/.test(n)) return "Spices";
+    return "Pantry";
+  };
+  const showShopAddNote=(text,warn)=>{
+    setShopAddNote({text,warn:!!warn});
+    clearTimeout(shopAddNoteTimer.current);
+    shopAddNoteTimer.current=setTimeout(()=>setShopAddNote(null),3500);
+  };
+  const addShoppingItemManually=()=>{
+    if(isViewer) return;
+    let name=String(newShopItem.name||"").trim().replace(/\s+/g," ");
+    let qtyStr=String(newShopItem.qty||"").trim();
+    let unit=String(newShopItem.unit||"").trim();
+    if(!name){showShopAddNote("Type what you need first.",true);return;}
+    // "2 lbs ground beef" -> qty 2, unit lbs, name "ground beef" (only if qty/unit boxes are untouched)
+    const lead=name.match(/^(\d+(?:\.\d+)?)\s*(lbs?|pounds?|oz|ounces?|cups?|cans?|bags?|boxes|box|bottles?|dozen|pkgs?|packages?|jars?|loaf|loaves|bunch(?:es)?|heads?|gallons?|stalks?|cloves?)\s+(.+)$/i);
+    if(lead&&(qtyStr===""||qtyStr==="1")&&unit===""){qtyStr=lead[1];unit=lead[2];name=lead[3].trim();}
+    const lc=name.toLowerCase();
+    if(shopping.some(s=>String(s.name||"").trim().toLowerCase()===lc&&!s.checked)){
+      showShopAddNote(name+" is already on your list.",true);
+      return;
+    }
+    const q=parseFloat(qtyStr);
+    const category=newShopItem.catTouched?newShopItem.category:guessShopCategory(name);
+    const item={name,qty:(isNaN(q)||q<=0)?1:q,unit,category,checked:false,suggestBulk:false,source:"Added manually"};
+    setShopping(prev=>[...prev,item]);
+    setNewShopItem({name:"",qty:"1",unit:"",category:"Pantry",catTouched:false});
+    showShopAddNote("✓ Added "+name+" to "+category,false);
+    if(shopAddRef.current) shopAddRef.current.focus();
+  };
   const renderShopItem=(item)=>{
     const gi=shopping.indexOf(item);
     const isEditing=editingShoppingIdx===gi;
@@ -7262,6 +7325,29 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                 {shopping.length>0&&<><div style={{fontFamily:FM,fontSize:seniorMode?15:11,color:C.muted,fontWeight:seniorMode?600:400}}>{shopping.filter(i=>i.checked).length}/{shopping.length} items</div><button style={{...bBtn("ghost"),padding:"6px 12px",fontSize:11}} onClick={printShopping}>🖨 Print</button>{shopPartnerEmail&&<button style={{...bBtn("ghost"),padding:"6px 12px",fontSize:11}} onClick={async()=>{const btn=document.activeElement;btn.textContent="Sending...";btn.disabled=true;try{const r=await fetch("/api/send-shopping-list",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({toEmail:shopPartnerEmail,toName:shopPartnerName,items:shopping,fromName:"Smart Kitchen"})});const d=await r.json();if(d.success){setEmailSentModal(shopPartnerEmail);}else if(d.fallback){window.location.href=d.mailtoUrl;}else{showAlert("Could not send email. Please try again.");}}catch(e){showAlert("Could not send email: "+e.message);}btn.textContent="Email to "+(shopPartnerName||shopPartnerEmail);btn.disabled=false;}}>Email to {shopPartnerName||shopPartnerEmail}</button>}{shopPhone&&<button style={{...bBtn("ghost"),padding:"6px 12px",fontSize:11,border:"1px solid #22c55e",color:"#22c55e"}} onClick={async()=>{setSmsSent(false);try{const r=await fetch("/api/send-shopping-sms",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({toPhone:shopPhone,items:shopping,fromName:shopPartnerName||"Smart Kitchen"})});const d=await r.json();if(d.success){setSmsSent(true);setTimeout(()=>setSmsSent(false),4000);}else if(d.fallback&&d.smsUrl){window.open(d.smsUrl);}else{showAlert("Could not send SMS. Please try again.");}}catch(e){showAlert("Could not send SMS: "+e.message);}}}>{smsSent?"Sent!":"Text to "+shopPhone}</button>}<button style={{...bBtn("ghost"),padding:"6px 12px",fontSize:11,background:"#00873A",border:"1px solid #00873A",color:"#ffffff",fontWeight:600}} onClick={sendToDelivery} disabled={instacartLoading}>{instacartLoading?"Opening...":"🛒 "+(deliveryService==="shipt"?"Send to Shipt":"Copy for Instacart")}</button>{deliveryService==="instacart"&&<select value={instacartStore} onChange={e=>{setInstacartStore(e.target.value);try{localStorage.setItem("sk_instacartStore",e.target.value);}catch{}}} title="Choose your Instacart store" style={{padding:"6px 8px",borderRadius:8,border:"1px solid "+C.border,background:C.surface,color:C.text,fontFamily:FM,fontSize:11,cursor:"pointer"}}>{[["meijer","Meijer"],["aldi","ALDI"],["kroger","Kroger"],["costco","Costco"],["walmart","Walmart"],["target","Target"],["other","Other / Not Listed"]].map(([k,label])=>(<option key={k} value={k}>{label}</option>))}</select>}{restockQueue.length>0&&<button style={{...bBtn("ghost"),padding:"6px 12px",fontSize:11,border:"1px solid "+C.accent,color:C.accent}} onClick={()=>{const toAdd=restockQueue.filter(name=>!shopping.some(s=>s.name.toLowerCase()===name.toLowerCase())).map(name=>{const invMatch=inventory.find(i=>wordsOverlap(name,i.name));return {name,qty:1,unit:invMatch?.unit||"",category:invMatch?.category||"Pantry",checked:false,suggestBulk:false};});if(toAdd.length>0){setShopping(p=>[...p,...toAdd]);showAlert(toAdd.length+" item"+(toAdd.length>1?"s":"")+" added to shopping list.");}else{showAlert("All restock items are already on the list.");}setRestockQueue([]);try{localStorage.setItem("sk_restockQueue","[]");}catch{}}}>+ {restockQueue.length} Restock</button>}</>}
               </div>
             </div>
+{!isViewer&&(
+<div style={{background:C.card,border:"1px solid "+C.border,borderRadius:12,padding:seniorMode?"14px 16px":"10px 12px",marginBottom:14}}>
+<div style={{display:"flex",gap:8}}>
+<input ref={shopAddRef} value={newShopItem.name}
+onChange={e=>{const v=e.target.value;setNewShopItem(d=>({...d,name:v,category:d.catTouched?d.category:guessShopCategory(v)}));}}
+onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();addShoppingItemManually();}}}
+placeholder="Add an item (e.g. paper towels, 2 lbs ground beef)" maxLength={80} aria-label="Item to add to the shopping list"
+style={{flex:1,minWidth:0,padding:seniorMode?"12px 12px":"9px 10px",borderRadius:8,border:"1px solid "+C.border,background:C.surface,color:C.text,fontFamily:FM,fontSize:seniorMode?16:13}}/>
+<button onClick={addShoppingItemManually} style={{...bBtn("primary"),padding:seniorMode?"0 20px":"0 16px",fontSize:seniorMode?16:13,flexShrink:0}}>+ Add</button>
+</div>
+<div style={{display:"flex",gap:8,marginTop:8,flexWrap:"wrap"}}>
+<input value={newShopItem.qty} onChange={e=>{const v=e.target.value;setNewShopItem(d=>({...d,qty:v}));}} inputMode="decimal" placeholder="Qty" aria-label="Quantity"
+style={{width:58,padding:seniorMode?"10px":"7px 8px",borderRadius:8,border:"1px solid "+C.border,background:C.surface,color:C.text,fontFamily:FM,fontSize:seniorMode?15:12}}/>
+<input value={newShopItem.unit} onChange={e=>{const v=e.target.value;setNewShopItem(d=>({...d,unit:v}));}} placeholder="unit (lb, bag)" aria-label="Unit"
+style={{width:104,padding:seniorMode?"10px":"7px 8px",borderRadius:8,border:"1px solid "+C.border,background:C.surface,color:C.text,fontFamily:FM,fontSize:seniorMode?15:12}}/>
+<select value={newShopItem.category} onChange={e=>{const v=e.target.value;setNewShopItem(d=>({...d,category:v,catTouched:true}));}} aria-label="Category"
+style={{flex:1,minWidth:110,padding:seniorMode?"10px":"7px 8px",borderRadius:8,border:"1px solid "+C.border,background:C.surface,color:C.text,fontFamily:FM,fontSize:seniorMode?15:12}}>
+{CATEGORIES.map(c=><option key={c} value={c}>{c}</option>)}
+</select>
+</div>
+{shopAddNote&&<div style={{fontFamily:FM,fontSize:seniorMode?14:11,color:shopAddNote.warn?"#f59e0b":C.green,marginTop:8}}>{shopAddNote.text}</div>}
+</div>
+)}
 {can.smarterWayToShop&&shoppingAdMatches.length>0&&(()=>{
   const byItemName=(a,b)=>a.inventoryItemName.localeCompare(b.inventoryItemName)||a.storeName.localeCompare(b.storeName);
   const deepDiscounts=shoppingAdMatches.filter(m=>m.isDeepDiscountEligible).sort(byItemName);
