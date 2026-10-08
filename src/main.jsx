@@ -300,6 +300,7 @@ function Root() {
   const [user, setUser] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
   const [showGuestViewer, setShowGuestViewer] = useState(false);
   const [showSubModal, setShowSubModal] = useState(false);
   // Shown once per browser to a signed-out visitor. Checked lazily so a returning visitor who
@@ -684,7 +685,7 @@ document.addEventListener("visibilitychange", handleVisibility);
                 cursor: "pointer", fontWeight: "700"
               }}>Upgrade</button>
             )}
-            <button onClick={handleSignOut} style={{
+            <button onClick={() => setShowSignOutConfirm(true)} style={{
               fontSize: "11px", padding: "4px 8px", borderRadius: "10px",
               border: "1px solid #444", background: "transparent",
               color: "#888", cursor: "pointer"
@@ -711,6 +712,33 @@ document.addEventListener("visibilitychange", handleVisibility);
         isAdmin={isAdmin}
         onShowGuestViewer={() => { setShowAuthModal(false); setShowGuestViewer(true); }}
       />
+
+      {showSignOutConfirm && (
+        <div
+          style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:4000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}
+          onClick={() => setShowSignOutConfirm(false)}
+        >
+          <div
+            style={{background:"var(--sk-card)",border:"1px solid var(--sk-border)",borderRadius:16,padding:"24px 22px",maxWidth:340,width:"100%",textAlign:"center",boxShadow:"0 10px 36px rgba(0,0,0,0.5)"}}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{fontFamily:"'Cormorant Garamond', serif",fontSize:24,fontWeight:700,color:"var(--sk-text)",marginBottom:8}}>Sign out?</div>
+            <div style={{fontFamily:"'DM Sans', sans-serif",fontSize:14,color:"var(--sk-muted)",lineHeight:1.5,marginBottom:20}}>
+              Your latest changes are saved to the cloud first, so nothing is lost. You'll need to sign in again to come back.
+            </div>
+            <div style={{display:"flex",gap:10}}>
+              <button
+                onClick={() => setShowSignOutConfirm(false)}
+                style={{flex:1,padding:"14px",borderRadius:10,border:"none",background:"#c8963e",color:"#10261c",fontSize:16,fontWeight:700,cursor:"pointer"}}
+              >Cancel</button>
+              <button
+                onClick={() => { setShowSignOutConfirm(false); handleSignOut(); }}
+                style={{flex:1,padding:"14px",borderRadius:10,border:"1px solid var(--sk-border-light)",background:"transparent",color:"var(--sk-text)",fontSize:16,fontWeight:600,cursor:"pointer"}}
+              >Sign Out</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Touchpoint pop-up */}
       {showTouchpoint && inTrial && (
