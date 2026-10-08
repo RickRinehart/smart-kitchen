@@ -11412,7 +11412,8 @@ setScaleCalcLoading(false);setTimeout(()=>{if(scaleDevice&&scaleDevice._writeChr
                 </button>
                 <button onClick={()=>setFamilyRecipesOpen(false)} style={{background:"transparent",border:"none",fontSize:20,cursor:"pointer",color:"#8b6340"}}>✕</button>
               </div>
-              {familyRecipes.length===0&&<div style={{textAlign:"center",padding:"30px 0"}}>
+              {familyRecipes.length>0&&<button onClick={()=>setFrAddMode("pick")} style={{width:"100%",background:"#5c3317",border:"none",borderRadius:12,padding:"14px",color:"#fdf6ec",fontFamily:"Georgia,serif",fontSize:seniorMode?18:15,cursor:"pointer",fontWeight:700,marginBottom:16}}>+ Add a Family Recipe</button>}
+{familyRecipes.length===0&&<div style={{textAlign:"center",padding:"30px 0"}}>
                 <div style={{fontSize:48,marginBottom:12}}>🫙</div>
                 <div style={{fontFamily:"Georgia,serif",fontSize:seniorMode?17:14,color:"#8b6340",lineHeight:1.8}}>Your family recipe box is empty.<br/>Add your first recipe to get started.</div>
               </div>}
