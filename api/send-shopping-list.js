@@ -3,12 +3,30 @@ import { createClient } from '@supabase/supabase-js';
 // ── Recall matching, shared by the nightly check and the on-demand check ─────────────────────────
 // (Moved here from inside the cron handler so both use exactly the same rules.)
 const STOPWORDS = new Set(['the','and','or','of','in','a','an','for','to','with','due','because','possible','presence','undeclared','recall','product','products','contains','may','contain','recalled','company','inc','llc','co','corp','oz','lb','lbs','count','pack','ct','net','wt','per','each','case','cases','box','boxes','bag','bags','can','cans','jar','jars','pouch','pouches','package','packages','packaged','distributed','sold','manufactured','upc','sku','code','plastic','glass','container','retail','label','declares','ingredients','keep','frozen','refrigerated','store','sale','units','unit','size','serving','weight','gross','ml','kg','kgs','g','grams','gallon','gal','organic','whole','brand','fresh','natural','original','classic','premium','select','choice','pure','all','new','plus','deluxe','max','supreme','gourmet','extra','special','signature','ultra','chunk','chunks','dark','light','brown','spicy','hot','mild','sweet','bitter','sour','thin','thick','small','large','big','mini','giant','jumbo','style','flavored','flavor','flavors','ready','bake','recalls','recall','issues','issued','expands','expanding','voluntary','voluntarily','made','products','alert','alerts','allergy','black','green','red','blue','yellow','white','orange','purple','pink']);
+// The product NAME is the part of a recall's text before the size / UPC / "due to" details (recall text leads with the
+// name, then packaging, then the ingredient list). Keyword extraction has always used just this part; Strict matching now
+// does too, so an ingredient or allergen that merely appears in the fine print can't trigger an alert.
+const NAME_CUT_RE = /^(.*?)(?:\d+(?:\.\d+)?\s*(?:oz|ounce|ounces|lb|lbs|pound|pounds|kg|kgs|mg|g|gram|grams|ml|gal|gallon)\b|\bnet\s*wt\.?\b|\bnet\s*weight\b|\bupc\b|\bsku\b|\bdistributed\s*by\b|\bserving\s*size\b|\bbecause\s*of\b|\bdue\s*to\b|\(\s*\d)/i;
+const productNamePart = (desc) => {
+  const core = String(desc || '');
+  const cutMatch = core.match(NAME_CUT_RE);
+  return (cutMatch && cutMatch[1] && cutMatch[1].trim().length > 3) ? cutMatch[1] : core;
+};
+
+// What Strict matching compares against: the product name, minus clauses that name an INGREDIENT or ALLERGEN instead of
+// the product (FDA headlines like "Allergy Alert on Undeclared Egg in Cabricharme Cheese" or "... Contains Garlic, Onion").
+const strictNameText = (desc) => {
+  const base = productNamePart(desc);
+  let s = base
+    .replace(/\bundeclared\b[^.;]*?\bin\b/gi, ' ')
+    .replace(/\b(?:which\s+contains|may\s+contain|containing|contains)\b.*$/i, ' ')
+    .replace(/\bundeclared\b.*$/i, ' ')
+    .trim();
+  return (s.length > 3 ? s : base).toLowerCase();
+};
+
 const extractKeywords = (desc) => {
-  let core = String(desc || '');
-  // Recall descriptions consistently lead with the product name, then packaging/size/UPC details.
-  // Cut at the first such marker so we only extract keywords from the actual product name.
-  const cutMatch = core.match(/^(.*?)(?:\d+(?:\.\d+)?\s*(?:oz|ounce|ounces|lb|lbs|pound|pounds|kg|kgs|mg|g|gram|grams|ml|gal|gallon)\b|\bnet\s*wt\.?\b|\bnet\s*weight\b|\bupc\b|\bsku\b|\bdistributed\s*by\b|\bserving\s*size\b|\bbecause\s*of\b|\bdue\s*to\b|\(\s*\d)/i);
-  if (cutMatch && cutMatch[1] && cutMatch[1].trim().length > 3) core = cutMatch[1];
+  const core = productNamePart(desc);
   return Array.from(new Set(
     core.toLowerCase()
       .replace(/[^a-z0-9\s]/g, ' ')
@@ -37,7 +55,8 @@ const findBestMatchesForList = (userId, list, sensitivity, listType, bestMatches
 
     for (const recall of (activeRecalls || [])) {
       let matchScore = 0;
-      const desc = String(recall.product_description || '').toLowerCase();
+      // Strict = every word of your item must appear in the recalled product's NAME (not its ingredient list)
+      const desc = strictNameText(recall.product_description);
       if (sensitivity === 'broad') {
         matchScore = (recall.keywords || []).filter(kw => !GENERIC_FOOD_WORDS.has(kw) && wordMatch(kw, itemName)).length;
       } else {
