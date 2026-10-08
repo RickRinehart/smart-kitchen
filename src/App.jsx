@@ -937,6 +937,19 @@ const calcProteinTargetG=(profile,weightKg)=>{
   return Math.round(weightKg*perKg);
 };
 
+// Things every kitchen has on tap: never "needed" and never worth a shopping-list line. Whole-name match only,
+// so "water chestnuts", "coconut water" and "sparkling water" are NOT treated as free. (Ice is deliberately left
+// out: bagged ice is a real purchase for an occasion.)
+const isFreeStaple=(name)=>{
+  const s=String(name||"").toLowerCase()
+    .replace(/\(.*?\)/g," ")
+    .split(",")[0]
+    .replace(/\b(for|to)\s+(boiling|cooking|cover|the pot|pasta|thinning|deglazing)\b.*$/,"")
+    .replace(/\b(as needed|to taste|plus more|divided)\b/g,"")
+    .replace(/\s+/g," ").trim();
+  return /^(?:(?:cold|warm|hot|boiling|lukewarm|cool|tap|filtered|room temperature)\s+)*water$/.test(s);
+};
+
 // Item families where the VARIETY makes it a different thing. Used by the ingredient matcher so that
 // two names sharing a last word ("...squash", "...potatoes", "...broth") are only treated as the same
 // item when their varieties don't clash. Each family is a list of groups; a group maps a variety word
@@ -4884,6 +4897,55 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     }).catch(()=>{loadRecallAlerts();});
   };
   const dismissRecallAlert=(alertId)=>dismissRecallAlerts([alertId]);
+  // -- Instant recall check for items just added to the shopping list. The nightly check only sees the cloud
+  // copy of the list once a day, so without this a recall on something added this afternoon wouldn't show
+  // until tomorrow. After new items appear (from ANY add path: manual, Add Missing, meal plan, swap, recipes)
+  // we wait a moment, ask the server to check just those names, and warn if anything matches. Items already on
+  // the list at load are left to the nightly job, and a whole list arriving at once (a cloud load) is skipped.
+  // An alert you've already seen or dismissed is never re-created, so this never nags twice.
+  const recallSeenRef=useRef({uid:null,names:null});
+  const recallPendingRef=useRef([]);
+  const recallTimerRef=useRef(null);
+  const checkRecallsForNewItems=async(items)=>{
+    try{
+      const {data:{session}}=await supabase.auth.getSession();
+      if(!session||!items.length) return;
+      const r=await fetch("/api/send-shopping-list",{
+        method:"POST",
+        headers:{"Content-Type":"application/json",Authorization:"Bearer "+session.access_token},
+        body:JSON.stringify({action:"check-recalls-user",items:items.map(s=>({name:s.name,category:s.category}))})
+      });
+      if(!r.ok) return;
+      const d=await r.json();
+      if(d&&Array.isArray(d.inserted)&&d.inserted.length>0){
+        await loadRecallAlerts();
+        const names=[...new Set(d.inserted.map(x=>x.matched_item_name))];
+        const crit=d.inserted.some(x=>x.severity==="critical");
+        showAlert((crit?"🚨 ":"⚠️ ")+"Possible FDA recall match on your shopping list: "+names.join(", ")+". Look for the recall badge on that item to review it, and check the brand and lot number before deciding.");
+      }
+    }catch{}
+  };
+  useEffect(()=>{
+    if(!user||isViewer) return;
+    const lc=(s)=>String((s&&s.name)||"").trim().toLowerCase();
+    const seen=recallSeenRef.current;
+    if(seen.uid!==user.id||!seen.names){
+      // first look after load or an account switch: the nightly check already covers what's on the list
+      recallSeenRef.current={uid:user.id,names:new Set((shopping||[]).map(lc).filter(Boolean))};
+      return;
+    }
+    const fresh=(shopping||[]).filter(s=>lc(s)&&!seen.names.has(lc(s)));
+    if(fresh.length===0) return;
+    fresh.forEach(s=>seen.names.add(lc(s)));
+    if(fresh.length>25) return;
+    recallPendingRef.current=[...recallPendingRef.current,...fresh];
+    clearTimeout(recallTimerRef.current);
+    recallTimerRef.current=setTimeout(()=>{
+      const batch=recallPendingRef.current;
+      recallPendingRef.current=[];
+      checkRecallsForNewItems(batch);
+    },1500);
+  },[shopping,user]);
 
   // Fetch Deep Discount Alerts (Smarter Way to Shop) once the user is known -- same pattern as
   // recall alerts above: computed server-side by a daily cron, just read here, never computed
@@ -5388,7 +5450,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     return list.filter(ing=>{
       const ingL=String(ing||"").trim();
       if(!ingL) return false;
-      return !inventory.some(i=>wordsOverlap(ingL,i.name)&&hasStock(i));
+      return !isFreeStaple(ingL)&&!inventory.some(i=>wordsOverlap(ingL,i.name)&&hasStock(i));
     });
   };
   const liveNeeded=(list)=>{
@@ -5396,7 +5458,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     return list.filter(s=>{
       const nameL=String(s?.name||s||"").trim();
       if(!nameL) return false;
-      return !inventory.some(i=>wordsOverlap(nameL,i.name)&&hasStock(i));
+      return !isFreeStaple(nameL)&&!inventory.some(i=>wordsOverlap(nameL,i.name)&&hasStock(i));
     });
   };
   // Re-derives what a meal plan day still needs by re-checking EVERY ingredient the AI
@@ -5434,7 +5496,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     if(authoritative&&Array.isArray(authoritative.ingredients)&&authoritative.ingredients.length>0){
       return authoritative.ingredients
         .map(ing=>(ing&&typeof ing==="object")?{qty:ing.qty??"",unit:ing.unit||"",name:ing.name||""}:parseIngredientLine(ing))
-        .filter(p=>p&&p.name&&!inventory.some(i=>wordsOverlap(p.name,i.name)&&hasStock(i)));
+        .filter(p=>p&&p.name&&!isFreeStaple(p.name)&&!inventory.some(i=>wordsOverlap(p.name,i.name)&&hasStock(i)));
     }
     const stillMissingFromShoppingList=liveNeeded(day.shoppingNeeded||[]);
     const newlyMissingFromHaveList=liveMissing(day.ingredients||[]).filter(name=>
@@ -5449,7 +5511,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     if(cached&&Array.isArray(cached.ingredients)){
       const cachedMissingNames=cached.ingredients
         .map(ing=>typeof ing==="object"?ing.name:parseIngredientLine(ing).name)
-        .filter(name=>name&&!inventory.some(i=>wordsOverlap(name,i.name)&&hasStock(i)));
+        .filter(name=>name&&!isFreeStaple(name)&&!inventory.some(i=>wordsOverlap(name,i.name)&&hasStock(i)));
       const extra=cachedMissingNames.filter(name=>!result.some(r=>wordsOverlap(name,r.name)));
       result=[...result,...extra.map(name=>({qty:"",unit:"",name}))];
     }
@@ -6685,7 +6747,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                       {(()=>{
                         const hasStructured=Array.isArray(r.ingredients)&&r.ingredients.some(ing=>typeof ing==="object");
                         const missingList=hasStructured
-                          ?r.ingredients.map(ing=>typeof ing==="object"?{name:ing.name||""}:{name:parseIngredientLine(ing).name}).filter(p=>p.name&&!inventory.some(i=>wordsOverlap(p.name,i.name)&&hasStock(i)))
+                          ?r.ingredients.map(ing=>typeof ing==="object"?{name:ing.name||""}:{name:parseIngredientLine(ing).name}).filter(p=>p.name&&!isFreeStaple(p.name)&&!inventory.some(i=>wordsOverlap(p.name,i.name)&&hasStock(i)))
                           :liveMissing(r.missingIngredients).map(name=>({name}));
                         if(missingList.length===0) return null;
                         return (<div style={{width:"100%",marginBottom:10}}>
@@ -6702,7 +6764,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                         let missing;
                         if(hasStructured){
                           const parsed=r.ingredients.map(ing=>typeof ing==="object"?{name:ing.name||"",qty:(ing.qty||1)*scale,unit:ing.unit||""}:(p=>({...p,qty:p.qty*scale}))(parseIngredientLine(ing)));
-                          missing=parsed.filter(p=>p.name&&!inventory.some(i=>wordsOverlap(p.name,i.name)&&hasStock(i)));
+                          missing=parsed.filter(p=>p.name&&!isFreeStaple(p.name)&&!inventory.some(i=>wordsOverlap(p.name,i.name)&&hasStock(i)));
                         }else{
                           missing=liveMissing(r.missingIngredients||[]).map(name=>({name,qty:1,unit:"as needed"}));
                         }
@@ -9285,7 +9347,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                 let missing;
                 if(hasStructured){
                   const parsed=activeRecipe.ingredients.map(ing=>typeof ing==="object"?{name:ing.name||"",qty:(ing.qty||1)*scale,unit:ing.unit||""}:(p=>({...p,qty:p.qty*scale}))(parseIngredientLine(ing)));
-                  missing=parsed.filter(p=>p.name&&!inventory.some(i=>wordsOverlap(p.name,i.name)&&hasStock(i)));
+                  missing=parsed.filter(p=>p.name&&!isFreeStaple(p.name)&&!inventory.some(i=>wordsOverlap(p.name,i.name)&&hasStock(i)));
                 }else{
                   missing=liveMissing(activeRecipe.missingIngredients||[]).map(name=>({name,qty:1,unit:"as needed"}));
                 }
@@ -9379,7 +9441,7 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
                 let missing;
                 if(hasStructured){
                   const parsed=activeDessert.ingredients.map(ing=>typeof ing==="object"?{name:ing.name||"",qty:(ing.qty||1)*scale,unit:ing.unit||""}:(p=>({...p,qty:p.qty*scale}))(parseIngredientLine(ing)));
-                  missing=parsed.filter(p=>p.name&&!inventory.some(i=>wordsOverlap(p.name,i.name)&&hasStock(i)));
+                  missing=parsed.filter(p=>p.name&&!isFreeStaple(p.name)&&!inventory.some(i=>wordsOverlap(p.name,i.name)&&hasStock(i)));
                 }else{
                   missing=liveMissing(activeDessert.missingIngredients||[]).map(name=>({name,qty:1,unit:"as needed"}));
                 }
@@ -11141,7 +11203,7 @@ setScaleCalcLoading(false);setTimeout(()=>{if(scaleDevice&&scaleDevice._writeChr
                   };
                   const scale=frServings/(frViewRecipe.servings||4);
                   const parsed=(frViewRecipe.ingredients||[]).map(ing=>typeof ing==="object"?{name:ing.name||"",qty:(ing.qty||1)*scale,unit:ing.unit||"",note:ing.note||""}:(p=>({...p,qty:p.qty*scale}))(parseIngredientLine(ing)));
-                  const missing=parsed.filter(p=>!inInventory(p.name));
+                  const missing=parsed.filter(p=>!isFreeStaple(p.name)&&!inInventory(p.name));
                   if(missing.length===0){showAlert("You have all the ingredients on hand!");}
                   else{
                     setShopping(prev=>{

@@ -1,5 +1,73 @@
 import { createClient } from '@supabase/supabase-js';
 
+// ── Recall matching, shared by the nightly check and the on-demand check ─────────────────────────
+// (Moved here from inside the cron handler so both use exactly the same rules.)
+const STOPWORDS = new Set(['the','and','or','of','in','a','an','for','to','with','due','because','possible','presence','undeclared','recall','product','products','contains','may','contain','recalled','company','inc','llc','co','corp','oz','lb','lbs','count','pack','ct','net','wt','per','each','case','cases','box','boxes','bag','bags','can','cans','jar','jars','pouch','pouches','package','packages','packaged','distributed','sold','manufactured','upc','sku','code','plastic','glass','container','retail','label','declares','ingredients','keep','frozen','refrigerated','store','sale','units','unit','size','serving','weight','gross','ml','kg','kgs','g','grams','gallon','gal','organic','whole','brand','fresh','natural','original','classic','premium','select','choice','pure','all','new','plus','deluxe','max','supreme','gourmet','extra','special','signature','ultra','chunk','chunks','dark','light','brown','spicy','hot','mild','sweet','bitter','sour','thin','thick','small','large','big','mini','giant','jumbo','style','flavored','flavor','flavors','ready','bake','recalls','recall','issues','issued','expands','expanding','voluntary','voluntarily','made','products','alert','alerts','allergy','black','green','red','blue','yellow','white','orange','purple','pink']);
+const extractKeywords = (desc) => {
+  let core = String(desc || '');
+  // Recall descriptions consistently lead with the product name, then packaging/size/UPC details.
+  // Cut at the first such marker so we only extract keywords from the actual product name.
+  const cutMatch = core.match(/^(.*?)(?:\d+(?:\.\d+)?\s*(?:oz|ounce|ounces|lb|lbs|pound|pounds|kg|kgs|mg|g|gram|grams|ml|gal|gallon)\b|\bnet\s*wt\.?\b|\bnet\s*weight\b|\bupc\b|\bsku\b|\bdistributed\s*by\b|\bserving\s*size\b|\bbecause\s*of\b|\bdue\s*to\b|\(\s*\d)/i);
+  if (cutMatch && cutMatch[1] && cutMatch[1].trim().length > 3) core = cutMatch[1];
+  return Array.from(new Set(
+    core.toLowerCase()
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .split(/\s+/)
+      .filter(w => w.length > 3 && !STOPWORDS.has(w) && !/^\d+$/.test(w))
+  )).slice(0, 10);
+};
+
+const wordMatch = (word, text) => new RegExp(`\\b${word.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}\\b`).test(text);
+
+// Real food words, but too generic on their own to mean a genuine product match —
+// "sausage" or "patties" alone shouldn't fire an alert against every sausage or every patty in the house.
+// A match still counts if it also shares a more specific word (brand, distinguishing ingredient, flavor, etc).
+const GENERIC_FOOD_WORDS = new Set(['sausage','sausages','patty','patties','burger','burgers','hamburger','hamburgers','chicken','beef','pork','bacon','turkey','ham','meat','meatball','meatballs','bread','rolls','roll','loaf','bun','buns','cheese','milk','soup','soups','sauce','sauces','syrup','powder','rice','sugar','flour','dough','cookie','cookies','cracker','crackers','chip','chips','bar','bars','snack','snacks','mix','juice','drink','drinks','beverage','beverages','water','tea','coffee','egg','eggs','butter','cream','yogurt','dip','spread','jam','jelly','candy','pasta','noodle','noodles','salad','vegetable','vegetables','fruit','fruits','seafood','fish','shrimp','meal','meals','dinner','breakfast','lunch','filling','fillings','mixed','blend','blends','blended']);
+
+const NON_FOOD_CATEGORIES = new Set(['household','cleaning','personal care','pet']);
+
+const findBestMatchesForList = (userId, list, sensitivity, listType, bestMatches, activeRecalls) => {
+  if (!Array.isArray(list) || list.length === 0) return;
+  for (const item of list) {
+    if (NON_FOOD_CATEGORIES.has(String(item.category || '').toLowerCase().trim())) continue;
+    const itemName = String(item.name || '').toLowerCase().trim();
+    if (!itemName) continue;
+    const itemWords = itemName.split(/\s+/).filter(w => w.length > 2);
+    const key = userId + '::' + listType + '::' + itemName;
+
+    for (const recall of (activeRecalls || [])) {
+      let matchScore = 0;
+      const desc = String(recall.product_description || '').toLowerCase();
+      if (sensitivity === 'broad') {
+        matchScore = (recall.keywords || []).filter(kw => !GENERIC_FOOD_WORDS.has(kw) && wordMatch(kw, itemName)).length;
+      } else {
+        const allMatch = itemWords.length > 0 && itemWords.every(w => wordMatch(w, desc));
+        matchScore = allMatch ? itemWords.length : 0;
+      }
+      if (matchScore === 0) continue;
+
+      const candidate = {
+        user_id: userId,
+        recall_id: recall.id,
+        matched_item_name: item.name,
+        severity: recall.classification === 'Class I' ? 'critical' : (recall.classification ? 'informational' : 'pending'),
+        list_type: listType,
+        _score: matchScore,
+        _isCritical: recall.classification === 'Class I',
+        _date: recall.recall_initiation_date || '',
+      };
+      const existing = bestMatches.get(key);
+      if (!existing
+        || candidate._score > existing._score
+        || (candidate._score === existing._score && candidate._isCritical && !existing._isCritical)
+        || (candidate._score === existing._score && candidate._isCritical === existing._isCritical && candidate._date > existing._date)
+      ) {
+        bestMatches.set(key, candidate);
+      }
+    }
+  }
+};
+
 export default async function handler(req, res) {
   const cronAction = req.method === 'GET' ? req.query.action : null;
   if (req.method !== 'POST' && cronAction !== 'check-recalls') return res.status(405).end();
@@ -8,8 +76,10 @@ export default async function handler(req, res) {
 
   // ── Food Recall Check action (triggered by Vercel Cron, daily) ──────────
   if (action === 'check-recalls') {
-    // Verify this is actually Vercel's cron scheduler, not an open public trigger
-    if (req.method === 'GET') {
+    // Verify this is actually Vercel's cron scheduler, not an open public trigger. This used to be checked only
+    // for GET, which left POST completely open (anyone could run the whole job); nothing calls it over POST, so
+    // the secret is now required either way.
+    {
       const authHeader = req.headers['authorization'] || '';
       if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
         return res.status(401).json({ error: 'Unauthorized' });
@@ -21,27 +91,6 @@ export default async function handler(req, res) {
       process.env.SUPABASE_SERVICE_ROLE_KEY
     );
 
-    const STOPWORDS = new Set(['the','and','or','of','in','a','an','for','to','with','due','because','possible','presence','undeclared','recall','product','products','contains','may','contain','recalled','company','inc','llc','co','corp','oz','lb','lbs','count','pack','ct','net','wt','per','each','case','cases','box','boxes','bag','bags','can','cans','jar','jars','pouch','pouches','package','packages','packaged','distributed','sold','manufactured','upc','sku','code','plastic','glass','container','retail','label','declares','ingredients','keep','frozen','refrigerated','store','sale','units','unit','size','serving','weight','gross','ml','kg','kgs','g','grams','gallon','gal','organic','whole','brand','fresh','natural','original','classic','premium','select','choice','pure','all','new','plus','deluxe','max','supreme','gourmet','extra','special','signature','ultra','chunk','chunks','dark','light','brown','spicy','hot','mild','sweet','bitter','sour','thin','thick','small','large','big','mini','giant','jumbo','style','flavored','flavor','flavors','ready','bake','recalls','recall','issues','issued','expands','expanding','voluntary','voluntarily','made','products','alert','alerts','allergy','black','green','red','blue','yellow','white','orange','purple','pink']);
-    const extractKeywords = (desc) => {
-      let core = String(desc || '');
-      // Recall descriptions consistently lead with the product name, then packaging/size/UPC details.
-      // Cut at the first such marker so we only extract keywords from the actual product name.
-      const cutMatch = core.match(/^(.*?)(?:\d+(?:\.\d+)?\s*(?:oz|ounce|ounces|lb|lbs|pound|pounds|kg|kgs|mg|g|gram|grams|ml|gal|gallon)\b|\bnet\s*wt\.?\b|\bnet\s*weight\b|\bupc\b|\bsku\b|\bdistributed\s*by\b|\bserving\s*size\b|\bbecause\s*of\b|\bdue\s*to\b|\(\s*\d)/i);
-      if (cutMatch && cutMatch[1] && cutMatch[1].trim().length > 3) core = cutMatch[1];
-      return Array.from(new Set(
-        core.toLowerCase()
-          .replace(/[^a-z0-9\s]/g, ' ')
-          .split(/\s+/)
-          .filter(w => w.length > 3 && !STOPWORDS.has(w) && !/^\d+$/.test(w))
-      )).slice(0, 10);
-    };
-
-    const wordMatch = (word, text) => new RegExp(`\\b${word.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}\\b`).test(text);
-
-    // Real food words, but too generic on their own to mean a genuine product match —
-    // "sausage" or "patties" alone shouldn't fire an alert against every sausage or every patty in the house.
-    // A match still counts if it also shares a more specific word (brand, distinguishing ingredient, flavor, etc).
-    const GENERIC_FOOD_WORDS = new Set(['sausage','sausages','patty','patties','burger','burgers','hamburger','hamburgers','chicken','beef','pork','bacon','turkey','ham','meat','meatball','meatballs','bread','rolls','roll','loaf','bun','buns','cheese','milk','soup','soups','sauce','sauces','syrup','powder','rice','sugar','flour','dough','cookie','cookies','cracker','crackers','chip','chips','bar','bars','snack','snacks','mix','juice','drink','drinks','beverage','beverages','water','tea','coffee','egg','eggs','butter','cream','yogurt','dip','spread','jam','jelly','candy','pasta','noodle','noodles','salad','vegetable','vegetables','fruit','fruits','seafood','fish','shrimp','meal','meals','dinner','breakfast','lunch','filling','fillings','mixed','blend','blends','blended']);
 
     try {
       // 1a. Pull recent food recalls from openFDA (60 days, matching the lookback window used for matching below)
@@ -51,11 +100,16 @@ export default async function handler(req, res) {
       const fdaData = await fdaRes.json();
       const records = fdaData.results || [];
 
-      const recallRows = records.filter(r => r.recall_number).map(r => ({
+      // The recalls table only allows Class I/II/III (or empty). FDA also publishes 'Not Yet Classified', which made the
+      // database reject the ENTIRE nightly batch and froze recall data from Sept 28 on. Anything else is stored as empty
+      // (shown as 'pending', same as the RSS early-warning items). Records FDA hasn't numbered yet ('N/A') are skipped
+      // until they have a real recall number.
+      const VALID_CLASSES = new Set(['Class I', 'Class II', 'Class III']);
+      const recallRows = records.filter(r => r.recall_number && String(r.recall_number).trim().toUpperCase() !== 'N/A').map(r => ({
         id: r.recall_number,
         product_description: r.product_description || '',
         reason_for_recall: r.reason_for_recall || '',
-        classification: r.classification || null,
+        classification: VALID_CLASSES.has(r.classification) ? r.classification : null,
         recall_initiation_date: r.recall_initiation_date
           ? `${r.recall_initiation_date.slice(0,4)}-${r.recall_initiation_date.slice(4,6)}-${r.recall_initiation_date.slice(6,8)}`
           : null,
@@ -109,12 +163,32 @@ export default async function handler(req, res) {
         console.error('RSS feed fetch/parse error:', rssErr.message);
       }
 
-      const allRecallRows = [...recallRows, ...rssRows];
+      // De-duplicate by id (a repeated id inside one batch also makes Postgres reject the whole upsert)
+      const dedup = new Map();
+      for (const row of [...recallRows, ...rssRows]) dedup.set(row.id, row);
+      const allRecallRows = Array.from(dedup.values());
+
+      // Save in one batch, but if the database rejects it, retry in chunks and then row by row so a single bad
+      // record can never again block every other recall from being saved (this failed silently for 10 days).
       let recallsUpserted = 0;
+      const failedRecallIds = [];
+      const saveRecalls = async (rows) => (await supabaseAdmin.from('recalls').upsert(rows, { onConflict: 'id' })).error;
       if (allRecallRows.length > 0) {
-        const { error: batchErr } = await supabaseAdmin.from('recalls').upsert(allRecallRows, { onConflict: 'id' });
-        if (!batchErr) recallsUpserted = allRecallRows.length;
-        else console.error('recalls batch upsert error:', batchErr.message);
+        const batchErr = await saveRecalls(allRecallRows);
+        if (!batchErr) {
+          recallsUpserted = allRecallRows.length;
+        } else {
+          console.error('recalls batch upsert error (retrying in smaller pieces):', batchErr.message);
+          for (let i = 0; i < allRecallRows.length; i += 25) {
+            const chunk = allRecallRows.slice(i, i + 25);
+            if (!(await saveRecalls(chunk))) { recallsUpserted += chunk.length; continue; }
+            for (const row of chunk) {
+              const rowErr = await saveRecalls([row]);
+              if (!rowErr) recallsUpserted++;
+              else { failedRecallIds.push(row.id); console.error('recall rejected by database:', row.id, rowErr.message); }
+            }
+          }
+        }
       }
 
       // 2. Pull active recalls from the last 60 days for matching against inventory
@@ -129,55 +203,12 @@ export default async function handler(req, res) {
         .from('user_data')
         .select('user_id,inventory,shopping_list,recall_match_sensitivity');
 
-      const NON_FOOD_CATEGORIES = new Set(['household','cleaning','personal care','pet']);
-
-      const findBestMatchesForList = (userId, list, sensitivity, listType, bestMatches) => {
-        if (!Array.isArray(list) || list.length === 0) return;
-        for (const item of list) {
-          if (NON_FOOD_CATEGORIES.has(String(item.category || '').toLowerCase().trim())) continue;
-          const itemName = String(item.name || '').toLowerCase().trim();
-          if (!itemName) continue;
-          const itemWords = itemName.split(/\s+/).filter(w => w.length > 2);
-          const key = userId + '::' + listType + '::' + itemName;
-
-          for (const recall of (activeRecalls || [])) {
-            let matchScore = 0;
-            const desc = String(recall.product_description || '').toLowerCase();
-            if (sensitivity === 'broad') {
-              matchScore = (recall.keywords || []).filter(kw => !GENERIC_FOOD_WORDS.has(kw) && wordMatch(kw, itemName)).length;
-            } else {
-              const allMatch = itemWords.length > 0 && itemWords.every(w => wordMatch(w, desc));
-              matchScore = allMatch ? itemWords.length : 0;
-            }
-            if (matchScore === 0) continue;
-
-            const candidate = {
-              user_id: userId,
-              recall_id: recall.id,
-              matched_item_name: item.name,
-              severity: recall.classification === 'Class I' ? 'critical' : (recall.classification ? 'informational' : 'pending'),
-              list_type: listType,
-              _score: matchScore,
-              _isCritical: recall.classification === 'Class I',
-              _date: recall.recall_initiation_date || '',
-            };
-            const existing = bestMatches.get(key);
-            if (!existing
-              || candidate._score > existing._score
-              || (candidate._score === existing._score && candidate._isCritical && !existing._isCritical)
-              || (candidate._score === existing._score && candidate._isCritical === existing._isCritical && candidate._date > existing._date)
-            ) {
-              bestMatches.set(key, candidate);
-            }
-          }
-        }
-      };
 
       const bestMatches = new Map(); // key: user_id::listType::itemName -> best candidate
       for (const u of (users || [])) {
         const sensitivity = u.recall_match_sensitivity || 'broad';
-        findBestMatchesForList(u.user_id, u.inventory, sensitivity, 'inventory', bestMatches);
-        findBestMatchesForList(u.user_id, u.shopping_list, sensitivity, 'shopping_list', bestMatches);
+        findBestMatchesForList(u.user_id, u.inventory, sensitivity, 'inventory', bestMatches, activeRecalls);
+        findBestMatchesForList(u.user_id, u.shopping_list, sensitivity, 'shopping_list', bestMatches, activeRecalls);
       }
 
       const matchRows = Array.from(bestMatches.values()).map(({ user_id, recall_id, matched_item_name, severity, list_type }) => ({ user_id, recall_id, matched_item_name, severity, list_type }));
@@ -199,10 +230,70 @@ export default async function handler(req, res) {
         if (staleIds.length > 0) await supabaseAdmin.from('user_recall_alerts').delete().in('id', staleIds);
       }
 
-      return res.status(200).json({ success: true, recallsUpserted, alertsCreated, usersScanned: (users || []).length });
+      return res.status(200).json({ success: true, recallsUpserted, recallsRejected: failedRecallIds.length, alertsCreated, usersScanned: (users || []).length });
     } catch (e) {
       console.error('check-recalls error:', e.message);
       return res.status(500).json({ error: e.message });
+    }
+  }
+
+  // ── Instant recall check for items just added to the shopping list ─────────────────────────────
+  // The nightly job only looks at the cloud copy of the list once a day, so an item added this afternoon
+  // wouldn't get its recall badge until tomorrow morning. The app calls this right after new items land
+  // on the list. It uses the SAME matching rules and writes to the SAME table as the nightly job, with
+  // ignoreDuplicates, so an alert the person already has (or already dismissed) is never re-created or
+  // re-announced. The user comes from their sign-in token, never from the request body.
+  if (action === 'check-recalls-user') {
+    const token = String(req.headers['authorization'] || '').replace(/^Bearer\s+/i, '');
+    if (!token) return res.status(401).json({ error: 'Unauthorized' });
+
+    const supabaseAdmin = createClient(
+      process.env.VITE_SUPABASE_URL || 'https://wnlqvmedocpgjawmwivd.supabase.co',
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    );
+
+    try {
+      const { data: authData, error: authErr } = await supabaseAdmin.auth.getUser(token);
+      const userId = authData && authData.user && authData.user.id;
+      if (authErr || !userId) return res.status(401).json({ error: 'Unauthorized' });
+
+      const rawItems = Array.isArray(req.body && req.body.items) ? req.body.items : [];
+      const items = rawItems.slice(0, 40)
+        .map(i => ({ name: String((i && i.name) || '').slice(0, 120), category: String((i && i.category) || '') }))
+        .filter(i => i.name.trim());
+      if (items.length === 0) return res.status(200).json({ success: true, checked: 0, inserted: [] });
+
+      const { data: ud } = await supabaseAdmin.from('user_data').select('recall_match_sensitivity').eq('user_id', userId).maybeSingle();
+      const sensitivity = (ud && ud.recall_match_sensitivity) || 'broad';
+
+      const matchSince = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+      const { data: activeRecalls } = await supabaseAdmin
+        .from('recalls')
+        .select('id,product_description,classification,keywords,recall_initiation_date')
+        .gte('recall_initiation_date', matchSince);
+
+      const bestMatches = new Map();
+      findBestMatchesForList(userId, items, sensitivity, 'shopping_list', bestMatches, activeRecalls || []);
+      const rows = Array.from(bestMatches.values()).map(({ user_id, recall_id, matched_item_name, severity, list_type }) => ({ user_id, recall_id, matched_item_name, severity, list_type }));
+
+      let inserted = [];
+      if (rows.length > 0) {
+        const { data: ins, error: insErr } = await supabaseAdmin
+          .from('user_recall_alerts')
+          .upsert(rows, { onConflict: 'user_id,recall_id,matched_item_name,list_type', ignoreDuplicates: true })
+          .select('recall_id,matched_item_name,severity');
+        if (insErr) throw new Error(insErr.message);
+        const byId = new Map((activeRecalls || []).map(r => [r.id, r]));
+        inserted = (ins || []).map(a => ({
+          matched_item_name: a.matched_item_name,
+          severity: a.severity,
+          product: String((byId.get(a.recall_id) || {}).product_description || '').slice(0, 140),
+        }));
+      }
+      return res.status(200).json({ success: true, checked: items.length, inserted });
+    } catch (e) {
+      console.error('check-recalls-user error:', e.message);
+      return res.status(500).json({ error: 'Recall check failed' });
     }
   }
 
