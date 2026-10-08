@@ -2873,11 +2873,12 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
     if(isViewer||!item) return;
     const nm=String(item.name||"").trim();
     const lc=nm.toLowerCase();
+    const shortNm=nm.length>16?nm.slice(0,15)+"…":nm;
     const idxInList=shopping.indexOf(item);
     let invPrev=null,invAdded=null,msg="";
     // Smart Cellar wishlist items (marked by category/source) live in the Cellar app, not Inventory
     if(item.category==="Smart Cellar"||item.source==="Smart Cellar Advisor"){
-      msg=nm+" removed from your list (Smart Cellar items aren't tracked in Inventory).";
+      msg=shortNm+": off list.";
     }else{
       // best matching inventory row: exact name first, else a row whose name contains ALL of this item's
       // words; among those prefer one with no stock (that's the row that made it look "needed")
@@ -2886,19 +2887,19 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
         .sort((x,y)=>((y.exact?1:0)-(x.exact?1:0))||((hasStock(x.i)?1:0)-(hasStock(y.i)?1:0)));
       const best=cands[0]&&cands[0].i;
       if(best&&hasStock(best)){
-        msg=nm+" is already in stock in Inventory, so I just took it off your list.";
+        msg=shortNm+": already in stock.";
       }else if(best){
         invPrev=best;
         const upd=best.isBulkItem?{...best,bulkQtyRemaining:parseFloat(best.bulkTotalUnits)||1}:{...best,qty:1};
         setInventory(prev=>prev.map(i=>(i.id===best.id&&i.name===best.name)?upd:i));
-        msg=nm+" is off your list and marked in stock (1). Adjust the amount in Inventory if you like.";
+        msg=shortNm+": marked in stock.";
       }else{
         const cat=item.category||"Pantry";
         const loc=(cat==="Protein"||cat==="Frozen")?"Freezer":(cat==="Produce"||cat==="Dairy")?"Fridge":"Pantry";
         const row={id:Date.now()+Math.random(),name:nm,qty:1,unit:cat==="Protein"?"portions":"item",category:cat,location:loc,...(cat==="Protein"?{isBulkProtein:true,portionOz:6}:{})};
         invAdded=row.id;
         setInventory(prev=>[...prev,row]);
-        msg=nm+" is off your list and added to Inventory (1). Adjust the amount if you like.";
+        msg=shortNm+": added to Inventory.";
       }
     }
     setShopping(prev=>{
@@ -2907,7 +2908,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
     });
     clearTimeout(haveItTimer.current);
     setHaveItToast({message:msg,item,index:idxInList>=0?idxInList:0,invPrev,invAdded});
-    haveItTimer.current=setTimeout(()=>setHaveItToast(null),9000);
+    haveItTimer.current=setTimeout(()=>setHaveItToast(null),6000);
   };
   const undoHaveIt=()=>{
     const u=haveItToast;
@@ -2918,6 +2919,8 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
     else if(u.invPrev) setInventory(prev=>prev.map(i=>(i.id===u.invPrev.id&&i.name===u.invPrev.name)?u.invPrev:i));
     setHaveItToast(null);
   };
+  // OK: accept the change and close the bar right away (nothing is undone)
+  const dismissHaveIt=()=>{clearTimeout(haveItTimer.current);setHaveItToast(null);};
   const renderShopItem=(item)=>{
     const gi=shopping.indexOf(item);
     const isEditing=editingShoppingIdx===gi;
@@ -8891,9 +8894,10 @@ const pref=[..."Wine","Beer","Spirits","Non-Alcoholic"].find(p=>document.getElem
 
       {haveItToast&&(
         <div style={{position:"fixed",left:12,right:12,bottom:96,zIndex:3300,display:"flex",justifyContent:"center",pointerEvents:"none"}}>
-          <div style={{pointerEvents:"auto",background:C.card,border:"1px solid "+C.accent,borderRadius:12,padding:seniorMode?"14px 18px":"10px 14px",display:"flex",alignItems:"center",gap:12,maxWidth:440,boxShadow:"0 6px 24px rgba(0,0,0,0.45)",fontFamily:FM,fontSize:seniorMode?15:12,color:C.text,lineHeight:1.45}}>
+          <div style={{pointerEvents:"auto",background:C.card,border:"1px solid "+C.accent,borderRadius:12,padding:seniorMode?"10px 12px":"7px 10px",display:"flex",alignItems:"center",gap:8,maxWidth:440,boxShadow:"0 6px 24px rgba(0,0,0,0.45)",fontFamily:FM,fontSize:seniorMode?14:11,color:C.text,lineHeight:1.35}}>
             <span style={{flex:1}}>✓ {haveItToast.message}</span>
-            <button onClick={undoHaveIt} style={{...bBtn("ghost"),padding:seniorMode?"8px 14px":"6px 12px",fontSize:seniorMode?14:12,border:"1px solid "+C.accent,color:C.accent,flexShrink:0}}>Undo</button>
+            <button onClick={undoHaveIt} style={{...bBtn("ghost"),padding:seniorMode?"8px 12px":"5px 10px",fontSize:seniorMode?14:11,border:"1px solid "+C.accent,color:C.accent,flexShrink:0}}>Undo</button>
+            <button onClick={dismissHaveIt} style={{...bBtn("primary"),padding:seniorMode?"8px 14px":"5px 12px",fontSize:seniorMode?14:11,flexShrink:0}}>OK</button>
           </div>
         </div>
       )}
