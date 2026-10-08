@@ -2919,6 +2919,20 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
     else if(u.invPrev) setInventory(prev=>prev.map(i=>(i.id===u.invPrev.id&&i.name===u.invPrev.name)?u.invPrev:i));
     setHaveItToast(null);
   };
+  // Remove ONE item from the shopping list and do nothing else (inventory untouched). Until now the only
+  // ways off the list were "Have it" and "Restock" (both change Inventory) or Clear List (everything).
+  // Reuses the Undo bar, which restores the item to its original position.
+  const removeShoppingItem=(item)=>{
+    if(isViewer||!item) return;
+    const nm=String(item.name||"").trim();
+    const shortNm=nm.length>16?nm.slice(0,15)+"…":nm;
+    const idx=shopping.indexOf(item);
+    setShopping(prev=>{const k=prev.indexOf(item);return k>=0?prev.filter((s,j)=>j!==k):prev;});
+    setEditingShoppingIdx(null);
+    clearTimeout(haveItTimer.current);
+    setHaveItToast({message:shortNm+": removed from list.",item,index:idx>=0?idx:0,invPrev:null,invAdded:null});
+    haveItTimer.current=setTimeout(()=>setHaveItToast(null),6000);
+  };
   // OK: accept the change and close the bar right away (nothing is undone)
   const dismissHaveIt=()=>{clearTimeout(haveItTimer.current);setHaveItToast(null);};
   const renderShopItem=(item)=>{
@@ -2931,6 +2945,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
         <input value={editShopDraft.unit} onChange={e=>setEditShopDraft(d=>({...d,unit:e.target.value}))} style={{width:70,padding:"6px 8px",borderRadius:6,border:"1px solid "+C.border,background:C.surface,color:C.text,fontFamily:FM,fontSize:13}} placeholder="Unit"/>
         <button onClick={()=>{setShopping(p=>p.map((si,sii)=>sii===gi?{...si,name:editShopDraft.name.trim()||si.name,qty:parseFloat(editShopDraft.qty)||si.qty,unit:editShopDraft.unit.trim()||si.unit}:si));setEditingShoppingIdx(null);}} style={{padding:"6px 12px",borderRadius:6,border:"1px solid "+C.green,background:C.green,color:"#fff",fontFamily:FM,fontSize:12,cursor:"pointer",fontWeight:600}}>Save</button>
         <button onClick={()=>setEditingShoppingIdx(null)} style={{padding:"6px 12px",borderRadius:6,border:"1px solid "+C.border,background:"transparent",color:C.muted,fontFamily:FM,fontSize:12,cursor:"pointer"}}>Cancel</button>
+        <button onClick={()=>removeShoppingItem(item)} disabled={isViewer} title="Take this off the list (doesn't change Inventory)" style={{padding:"6px 12px",borderRadius:6,border:"1px solid #ef4444",background:"transparent",color:"#ef4444",fontFamily:FM,fontSize:12,cursor:"pointer"}}>🗑 Remove</button>
       </div>
     );
     return (
