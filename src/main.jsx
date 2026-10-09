@@ -5,8 +5,25 @@ import App from "./App";
 import AuthModal from "./AuthModal";
 import { GuestViewerModal } from "./ViewerCodeManager";
 import SubscriptionModal from "./SubscriptionModal";
-import { supabase, getUserProfile, trialDaysRemaining, markTouchpoint, loadCloudData, saveCloudData, getViewerRole, isCloudDirty, ALL_LOCAL_STORAGE_KEYS, setCachedAccessToken, beaconSave } from "./supabaseClient";
+import { supabase, getUserProfile, trialDaysRemaining, markTouchpoint, loadCloudData, saveCloudData, getViewerRole, isCloudDirty, ALL_LOCAL_STORAGE_KEYS, setCachedAccessToken, beaconSave, setActiveDataUser, localDataBelongsToSomeoneElse, claimLocalData, wipeLocalUserData } from "./supabaseClient";
 import "./index.css";
+
+// Run this the moment an account is signed in, BEFORE anything is loaded from or saved to the cloud.
+// If this browser still holds ANOTHER account's data (the session was replaced by a confirmation link, or
+// someone signed in on a phone where the previous account was never signed out), clear it so it can't be
+// uploaded into -- or shown inside -- the new account. Guest data (built while signed out) and older,
+// unlabelled data are kept and claimed, exactly as before. Returns true when data was cleared: the caller
+// must reload so the app starts from the clean state instead of the old in-memory copy.
+function takeOverLocalData(userId) {
+  setActiveDataUser(userId);
+  if (localDataBelongsToSomeoneElse(userId)) {
+    wipeLocalUserData();
+    claimLocalData(userId);
+    return true;
+  }
+  claimLocalData(userId);
+  return false;
+}
 
 // Pre-auth accessibility toggles shown next to Sign In button
 function AccessibilityToggles() {
@@ -362,6 +379,8 @@ function Root() {
 
     codeExchange.then(() => supabase.auth.getSession()).then(({ data: { session } }) => {
       if (session?.user) {
+        // Another account's leftover data must be cleared before anything loads or uploads
+        if (takeOverLocalData(session.user.id)) { window.location.reload(); return; }
         try { localStorage.setItem("sk_seenSplash", "1"); } catch {}
         setUser(session.user);
         activeUserIdRef.current = session.user.id;
@@ -399,6 +418,7 @@ function Root() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN') {
+        if (takeOverLocalData(session.user.id)) { window.location.reload(); return; }
         setUser(session.user);
         setCachedAccessToken(session.access_token);
         getUserProfile(session.user.id).then(setUserProfile);
@@ -434,6 +454,7 @@ function Root() {
         setUser(null);
         setUserProfile(null);
         setCachedAccessToken(null);
+        setActiveDataUser(null);
         activeUserIdRef.current = null;
       } else if (event === 'TOKEN_REFRESHED') {
         setCachedAccessToken(session?.access_token || null);

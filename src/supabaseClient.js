@@ -23,7 +23,9 @@ export const ALL_LOCAL_STORAGE_KEYS = [
   // whichever account signs in next on the same device. Keep this list in sync with SYNC_MAP's
   // localStorage keys below; anything synced to the cloud must also be cleared here.
   "sk_familyRecipes","sk_madeItHistory","sk_leftoverHistory","sk_shoppingList","sk_restockQueue",
-  "sk_yieldHistory","sk_fetchedRecipeCache"
+  "sk_yieldHistory","sk_fetchedRecipeCache",
+  // Who the data in this browser belongs to (see "WHOSE DATA IS THIS?" below)
+  "sk_dataOwner"
 ];
 
 // Get current user profile including tier and trial info
@@ -146,6 +148,47 @@ const SYNC_MAP = {
   cuisine_prefs:        'sk_cuisinePrefs',
 };
 
+// ── WHOSE DATA IS THIS? ──────────────────────────────────────────────────────
+// Everything the app keeps in localStorage is synced to the cloud under whoever is signed in. That used to be
+// done with no idea of WHOSE data was sitting in this browser, so if a different account became active here
+// without a sign-out first (opening a confirmation link, or signing in on a phone where another account was
+// never signed out), the new account silently inherited the old account's data -- family profiles with
+// medications included -- and the next save UPLOADED it into the new account. Seen for real: a brand-new test
+// account came up with a full copy of the main account's 46 items, 8 family profiles and 74 recipes.
+// The label is a user id, 'guest' (built while signed out; deliberately carried into the first account that
+// signs up), or absent (older installs; treated as belonging to whoever is signed in, as before).
+const OWNER_KEY = 'sk_dataOwner';
+let _activeDataUser = null;
+export function setActiveDataUser(id) { _activeDataUser = id || null; }
+export function getLocalDataOwner() {
+  try { return localStorage.getItem(OWNER_KEY); } catch(e) { return null; }
+}
+// True only when the local data is explicitly labelled as ANOTHER account's.
+export function localDataBelongsToSomeoneElse(userId) {
+  const owner = getLocalDataOwner();
+  return !!(owner && owner !== 'guest' && owner !== userId);
+}
+export function claimLocalData(userId) {
+  try { localStorage.setItem(OWNER_KEY, userId); } catch(e) {}
+}
+// Last-line safety net for every upload: never push local data into an account that doesn't own it.
+function mayUploadLocalDataTo(userId) {
+  if (localDataBelongsToSomeoneElse(userId)) {
+    console.warn("Refusing to upload another account's local data into this account.");
+    return false;
+  }
+  return true;
+}
+// Clears this browser's copy of app data (same set a sign-out clears, plus the recovery backups, which would
+// otherwise carry the other account's data forward), and marks it as not-dirty so a fresh account doesn't
+// push leftovers.
+export function wipeLocalUserData() {
+  try {
+    ALL_LOCAL_STORAGE_KEYS.forEach(k => { localStorage.removeItem(k); localStorage.removeItem(k + '_backup'); });
+    localStorage.setItem('sk_cloudDirty', '0');
+  } catch(e) {}
+}
+
 // ── DIRTY TRACKING ───────────────────────────────────────────────────────────
 // Distinguishes "local data actually changed" from "the periodic timer fired." Without this,
 // the background auto-save (every 5 min, and whenever the tab is hidden) unconditionally
@@ -163,6 +206,8 @@ function ensureDirtyTracking() {
   const originalSetItem = localStorage.setItem.bind(localStorage);
   localStorage.setItem = function(key, value) {
     if (syncedKeys.has(key)) {
+      // First synced write into a browser with no label: stamp who it's for (a signed-in user, else 'guest')
+      try { if (localStorage.getItem(OWNER_KEY) === null) originalSetItem(OWNER_KEY, _activeDataUser || 'guest'); } catch(e) {}
       try {
         if (localStorage.getItem(key) !== value) originalSetItem(DIRTY_KEY, '1');
       } catch(e) {}
@@ -343,6 +388,7 @@ export function buildBeaconRow(userId) {
 // visibilitychange handler both rely on fetch() completing, which nothing here can guarantee.
 export function beaconSave(userId) {
   try {
+    if (!mayUploadLocalDataTo(userId)) return false;
     if (!isCloudDirty()) return false;
     const token = getCachedAccessToken();
     if (!token) return false;
@@ -355,6 +401,7 @@ export function beaconSave(userId) {
 
 export async function saveCloudData(userId) {
   try {
+    if (!mayUploadLocalDataTo(userId)) return false;
     const row = { user_id: userId, updated_at: new Date().toISOString() };
 
     // fetched_recipe_cache accumulates passively over time (every meal ever opened, across every
@@ -440,6 +487,7 @@ export async function saveCloudData(userId) {
 // Save a single field to Supabase (for real-time saves)
 export async function saveCloudField(userId, dbCol, value) {
   try {
+    if (!mayUploadLocalDataTo(userId)) return false;
     const { error } = await supabase
       .from('user_data')
       .upsert(
