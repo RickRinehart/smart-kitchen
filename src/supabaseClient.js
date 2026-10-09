@@ -189,6 +189,17 @@ export function wipeLocalUserData() {
   } catch(e) {}
 }
 
+// ── PULL BEFORE PUSH ─────────────────────────────────────────────────────────
+// The rule that would have prevented a real data loss: a device must never UPLOAD an account's data until it has
+// DOWNLOADED that account's cloud copy at least once in this page session. Real incident: after a sign-out
+// (which clears the phone and reloads the page) and a fresh sign-in, nothing loaded the account's data, so the
+// app showed an empty kitchen and then, 10 seconds later, saved that emptiness over the real cloud copy
+// (46 inventory items, the 7-day menu and the shopping list gone). Now every upload path first makes sure the
+// cloud copy has been loaded; if that load FAILS (offline, error) the upload is skipped instead of guessed at.
+let _reconciledFor = null;      // the user whose cloud copy this page has already downloaded (or confirmed is empty)
+let _lastLoadStatus = 'unknown'; // 'loaded' | 'no_row' (brand-new account) | 'error'
+export function isReconciledFor(userId) { return _reconciledFor === userId; }
+
 // ── DIRTY TRACKING ───────────────────────────────────────────────────────────
 // Distinguishes "local data actually changed" from "the periodic timer fired." Without this,
 // the background auto-save (every 5 min, and whenever the tab is hidden) unconditionally
@@ -235,6 +246,7 @@ function clearCloudDirty() {
 // automatic/passive loads (e.g. on sign-in) where a background pull might otherwise race a
 // debounced local save and clobber fresher local edits with a stale cloud snapshot.
 export async function loadCloudData(userId, force = false) {
+  _lastLoadStatus = 'error';   // assume the worst until this load proves otherwise
   try {
     // SAFETY: save current local state to backup keys before loading cloud
     // This means we can always recover local data if cloud load goes wrong
@@ -254,7 +266,12 @@ export async function loadCloudData(userId, force = false) {
       .eq('user_id', userId)
       .single();
 
-    if (error || !data) return false;
+    if (error || !data) {
+      // PGRST116 = "no rows": a brand-new account with nothing in the cloud yet (safe to upload to).
+      // Anything else (network, server, permissions) is an unknown: do NOT treat it as "empty".
+      if (!error || error.code === 'PGRST116') { _lastLoadStatus = 'no_row'; _reconciledFor = userId; }
+      return false;
+    }
 
     // Write each field to localStorage — ONLY overwrite if cloud data is non-empty
     // This prevents a bad/empty cloud record from wiping good local data
@@ -316,11 +333,28 @@ export async function loadCloudData(userId, force = false) {
     });
 
     clearCloudDirty();
+    _lastLoadStatus = 'loaded';
+    _reconciledFor = userId;
     return true;
   } catch(e) {
+    _lastLoadStatus = 'error';
     console.warn('Cloud load failed:', e.message);
     return false;
   }
+}
+
+// Makes sure this page has looked at the account's cloud copy before anything is uploaded to it.
+// Returns false (skip the upload) if that look failed.
+async function ensureReconciled(userId) {
+  if (_reconciledFor === userId) return true;
+  const loaded = await loadCloudData(userId);
+  if (_lastLoadStatus === 'error') {
+    console.warn('Not uploading: could not check the cloud copy first.');
+    return false;
+  }
+  // The pull may have filled in data the screen doesn't show yet -- tell the app to re-read it
+  if (loaded) { try { window.dispatchEvent(new Event('sk_cloud_loaded')); } catch(e) {} }
+  return true;
 }
 
 // Restore from backup if cloud load caused data loss
@@ -389,6 +423,7 @@ export function buildBeaconRow(userId) {
 export function beaconSave(userId) {
   try {
     if (!mayUploadLocalDataTo(userId)) return false;
+    if (_reconciledFor !== userId) return false;   // can't download first while the page is closing: skip rather than guess
     if (!isCloudDirty()) return false;
     const token = getCachedAccessToken();
     if (!token) return false;
@@ -402,6 +437,7 @@ export function beaconSave(userId) {
 export async function saveCloudData(userId) {
   try {
     if (!mayUploadLocalDataTo(userId)) return false;
+    if (!(await ensureReconciled(userId))) return false;
     const row = { user_id: userId, updated_at: new Date().toISOString() };
 
     // fetched_recipe_cache accumulates passively over time (every meal ever opened, across every
@@ -488,6 +524,7 @@ export async function saveCloudData(userId) {
 export async function saveCloudField(userId, dbCol, value) {
   try {
     if (!mayUploadLocalDataTo(userId)) return false;
+    if (!(await ensureReconciled(userId))) return false;
     const { error } = await supabase
       .from('user_data')
       .upsert(

@@ -5,7 +5,7 @@ import App from "./App";
 import AuthModal from "./AuthModal";
 import { GuestViewerModal } from "./ViewerCodeManager";
 import SubscriptionModal from "./SubscriptionModal";
-import { supabase, getUserProfile, trialDaysRemaining, markTouchpoint, loadCloudData, saveCloudData, getViewerRole, isCloudDirty, ALL_LOCAL_STORAGE_KEYS, setCachedAccessToken, beaconSave, setActiveDataUser, localDataBelongsToSomeoneElse, claimLocalData, wipeLocalUserData } from "./supabaseClient";
+import { supabase, getUserProfile, trialDaysRemaining, markTouchpoint, loadCloudData, saveCloudData, getViewerRole, isCloudDirty, ALL_LOCAL_STORAGE_KEYS, setCachedAccessToken, beaconSave, setActiveDataUser, isReconciledFor, localDataBelongsToSomeoneElse, claimLocalData, wipeLocalUserData } from "./supabaseClient";
 import "./index.css";
 
 // Run this the moment an account is signed in, BEFORE anything is loaded from or saved to the cloud.
@@ -361,6 +361,7 @@ function Root() {
   // actually changed, clobbers real in-progress local edits with a stale cloud snapshot the
   // moment one of those routine re-fires happens to land mid-edit.
   const activeUserIdRef = useRef(null);
+  const loadStartedForRef = useRef(null);   // the account this page has already begun loading cloud data for
 
   useEffect(() => {
     // PKCE email-confirmation / password-reset return trip: Supabase's confirmation link
@@ -385,6 +386,7 @@ function Root() {
         setUser(session.user);
         activeUserIdRef.current = session.user.id;
         setCachedAccessToken(session.access_token);
+        loadStartedForRef.current = session.user.id;
         // Check if this user is a viewer of someone else's account
         getViewerRole(session.user.id).then(role => {
           if (role) {
@@ -432,7 +434,12 @@ function Root() {
         // current state.
         const isSwitch = activeUserIdRef.current !== null && activeUserIdRef.current !== session.user.id;
         activeUserIdRef.current = session.user.id;
-        if (!isSwitch) return;
+        // A routine same-account re-fire (focus, token refresh) does nothing. But a FRESH sign-in on a page that
+        // hasn't loaded this account yet MUST load it too. It used to load only on a live account switch, so after
+        // a sign-out (which clears the phone and reloads the page) the next sign-in loaded nothing, the app showed
+        // an empty kitchen, and then uploaded that emptiness over the real cloud data.
+        if (!isSwitch && (isReconciledFor(session.user.id) || loadStartedForRef.current === session.user.id)) return;
+        loadStartedForRef.current = session.user.id;
         getViewerRole(session.user.id).then(role => {
           if (role) {
             setViewerRole(role);
@@ -456,6 +463,7 @@ function Root() {
         setCachedAccessToken(null);
         setActiveDataUser(null);
         activeUserIdRef.current = null;
+        loadStartedForRef.current = null;
       } else if (event === 'TOKEN_REFRESHED') {
         setCachedAccessToken(session?.access_token || null);
       }
