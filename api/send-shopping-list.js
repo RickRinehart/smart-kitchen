@@ -17,12 +17,17 @@ const productNamePart = (desc) => {
 // the product (FDA headlines like "Allergy Alert on Undeclared Egg in Cabricharme Cheese" or "... Contains Garlic, Onion").
 const strictNameText = (desc) => {
   const base = productNamePart(desc);
-  let s = base
-    .replace(/\bundeclared\b[^.;]*?\bin\b/gi, ' ')
-    .replace(/\b(?:which\s+contains|may\s+contain|containing|contains)\b.*$/i, ' ')
-    .replace(/\bundeclared\b.*$/i, ' ')
+  const cut = base
+    .replace(/\bundeclared\b[^.;]*?\bin\b/gi, ' ')                                                  // "...Undeclared Egg in <product>" -> keep the product
+    .replace(/\b(?:ingredients?|which\s+contains|may\s+contain|containing|contains)\b[\s\S]*$/i, ' ')    // ingredient / composition lists
+    .replace(/\b(?:distributed|manufactured|produced|packed|made)\s+(?:by|in|for)\b[\s\S]*$/i, ' ')      // who made / packed it
+    .replace(/\bplant\s*#[\s\S]*$/i, ' ')
+    .replace(/\b(?:upc|lot\s*(?:code|#|no\.?)|best\s*by|sell\s*by|use\s*by|exp\.?\s*date)\b[\s\S]*$/i, ' ')
+    .replace(/\bundeclared\b[\s\S]*$/i, ' ')                                                         // trailing "...Undeclared Milk"
     .trim();
-  return (s.length > 3 ? s : base).toLowerCase();
+  // Backstop: a product name is short. If a description still has no recognisable marker, don't let a long run of
+  // fine print count as "the name".
+  return (cut.length > 3 ? cut : base).slice(0, 220).toLowerCase();
 };
 
 const extractKeywords = (desc) => {
