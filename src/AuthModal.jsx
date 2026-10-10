@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react'
+﻿import React, { useState, useEffect } from 'react'
 import { supabase } from './supabaseClient'
 import { setTrialStartDate } from './supabaseClient'
 
@@ -13,6 +13,17 @@ export default function AuthModal({ onClose, onSuccess, initialMode = 'signup', 
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+  // "Check your email" step: the address we're waiting on, a short cooldown on re-sending, and feedback for the buttons
+  const [pendingEmail, setPendingEmail] = useState('')
+  const [resendLeft, setResendLeft] = useState(0)
+  const [resending, setResending] = useState(false)
+  const [confirmNote, setConfirmNote] = useState(null)   // { text, bad }
+
+  useEffect(() => {
+    if (resendLeft <= 0) return
+    const id = setTimeout(() => setResendLeft(n => n - 1), 1000)
+    return () => clearTimeout(id)
+  }, [resendLeft])
 
   const toggleLargeText = () => { const next=!largeText; setLargeText(next); try{localStorage.setItem('sk_seniorMode',next?'1':'0');}catch{} }
   const toggleLightMode = () => {
@@ -24,16 +35,26 @@ export default function AuthModal({ onClose, onSuccess, initialMode = 'signup', 
   }
   const sz = (base) => largeText ? Math.round(base * 1.35) : base
 
+  // Supabase's "this person hasn't tapped the link in their email yet" login error
+  const isNotConfirmed = (err) => !!err && (err.code === 'email_not_confirmed' || /email not confirmed/i.test(err.message || ''))
+
   async function handleSignUp() {
     if (!email || !password) { setError('Email and password are required.'); return }
     if (password.length < 6) { setError('Password must be at least 6 characters.'); return }
     setLoading(true); setError('')
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { full_name: name } }
     })
     if (error) { setLoading(false); setError(error.message); return }
+    // Supabase answers "success" with no identities when this email already has an account (it hides that on purpose).
+    // Without this check the person is told to wait for an email that is never sent.
+    if (data?.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+      setLoading(false)
+      setError('An account with this email already exists. Tap "Sign in" below, or use "Forgot password" if you don\u2019t remember it.')
+      return
+    }
     // Subscribe to Mailchimp — fire and forget, don't block signup
     try {
       await fetch('/api/mailchimp-subscribe', {
@@ -43,8 +64,18 @@ export default function AuthModal({ onClose, onSuccess, initialMode = 'signup', 
       });
     } catch(e) { console.warn('Mailchimp subscribe failed:', e); }
     setLoading(false)
-    setMessage('Account created! Please close this tab, then open the confirmation email we just sent and tap the button in it. Don\u2019t see it after a minute or two? Check your Spam or Junk folder.')
-    setMode('signin')
+    // If email confirmation is ever switched off in Supabase, sign-up returns a live session: just sign them in.
+    if (data?.session) {
+      await setTrialStartDate(data.user.id)
+      onSuccess(data.user)
+      return
+    }
+    // Otherwise: a dedicated "check your email" step. (It used to flip to the Sign In form, which invited people to
+    // press Sign In before they had tapped the link, and then showed them a bare "Email not confirmed".)
+    setPendingEmail(email.trim())
+    setResendLeft(30)
+    setConfirmNote(null); setError(''); setMessage('')
+    setMode('confirm')
   }
 
   async function handleSignIn() {
@@ -52,10 +83,55 @@ export default function AuthModal({ onClose, onSuccess, initialMode = 'signup', 
     setLoading(true); setError('')
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     setLoading(false)
-    if (error) { setError(error.message); return }
+    if (error) {
+      if (isNotConfirmed(error)) {
+        setPendingEmail(email.trim())
+        setConfirmNote({ text: 'Your email isn\u2019t confirmed yet. Open the email we sent and tap the button in it first, then come back here.', bad: true })
+        setError(''); setMessage('')
+        setMode('confirm')
+        return
+      }
+      setError(error.message); return
+    }
     // Set trial start date on first login — no-op if already set
     await setTrialStartDate(data.user.id)
     onSuccess(data.user)
+  }
+
+  // "I've tapped the link — sign me in": uses the email and password they already typed
+  async function handleConfirmedContinue() {
+    if (!email || !password) { setMode('signin'); setError('Enter your email and password to sign in.'); return }
+    setLoading(true); setConfirmNote(null)
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+    setLoading(false)
+    if (error) {
+      if (isNotConfirmed(error)) {
+        setConfirmNote({ text: 'We can\u2019t see a confirmation yet. Tap the button in the email first (check Spam or Junk too), then try again. If you asked for more than one email, use the newest one.', bad: true })
+      } else {
+        setConfirmNote({ text: error.message, bad: true })
+      }
+      return
+    }
+    await setTrialStartDate(data.user.id)
+    onSuccess(data.user)
+  }
+
+  async function handleResend() {
+    if (!pendingEmail || resending || resendLeft > 0) return
+    setResending(true); setConfirmNote(null)
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: pendingEmail,
+      options: { emailRedirectTo: window.location.origin }
+    })
+    setResending(false)
+    setResendLeft(60)
+    if (error) {
+      const limited = error.status === 429 || /rate|too many|seconds|wait/i.test(error.message || '')
+      setConfirmNote({ text: limited ? 'Please wait a minute before asking for another email.' : 'We couldn\u2019t send that just now. Please try again in a minute.', bad: true })
+      return
+    }
+    setConfirmNote({ text: 'Sent! Look for the newest email (check Spam or Junk too). Only the newest link works.', bad: false })
   }
 
   async function handleReset() {
@@ -84,6 +160,7 @@ export default function AuthModal({ onClose, onSuccess, initialMode = 'signup', 
           {mode === 'signup' && 'Start Your Free 30-Day Trial'}
           {mode === 'signin' && 'Welcome Back'}
           {mode === 'reset' && 'Reset Password'}
+          {mode === 'confirm' && 'Check Your Email'}
         </h2>
         {mode === 'signup' && (
           <p style={{...styles.subtitle,fontSize:sz(14)}}>No credit card required. Full access for 30 days.</p>
@@ -92,6 +169,40 @@ export default function AuthModal({ onClose, onSuccess, initialMode = 'signup', 
         {error && <div style={styles.error}>{error}</div>}
         {message && <div style={{...styles.success, fontSize: sz(14), lineHeight: 1.6}}>{message}</div>}
 
+        {mode === 'confirm' && (
+          <div data-testid="confirm-panel">
+            <p style={{ ...styles.subtitle, fontSize: sz(15), color: '#333', lineHeight: 1.5, margin: '0 0 12px' }}>
+              We sent a confirmation link to <strong style={{ wordBreak: 'break-all' }}>{pendingEmail}</strong>.
+            </p>
+            <ol style={{ margin: '0 0 12px', paddingLeft: 22, fontSize: sz(14), color: '#333', lineHeight: 1.6 }}>
+              <li>Open that email. It can take a minute or two.</li>
+              <li>Tap the button in it.</li>
+              <li>Come back here and tap the button below.</li>
+            </ol>
+            <p style={{ margin: '0 0 14px', fontSize: sz(13), color: '#666', lineHeight: 1.5 }}>
+              Can{'\u2019'}t find it? Check your <strong>Spam</strong>, <strong>Junk</strong> or <strong>Promotions</strong> folder.
+            </p>
+            {confirmNote && (
+              <div style={confirmNote.bad ? styles.error : styles.success} role="status">{confirmNote.text}</div>
+            )}
+            <div style={styles.form}>
+              <button style={{ ...styles.primaryBtn, opacity: loading ? 0.7 : 1 }} onClick={handleConfirmedContinue} disabled={loading}>
+                {loading ? 'Please wait...' : 'I\u2019ve confirmed \u2014 sign me in'}
+              </button>
+              <button
+                style={{ ...styles.primaryBtn, background: 'none', color: '#1B3D2F', border: '2px solid #1B3D2F', opacity: (resending || resendLeft > 0) ? 0.55 : 1 }}
+                onClick={handleResend}
+                disabled={resending || resendLeft > 0}
+              >
+                {resending ? 'Sending...' : resendLeft > 0 ? `Send another email (${resendLeft}s)` : 'Send another email'}
+              </button>
+            </div>
+            <div style={styles.footer}>
+              <button style={styles.linkBtn} onClick={() => { setMode('signup'); setConfirmNote(null); setError(''); setMessage('') }}>Use a different email</button>
+            </div>
+          </div>
+        )}
+        {mode !== 'confirm' && (<>
         <div style={styles.form}>
           {mode === 'signup' && (
             <input
@@ -174,6 +285,7 @@ export default function AuthModal({ onClose, onSuccess, initialMode = 'signup', 
             ✓ 30-day free trial · ✓ No credit card · ✓ Cancel anytime
           </div>
         )}
+        </>)}
       </div>
     </div>
   )
