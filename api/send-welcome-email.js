@@ -1,13 +1,65 @@
+import { createClient } from '@supabase/supabase-js';
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
-  const { email, name, tier, event } = req.body;
-  if (!email) return res.status(400).json({ error: 'Missing email' });
-
+  const body = req.body || {};
+  const { tier, event } = body;
   const emailEvent = event === 'plan_confirmed' ? 'plan_confirmed' : 'trial_signup';
 
   const resendKey = process.env.RESEND_API_KEY_RGDL;
   if (!resendKey) return res.status(500).json({ error: 'Missing RESEND_API_KEY_RGDL' });
+
+  // WHO may trigger an email, and to WHOM it goes. This endpoint used to accept any address from anyone with no
+  // sign-in at all (an open relay for branded email), and the welcome email went out the moment someone SIGNED UP,
+  // before they had confirmed. It carries a big "Open Smart Kitchen" button, so new people tapped that, landed on the
+  // app unconfirmed, tried to log in, and got "Email not confirmed" (it also let a friendly email stand in for the
+  // real confirmation email). Now:
+  //  - plan_confirmed (called by the Stripe webhook) must present the shared internal secret;
+  //  - the trial welcome is sent only to the signed-in, CONFIRMED person themselves (never an address from the
+  //    request), and at most once, tracked on their profile.
+  let email, name;
+  let claimedUserId = null;
+  let supabaseAdmin = null;
+
+  if (emailEvent === 'plan_confirmed') {
+    const given = String(req.headers['x-internal-secret'] || '');
+    if (!process.env.CRON_SECRET || given !== process.env.CRON_SECRET) return res.status(401).json({ error: 'Unauthorized' });
+    email = body.email; name = body.name;
+    if (!email) return res.status(400).json({ error: 'Missing email' });
+  } else {
+    const token = String(req.headers['authorization'] || '').replace(/^Bearer\s+/i, '');
+    if (!token) return res.status(401).json({ error: 'Unauthorized' });
+    supabaseAdmin = createClient(
+      process.env.VITE_SUPABASE_URL || 'https://wnlqvmedocpgjawmwivd.supabase.co',
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    );
+    let user = null;
+    try {
+      const { data, error } = await supabaseAdmin.auth.getUser(token);
+      user = !error && data ? data.user : null;
+    } catch (e) { user = null; }
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    if (!user.email_confirmed_at) return res.status(200).json({ skipped: 'email_not_confirmed' });
+    email = user.email;
+    name = (user.user_metadata && user.user_metadata.full_name) || '';
+    if (!email) return res.status(400).json({ error: 'Missing email' });
+    // Claim the one-time send atomically: of any number of simultaneous calls, only one gets the row back
+    const { data: claimed, error: claimErr } = await supabaseAdmin
+      .from('profiles')
+      .update({ welcome_email_sent_at: new Date().toISOString() })
+      .eq('id', user.id)
+      .is('welcome_email_sent_at', null)
+      .select('id');
+    if (claimErr) { console.error('welcome claim error:', claimErr.message); return res.status(500).json({ error: 'Could not record welcome email' }); }
+    if (!claimed || claimed.length === 0) return res.status(200).json({ skipped: 'already_sent' });
+    claimedUserId = user.id;
+  }
+  // If the email fails to send, give the claim back so the next sign-in tries again
+  const releaseClaim = async () => {
+    if (!claimedUserId) return;
+    try { await supabaseAdmin.from('profiles').update({ welcome_email_sent_at: null }).eq('id', claimedUserId); } catch (e) {}
+  };
 
   const firstName = name ? name.split(' ')[0] : 'there';
   const appUrl = 'https://smart-kitchen-opal.vercel.app';
@@ -150,12 +202,14 @@ export default async function handler(req, res) {
 
     if (!response.ok) {
       console.error('Resend error:', data);
+      await releaseClaim();
       return res.status(500).json({ error: data.message || 'Failed to send welcome email' });
     }
 
     return res.status(200).json({ success: true, id: data.id });
   } catch (err) {
     console.error('Welcome email error:', err);
-    return res.status(500).json({ error: err.message });
+    await releaseClaim();
+    return res.status(500).json({ error: 'Failed to send welcome email' });
   }
 }

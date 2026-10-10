@@ -25,6 +25,27 @@ function takeOverLocalData(userId) {
   return false;
 }
 
+// Welcome email: the SERVER sends it, once, and only after the person has actually confirmed their email.
+// (It used to go out at sign-up, before confirmation, with a big "Open Smart Kitchen" button -- new people tapped it,
+// landed on the app unconfirmed, tried to sign in, and got "Email not confirmed".) Only recently created accounts are
+// asked about, and only once per device; the server also guarantees one email per account.
+async function sendWelcomeIfNeeded(session) {
+  try {
+    const user = session && session.user;
+    if (!user || !user.email_confirmed_at || !session.access_token) return;
+    const created = Date.parse(user.created_at || "");
+    if (!isNaN(created) && Date.now() - created > 45 * 86400000) return;
+    const key = "sk_welcomeChecked_" + user.id;
+    if (localStorage.getItem(key)) return;
+    const r = await fetch("/api/send-welcome-email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + session.access_token },
+      body: JSON.stringify({ event: "trial_signup", tier: "solo" })
+    });
+    if (r.ok) localStorage.setItem(key, "1");
+  } catch {}
+}
+
 // Pre-auth accessibility toggles shown next to Sign In button
 function AccessibilityToggles() {
   const [isLight, setIsLight] = React.useState(() => {
@@ -387,6 +408,7 @@ function Root() {
         activeUserIdRef.current = session.user.id;
         setCachedAccessToken(session.access_token);
         loadStartedForRef.current = session.user.id;
+        sendWelcomeIfNeeded(session);
         // Check if this user is a viewer of someone else's account
         getViewerRole(session.user.id).then(role => {
           if (role) {
@@ -424,6 +446,7 @@ function Root() {
         setUser(session.user);
         setCachedAccessToken(session.access_token);
         getUserProfile(session.user.id).then(setUserProfile);
+        sendWelcomeIfNeeded(session);
         // Only treat this as a genuine account switch -- and only then force an authoritative
         // cloud pull -- when the signed-in user is actually different from whoever this tab
         // already had active. Supabase also fires SIGNED_IN for routine same-account re-auth

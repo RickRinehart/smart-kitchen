@@ -176,7 +176,7 @@ export default async function handler(req, res) {
           if (customerEmail) {
             await fetch(`${process.env.VITE_APP_URL}/api/send-welcome-email`, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: { 'Content-Type': 'application/json', 'x-internal-secret': process.env.CRON_SECRET || '' },
               body: JSON.stringify({ email: customerEmail, name: customerName, tier: derivedTier || 'solo', event: 'plan_confirmed' }),
             });
           }
