@@ -1,11 +1,31 @@
 {
   "rewrites": [
-    { "source": "/r/:code", "destination": "/api/r/:code" },
-    { "source": "/((?!api/).*)", "destination": "/index.html" }
+    {
+      "source": "/r/:code",
+      "destination": "/api/r/:code"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
+    }
   ],
   "crons": [
-    { "path": "/api/send-shopping-list?action=check-recalls", "schedule": "0 8 * * *" },
-    { "path": "/api/ingest-horrocks?action=ingest-horrocks", "schedule": "0 12 * * *" },
-    { "path": "/api/check-deep-discounts?action=check-deep-discounts", "schedule": "0 13 * * *" }
-  ]
+    {
+      "path": "/api/send-shopping-list?action=check-recalls",
+      "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/ingest-horrocks?action=ingest-horrocks",
+      "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/check-deep-discounts?action=check-deep-discounts",
+      "schedule": "0 13 * * *"
+    }
+  ],
+  "functions": {
+    "api/ai.js": {
+      "maxDuration": 120
+    }
+  }
 }

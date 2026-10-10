@@ -1252,6 +1252,32 @@ const bInp={background:C.surface,border:"1px solid "+C.border,borderRadius:8,pad
 const Label=({children})=><div style={{fontSize:10,color:C.muted,fontFamily:FM,letterSpacing:0.8,marginBottom:5}}>{children}</div>;
 
 // -- Claude API ----------------------------------------------------------------
+// Every Claude call goes through our own server route (/api/ai), which holds the API key and picks
+// the model. The browser never sees the key. Pass {system, messages, max_tokens}; returns the fetch
+// Response. TEMPORARY FALLBACK: while the server has no key configured yet (it answers 503
+// "proxy_not_configured"), fall back to the old direct call so production keeps working during the
+// switch-over. Remove the fallback (and VITE_ANTHROPIC_API_KEY) once the server key is live.
+async function aiRequest(body,signal){
+  let token=null;
+  try{const {data}=await supabase.auth.getSession();token=data?.session?.access_token||null;}catch{}
+  const headers={"Content-Type":"application/json"};
+  if(token) headers.Authorization="Bearer "+token;
+  const res=await fetch("/api/ai",{method:"POST",headers,body:JSON.stringify(body),signal});
+  if(res.status===503){
+    let j=null;try{j=await res.clone().json();}catch{}
+    const legacyKey=import.meta.env?.VITE_ANTHROPIC_API_KEY||"";
+    if(j&&j.error==="proxy_not_configured"&&legacyKey){
+      return fetch("https://api.anthropic.com/v1/messages",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","x-api-key":legacyKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+        body:JSON.stringify({...body,model:"claude-sonnet-4-5"}),
+        signal,
+      });
+    }
+  }
+  return res;
+}
+
 async function callClaude({system,prompt,imageBase64,imageB64,imageType,extraImages=[],pdfBase64,maxTokens=4000,timeoutMs=90000}){
   const content=[];
   const primaryImg=imageBase64||imageB64;
@@ -1262,15 +1288,9 @@ async function callClaude({system,prompt,imageBase64,imageB64,imageType,extraIma
   // (receipts, weekly ad scanner, etc.) is completely unaffected.
   if(pdfBase64) content.push({type:"document",source:{type:"base64",media_type:"application/pdf",data:pdfBase64}});
   content.push({type:"text",text:prompt});
-  const apiKey=import.meta.env?.VITE_ANTHROPIC_API_KEY||"";
   let res;
   try{
-    res=await fetch("https://api.anthropic.com/v1/messages",{
-      method:"POST",
-      headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-      body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:maxTokens,system,messages:[{role:"user",content}]}),
-      signal:AbortSignal.timeout(timeoutMs),
-    });
+    res=await aiRequest({max_tokens:maxTokens,system,messages:[{role:"user",content}]},AbortSignal.timeout(timeoutMs));
   }catch(err){
     // AbortSignal.timeout() rejects with a DOMException whose .message is often blank/undefined
     // in some browsers, which every caller's catch block then shows verbatim as "...failed:
@@ -1282,6 +1302,9 @@ async function callClaude({system,prompt,imageBase64,imageB64,imageType,extraIma
     }
     throw new Error(err.message||"Network error — please check your connection and try again.");
   }
+  if(res.status===413) throw new Error("That file is too large to send. Please use a smaller photo or PDF.");
+  if(res.status===429) throw new Error("Too many requests right now — please wait a few minutes and try again.");
+  if(res.status===401) throw new Error("Your session expired — please sign in again.");
   if(!res.ok) throw new Error("API error "+res.status);
   const data=await res.json();
   if(data.error) throw new Error(data.error.message||"API error");
@@ -3824,11 +3847,7 @@ FEEDBACK: You actively want to hear feedback — good, bad, and ugly. If someone
 Keep responses concise — 2-4 sentences max unless explaining a feature. Use plain language. No bullet points unless listing steps.`;
     try{
       const history=chatMessages.slice(-8).map(m=>({role:m.role,content:m.text}));
-      const res=await fetch("https://api.anthropic.com/v1/messages",{
-        method:"POST",
-        headers:{"Content-Type":"application/json","x-api-key":import.meta.env?.VITE_ANTHROPIC_API_KEY||"","anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-        body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:400,system,messages:[...history,{role:"user",content:text}]}),
-      });
+      const res=await aiRequest({max_tokens:400,system,messages:[...history,{role:"user",content:text}]});
       const data=await res.json();
       const reply=data?.content?.[0]?.text||"I'm having a little trouble right now — please try again in a moment.";
       addChatMsg("assistant",reply);
@@ -5249,7 +5268,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       const mealName=t.replace(/make this|how do i make|how to make|steps for/,"").trim()||(mealDays[todayIdx%Math.max(mealDays.length,1)]&&mealDays[todayIdx%Math.max(mealDays.length,1)].meal)||lastSuggestedMeal;
       if(!mealName){speak("Which meal would you like instructions for?");return;}
       try{
-        const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:500,system:"You are a cooking assistant. Give 4-6 short step-by-step instructions for the requested meal. Keep each step under 15 words. Speak naturally as if reading aloud.",messages:[{role:"user",content:"Cooking steps for: "+mealName}]})});
+        const res=await aiRequest({max_tokens:500,system:"You are a cooking assistant. Give 4-6 short step-by-step instructions for the requested meal. Keep each step under 15 words. Speak naturally as if reading aloud.",messages:[{role:"user",content:"Cooking steps for: "+mealName}]});
         const d=await res.json();
         speak("Here's how to make "+mealName+". "+(d.content&&d.content[0]?d.content[0].text:"I couldn't get those steps right now."));
       }catch(e){speak("I had trouble getting those steps. Try tapping the recipe card.");}
@@ -5259,7 +5278,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       const dish=t.replace(/give me a recipe for|suggest a recipe for|recipe for|what can i make with/,"").trim()||"something delicious";
       try{
         const invSummary=inventory.slice(0,20).map(i=>i.quantity+" "+i.name).join(", ");
-        const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:300,system:"You are "+assistantName()+", a friendly Smart Kitchen voice assistant. Suggest one recipe in 3-4 sentences. Name the dish, key ingredients, and cooking time. Keep it conversational for voice reading.",messages:[{role:"user",content:"Suggest a recipe for "+dish+". Inventory: "+invSummary}]})});
+        const res=await aiRequest({max_tokens:300,system:"You are "+assistantName()+", a friendly Smart Kitchen voice assistant. Suggest one recipe in 3-4 sentences. Name the dish, key ingredients, and cooking time. Keep it conversational for voice reading.",messages:[{role:"user",content:"Suggest a recipe for "+dish+". Inventory: "+invSummary}]});
         const d=await res.json();
         const text=d.content&&d.content[0]?d.content[0].text:"How about a simple pasta dish tonight?";
         const mealMatch=text.match(/^([A-Z][^.!?]{3,40})/);
