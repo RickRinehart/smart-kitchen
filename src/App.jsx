@@ -3300,6 +3300,9 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   },[]);
 
   useEffect(()=>{
+    // Keep a local copy. This effect depends on familyRecipes ONLY. It used to depend on `user` as well, so signing out
+    // (clear local storage, then setUser(null)) re-ran it and wrote the previous account's recipes straight back into the
+    // just-cleared storage; the next account to sign in on that device inherited them (74 recipes in a brand-new account).
     try{
       // Save WITH photos first — fall back to without only if quota exceeded
       localStorage.setItem("sk_familyRecipes",JSON.stringify(familyRecipes));
@@ -3310,7 +3313,10 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
         localStorage.setItem("sk_familyRecipes",JSON.stringify(slim));
       }catch{}
     }
-    // Cloud sync — debounced 10s to prevent loop on rapid state changes
+  },[familyRecipes]);
+  useEffect(()=>{
+    // Cloud sync — debounced 10s to prevent loop on rapid state changes. Runs when the recipes themselves change;
+    // the full cloud save at sign-in already carries them, so a mere user change must not push anything.
     if(user?.id){
       clearTimeout(window._frSaveTimer);
       window._frSaveTimer=setTimeout(()=>{
@@ -3318,7 +3324,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
         import("./supabaseClient").then(m=>m.saveCloudField(user.id,"family_recipes",cloudCopy)).catch(()=>{});
       },10000);
     }
-  },[familyRecipes,user]);
+  },[familyRecipes]);
   useEffect(()=>{
     const person1=familyProfiles[0];
     if(person1?.restriction==="senior"&&!seniorMode&&!seniorPromptDismissed){

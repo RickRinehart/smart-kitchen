@@ -216,6 +216,11 @@ function ensureDirtyTracking() {
   const syncedKeys = new Set(Object.values(SYNC_MAP));
   const originalSetItem = localStorage.setItem.bind(localStorage);
   localStorage.setItem = function(key, value) {
+    // While a sign-out is in progress, nothing synced may be written back. React effects re-run when the user changes
+    // and used to re-save the previous account's data into storage that sign-out had JUST cleared, so the next account
+    // to sign in on this device inherited it (74 family recipes appeared in a brand-new account). handleSignOut sets
+    // this flag and the page reloads right after, which resets it.
+    if (typeof window !== 'undefined' && window.__skSigningOut && (syncedKeys.has(key) || key === OWNER_KEY)) return;
     if (syncedKeys.has(key)) {
       // First synced write into a browser with no label: stamp who it's for (a signed-in user, else 'guest')
       try { if (localStorage.getItem(OWNER_KEY) === null) originalSetItem(OWNER_KEY, _activeDataUser || 'guest'); } catch(e) {}

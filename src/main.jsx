@@ -621,13 +621,22 @@ document.addEventListener("visibilitychange", handleVisibility);
         if (!proceedAnyway) return;
       }
     }
-    await supabase.auth.signOut();
-    // Clear all locally-cached app data so this account's information can never bleed into
-    // whoever signs in next on this same browser/device.
-    try{ALL_LOCAL_STORAGE_KEYS.forEach(k=>localStorage.removeItem(k));}catch{}
-    setUser(null);
-    setUserProfile(null);
-    window.location.reload();
+    // From here until the reload, nothing may write app data back into local storage (see the guard in
+    // supabaseClient.js): React effects re-run when the user changes and used to re-save the previous account's data
+    // into the storage we are about to clear.
+    window.__skSigningOut = true;
+    try{
+      await supabase.auth.signOut();
+      // Clear all locally-cached app data -- and its recovery backups, which used to survive sign-out -- so this
+      // account's information can never bleed into whoever signs in next on this same browser/device.
+      wipeLocalUserData();
+      setUser(null);
+      setUserProfile(null);
+      window.location.reload();
+    }catch(e){
+      window.__skSigningOut = false;
+      window.alert("Sign-out didn't finish. Please try again.");
+    }
   }
 
   // Admin bypass — always full access
