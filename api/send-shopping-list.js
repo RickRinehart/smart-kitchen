@@ -346,9 +346,9 @@ export default async function handler(req, res) {
         <td style="padding:6px 10px;font-size:12px;text-align:center;color:${bpCatColors[b.category]||'#333'};font-weight:bold;">${b.category||''}</td>
       </tr>`).join('');
     const bpSectionHtml = (bpReadings && bpReadings.length > 0) ? `
-        <div style="font-weight:bold;color:#1A2344;margin:20px 0 12px;">Blood Pressure</div>
+        <div style="font-weight:bold;color:#1B3D2F;margin:20px 0 12px;">Blood Pressure</div>
         <table width="100%" style="border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;border:1px solid #eee;margin-bottom:8px;">
-          <thead><tr style="background:#1A2344;">
+          <thead><tr style="background:#1B3D2F;">
             <th style="padding:8px 10px;color:#fff;font-size:12px;text-align:left;">Date</th>
             <th style="padding:8px 10px;color:#fff;font-size:12px;">Reading</th>
             <th style="padding:8px 10px;color:#fff;font-size:12px;">Category</th>
@@ -364,12 +364,12 @@ export default async function handler(req, res) {
         <div style="color:#555;font-size:12px;">${a.reason||''}</div>
       </div>`).join('');
     const recallSectionHtml = (recallAlerts && recallAlerts.length > 0) ? `
-        <div style="font-weight:bold;color:#1A2344;margin:0 0 12px;">&#128680; FDA Food Recall Alerts</div>
+        <div style="font-weight:bold;color:#1B3D2F;margin:0 0 12px;">&#128680; FDA Food Recall Alerts</div>
         ${recallRowsHtml}
         <p style="font-size:10px;color:#999;margin-bottom:20px;">Based on FDA Food Enforcement data, matched against inventory by product name. Always verify against the official FDA recall notice before discarding or continuing to use a product.</p>` : '';
 
     const html = `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;">
-      <div style="background:#1A2344;padding:20px;border-radius:8px 8px 0 0;text-align:center;">
+      <div style="background:#1B3D2F;padding:20px;border-radius:8px 8px 0 0;text-align:center;">
         <div style="color:#C8963E;font-size:24px;font-weight:bold;">Smart Kitchen&#8482;</div>
         <div style="color:#fff;font-size:16px;margin-top:4px;">Nutrition Report</div>
         <div style="color:#aaa;font-size:13px;margin-top:4px;">${memberName||'Member'} &bull; ${dateRange||''}</div>
@@ -380,9 +380,9 @@ export default async function handler(req, res) {
           <div style="font-weight:bold;color:#10b981;margin-bottom:6px;">Weekly Summary</div>
           <div style="color:#333;font-size:14px;line-height:1.6;">${narrative}</div>
         </div>` : ''}
-        <div style="font-weight:bold;color:#1A2344;margin-bottom:12px;">Daily Breakdown</div>
+        <div style="font-weight:bold;color:#1B3D2F;margin-bottom:12px;">Daily Breakdown</div>
         <table width="100%" style="border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;border:1px solid #eee;">
-          <thead><tr style="background:#1A2344;">
+          <thead><tr style="background:#1B3D2F;">
             <th style="padding:8px 10px;color:#fff;font-size:12px;text-align:left;">Date</th>
             <th style="padding:8px 10px;color:#3b82f6;font-size:12px;">Protein</th>
             <th style="padding:8px 10px;color:#f59e0b;font-size:12px;">Calories</th>
@@ -445,11 +445,11 @@ export default async function handler(req, res) {
     const tagColor = tagColors[tag] || '#888';
 
     const html = `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:0;">
-      <div style="background:#1A2344;padding:20px;border-radius:8px 8px 0 0;">
+      <div style="background:#1B3D2F;padding:20px;border-radius:8px 8px 0 0;">
         <span style="color:#C8963E;font-size:22px;font-weight:bold;">Smart Kitchen&#8482;</span>
         <span style="color:#fff;font-size:15px;margin-left:12px;">Support Escalation</span>
       </div>
-      <div style="border:1px solid #e2e6ef;border-top:none;border-radius:0 0 8px 8px;padding:22px;">
+      <div style="border:1px solid #D9E4DC;border-top:none;border-radius:0 0 8px 8px;padding:22px;">
         <div style="display:inline-block;background:${tagColor}18;border:1px solid ${tagColor}55;color:${tagColor};font-weight:bold;font-size:12px;padding:5px 12px;border-radius:20px;margin-bottom:16px;">${tag}</div>
         <table width="100%" style="border-collapse:collapse;margin-bottom:16px;">
           <tr><td style="padding:4px 0;color:#888;font-size:12px;width:90px;">User</td><td style="padding:4px 0;color:#333;font-size:13px;font-weight:bold;">${userName || 'Unknown'}</td></tr>
@@ -583,11 +583,11 @@ export default async function handler(req, res) {
 
   const htmlBody = `
     <div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:24px;">
-      <div style="background:#1A2344;padding:16px 20px;border-radius:8px 8px 0 0;">
+      <div style="background:#1B3D2F;padding:16px 20px;border-radius:8px 8px 0 0;">
         <span style="color:#C8963E;font-size:20px;font-weight:bold;">Smart Kitchen™</span>
         <span style="color:#fff;font-size:14px;margin-left:12px;">Shopping List</span>
       </div>
-      <div style="border:1px solid #e2e6ef;border-top:none;border-radius:0 0 8px 8px;padding:20px;">
+      <div style="border:1px solid #D9E4DC;border-top:none;border-radius:0 0 8px 8px;padding:20px;">
         ${toName ? `<p style="color:#555;margin-bottom:16px;">Hi ${toName}, here's your shopping list:</p>` : ''}
         ${listHtml}
         <div style="margin-top:20px;padding-top:16px;border-top:1px solid #eee;font-size:11px;color:#aaa;text-align:center;">

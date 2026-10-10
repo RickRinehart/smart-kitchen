@@ -69,22 +69,22 @@ async function handleSend(req, res) {
   const ownerFirst = (owner_name || 'Someone').split(' ')[0];
 
   const htmlBody = `
-    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#f8f8f8;">
-      <div style="background:#1A2344;padding:24px 28px;border-radius:10px 10px 0 0;">
+    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#F4F1EA;">
+      <div style="background:#1B3D2F;padding:24px 28px;border-radius:10px 10px 0 0;">
         <div style="color:#C8963E;font-size:26px;font-weight:bold;">Smart Kitchen™</div>
         <div style="color:#fff;font-size:14px;margin-top:4px;">AI-Powered Meal Planning</div>
       </div>
       <div style="background:#fff;padding:28px;border-radius:0 0 10px 10px;">
-        <h2 style="color:#1A2344;margin-top:0;">You've been invited as a ${roleLabel}</h2>
+        <h2 style="color:#1B3D2F;margin-top:0;">You've been invited as a ${roleLabel}</h2>
         <p style="color:#444;line-height:1.6;"><strong>${ownerFirst}</strong> has invited you to access their Smart Kitchen account as a <strong>${roleLabel}</strong>.</p>
         <p style="color:#444;line-height:1.6;">${roleDesc}</p>
-        <div style="background:#f0f4ff;border-left:4px solid #1A2344;padding:16px;border-radius:0 8px 8px 0;margin:20px 0;">
+        <div style="background:#EAF1EC;border-left:4px solid #1B3D2F;padding:16px;border-radius:0 8px 8px 0;margin:20px 0;">
           <div style="color:#888;font-size:12px;margin-bottom:4px;">Your invite code</div>
-          <div style="color:#1A2344;font-size:28px;font-weight:bold;letter-spacing:4px;">${invite_code}</div>
+          <div style="color:#1B3D2F;font-size:28px;font-weight:bold;letter-spacing:4px;">${invite_code}</div>
         </div>
         <p style="color:#444;line-height:1.6;">Click below to accept — you'll need to sign in or create a free account.</p>
         <div style="text-align:center;margin:28px 0;">
-          <a href="${acceptUrl}" style="background:#C8963E;color:#fff;padding:16px 36px;border-radius:8px;text-decoration:none;font-size:16px;font-weight:bold;display:inline-block;">Accept Invitation</a>
+          <a href="${acceptUrl}" style="background:#C8963E;color:#12291F;padding:16px 36px;border-radius:8px;text-decoration:none;font-size:16px;font-weight:bold;display:inline-block;">Accept Invitation</a>
         </div>
         <p style="color:#888;font-size:13px;">Or enter code <strong>${invite_code}</strong> in the Smart Kitchen app under Settings &rarr; Household Members.</p>
         <p style="color:#aaa;font-size:12px;margin-top:24px;">This invitation expires in 7 days. If you did not expect this email, you can safely ignore it.</p>
@@ -149,13 +149,13 @@ async function handleAccept(req, res) {
     const inviteeName = invitee_name || invitee_email || 'Someone';
     const ownerFirst = (invite.owner_name || 'there').split(' ')[0];
     const htmlBody = `
-      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#f8f8f8;">
-        <div style="background:#1A2344;padding:24px 28px;border-radius:10px 10px 0 0;">
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#F4F1EA;">
+        <div style="background:#1B3D2F;padding:24px 28px;border-radius:10px 10px 0 0;">
           <div style="color:#C8963E;font-size:26px;font-weight:bold;">Smart Kitchen™</div>
           <div style="color:#fff;font-size:14px;margin-top:4px;">AI-Powered Meal Planning</div>
         </div>
         <div style="background:#fff;padding:28px;border-radius:0 0 10px 10px;">
-          <h2 style="color:#1A2344;margin-top:0;">Your ${roleLabel} invitation was accepted</h2>
+          <h2 style="color:#1B3D2F;margin-top:0;">Your ${roleLabel} invitation was accepted</h2>
           <p style="color:#444;line-height:1.6;">Hi ${ownerFirst},</p>
           <p style="color:#444;line-height:1.6;"><strong>${inviteeName}</strong> has accepted your invitation and can now access your Smart Kitchen account as a <strong>${roleLabel}</strong>.</p>
           ${invite.role === 'manager' ? '<p style="color:#444;line-height:1.6;">They can now help manage your meal plan and inventory. You remain in full control of your account settings and subscription.</p>' : '<p style="color:#444;line-height:1.6;">They can now view your meal plan and inventory in read-only mode.</p>'}

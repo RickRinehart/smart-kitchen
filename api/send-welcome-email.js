@@ -76,26 +76,26 @@ export default async function handler(req, res) {
   const tierNote = tier === 'medical' 
     ? '<p style="background:#e6f4ed;border-left:4px solid #1A7A4A;padding:12px 16px;border-radius:0 8px 8px 0;color:#1A7A4A;font-weight:bold;">Your Medical+ plan includes unlimited family profiles, medical dietary enforcement, and full caregiver features.</p>'
     : tier === 'family'
-    ? '<p style="background:#EEF1F8;border-left:4px solid #1A2344;padding:12px 16px;border-radius:0 8px 8px 0;color:#1A2344;">Your Family plan includes unlimited family profiles with per-member dietary restrictions — set them up in the Family tab.</p>'
+    ? '<p style="background:#EAF1EC;border-left:4px solid #1B3D2F;padding:12px 16px;border-radius:0 8px 8px 0;color:#1B3D2F;">Your Family plan includes unlimited family profiles with per-member dietary restrictions — set them up in the Family tab.</p>'
     : tier === 'couple'
-    ? '<p style="background:#EEF1F8;border-left:4px solid #1A2344;padding:12px 16px;border-radius:0 8px 8px 0;color:#1A2344;">Your Couple plan includes profiles for both of you, with per-person dietary restrictions — set them up in the Family tab.</p>'
-    : '<p style="background:#EEF1F8;border-left:4px solid #1A2344;padding:12px 16px;border-radius:0 8px 8px 0;color:#1A2344;">Your Solo plan includes full AI meal planning, inventory management, and all core features.</p>';
+    ? '<p style="background:#EAF1EC;border-left:4px solid #1B3D2F;padding:12px 16px;border-radius:0 8px 8px 0;color:#1B3D2F;">Your Couple plan includes profiles for both of you, with per-person dietary restrictions — set them up in the Family tab.</p>'
+    : '<p style="background:#EAF1EC;border-left:4px solid #1B3D2F;padding:12px 16px;border-radius:0 8px 8px 0;color:#1B3D2F;">Your Solo plan includes full AI meal planning, inventory management, and all core features.</p>';
 
   const activeNote = emailEvent === 'plan_confirmed' ? tierNote : trialNote;
 
   const htmlBody = `
-    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:0;background:#f8f8f8;">
+    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:0;background:#F4F1EA;">
 
       <!-- Header -->
-      <div style="background:#1A2344;padding:24px 28px;border-radius:10px 10px 0 0;">
+      <div style="background:#1B3D2F;padding:24px 28px;border-radius:10px 10px 0 0;">
         <div style="color:#C8963E;font-size:26px;font-weight:bold;letter-spacing:0.5px;">Smart Kitchen™</div>
         <div style="color:#fff;font-size:14px;margin-top:4px;">AI-Powered Meal Planning for Your Family</div>
       </div>
 
       <!-- Body -->
-      <div style="background:#fff;border:1px solid #e2e6ef;border-top:none;border-radius:0 0 10px 10px;padding:28px;">
+      <div style="background:#fff;border:1px solid #D9E4DC;border-top:none;border-radius:0 0 10px 10px;padding:28px;">
 
-        <p style="font-size:18px;color:#1A2344;font-weight:bold;margin-top:0;">
+        <p style="font-size:18px;color:#1B3D2F;font-weight:bold;margin-top:0;">
           ${emailEvent === 'plan_confirmed' ? `You're all set, ${firstName}! 🎉` : `Welcome, ${firstName}! 👋`}
         </p>
 
@@ -113,29 +113,29 @@ export default async function handler(req, res) {
         </p>
 
         <!-- Steps -->
-        <div style="background:#f8f9fc;border-radius:8px;padding:20px;margin:20px 0;">
+        <div style="background:#F3F7F4;border-radius:8px;padding:20px;margin:20px 0;">
           <div style="display:flex;align-items:flex-start;margin-bottom:14px;">
-            <div style="background:#C8963E;color:#fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:13px;flex-shrink:0;margin-right:12px;margin-top:2px;">1</div>
-            <div><strong style="color:#1A2344;">Set up your family profiles</strong><br><span style="color:#555;font-size:14px;">Add family members and any dietary restrictions. The AI enforces them automatically on every meal plan.</span></div>
+            <div style="background:#C8963E;color:#12291F;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:13px;flex-shrink:0;margin-right:12px;margin-top:2px;">1</div>
+            <div><strong style="color:#1B3D2F;">Set up your family profiles</strong><br><span style="color:#555;font-size:14px;">Add family members and any dietary restrictions. The AI enforces them automatically on every meal plan.</span></div>
           </div>
           <div style="display:flex;align-items:flex-start;margin-bottom:14px;">
-            <div style="background:#C8963E;color:#fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:13px;flex-shrink:0;margin-right:12px;margin-top:2px;">2</div>
-            <div><strong style="color:#1A2344;">Tell us about your kitchen</strong><br><span style="color:#555;font-size:14px;">Add what appliances you have — air fryer, Instant Pot, smoker, and more. The AI suggests cooking methods that match your equipment.</span></div>
+            <div style="background:#C8963E;color:#12291F;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:13px;flex-shrink:0;margin-right:12px;margin-top:2px;">2</div>
+            <div><strong style="color:#1B3D2F;">Tell us about your kitchen</strong><br><span style="color:#555;font-size:14px;">Add what appliances you have — air fryer, Instant Pot, smoker, and more. The AI suggests cooking methods that match your equipment.</span></div>
           </div>
           <div style="display:flex;align-items:flex-start;margin-bottom:14px;">
-            <div style="background:#C8963E;color:#fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:13px;flex-shrink:0;margin-right:12px;margin-top:2px;">3</div>
-            <div><strong style="color:#1A2344;">Add what's in your kitchen</strong><br><span style="color:#555;font-size:14px;">Scan a receipt, photograph pantry shelves, or add items manually. The AI builds meals around what you have.</span></div>
+            <div style="background:#C8963E;color:#12291F;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:13px;flex-shrink:0;margin-right:12px;margin-top:2px;">3</div>
+            <div><strong style="color:#1B3D2F;">Add what's in your kitchen</strong><br><span style="color:#555;font-size:14px;">Scan a receipt, photograph pantry shelves, or add items manually. The AI builds meals around what you have.</span></div>
           </div>
           <div style="display:flex;align-items:flex-start;">
-            <div style="background:#C8963E;color:#fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:13px;flex-shrink:0;margin-right:12px;margin-top:2px;">4</div>
-            <div><strong style="color:#1A2344;">Generate your first meal plan</strong><br><span style="color:#555;font-size:14px;">Tap "Build Meal Plan" for a personalized 7-day dinner plan built around your inventory, family, and kitchen setup.</span></div>
+            <div style="background:#C8963E;color:#12291F;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:13px;flex-shrink:0;margin-right:12px;margin-top:2px;">4</div>
+            <div><strong style="color:#1B3D2F;">Generate your first meal plan</strong><br><span style="color:#555;font-size:14px;">Tap "Build Meal Plan" for a personalized 7-day dinner plan built around your inventory, family, and kitchen setup.</span></div>
           </div>
         </div>
 
         ${activeNote}
 
         <!-- Documents -->
-        <p style="color:#1A2344;font-weight:bold;font-size:15px;margin-bottom:10px;">📎 Your guides are attached:</p>
+        <p style="color:#1B3D2F;font-weight:bold;font-size:15px;margin-bottom:10px;">📎 Your guides are attached:</p>
         <ul style="color:#333;font-size:14px;line-height:2;">
           <li><strong>Quick Start Guide</strong> — Six steps to your first meal plan. Start here.</li>
           <li><strong>Complete Feature Guide</strong> — Every feature explained with screenshots. Reference this anytime.</li>
@@ -148,7 +148,7 @@ export default async function handler(req, res) {
 
         <!-- CTA -->
         <div style="text-align:center;margin:28px 0 16px;">
-          <a href="${appUrl}" style="background:#C8963E;color:#1A2344;font-weight:bold;font-size:16px;padding:14px 36px;border-radius:8px;text-decoration:none;display:inline-block;">Open Smart Kitchen™ →</a>
+          <a href="${appUrl}" style="background:#C8963E;color:#12291F;font-weight:bold;font-size:16px;padding:14px 36px;border-radius:8px;text-decoration:none;display:inline-block;">Open Smart Kitchen™ →</a>
         </div>
 
         <p style="color:#888;font-size:13px;line-height:1.7;">
