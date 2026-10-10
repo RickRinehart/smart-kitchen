@@ -315,7 +315,7 @@ const styles = {
   },
   primaryBtn: {
     padding: '14px', borderRadius: '8px', border: 'none',
-    background: '#c8963e', color: '#fff', fontSize: '15px',
+    background: '#c8963e', color: '#12291F', fontSize: '15px',
     fontWeight: '700', cursor: 'pointer', marginTop: '4px'
   },
   footer: { marginTop: '16px', textAlign: 'center', fontSize: '14px', color: '#666' },
