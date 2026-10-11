@@ -121,5 +121,8 @@ export default async function handler(req, res) {
     // Pass Anthropic's error shape through (the client already reads data.error.message) without ever echoing keys.
     return res.status(upstream.status >= 400 ? upstream.status : 502).json({ error: (data && data.error) || { message: 'AI service error' } });
   }
-  return res.status(200).json(data);
+  // Newer models can prepend a "thinking" block. The app only ever wants the text, so hand back text
+  // blocks only (keeps every caller simple and safe, even ones that read content[0]).
+  const textOnly = Array.isArray(data.content) ? data.content.filter((b) => b && b.type === 'text') : [];
+  return res.status(200).json({ ...data, content: textOnly });
 }

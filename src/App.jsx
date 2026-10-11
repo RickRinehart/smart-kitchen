@@ -1278,6 +1278,10 @@ async function aiRequest(body,signal){
   return res;
 }
 
+// Pulls just the answer text out of a raw API response. Newer models can put a "thinking" block
+// BEFORE the text block, so never assume content[0] is the text (that made the chat say "trouble").
+function aiText(data){return (data?.content||[]).filter(b=>b&&b.type==="text").map(b=>b.text||"").join("").trim();}
+
 async function callClaude({system,prompt,imageBase64,imageB64,imageType,extraImages=[],pdfBase64,maxTokens=4000,timeoutMs=90000}){
   const content=[];
   const primaryImg=imageBase64||imageB64;
@@ -3849,7 +3853,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       const history=chatMessages.slice(-8).map(m=>({role:m.role,content:m.text}));
       const res=await aiRequest({max_tokens:400,system,messages:[...history,{role:"user",content:text}]});
       const data=await res.json();
-      const reply=data?.content?.[0]?.text||"I'm having a little trouble right now — please try again in a moment.";
+      const reply=aiText(data)||"I'm having a little trouble right now — please try again in a moment.";
       addChatMsg("assistant",reply);
       if(voiceMode){
         // Strip markdown for voice (remove **, *, #, bullet chars)
@@ -5270,7 +5274,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       try{
         const res=await aiRequest({max_tokens:500,system:"You are a cooking assistant. Give 4-6 short step-by-step instructions for the requested meal. Keep each step under 15 words. Speak naturally as if reading aloud.",messages:[{role:"user",content:"Cooking steps for: "+mealName}]});
         const d=await res.json();
-        speak("Here's how to make "+mealName+". "+(d.content&&d.content[0]?d.content[0].text:"I couldn't get those steps right now."));
+        speak("Here's how to make "+mealName+". "+(aiText(d)||"I couldn't get those steps right now."));
       }catch(e){speak("I had trouble getting those steps. Try tapping the recipe card.");}
       return;
     }
@@ -5280,7 +5284,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
         const invSummary=inventory.slice(0,20).map(i=>i.quantity+" "+i.name).join(", ");
         const res=await aiRequest({max_tokens:300,system:"You are "+assistantName()+", a friendly Smart Kitchen voice assistant. Suggest one recipe in 3-4 sentences. Name the dish, key ingredients, and cooking time. Keep it conversational for voice reading.",messages:[{role:"user",content:"Suggest a recipe for "+dish+". Inventory: "+invSummary}]});
         const d=await res.json();
-        const text=d.content&&d.content[0]?d.content[0].text:"How about a simple pasta dish tonight?";
+        const text=aiText(d)||"How about a simple pasta dish tonight?";
         const mealMatch=text.match(/^([A-Z][^.!?]{3,40})/);
         if(mealMatch)setLastSuggestedMeal(mealMatch[1].trim());
         speak(text);
