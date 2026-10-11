@@ -32,16 +32,16 @@ const disabledBtn = { ...goldBtn, background: "#DDD3B8", color: "#4A4A40", curso
 
 const fullScreen = {
   position: "fixed", inset: 0, zIndex: Z, background: CREAM, overflowY: "auto",
-  fontFamily: BODY, color: INK, WebkitOverflowScrolling: "touch",
+  fontFamily: BODY, color: INK, WebkitOverflowScrolling: "touch", textAlign: "left", outline: "none",
 };
 const backdrop = {
   position: "fixed", inset: 0, zIndex: Z, background: "rgba(18,41,31,0.66)", overflowY: "auto",
   display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "24px 16px",
-  fontFamily: BODY, color: INK, boxSizing: "border-box", WebkitOverflowScrolling: "touch",
+  fontFamily: BODY, color: INK, boxSizing: "border-box", WebkitOverflowScrolling: "touch", textAlign: "left",
 };
 const panel = {
   background: "#FFFFFF", borderRadius: 20, padding: "26px 22px 22px", width: "100%", maxWidth: 440,
-  boxSizing: "border-box", margin: "auto 0", display: "flex", flexDirection: "column", gap: 16,
+  boxSizing: "border-box", margin: "auto 0", display: "flex", flexDirection: "column", gap: 16, textAlign: "left", outline: "none",
 };
 
 function CheckIcon({ size = 22, color = CREAM }) {
@@ -62,48 +62,57 @@ const WELCOME_STEPS = [
 ];
 
 export function WelcomeScreen({ onStart, onSkip, skipLabel = "Skip for now" }) {
-  const startRef = useRef(null);
-  useEffect(() => { if (startRef.current) startRef.current.focus(); }, []);
+  const rootRef = useRef(null);
+  useEffect(() => { if (rootRef.current) rootRef.current.focus(); }, []);
+  // The steps scroll; the two action buttons are pinned to the bottom so they are always visible,
+  // even on a small phone where the four step cards are several screens tall.
   return (
-    <div role="dialog" aria-modal="true" aria-labelledby="sk-welcome-title" style={fullScreen}>
-      <div style={{ background: GREEN, padding: "40px 24px 32px" }}>
-        <div style={{ maxWidth: 480, margin: "0 auto", display: "flex", flexDirection: "column", gap: 12 }}>
-          <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: "0.12em", color: GOLD }}>SMART KITCHEN</div>
-          <h1 id="sk-welcome-title" style={{ margin: 0, fontFamily: HEAD, fontSize: 42, lineHeight: 1.05, fontWeight: 700, color: CREAM }}>
-            Welcome. Let's set up your kitchen.
-          </h1>
-          <p style={{ margin: 0, fontSize: 20, lineHeight: 1.4, color: "#E6E0CF" }}>
-            Four short steps, about five minutes. You can stop at any time.
-          </p>
+    <div ref={rootRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="sk-welcome-title"
+      style={{ ...fullScreen, overflowY: "hidden", display: "flex", flexDirection: "column" }}>
+      <div data-scroll="welcome" style={{ flex: "1 1 auto", minHeight: 0, overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
+        <div style={{ background: GREEN, padding: "40px 24px 32px" }}>
+          <div style={{ maxWidth: 480, margin: "0 auto", display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: "0.12em", color: GOLD }}>SMART KITCHEN</div>
+            <h1 id="sk-welcome-title" style={{ margin: 0, fontFamily: HEAD, fontSize: 42, lineHeight: 1.05, fontWeight: 700, color: CREAM }}>
+              Welcome. Let's set up your kitchen.
+            </h1>
+            <p style={{ margin: 0, fontSize: 20, lineHeight: 1.4, color: "#E6E0CF" }}>
+              Four short steps, about five minutes. You can stop at any time.
+            </p>
+          </div>
+        </div>
+        <div style={{ maxWidth: 480, margin: "0 auto", padding: "24px 24px 32px", display: "flex", flexDirection: "column", gap: 16 }}>
+          {WELCOME_STEPS.map(([title, text], i) => (
+            <div key={title} style={{ display: "flex", gap: 16, background: "#FFFFFF", border: "2px solid " + LINE, borderRadius: 16, padding: 20 }}>
+              <div style={{ flex: "0 0 48px", width: 48, height: 48, borderRadius: 24, background: GOLD, color: ON_GOLD, fontSize: 26, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                {i + 1}
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
+                <div style={{ fontSize: 24, fontWeight: 700, lineHeight: 1.2, color: GREEN }}>{title}</div>
+                <div style={{ fontSize: 20, lineHeight: 1.4, color: "#2B3A33" }}>{text}</div>
+              </div>
+            </div>
+          ))}
+          <div style={{ padding: 20, borderRadius: 16, background: SAND, display: "flex", flexDirection: "column", gap: 8 }}>
+            <div style={{ fontSize: 22, fontWeight: 700, color: GREEN }}>Why this matters</div>
+            <div style={{ fontSize: 20, lineHeight: 1.4 }}>
+              The more we know, the better it works. Your restrictions and medications are always respected, and meals are built from what you actually have.
+            </div>
+          </div>
+          <div style={{ fontSize: 18, lineHeight: 1.4, color: MUTED, textAlign: "center", marginTop: 8 }}>
+            You can come back to this anytime from the Help button.
+          </div>
+          <a href={QUICK_START_HREF} target="_blank" rel="noopener noreferrer"
+            style={{ fontSize: 20, lineHeight: 1.4, textAlign: "center", fontWeight: 700, color: GREEN }}>
+            Prefer paper? Open the Quick Start guide (PDF)
+          </a>
         </div>
       </div>
-      <div style={{ maxWidth: 480, margin: "0 auto", padding: "24px 24px 40px", display: "flex", flexDirection: "column", gap: 16 }}>
-        {WELCOME_STEPS.map(([title, text], i) => (
-          <div key={title} style={{ display: "flex", gap: 16, background: "#FFFFFF", border: "2px solid " + LINE, borderRadius: 16, padding: 20 }}>
-            <div style={{ flex: "0 0 48px", width: 48, height: 48, borderRadius: 24, background: GOLD, color: ON_GOLD, fontSize: 26, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              {i + 1}
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
-              <div style={{ fontSize: 24, fontWeight: 700, lineHeight: 1.2, color: GREEN }}>{title}</div>
-              <div style={{ fontSize: 20, lineHeight: 1.4, color: "#2B3A33" }}>{text}</div>
-            </div>
-          </div>
-        ))}
-        <div style={{ padding: 20, borderRadius: 16, background: SAND, display: "flex", flexDirection: "column", gap: 8 }}>
-          <div style={{ fontSize: 22, fontWeight: 700, color: GREEN }}>Why this matters</div>
-          <div style={{ fontSize: 20, lineHeight: 1.4 }}>
-            The more we know, the better it works. Your restrictions and medications are always respected, and meals are built from what you actually have.
-          </div>
+      <div data-footer="welcome" style={{ flex: "0 0 auto", background: CREAM, borderTop: "2px solid " + LINE, padding: "12px 24px calc(12px + env(safe-area-inset-bottom, 0px))" }}>
+        <div style={{ maxWidth: 480, margin: "0 auto", display: "flex", flexDirection: "column", gap: 10 }}>
+          <button type="button" onClick={onStart} style={{ ...goldBtn, fontSize: 24 }}>Let's get started</button>
+          <button type="button" onClick={onSkip} style={{ ...outlineBtn, minHeight: 56 }}>{skipLabel}</button>
         </div>
-        <button ref={startRef} type="button" onClick={onStart} style={{ ...goldBtn, fontSize: 24, marginTop: 8 }}>Let's get started</button>
-        <button type="button" onClick={onSkip} style={outlineBtn}>{skipLabel}</button>
-        <div style={{ fontSize: 18, lineHeight: 1.4, color: MUTED, textAlign: "center" }}>
-          You can come back to this anytime from the Help button.
-        </div>
-        <a href={QUICK_START_HREF} target="_blank" rel="noopener noreferrer"
-          style={{ fontSize: 20, lineHeight: 1.4, textAlign: "center", fontWeight: 700, color: GREEN }}>
-          Prefer paper? Open the Quick Start guide (PDF)
-        </a>
       </div>
     </div>
   );
@@ -131,7 +140,7 @@ export function GettingStartedCard({ steps, onOpen, onHide }) {
     </div>
   );
   return (
-    <section aria-label="Getting started" style={{ background: "#FFFFFF", border: "2px solid " + GREEN, borderRadius: 20, padding: 20, margin: "0 0 18px", display: "flex", flexDirection: "column", gap: 16, fontFamily: BODY, color: INK, maxWidth: 640, boxSizing: "border-box" }}>
+    <section aria-label="Getting started" style={{ background: "#FFFFFF", border: "2px solid " + GREEN, borderRadius: 20, padding: 20, margin: "0 0 18px", display: "flex", flexDirection: "column", gap: 16, fontFamily: BODY, color: INK, maxWidth: 640, boxSizing: "border-box", textAlign: "left" }}>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
           <h2 style={{ margin: 0, fontFamily: HEAD, fontSize: 30, fontWeight: 700, color: GREEN }}>Getting started</h2>
@@ -168,19 +177,19 @@ export function GettingStartedCard({ steps, onOpen, onHide }) {
 
 // ───────────────────────────── 3. GENTLE NUDGE ─────────────────────────────
 export function ThinPlanNudge({ count, onAddMore, onBuildAnyway }) {
-  const addRef = useRef(null);
-  useEffect(() => { if (addRef.current) addRef.current.focus(); }, []);
+  const panelRef = useRef(null);
+  useEffect(() => { if (panelRef.current) panelRef.current.focus(); }, []);
   const have = count === 0 ? "You have not added anything yet." : "You have added " + count + (count === 1 ? " item" : " items") + " so far.";
   return (
     <div style={backdrop}>
-      <div role="dialog" aria-modal="true" aria-labelledby="sk-nudge-title" style={panel}>
+      <div ref={panelRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="sk-nudge-title" style={panel}>
         <h2 id="sk-nudge-title" style={{ margin: 0, fontFamily: HEAD, fontSize: 36, lineHeight: 1.05, fontWeight: 700, color: GREEN }}>
           Your kitchen looks nearly empty
         </h2>
         <p style={{ margin: 0, fontSize: 20, lineHeight: 1.45 }}>
           {have} A plan built from this will need a lot of shopping. Adding a few more first gives you a much better match.
         </p>
-        <button ref={addRef} type="button" onClick={onAddMore} style={goldBtn}>Add more items first</button>
+        <button type="button" onClick={onAddMore} style={goldBtn}>Add more items first</button>
         <button type="button" onClick={onBuildAnyway} style={outlineBtn}>Build my plan anyway</button>
         <div style={{ fontSize: 18, lineHeight: 1.4, color: MUTED, textAlign: "center" }}>You can always add more later.</div>
       </div>
@@ -318,11 +327,11 @@ export function KitchenChooser({ cuisines, selected, loadingCount, failedCount =
 
 // ───────────────────────────── 5. HELP MENU ─────────────────────────────
 export function HelpMenu({ onWelcome, onShowCard, onAssistant, onClose, cardHidden, showCardOption, showWelcomeOption = true }) {
-  const closeRef = useRef(null);
-  useEffect(() => { if (closeRef.current) closeRef.current.focus(); }, []);
+  const panelRef = useRef(null);
+  useEffect(() => { if (panelRef.current) panelRef.current.focus(); }, []);
   return (
     <div style={backdrop} onClick={onClose}>
-      <div role="dialog" aria-modal="true" aria-labelledby="sk-help-title" style={panel} onClick={(e) => e.stopPropagation()}>
+      <div ref={panelRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="sk-help-title" style={panel} onClick={(e) => e.stopPropagation()}>
         <h2 id="sk-help-title" style={{ margin: 0, fontFamily: HEAD, fontSize: 36, lineHeight: 1.05, fontWeight: 700, color: GREEN }}>Help</h2>
         {showWelcomeOption ? <button type="button" onClick={onWelcome} style={outlineBtn}>Show the welcome guide</button> : null}
         {showCardOption ? (
@@ -331,7 +340,7 @@ export function HelpMenu({ onWelcome, onShowCard, onAssistant, onClose, cardHidd
         <button type="button" onClick={onAssistant} style={outlineBtn}>Ask the Kitchen Assistant</button>
         <a href={QUICK_START_HREF} target="_blank" rel="noopener noreferrer"
           style={{ ...outlineBtn, textDecoration: "none" }}>Open the Quick Start guide (PDF)</a>
-        <button ref={closeRef} type="button" onClick={onClose} style={goldBtn}>Close</button>
+        <button type="button" onClick={onClose} style={goldBtn}>Close</button>
       </div>
     </div>
   );
