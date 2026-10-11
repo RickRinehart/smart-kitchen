@@ -3741,7 +3741,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
     const today=new Date().toISOString().split("T")[0];
     setInventory(prev=>{
       const have=new Set(prev.map(p=>String(p.name||"").toLowerCase()));
-      const fresh=picked.filter(i=>!have.has(String(i.name).toLowerCase())).map((i,idx)=>({id:Date.now()+idx+Math.random(),name:i.name,qty:1,unit:i.unit||"item",category:i.category||"Pantry",location:i.location||"Pantry",addedDate:today}));
+      const fresh=picked.filter(i=>!have.has(String(i.name).toLowerCase())).map((i,idx)=>{const isP=i.category==="Protein";return {id:Date.now()+idx+Math.random(),name:i.name,qty:isP?(parseInt(i.qty)||1):1,unit:isP?"portions":(i.unit||"item"),category:i.category||"Pantry",location:isP?"Freezer":(i.location||"Pantry"),addedDate:today,...(isP?{isBulkProtein:true,portionOz:6}:{})};});
       return fresh.length?[...prev,...fresh]:prev;
     });
     setShowKitchenChooser(false);

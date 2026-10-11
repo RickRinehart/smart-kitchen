@@ -242,7 +242,7 @@ export function KitchenChooser({ cuisines, selected, loadingCount, failedCount =
   const ready = n > 0 && loadingCount === 0 && failedCount === 0;
 
   const openReview = () => {
-    const list = (getStarterItems() || []).map((it) => ({ ...it, checked: false }));
+    const list = (getStarterItems() || []).map((it) => ({ ...it, checked: false, qty: it.category === "Protein" ? 4 : 1 }));
     setItems(list);
     setView("review");
   };
@@ -266,6 +266,8 @@ export function KitchenChooser({ cuisines, selected, loadingCount, failedCount =
       setItems((prev) => prev.map((p, j) => (set.has(j) ? { ...p, checked: val } : p)));
     };
     const smallBtn = { minHeight: 44, padding: "0 14px", borderRadius: 22, border: "2px solid " + GREEN, background: "#FFFFFF", color: GREEN, fontFamily: BODY, fontSize: 18, fontWeight: 700, cursor: "pointer" };
+    const stepBtn = { flex: "0 0 48px", width: 48, height: 48, borderRadius: 24, border: "2px solid " + GREEN, background: "#FFFFFF", color: GREEN, fontFamily: BODY, fontSize: 28, fontWeight: 700, lineHeight: 1, cursor: "pointer", padding: 0 };
+    const stepQty = (j, d) => setItems((prev) => prev.map((p, k) => (k === j ? { ...p, qty: Math.max(1, Math.min(99, (parseInt(p.qty) || 1) + d)) } : p)));
     // The app's base CSS paints native checkboxes dark, which reads as "already ticked". Draw our own:
     // empty = white with a green border, ticked = solid green with a white check.
     const CHECK = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23F4F1EA' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='4 12 10 18 20 6'/%3E%3C/svg%3E\")";
@@ -305,12 +307,25 @@ export function KitchenChooser({ cuisines, selected, loadingCount, failedCount =
                   </div>
                   {g.idxs.map((j) => {
                     const it = items[j];
+                    const qty = parseInt(it.qty) || 1;
                     return (
-                      <label key={it.id || it.name + j} style={{ display: "flex", alignItems: "center", gap: 14, minHeight: 56, padding: "8px 14px", borderBottom: "1px solid " + LINE, cursor: "pointer", fontSize: 20, background: it.checked ? "#EEF4EE" : "#FFFFFF" }}>
-                        <input type="checkbox" checked={it.checked} onChange={(e) => setItems((prev) => prev.map((p, k) => (k === j ? { ...p, checked: e.target.checked } : p)))}
-                          style={boxStyle(it.checked)} />
-                        <span style={{ flex: 1, minWidth: 0 }}>{it.name}</span>
-                      </label>
+                      <div key={it.id || it.name + j} style={{ borderBottom: "1px solid " + LINE, background: it.checked ? "#EEF4EE" : "#FFFFFF" }}>
+                        <label style={{ display: "flex", alignItems: "center", gap: 14, minHeight: 56, padding: "8px 14px", cursor: "pointer", fontSize: 20 }}>
+                          <input type="checkbox" checked={it.checked} onChange={(e) => setItems((prev) => prev.map((p, k) => (k === j ? { ...p, checked: e.target.checked } : p)))}
+                            style={boxStyle(it.checked)} />
+                          <span style={{ flex: 1, minWidth: 0 }}>{it.name}</span>
+                        </label>
+                        {it.checked && it.category === "Protein" ? (
+                          <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 10, padding: "0 14px 12px 56px" }}>
+                            <span style={{ fontSize: 18, color: MUTED }}>Portions (about 6 oz each):</span>
+                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                              <button type="button" disabled={qty <= 1} onClick={() => stepQty(j, -1)} aria-label={"Fewer portions of " + it.name} style={{ ...stepBtn, opacity: qty <= 1 ? 0.4 : 1, cursor: qty <= 1 ? "not-allowed" : "pointer" }}>−</button>
+                              <span aria-live="polite" style={{ minWidth: 40, textAlign: "center", fontSize: 26, fontWeight: 700, color: GREEN }}>{qty}</span>
+                              <button type="button" onClick={() => stepQty(j, 1)} aria-label={"More portions of " + it.name} style={stepBtn}>+</button>
+                            </div>
+                          </div>
+                        ) : null}
+                      </div>
                     );
                   })}
                 </div>
