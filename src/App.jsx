@@ -1254,28 +1254,13 @@ const Label=({children})=><div style={{fontSize:10,color:C.muted,fontFamily:FM,l
 // -- Claude API ----------------------------------------------------------------
 // Every Claude call goes through our own server route (/api/ai), which holds the API key and picks
 // the model. The browser never sees the key. Pass {system, messages, max_tokens}; returns the fetch
-// Response. TEMPORARY FALLBACK: while the server has no key configured yet (it answers 503
-// "proxy_not_configured"), fall back to the old direct call so production keeps working during the
-// switch-over. Remove the fallback (and VITE_ANTHROPIC_API_KEY) once the server key is live.
+// Response. Signed-in users send their token so the server can verify them; guests send none.
 async function aiRequest(body,signal){
   let token=null;
   try{const {data}=await supabase.auth.getSession();token=data?.session?.access_token||null;}catch{}
   const headers={"Content-Type":"application/json"};
   if(token) headers.Authorization="Bearer "+token;
-  const res=await fetch("/api/ai",{method:"POST",headers,body:JSON.stringify(body),signal});
-  if(res.status===503){
-    let j=null;try{j=await res.clone().json();}catch{}
-    const legacyKey=import.meta.env?.VITE_ANTHROPIC_API_KEY||"";
-    if(j&&j.error==="proxy_not_configured"&&legacyKey){
-      return fetch("https://api.anthropic.com/v1/messages",{
-        method:"POST",
-        headers:{"Content-Type":"application/json","x-api-key":legacyKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-        body:JSON.stringify({...body,model:"claude-sonnet-4-5"}),
-        signal,
-      });
-    }
-  }
-  return res;
+  return fetch("/api/ai",{method:"POST",headers,body:JSON.stringify(body),signal});
 }
 
 // Pulls just the answer text out of a raw API response. Newer models can put a "thinking" block
