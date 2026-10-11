@@ -56,7 +56,7 @@ function CheckIcon({ size = 22, color = CREAM }) {
 // ───────────────────────────── 1. WELCOME SCREEN ─────────────────────────────
 const WELCOME_STEPS = [
   ["Who is at your table", "Add each person, with any food restrictions or medications. Every plan stays safe for them."],
-  ["What is in your kitchen", "Pick every cuisine your household cooks to load a starter set of pantry, protein, produce and dairy. Or scan a receipt or shelf, or type items in."],
+  ["What is in your kitchen", "Pick every cuisine your household cooks to load a starter set of protein, pantry, produce and dairy. Or scan a receipt or shelf, or type items in."],
   ["Build your first plan", "One tap gives you a week of dinners that fit your household and your pantry."],
   ["Meet your Kitchen Assistant", "Ask anything, any time, about food or about the app. Type it or say it out loud."],
 ];
@@ -176,20 +176,19 @@ export function GettingStartedCard({ steps, onOpen, onHide }) {
 }
 
 // ───────────────────────────── 3. GENTLE NUDGE ─────────────────────────────
-export function ThinPlanNudge({ count, onAddMore, onBuildAnyway }) {
+export function ThinPlanNudge({ onAddMore, onBuildAnyway }) {
   const panelRef = useRef(null);
   useEffect(() => { if (panelRef.current) panelRef.current.focus(); }, []);
-  const have = count === 0 ? "You have not added anything yet." : "You have added " + count + (count === 1 ? " item" : " items") + " so far.";
   return (
     <div style={backdrop}>
       <div ref={panelRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="sk-nudge-title" style={panel}>
         <h2 id="sk-nudge-title" style={{ margin: 0, fontFamily: HEAD, fontSize: 36, lineHeight: 1.05, fontWeight: 700, color: GREEN }}>
-          Your kitchen looks nearly empty
+          Add your proteins first
         </h2>
         <p style={{ margin: 0, fontSize: 20, lineHeight: 1.45 }}>
-          {have} A plan built from this will need a lot of shopping. Adding a few more first gives you a much better match.
+          A meal plan is built around the proteins you have, like chicken, beef or fish. Without any, it will be mostly a shopping list. Adding a few first gives you a much better plan.
         </p>
-        <button type="button" onClick={onAddMore} style={goldBtn}>Add more items first</button>
+        <button type="button" onClick={onAddMore} style={goldBtn}>Add proteins first</button>
         <button type="button" onClick={onBuildAnyway} style={outlineBtn}>Build my plan anyway</button>
         <div style={{ fontSize: 18, lineHeight: 1.4, color: MUTED, textAlign: "center" }}>You can always add more later.</div>
       </div>
@@ -243,36 +242,75 @@ export function KitchenChooser({ cuisines, selected, loadingCount, failedCount =
   const ready = n > 0 && loadingCount === 0 && failedCount === 0;
 
   const openReview = () => {
-    const list = (getStarterItems() || []).map((it) => ({ ...it, checked: true }));
+    const list = (getStarterItems() || []).map((it) => ({ ...it, checked: false }));
     setItems(list);
     setView("review");
   };
   const checkedCount = items.filter((i) => i.checked).length;
 
   if (view === "review") {
+    // Group by category (Pantry, Protein, Produce, Dairy first, anything else after), nothing checked to start:
+    // the person ticks what they really have, so plans are never built on food they do not own.
+    const order = ["Protein", "Pantry", "Produce", "Dairy"]; // protein first: it is what a meal plan is built on
+    const byCat = new Map();
+    items.forEach((it, idx) => {
+      const k = it.category || "Pantry";
+      if (!byCat.has(k)) byCat.set(k, []);
+      byCat.get(k).push(idx);
+    });
+    const groups = [...byCat.keys()]
+      .sort((x, y) => ((order.indexOf(x) < 0 ? 99 : order.indexOf(x)) - (order.indexOf(y) < 0 ? 99 : order.indexOf(y))) || x.localeCompare(y))
+      .map((name) => ({ name, idxs: byCat.get(name) }));
+    const setGroup = (idxs, val) => {
+      const set = new Set(idxs);
+      setItems((prev) => prev.map((p, j) => (set.has(j) ? { ...p, checked: val } : p)));
+    };
+    const smallBtn = { minHeight: 44, padding: "0 14px", borderRadius: 22, border: "2px solid " + GREEN, background: "#FFFFFF", color: GREEN, fontFamily: BODY, fontSize: 18, fontWeight: 700, cursor: "pointer" };
     return (
-      <div style={backdrop}>
-        <div role="dialog" aria-modal="true" aria-labelledby="sk-review-title" style={panel}>
-          <h2 id="sk-review-title" style={{ margin: 0, fontFamily: HEAD, fontSize: 34, lineHeight: 1.05, fontWeight: 700, color: GREEN }}>Check what you have</h2>
-          <p style={{ margin: 0, fontSize: 20, lineHeight: 1.4 }}>
-            Uncheck anything you do not have. Only the checked items are added to your kitchen.
-          </p>
-          <div style={{ maxHeight: "42vh", overflowY: "auto", border: "2px solid " + LINE, borderRadius: 14 }}>
+      <div style={{ ...backdrop, alignItems: "stretch", padding: 12 }}>
+        <div role="dialog" aria-modal="true" aria-labelledby="sk-review-title"
+          style={{ ...panel, maxWidth: 520, height: "100%", maxHeight: "100%", margin: "0 auto", padding: 0, gap: 0, overflow: "hidden" }}>
+          <div style={{ flex: "0 0 auto", padding: "20px 20px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
+            <h2 id="sk-review-title" style={{ margin: 0, fontFamily: HEAD, fontSize: 34, lineHeight: 1.05, fontWeight: 700, color: GREEN }}>Check what you have</h2>
+            <p style={{ margin: 0, fontSize: 20, lineHeight: 1.35 }}>
+              Tick each thing you have in your kitchen. Only ticked items are added.
+            </p>
+            <div role="status" style={{ fontSize: 22, fontWeight: 700, color: GREEN }}>{checkedCount} of {items.length} checked</div>
+          </div>
+          <div data-scroll="review" style={{ flex: "1 1 auto", minHeight: 0, overflowY: "auto", WebkitOverflowScrolling: "touch", borderTop: "2px solid " + LINE, borderBottom: "2px solid " + LINE }}>
             {items.length === 0 ? (
               <div style={{ padding: 16, fontSize: 20 }}>No items found yet. Please go back and try again in a moment.</div>
-            ) : items.map((it, idx) => (
-              <label key={it.id || it.name + idx} style={{ display: "flex", alignItems: "center", gap: 14, minHeight: 56, padding: "8px 14px", borderBottom: "1px solid " + LINE, cursor: "pointer", fontSize: 20 }}>
-                <input type="checkbox" checked={it.checked} onChange={(e) => setItems((prev) => prev.map((p, j) => (j === idx ? { ...p, checked: e.target.checked } : p)))}
-                  style={{ width: 26, height: 26, flex: "0 0 26px", accentColor: GREEN }} />
-                <span style={{ flex: 1, minWidth: 0 }}>{it.name}</span>
-                <span style={{ fontSize: 16, color: MUTED }}>{it.category}</span>
-              </label>
-            ))}
+            ) : groups.map((g) => {
+              const inGroup = g.idxs.filter((j) => items[j].checked).length;
+              return (
+                <div key={g.name}>
+                  <div style={{ position: "sticky", top: 0, zIndex: 1, background: SAND, padding: "10px 14px", display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 8, borderBottom: "1px solid " + LINE }}>
+                    <div style={{ fontSize: 22, fontWeight: 700, color: GREEN }}>{g.name} <span style={{ fontSize: 18, fontWeight: 400, color: MUTED }}>({inGroup} of {g.idxs.length})</span></div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button type="button" onClick={() => setGroup(g.idxs, true)} aria-label={"Select all " + g.name} style={smallBtn}>Select all</button>
+                      <button type="button" onClick={() => setGroup(g.idxs, false)} aria-label={"Clear all " + g.name} style={smallBtn}>Clear</button>
+                    </div>
+                  </div>
+                  {g.idxs.map((j) => {
+                    const it = items[j];
+                    return (
+                      <label key={it.id || it.name + j} style={{ display: "flex", alignItems: "center", gap: 14, minHeight: 56, padding: "8px 14px", borderBottom: "1px solid " + LINE, cursor: "pointer", fontSize: 20, background: it.checked ? "#EEF4EE" : "#FFFFFF" }}>
+                        <input type="checkbox" checked={it.checked} onChange={(e) => setItems((prev) => prev.map((p, k) => (k === j ? { ...p, checked: e.target.checked } : p)))}
+                          style={{ width: 26, height: 26, flex: "0 0 26px", accentColor: GREEN }} />
+                        <span style={{ flex: 1, minWidth: 0 }}>{it.name}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              );
+            })}
           </div>
-          <button type="button" disabled={checkedCount === 0} onClick={() => onAddItems(items.filter((i) => i.checked))} style={checkedCount === 0 ? disabledBtn : goldBtn}>
-            {checkedCount === 0 ? "Check at least one item" : "Add " + checkedCount + (checkedCount === 1 ? " item" : " items") + " to my kitchen"}
-          </button>
-          <button type="button" onClick={() => setView("choose")} style={outlineBtn}>Back</button>
+          <div style={{ flex: "0 0 auto", padding: "12px 20px calc(14px + env(safe-area-inset-bottom, 0px))", display: "flex", flexDirection: "column", gap: 10 }}>
+            <button type="button" disabled={checkedCount === 0} onClick={() => onAddItems(items.filter((i) => i.checked))} style={checkedCount === 0 ? disabledBtn : goldBtn}>
+              {checkedCount === 0 ? "Check at least one item" : "Add " + checkedCount + (checkedCount === 1 ? " item" : " items") + " to my kitchen"}
+            </button>
+            <button type="button" onClick={() => setView("choose")} style={{ ...outlineBtn, minHeight: 56 }}>Back</button>
+          </div>
         </div>
       </div>
     );
@@ -296,7 +334,7 @@ export function KitchenChooser({ cuisines, selected, loadingCount, failedCount =
             </div>
           </div>
           <div style={{ fontSize: 20, lineHeight: 1.4 }}>
-            Choose every cuisine your household cooks. Each one brings its own pantry, protein, produce and dairy.
+            Choose every cuisine your household cooks. Each one brings its own protein, pantry, produce and dairy.
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
             {shown.map((c) => <Chip key={c} label={c} selected={selected.includes(c)} onClick={() => onToggleCuisine(c)} />)}

@@ -3689,9 +3689,15 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   };
   const gsItemCount=inventory.filter(i=>i&&i.name&&((parseFloat(i.qty)||parseFloat(i.quantity)||0)>0)).length;
   const gsMemberCount=familyProfiles.filter(p=>p&&p.active&&String(p.name||"").trim()).length;
+  // Protein is what a plan is built on: with proteins and an empty pantry a plan still works (the rest becomes
+  // a shopping list), so "kitchen" counts as done once there is at least one protein and a handful of items.
+  const gsProteinCount=proteinItems.length;
+  const gsKitchenDone=gsProteinCount>=1&&gsItemCount>=5;
+  const gsPlural=(n,w)=>n+" "+w+(n===1?"":"s");
+  const gsKitchenCaption=gsKitchenDone?gsPlural(gsItemCount,"item")+" added":gsProteinCount===0?(gsItemCount===0?"Start with the proteins you have":gsPlural(gsItemCount,"item")+" so far. Add a protein next."):gsItemCount+" of 5 items. A few more will do it.";
   const gsSteps=[
     {id:"members",title:"Who is at your table",done:gsMemberCount>0,cta:"Add who is at your table",caption:gsMemberCount>0?gsMemberCount+(gsMemberCount===1?" person added":" people added"):"Add each person and any food restrictions"},
-    {id:"kitchen",title:"What is in your kitchen",done:gsItemCount>=10,cta:"Add what's in your kitchen",caption:gsItemCount>=10?gsItemCount+" items added":gsItemCount+" of 10 items"+(gsItemCount>0?". A few more will do it.":"")},
+    {id:"kitchen",title:"What is in your kitchen",done:gsKitchenDone,cta:"Add what's in your kitchen",caption:gsKitchenCaption},
     {id:"plan",title:"Build your first plan",done:mealPlan.length>0,cta:"Build my first plan",caption:mealPlan.length>0?"Your first plan is ready":"One tap for a week of dinners"},
     {id:"assistant",title:"Meet your Kitchen Assistant",done:assistantTried,cta:"Ask the Kitchen Assistant",caption:assistantTried?"You have tried it":"Ask it anything"},
   ];
@@ -3701,7 +3707,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   // Building a plan with almost nothing entered gets one gentle chance to add more first (never a block).
   const requestBuildMealPlan=()=>{
     if(isViewer) return;
-    if(gsItemCount<5&&(!user||isNewAccount)){setShowThinNudge(true);return;}
+    if(gsProteinCount===0&&(!user||isNewAccount)){setShowThinNudge(true);return;}
     buildMealPlan();
   };
   const gsOpenStep=(id)=>{
@@ -6239,7 +6245,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
 <button style={{...bBtn("ghost"),width:"100%",marginTop:8,border:"1px solid #7c3aed",color:"#4a1d96"}} onClick={()=>{setShowSettings(false);setShowJoinViewer(true);}}>&#128065; Join as Viewer (enter household code)</button>
 </div><button style={{...bBtn("ghost"),width:"100%",marginTop:8}} onClick={()=>setShowSettings(false)}>Close</button></div></div>}
     {showWelcome&&<WelcomeScreen onStart={welcomeStart} onSkip={welcomeSkip} skipLabel={welcomeForced?"Close":"Skip for now"}/>}
-    {showThinNudge&&<ThinPlanNudge count={gsItemCount} onAddMore={()=>{setShowThinNudge(false);setShowKitchenChooser(true);}} onBuildAnyway={()=>{setShowThinNudge(false);buildMealPlan();}}/>}
+    {showThinNudge&&<ThinPlanNudge onAddMore={()=>{setShowThinNudge(false);setShowKitchenChooser(true);}} onBuildAnyway={()=>{setShowThinNudge(false);buildMealPlan();}}/>}
     {showKitchenChooser&&<KitchenChooser cuisines={CUISINE_OPTIONS} selected={cuisinePrefs} loadingCount={chooserLoadingCount} failedCount={chooserFailedCount} onRetry={()=>chooserMissing.forEach(c=>chooserFetch(c))} getStarterItems={chooserStarterItems} onToggleCuisine={chooserToggleCuisine} onAddItems={chooserAddItems} onReceipt={()=>chooserScan("receipt")} onShelves={()=>chooserScan("shelf")} onType={chooserType} onClose={()=>setShowKitchenChooser(false)}/>}
     {showHelp&&<HelpMenu cardHidden={gsHidden} showCardOption={isNewAccount} showWelcomeOption={!!user&&!isViewer} onWelcome={()=>{setShowHelp(false);setWelcomeForced(true);}} onShowCard={()=>{gsShow();setShowHelp(false);}} onAssistant={()=>{setShowHelp(false);setChatOpen(true);}} onClose={()=>setShowHelp(false)}/>}
     {showWizard&&(
