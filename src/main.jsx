@@ -771,6 +771,7 @@ document.addEventListener("visibilitychange", handleVisibility);
         user={user}
         viewerRole={viewerRole}
         isAdmin={isAdmin}
+        userProfile={userProfile}
         onShowGuestViewer={() => { setShowAuthModal(false); setShowGuestViewer(true); }}
       />
 

@@ -1,7 +1,10 @@
 // Smart Kitchen App v2.1 - April 26 2026
 import React, { useState, useRef, useEffect } from "react"
 import { ViewerCodeManager, JoinAsViewerModal } from "./ViewerCodeManager";
-import { supabase, isCloudDirty, saveCloudField, ALL_LOCAL_STORAGE_KEYS } from "./supabaseClient";
+import { supabase, isCloudDirty, saveCloudField, ALL_LOCAL_STORAGE_KEYS, markTouchpoint } from "./supabaseClient";
+import { WelcomeScreen, GettingStartedCard, ThinPlanNudge, KitchenChooser, HelpMenu } from "./Onboarding";
+// Accounts created on/after this moment get the new-user onboarding; older accounts never see it.
+const ONBOARDING_SINCE="2026-10-11T00:00:00Z";
 import "./App.css";
 
 // -- Design tokens -------------------------------------------------------------
@@ -2091,7 +2094,7 @@ function FoodJournal({user,supabase,familyProfiles,setFamilyProfiles,can,seniorM
   );
 }
 
-export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, user=null, viewerRole=null, isAdmin=false, onShowGuestViewer=null }){
+export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, user=null, viewerRole=null, isAdmin=false, onShowGuestViewer=null, userProfile=null }){
   // -- State ------------------------------------------------------------------
   const isViewer = !!viewerRole; // true = read-only viewer of another account
   const [isManager,setIsManager]=useState(false);
@@ -3654,9 +3657,98 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
     return null;
   };
   const tourJustStartedRef=useRef(false);
+  // ── New-user onboarding: welcome screen, "Getting started" card, kitchen chooser, thin-plan nudge ──
+  // Only accounts created on/after ONBOARDING_SINCE see any of it; every existing account is untouched.
+  const [welcomeDismissed,setWelcomeDismissed]=useState(false);
+  const [welcomeForced,setWelcomeForced]=useState(false);
+  const [showHelp,setShowHelp]=useState(false);
+  const [showKitchenChooser,setShowKitchenChooser]=useState(false);
+  const [showThinNudge,setShowThinNudge]=useState(false);
+  const [cuisinePending,setCuisinePending]=useState([]);
+  const [gsHidden,setGsHidden]=useState(()=>{try{return localStorage.getItem("sk_gsHidden")==="1";}catch{return false;}});
+  const [assistantTried,setAssistantTried]=useState(()=>{try{return localStorage.getItem("sk_assistantTried")==="1";}catch{return false;}});
+  const isNewAccount=!!(user&&user.created_at&&Date.parse(user.created_at)>=Date.parse(ONBOARDING_SINCE));
+  const welcomeSeenOnAccount=!!(userProfile&&userProfile.trial_touchpoints&&userProfile.trial_touchpoints.onboarding_welcome);
+  const showWelcome=!isViewer&&((welcomeForced&&!!user)||(isNewAccount&&!!userProfile&&!welcomeSeenOnAccount&&!welcomeDismissed));
+  const markWelcomeSeen=()=>{if(user&&!welcomeSeenOnAccount){markTouchpoint(user.id,"onboarding_welcome").catch(()=>{});}};
+  const welcomeStart=()=>{
+    const wasForced=welcomeForced;
+    setWelcomeDismissed(true);setWelcomeForced(false);markWelcomeSeen();
+    setShowWizard(true);
+    if(wasForced) setWizardStep(0); else setWizardStep(s=>(s==null||s===-3)?0:s);
+  };
+  const welcomeSkip=()=>{
+    const wasForced=welcomeForced;
+    setWelcomeDismissed(true);setWelcomeForced(false);markWelcomeSeen();
+    if(wasForced) return; // reopened from Help: just close it
+    // Skip = go straight to the app. Mark setup as done the same way the wizard's own skip does, so it
+    // does not pop back up on the next load; the Getting started card is the fallback.
+    setShowWizard(false);
+    try{localStorage.setItem("sk_setupDone","1");}catch{}
+    if(user) saveCloudField(user.id,"setup_done",true).catch(()=>{});
+  };
+  const gsItemCount=inventory.filter(i=>i&&i.name&&((parseFloat(i.qty)||parseFloat(i.quantity)||0)>0)).length;
+  const gsMemberCount=familyProfiles.filter(p=>p&&p.active&&String(p.name||"").trim()).length;
+  const gsSteps=[
+    {id:"members",title:"Who is at your table",done:gsMemberCount>0,cta:"Add who is at your table",caption:gsMemberCount>0?gsMemberCount+(gsMemberCount===1?" person added":" people added"):"Add each person and any food restrictions"},
+    {id:"kitchen",title:"What is in your kitchen",done:gsItemCount>=10,cta:"Add what's in your kitchen",caption:gsItemCount>=10?gsItemCount+" items added":gsItemCount+" of 10 items"+(gsItemCount>0?". A few more will do it.":"")},
+    {id:"plan",title:"Build your first plan",done:mealPlan.length>0,cta:"Build my first plan",caption:mealPlan.length>0?"Your first plan is ready":"One tap for a week of dinners"},
+    {id:"assistant",title:"Meet your Kitchen Assistant",done:assistantTried,cta:"Ask the Kitchen Assistant",caption:assistantTried?"You have tried it":"Ask it anything"},
+  ];
+  const gsVisible=isNewAccount&&!isViewer&&!gsHidden&&!showWelcome&&!showWizard&&gsSteps.some(s=>!s.done);
+  const gsHide=()=>{setGsHidden(true);try{localStorage.setItem("sk_gsHidden","1");}catch{}};
+  const gsShow=()=>{setGsHidden(false);try{localStorage.removeItem("sk_gsHidden");}catch{}};
+  // Building a plan with almost nothing entered gets one gentle chance to add more first (never a block).
+  const requestBuildMealPlan=()=>{
+    if(isViewer) return;
+    if(gsItemCount<5&&(!user||isNewAccount)){setShowThinNudge(true);return;}
+    buildMealPlan();
+  };
+  const gsOpenStep=(id)=>{
+    if(id==="members") setProfileModalOpen(true);
+    else if(id==="kitchen") setShowKitchenChooser(true);
+    else if(id==="plan") requestBuildMealPlan();
+    else if(id==="assistant") setChatOpen(true);
+  };
+  // Kitchen chooser: reuses the app's own cuisine lookup, scanners and add-item form.
+  const chooserFetch=(c)=>{
+    if(cuisinePantryCache[c]) return;
+    setCuisinePending(p=>p.includes(c)?p:[...p,c]);
+    fetchCuisinePantry(c).finally(()=>setCuisinePending(p=>p.filter(x=>x!==c)));
+  };
+  useEffect(()=>{if(showKitchenChooser) cuisinePrefs.forEach(c=>chooserFetch(c));},[showKitchenChooser]);
+  const chooserToggleCuisine=(c)=>{
+    const on=cuisinePrefs.includes(c);
+    setCuisinePrefs(prev=>on?prev.filter(x=>x!==c):[...prev,c]);
+    if(!on) chooserFetch(c);
+  };
+  const chooserMissing=cuisinePrefs.filter(c=>!cuisinePantryCache[c]);
+  const chooserLoadingCount=chooserMissing.filter(c=>cuisinePending.includes(c)).length;
+  const chooserFailedCount=chooserMissing.length-chooserLoadingCount;
+  const chooserStarterItems=()=>{
+    const have=new Set(inventory.map(p=>String(p.name||"").toLowerCase()));
+    return [...COMMON_PANTRY,...getCuisineChecklistItems()]
+      .filter(i=>!have.has(String(i.name).toLowerCase()))
+      .map(({id,name,category,location,unit})=>({id,name,category,location,unit}));
+  };
+  const chooserAddItems=(picked)=>{
+    const today=new Date().toISOString().split("T")[0];
+    setInventory(prev=>{
+      const have=new Set(prev.map(p=>String(p.name||"").toLowerCase()));
+      const fresh=picked.filter(i=>!have.has(String(i.name).toLowerCase())).map((i,idx)=>({id:Date.now()+idx+Math.random(),name:i.name,qty:1,unit:i.unit||"item",category:i.category||"Pantry",location:i.location||"Pantry",addedDate:today}));
+      return fresh.length?[...prev,...fresh]:prev;
+    });
+    setShowKitchenChooser(false);
+    setTab("inventory");
+  };
+  const chooserScan=(mode)=>{setShowKitchenChooser(false);setTab("inventory");setScanOpen(true);setScanStage("upload");setScanResults(null);setScanPreview(null);setScanB64(null);setScanMode(mode);};
+  const chooserType=()=>{setShowKitchenChooser(false);setTab("inventory");setShowAdd(true);};
+
   const sendChatMessage=async(overrideMsg,voiceMode=false)=>{
     const text=(overrideMsg||chatInput).trim();
     if(!text||chatLoading) return;
+    try{localStorage.setItem("sk_assistantTried","1");}catch{}
+    setAssistantTried(true);
     setChatInput("");
     setProactiveQuickReplies([]);
     addChatMsg("user",text);
@@ -5229,7 +5321,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       if(!query){speak("What item would you like me to check?");return;}
       const matches=inventory.filter(i=>i.name&&i.name.toLowerCase().includes(query));
       if(matches.length===0)speak("I don't see any "+query+" in your inventory.");
-      else speak("You have "+matches.map(i=>i.quantity+" "+(i.unit||"")+" of "+i.name+(i.location?" in the "+i.location:"")).join(". And ")+".");
+      else speak("You have "+matches.map(i=>(i.qty??i.quantity)+" "+(i.unit||"")+" of "+i.name+(i.location?" in the "+i.location:"")).join(". And ")+".");
       return;
     }
     if(t.match(/what (meat|protein|produce|dairy|frozen|pantry|freezer|fridge).*(have|in)/)){
@@ -5249,7 +5341,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       if(numMatch){qty=parseInt(numMatch[1]);name=numMatch[2];}
       const locMatch=t.match(/(fridge|freezer|pantry)/);
       const loc=locMatch?locMatch[1].charAt(0).toUpperCase()+locMatch[1].slice(1):"Pantry";
-      setInventory(prev=>[...prev,{id:Date.now(),name:name.charAt(0).toUpperCase()+name.slice(1),quantity:qty,unit:"item",category:"Pantry",location:loc,addedDate:new Date().toISOString().split("T")[0]}]);
+      setInventory(prev=>[...prev,{id:Date.now(),name:name.charAt(0).toUpperCase()+name.slice(1),qty:qty,unit:"item",category:"Pantry",location:loc,addedDate:new Date().toISOString().split("T")[0]}]);
       speak("Added "+qty+" "+name+" to your "+loc+". Got it.");
       return;
     }
@@ -5266,7 +5358,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     if(t.match(/give me a recipe|suggest a recipe|recipe for|what can i make with/)){
       const dish=t.replace(/give me a recipe for|suggest a recipe for|recipe for|what can i make with/,"").trim()||"something delicious";
       try{
-        const invSummary=inventory.slice(0,20).map(i=>i.quantity+" "+i.name).join(", ");
+        const invSummary=inventory.slice(0,20).map(i=>(i.qty??i.quantity)+" "+i.name).join(", ");
         const res=await aiRequest({max_tokens:300,system:"You are "+assistantName()+", a friendly Smart Kitchen voice assistant. Suggest one recipe in 3-4 sentences. Name the dish, key ingredients, and cooking time. Keep it conversational for voice reading.",messages:[{role:"user",content:"Suggest a recipe for "+dish+". Inventory: "+invSummary}]});
         const d=await res.json();
         const text=aiText(d)||"How about a simple pasta dish tonight?";
@@ -6146,6 +6238,10 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
 </div>
 <button style={{...bBtn("ghost"),width:"100%",marginTop:8,border:"1px solid #7c3aed",color:"#4a1d96"}} onClick={()=>{setShowSettings(false);setShowJoinViewer(true);}}>&#128065; Join as Viewer (enter household code)</button>
 </div><button style={{...bBtn("ghost"),width:"100%",marginTop:8}} onClick={()=>setShowSettings(false)}>Close</button></div></div>}
+    {showWelcome&&<WelcomeScreen onStart={welcomeStart} onSkip={welcomeSkip} skipLabel={welcomeForced?"Close":"Skip for now"}/>}
+    {showThinNudge&&<ThinPlanNudge count={gsItemCount} onAddMore={()=>{setShowThinNudge(false);setShowKitchenChooser(true);}} onBuildAnyway={()=>{setShowThinNudge(false);buildMealPlan();}}/>}
+    {showKitchenChooser&&<KitchenChooser cuisines={CUISINE_OPTIONS} selected={cuisinePrefs} loadingCount={chooserLoadingCount} failedCount={chooserFailedCount} onRetry={()=>chooserMissing.forEach(c=>chooserFetch(c))} getStarterItems={chooserStarterItems} onToggleCuisine={chooserToggleCuisine} onAddItems={chooserAddItems} onReceipt={()=>chooserScan("receipt")} onShelves={()=>chooserScan("shelf")} onType={chooserType} onClose={()=>setShowKitchenChooser(false)}/>}
+    {showHelp&&<HelpMenu cardHidden={gsHidden} showCardOption={isNewAccount} showWelcomeOption={!!user&&!isViewer} onWelcome={()=>{setShowHelp(false);setWelcomeForced(true);}} onShowCard={()=>{gsShow();setShowHelp(false);}} onAssistant={()=>{setShowHelp(false);setChatOpen(true);}} onClose={()=>setShowHelp(false)}/>}
     {showWizard&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
           <div style={{background:C.surface,borderRadius:16,padding:28,maxWidth:440,width:"100%",border:"1px solid "+C.border,maxHeight:"90vh",overflowY:"auto"}}>
@@ -6365,7 +6461,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
               </div>
               <div style={{display:'flex',gap:8}}>
                 <button style={{...bBtn('ghost'),flex:1}} onClick={()=>setWizardStep(3)}>← Back</button>
-                <button style={{...bBtn('primary'),flex:2}} onClick={()=>{const checked=pantryChecklist.filter(i=>i.checked).map(i=>i.name);if(checked.length>0){const newItems=checked.map(name=>({id:Date.now()+Math.random(),name,quantity:1,unit:'item',category:pantryChecklist.find(p=>p.name===name)?.category||'Pantry',addedDate:new Date().toISOString().split('T')[0]}));setInventory(prev=>[...prev,...newItems.filter(ni=>!prev.some(p=>p.name===ni.name))]);}markStepConfirmed("step_4");setWizardStep(5);}}>🎉 Next → Kitchen Setup ({pantryChecklist.filter(i=>i.checked).length} items)</button>
+                <button style={{...bBtn('primary'),flex:2}} onClick={()=>{const checked=pantryChecklist.filter(i=>i.checked).map(i=>i.name);if(checked.length>0){const newItems=checked.map(name=>({id:Date.now()+Math.random(),name,qty:1,unit:'item',category:pantryChecklist.find(p=>p.name===name)?.category||'Pantry',addedDate:new Date().toISOString().split('T')[0]}));setInventory(prev=>[...prev,...newItems.filter(ni=>!prev.some(p=>p.name===ni.name))]);}markStepConfirmed("step_4");setWizardStep(5);}}>🎉 Next → Kitchen Setup ({pantryChecklist.filter(i=>i.checked).length} items)</button>
               </div>
             </div>)}
             {wizardStep===5&&(<div>
@@ -6545,6 +6641,8 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
             style={{background:seniorMode?C.blue+"22":"transparent",border:"2px solid "+(seniorMode?C.blue:C.accent+"66"),borderRadius:8,color:seniorMode?C.blue:C.accent,cursor:"pointer",fontSize:seniorMode?18:15,fontWeight:700,padding:seniorMode?"8px 12px":"6px 10px",marginTop:2,lineHeight:1,transition:"all 0.15s"}}>
             Aa
           </button>
+          <button onClick={()=>setShowHelp(true)} title="Help" aria-label="Help"
+          style={{background:"transparent",border:"2px solid "+C.accent+"66",borderRadius:8,color:C.accent,cursor:"pointer",fontSize:seniorMode?18:15,fontWeight:700,padding:seniorMode?"8px 12px":"6px 10px",marginTop:2,lineHeight:1.2}}>?</button>
           <button onClick={()=>setShowSettings(true)} title="Settings"
             style={{background:"transparent",border:"2px solid "+C.accent+"66",borderRadius:8,color:C.accent,cursor:"pointer",fontSize:seniorMode?26:22,padding:seniorMode?"8px 12px":"6px 10px",marginTop:2,lineHeight:1,transition:"all 0.15s"}}
             onMouseOver={e=>e.currentTarget.style.color=C.accent}
@@ -7062,7 +7160,8 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
             })()}
 
 {/* == MEAL PLAN == */}
-        {!loading&&tab==="mealplan"&&(
+        {gsVisible&&!loading&&tab==="mealplan"&&<GettingStartedCard steps={gsSteps} onOpen={gsOpenStep} onHide={gsHide}/>}
+    {!loading&&tab==="mealplan"&&(
           <div>
             {user&&(
               <button style={{width:"100%",marginBottom:14,padding:seniorMode?"12px 16px":"8px 14px",background:"#f59e0b11",border:"1px solid #f59e0b44",borderRadius:10,color:"#f59e0b",fontFamily:FM,fontWeight:700,fontSize:seniorMode?15:12,cursor:swtsSalePullStatus==="saving"?"not-allowed":"pointer",opacity:swtsSalePullStatus==="saving"?0.6:1,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}
@@ -7186,7 +7285,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
               <div style={{textAlign:"center",padding:60}}>
                 <div style={{fontFamily:FD,fontSize:48,color:C.accent,marginBottom:16}}>📅</div>
                 <div style={{color:C.muted,marginBottom:20}}>Builds around your protein portions and sauté blend bags</div>
-                <button style={{...bBtn("primary"),padding:seniorMode?"18px 36px":"10px 24px",fontSize:seniorMode?20:13}} onClick={buildMealPlan} disabled={isViewer}>📅 Build Meal Plan</button>
+                <button style={{...bBtn("primary"),padding:seniorMode?"18px 36px":"10px 24px",fontSize:seniorMode?20:13}} onClick={requestBuildMealPlan} disabled={isViewer}>📅 Build Meal Plan</button>
               </div>
             ):(
               <div>
