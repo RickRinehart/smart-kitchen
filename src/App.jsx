@@ -3737,6 +3737,10 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
       .filter(i=>!have.has(String(i.name).toLowerCase()))
       .map(({id,name,category,location,unit})=>{const nm=String(name||"").trim();return {id,name:nm.charAt(0).toUpperCase()+nm.slice(1),category,location,unit};});
   };
+  const chooserAlreadyHaveCount=()=>{
+    const have=new Set(inventory.map(p=>String(p.name||"").toLowerCase()));
+    return [...COMMON_PANTRY,...getCuisineChecklistItems()].filter(i=>have.has(String(i.name).toLowerCase())).length;
+  };
   const chooserAddItems=(picked)=>{
     const today=new Date().toISOString().split("T")[0];
     setInventory(prev=>{
@@ -6246,7 +6250,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
 </div><button style={{...bBtn("ghost"),width:"100%",marginTop:8}} onClick={()=>setShowSettings(false)}>Close</button></div></div>}
     {showWelcome&&<WelcomeScreen onStart={welcomeStart} onSkip={welcomeSkip} skipLabel={welcomeForced?"Close":"Skip for now"}/>}
     {showThinNudge&&<ThinPlanNudge onAddMore={()=>{setShowThinNudge(false);setShowKitchenChooser(true);}} onBuildAnyway={()=>{setShowThinNudge(false);buildMealPlan();}}/>}
-    {showKitchenChooser&&<KitchenChooser cuisines={CUISINE_OPTIONS} selected={cuisinePrefs} loadingCount={chooserLoadingCount} failedCount={chooserFailedCount} onRetry={()=>chooserMissing.forEach(c=>chooserFetch(c))} getStarterItems={chooserStarterItems} existingNames={inventory.map(i=>i.name)} onToggleCuisine={chooserToggleCuisine} onAddItems={chooserAddItems} onReceipt={()=>chooserScan("receipt")} onShelves={()=>chooserScan("shelf")} onType={chooserType} onClose={()=>setShowKitchenChooser(false)}/>}
+    {showKitchenChooser&&<KitchenChooser cuisines={CUISINE_OPTIONS} selected={cuisinePrefs} loadingCount={chooserLoadingCount} failedCount={chooserFailedCount} onRetry={()=>chooserMissing.forEach(c=>chooserFetch(c))} getStarterItems={chooserStarterItems} existingNames={inventory.map(i=>i.name)} alreadyHaveCount={chooserAlreadyHaveCount()} onToggleCuisine={chooserToggleCuisine} onAddItems={chooserAddItems} onReceipt={()=>chooserScan("receipt")} onShelves={()=>chooserScan("shelf")} onType={chooserType} onClose={()=>setShowKitchenChooser(false)}/>}
     {showHelp&&<HelpMenu cardHidden={gsHidden} showCardOption={isNewAccount} showWelcomeOption={!!user&&!isViewer} onWelcome={()=>{setShowHelp(false);setWelcomeForced(true);}} onShowCard={()=>{gsShow();setShowHelp(false);}} onAssistant={()=>{setShowHelp(false);setChatOpen(true);}} onClose={()=>setShowHelp(false)}/>}
     {showWizard&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>

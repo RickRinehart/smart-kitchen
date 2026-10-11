@@ -232,7 +232,7 @@ const COLLAPSED_CUISINES = 8;
 
 // cuisines: all options; selected: chosen ones; loadingCount: how many chosen cuisines are still being looked up;
 // getStarterItems(): returns [{name, category, ...}] for the review list; onAddItems(items): App merges them into inventory.
-export function KitchenChooser({ cuisines, selected, loadingCount, failedCount = 0, onRetry, existingNames = [], getStarterItems, onToggleCuisine, onAddItems, onReceipt, onShelves, onType, onClose }) {
+export function KitchenChooser({ cuisines, selected, loadingCount, failedCount = 0, onRetry, existingNames = [], alreadyHaveCount = 0, getStarterItems, onToggleCuisine, onAddItems, onReceipt, onShelves, onType, onClose }) {
   const [view, setView] = useState("choose");
   const [items, setItems] = useState([]);
   const [showAll, setShowAll] = useState(false);
@@ -278,7 +278,7 @@ export function KitchenChooser({ cuisines, selected, loadingCount, failedCount =
       if (!raw) return;
       const nm = raw.charAt(0).toUpperCase() + raw.slice(1);
       const low = nm.toLowerCase();
-      if ((existingNames || []).some((n) => String(n || "").toLowerCase() === low)) { setAddMsg(nm + " is already in your kitchen."); return; }
+      if ((existingNames || []).some((n) => String(n || "").toLowerCase() === low)) { setAddMsg(nm + " is already in your kitchen. To change how many, open the Inventory tab."); return; }
       const dup = items.findIndex((it) => String(it.name).toLowerCase() === low);
       if (dup >= 0) { setItems((prev) => prev.map((p, k) => (k === dup ? { ...p, checked: true } : p))); closeAdd(); return; }
       setItems((prev) => [...prev, { id: "custom-" + Date.now(), name: nm, category: cat, location: cat === "Protein" ? "Freezer" : cat === "Dairy" ? "Fridge" : "Pantry", unit: cat === "Protein" ? "portions" : "item", qty: cat === "Protein" ? 4 : 1, checked: true, custom: true }]);
@@ -335,6 +335,11 @@ export function KitchenChooser({ cuisines, selected, loadingCount, failedCount =
             <p style={{ margin: 0, padding: "12px 20px", fontSize: 20, lineHeight: 1.35 }}>
               Tick each thing you have in your kitchen. Only ticked items are added.
             </p>
+            {alreadyHaveCount > 0 ? (
+              <p style={{ margin: 0, padding: "0 20px 12px", fontSize: 18, lineHeight: 1.35, color: MUTED }}>
+                {alreadyHaveCount === 1 ? "1 item you already have is not shown." : alreadyHaveCount + " items you already have are not shown."} To change an amount, open the Inventory tab.
+              </p>
+            ) : null}
             {items.length === 0 ? (
               <div style={{ padding: "0 20px 12px", fontSize: 20 }}>No items found yet. You can add your own below, or go back and try again in a moment.</div>
             ) : null}
