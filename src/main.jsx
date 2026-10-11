@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
+import { TopBar } from "./TopBar";
 import AuthModal from "./AuthModal";
 import { GuestViewerModal } from "./ViewerCodeManager";
 import SubscriptionModal from "./SubscriptionModal";
@@ -77,25 +78,6 @@ function AccessibilityToggles() {
 
 // Admin emails — always get full access regardless of tier
 const ADMIN_EMAILS = ["thesmartkitchenapp@gmail.com", "michiganrvvacations@gmail.com"];
-
-function TrialCountdown({ daysLeft, onUpgrade }) {
-  if (daysLeft <= 0) return null;
-  const urgent = daysLeft <= 3;
-  const warning = daysLeft <= 10;
-  const color = urgent ? "#cc0000" : warning ? "#e07b39" : "#888";
-  const isDark = document.body.classList.contains("sk-dark");
-  const bg = urgent ? "#fff0f0" : warning ? "#fff8ee" : isDark ? "#24523F" : "#f0f0f0";
-  const border = urgent ? "1px solid #ffcccc" : warning ? "1px solid #f5d9b0" : isDark ? "1px solid #2f6a52" : "1px solid #ccc";
-  return (
-    <span style={{
-      fontSize: "11px", color, background: bg,
-      padding: "3px 8px", borderRadius: "10px", border,
-      fontWeight: urgent ? "700" : "600", cursor: "pointer"
-    }} onClick={onUpgrade}>
-      {urgent ? "⚠️ " : "🕐 "}Trial — {daysLeft} day{daysLeft !== 1 ? "s" : ""} left
-    </span>
-  );
-}
 
 function TouchpointModal({ daysLeft, onUpgrade, onDismiss, onRetentionChat }) {
   const [retentionMode, setRetentionMode] = useState(false);
@@ -369,9 +351,6 @@ function Root() {
     return null;
   });
   const [showTouchpoint, setShowTouchpoint] = useState(false);
-  const [seniorBannerActive] = useState(() => {
-    try { return localStorage.getItem("sk_seniorMode") === "1"; } catch { return false; }
-  });
   const [authMode, setAuthMode] = useState("signup");
   const [authReady, setAuthReady] = useState(false);
   // Tracks whichever user.id this tab has already loaded cloud data for, so the SIGNED_IN
@@ -718,51 +697,19 @@ document.addEventListener("visibilitychange", handleVisibility);
 
   return (
     <>
-      {/* Auth / trial bar */}
-      <div style={{
-        position: "fixed", top: seniorBannerActive ? 54 : 0, right: 0, zIndex: 999,
-        display: "flex", alignItems: "center", gap: "4px", padding: "4px 6px",
-        maxWidth: "200px", flexWrap: "nowrap", overflow: "hidden",
-      }}>
-        {user ? (
-          <>
-            <span style={{
-              fontSize: "9px", color: "#888", whiteSpace: "nowrap", overflow: "hidden", maxWidth: "60px", textOverflow: "ellipsis", display: "none",
-              background: document.body.classList.contains("sk-dark") ? "#24523F" : "#f0f0f0", padding: "3px 6px",
-              borderRadius: "10px", border: document.body.classList.contains("sk-dark") ? "1px solid #2f6a52" : "1px solid #ccc"
-            }}>
-              {tierLabel}
-            </span>
-
-            {/* Trial countdown — always visible when in trial */}
-            {inTrial && !isAdmin && (
-              <TrialCountdown daysLeft={daysLeft} onUpgrade={handleUpgrade} />
-            )}
-
-            {!isActive && !isAdmin && effectiveTier === "free" && (
-              <button onClick={handleUpgrade} style={{
-                fontSize: "11px", padding: "4px 10px", borderRadius: "12px",
-                border: "none", background: "#c8963e", color: "#fff",
-                cursor: "pointer", fontWeight: "700"
-              }}>Upgrade</button>
-            )}
-            <button onClick={() => setShowSignOutConfirm(true)} style={{
-              fontSize: "11px", padding: "4px 8px", borderRadius: "10px",
-              border: "1px solid #444", background: "transparent",
-              color: "#888", cursor: "pointer"
-            }}>Sign Out</button>
-          </>
-        ) : (
-          <div style={{display:"flex",alignItems:"center",gap:6}}>
-            <AccessibilityToggles />
-            <button onClick={() => { setAuthMode("signin"); setShowAuthModal(true); }} style={{
-              fontSize: "12px", padding: "5px 14px", borderRadius: "12px",
-              border: "none", background: "#c8963e", color: "#fff",
-              cursor: "pointer", fontWeight: "700"
-            }}>Sign In</button>
-          </div>
-        )}
-      </div>
+      {/* Account bar: a normal row above the app (it used to float over the tabs and banners) */}
+      <TopBar
+        user={user}
+        isAdmin={isAdmin}
+        inTrial={inTrial}
+        daysLeft={daysLeft}
+        isActive={isActive}
+        effectiveTier={effectiveTier}
+        onUpgrade={handleUpgrade}
+        onSignOut={() => setShowSignOutConfirm(true)}
+        onSignIn={() => { setAuthMode("signin"); setShowAuthModal(true); }}
+        guestExtras={<AccessibilityToggles />}
+      />
 
       <App
         tier={effectiveTier}

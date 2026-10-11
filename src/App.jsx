@@ -6602,9 +6602,9 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
         </div>}
       </div></div>}
       {isManager&&<div style={{background:"#065f46",color:"#d1fae5",padding:"10px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:"2px solid #059669"}}><span style={{fontSize:14,fontFamily:"Arial,sans-serif"}}>🩺 Managing household account — Caregiver Mode</span></div>}
-      {seniorMode&&<div style={{background:"#1B3D2F",borderBottom:"2px solid #C8963E",padding:"12px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",paddingRight:180}}><span style={{fontFamily:"system-ui",fontSize:20,color:"#C8963E",fontWeight:700}}>👴 Senior-Friendly Mode is On</span><button onClick={()=>{showConfirm("Turn off larger text and simplified navigation?",()=>setSeniorMode(false));}} style={{background:"transparent",border:"2px solid #C8963E",borderRadius:8,color:"#C8963E",cursor:"pointer",fontFamily:"system-ui",fontSize:16,padding:"8px 18px",fontWeight:600}}>Turn Off</button></div>}
+      {seniorMode&&<div style={{background:"#1B3D2F",borderBottom:"2px solid #C8963E",padding:"12px 20px",display:"flex",alignItems:"center",justifyContent:"space-between"}}><span style={{fontFamily:"system-ui",fontSize:20,color:"#C8963E",fontWeight:700}}>👴 Senior-Friendly Mode is On</span><button onClick={()=>{showConfirm("Turn off larger text and simplified navigation?",()=>setSeniorMode(false));}} style={{background:"transparent",border:"2px solid #C8963E",borderRadius:8,color:"#C8963E",cursor:"pointer",fontFamily:"system-ui",fontSize:16,padding:"8px 18px",fontWeight:600}}>Turn Off</button></div>}
       {showInventoryReminder&&(
-        <div style={{background:"#1a2e1a",borderBottom:"2px solid #22c55e",padding:"10px 16px",paddingRight:180,display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
+        <div style={{background:"#1a2e1a",borderBottom:"2px solid #22c55e",padding:"10px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
             <span style={{fontSize:20}}>📦</span>
             <div>
@@ -6619,7 +6619,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
         </div>
       )}
       {showProfileReviewReminder&&(
-        <div style={{background:"#1B3D2F",borderBottom:"2px solid #7c9cff",padding:"10px 16px",paddingRight:180,display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
+        <div style={{background:"#1B3D2F",borderBottom:"2px solid #7c9cff",padding:"10px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
             <span style={{fontSize:20}}>💊</span>
             <div>
