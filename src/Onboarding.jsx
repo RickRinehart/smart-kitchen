@@ -232,10 +232,13 @@ const COLLAPSED_CUISINES = 8;
 
 // cuisines: all options; selected: chosen ones; loadingCount: how many chosen cuisines are still being looked up;
 // getStarterItems(): returns [{name, category, ...}] for the review list; onAddItems(items): App merges them into inventory.
-export function KitchenChooser({ cuisines, selected, loadingCount, failedCount = 0, onRetry, getStarterItems, onToggleCuisine, onAddItems, onReceipt, onShelves, onType, onClose }) {
+export function KitchenChooser({ cuisines, selected, loadingCount, failedCount = 0, onRetry, existingNames = [], getStarterItems, onToggleCuisine, onAddItems, onReceipt, onShelves, onType, onClose }) {
   const [view, setView] = useState("choose");
   const [items, setItems] = useState([]);
   const [showAll, setShowAll] = useState(false);
+  const [adding, setAdding] = useState(null); // which category has its "add another" form open
+  const [draft, setDraft] = useState("");
+  const [addMsg, setAddMsg] = useState("");
   const shown = showAll ? cuisines : cuisines.filter((c, i) => i < COLLAPSED_CUISINES || selected.includes(c));
   const n = selected.length;
   const needsRetry = n > 0 && loadingCount === 0 && failedCount > 0;
@@ -252,7 +255,7 @@ export function KitchenChooser({ cuisines, selected, loadingCount, failedCount =
     // Group by category (Protein first, then Pantry, Produce, Dairy, anything else after), nothing checked to
     // start: the person ticks what they really have, so plans are never built on food they do not own.
     const order = ["Protein", "Pantry", "Produce", "Dairy"]; // protein first: it is what a meal plan is built on
-    const byCat = new Map();
+    const byCat = new Map(order.map((k) => [k, []]));
     items.forEach((it, idx) => {
       const k = it.category || "Pantry";
       if (!byCat.has(k)) byCat.set(k, []);
@@ -266,6 +269,46 @@ export function KitchenChooser({ cuisines, selected, loadingCount, failedCount =
       setItems((prev) => prev.map((p, j) => (set.has(j) ? { ...p, checked: val } : p)));
     };
     const smallBtn = { minHeight: 44, padding: "0 14px", borderRadius: 22, border: "2px solid " + GREEN, background: "#FFFFFF", color: GREEN, fontFamily: BODY, fontSize: 18, fontWeight: 700, cursor: "pointer" };
+    const EXAMPLES = { Protein: "e.g. venison, pot roast, salmon", Pantry: "e.g. rice, soy sauce", Produce: "e.g. cabbage, green beans", Dairy: "e.g. cream cheese" };
+    const closeAdd = () => { setAdding(null); setDraft(""); setAddMsg(""); };
+    // Someone's own item (the AI list never covers everything): added already ticked, because they typed it
+    // because they have it. Duplicates are never created.
+    const addCustom = (cat) => {
+      const raw = draft.trim().replace(/\s+/g, " ");
+      if (!raw) return;
+      const nm = raw.charAt(0).toUpperCase() + raw.slice(1);
+      const low = nm.toLowerCase();
+      if ((existingNames || []).some((n) => String(n || "").toLowerCase() === low)) { setAddMsg(nm + " is already in your kitchen."); return; }
+      const dup = items.findIndex((it) => String(it.name).toLowerCase() === low);
+      if (dup >= 0) { setItems((prev) => prev.map((p, k) => (k === dup ? { ...p, checked: true } : p))); closeAdd(); return; }
+      setItems((prev) => [...prev, { id: "custom-" + Date.now(), name: nm, category: cat, location: cat === "Protein" ? "Freezer" : cat === "Dairy" ? "Fridge" : "Pantry", unit: cat === "Protein" ? "portions" : "item", qty: cat === "Protein" ? 4 : 1, checked: true, custom: true }]);
+      closeAdd();
+    };
+    const renderAdd = (g) => {
+      const label = g.name.toLowerCase();
+      if (adding !== g.name) {
+        return (
+          <button type="button" onClick={() => { setAdding(g.name); setDraft(""); setAddMsg(""); }}
+            style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", minHeight: 56, padding: "8px 14px", background: "#FFFFFF", border: "none", borderBottom: "1px solid " + LINE, color: GREEN, fontFamily: BODY, fontSize: 20, fontWeight: 700, cursor: "pointer", textAlign: "left", boxSizing: "border-box" }}>
+            <span aria-hidden="true" style={{ fontSize: 28, lineHeight: 1, width: 28, textAlign: "center" }}>+</span>Add another {label}
+          </button>
+        );
+      }
+      return (
+        <div style={{ padding: "12px 14px 16px", display: "flex", flexDirection: "column", gap: 10, background: "#FFFBF1", borderBottom: "1px solid " + LINE }}>
+          <label htmlFor={"sk-add-" + g.name} style={{ fontSize: 18, color: MUTED }}>Add another {label}</label>
+          <input id={"sk-add-" + g.name} type="text" autoFocus value={draft} placeholder={EXAMPLES[g.name] || ""} maxLength={60}
+            onChange={(e) => { setDraft(e.target.value); setAddMsg(""); }}
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addCustom(g.name); } }}
+            style={{ width: "100%", minHeight: 52, padding: "0 14px", boxSizing: "border-box", borderRadius: 12, border: "2px solid " + GREEN, background: "#FFFFFF", color: INK, fontFamily: BODY, fontSize: 20 }} />
+          {addMsg ? <div role="alert" style={{ fontSize: 18, color: "#8A2B1D", fontWeight: 700 }}>{addMsg}</div> : null}
+          <div style={{ display: "flex", gap: 10 }}>
+            <button type="button" disabled={!draft.trim()} onClick={() => addCustom(g.name)} style={{ ...(draft.trim() ? goldBtn : disabledBtn), flex: 2, minHeight: 56, fontSize: 20 }}>Add to list</button>
+            <button type="button" onClick={closeAdd} style={{ ...outlineBtn, flex: 1, minHeight: 56, fontSize: 20 }}>Cancel</button>
+          </div>
+        </div>
+      );
+    };
     const stepBtn = { flex: "0 0 48px", width: 48, height: 48, borderRadius: 24, border: "2px solid " + GREEN, background: "#FFFFFF", color: GREEN, fontFamily: BODY, fontSize: 28, fontWeight: 700, lineHeight: 1, cursor: "pointer", padding: 0 };
     const stepQty = (j, d) => setItems((prev) => prev.map((p, k) => (k === j ? { ...p, qty: Math.max(1, Math.min(99, (parseInt(p.qty) || 1) + d)) } : p)));
     // The app's base CSS paints native checkboxes dark, which reads as "already ticked". Draw our own:
@@ -293,17 +336,20 @@ export function KitchenChooser({ cuisines, selected, loadingCount, failedCount =
               Tick each thing you have in your kitchen. Only ticked items are added.
             </p>
             {items.length === 0 ? (
-              <div style={{ padding: 16, fontSize: 20 }}>No items found yet. Please go back and try again in a moment.</div>
-            ) : groups.map((g) => {
+              <div style={{ padding: "0 20px 12px", fontSize: 20 }}>No items found yet. You can add your own below, or go back and try again in a moment.</div>
+            ) : null}
+            {groups.map((g) => {
               const inGroup = g.idxs.filter((j) => items[j].checked).length;
               return (
                 <div key={g.name}>
                   <div style={{ position: "sticky", top: 0, zIndex: 1, background: SAND, padding: "10px 14px", display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 8, borderTop: "1px solid " + LINE, borderBottom: "1px solid " + LINE }}>
                     <div style={{ fontSize: 22, fontWeight: 700, color: GREEN }}>{g.name} <span style={{ fontSize: 18, fontWeight: 400, color: MUTED }}>({inGroup} of {g.idxs.length})</span></div>
-                    <div style={{ display: "flex", gap: 8 }}>
-                      <button type="button" onClick={() => setGroup(g.idxs, true)} aria-label={"Select all " + g.name} style={smallBtn}>Select all</button>
-                      <button type="button" onClick={() => setGroup(g.idxs, false)} aria-label={"Clear all " + g.name} style={smallBtn}>Clear</button>
-                    </div>
+                    {g.idxs.length > 0 ? (
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <button type="button" onClick={() => setGroup(g.idxs, true)} aria-label={"Select all " + g.name} style={smallBtn}>Select all</button>
+                        <button type="button" onClick={() => setGroup(g.idxs, false)} aria-label={"Clear all " + g.name} style={smallBtn}>Clear</button>
+                      </div>
+                    ) : null}
                   </div>
                   {g.idxs.map((j) => {
                     const it = items[j];
@@ -328,6 +374,7 @@ export function KitchenChooser({ cuisines, selected, loadingCount, failedCount =
                       </div>
                     );
                   })}
+                  {renderAdd(g)}
                 </div>
               );
             })}
