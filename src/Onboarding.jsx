@@ -249,8 +249,8 @@ export function KitchenChooser({ cuisines, selected, loadingCount, failedCount =
   const checkedCount = items.filter((i) => i.checked).length;
 
   if (view === "review") {
-    // Group by category (Pantry, Protein, Produce, Dairy first, anything else after), nothing checked to start:
-    // the person ticks what they really have, so plans are never built on food they do not own.
+    // Group by category (Protein first, then Pantry, Produce, Dairy, anything else after), nothing checked to
+    // start: the person ticks what they really have, so plans are never built on food they do not own.
     const order = ["Protein", "Pantry", "Produce", "Dairy"]; // protein first: it is what a meal plan is built on
     const byCat = new Map();
     items.forEach((it, idx) => {
@@ -266,25 +266,37 @@ export function KitchenChooser({ cuisines, selected, loadingCount, failedCount =
       setItems((prev) => prev.map((p, j) => (set.has(j) ? { ...p, checked: val } : p)));
     };
     const smallBtn = { minHeight: 44, padding: "0 14px", borderRadius: 22, border: "2px solid " + GREEN, background: "#FFFFFF", color: GREEN, fontFamily: BODY, fontSize: 18, fontWeight: 700, cursor: "pointer" };
+    // The app's base CSS paints native checkboxes dark, which reads as "already ticked". Draw our own:
+    // empty = white with a green border, ticked = solid green with a white check.
+    const CHECK = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23F4F1EA' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='4 12 10 18 20 6'/%3E%3C/svg%3E\")";
+    const boxStyle = (checked) => ({
+      appearance: "none", WebkitAppearance: "none", MozAppearance: "none", width: 28, height: 28, flex: "0 0 28px", margin: 0, padding: 0,
+      borderRadius: 6, boxSizing: "border-box", border: "3px solid " + GREEN, cursor: "pointer",
+      backgroundColor: checked ? GREEN : "#FFFFFF", backgroundImage: checked ? CHECK : "none",
+      backgroundRepeat: "no-repeat", backgroundPosition: "center", backgroundSize: "20px 20px",
+    });
     return (
       <div style={{ ...backdrop, alignItems: "stretch", padding: 12 }}>
         <div role="dialog" aria-modal="true" aria-labelledby="sk-review-title"
           style={{ ...panel, maxWidth: 520, height: "100%", maxHeight: "100%", margin: "0 auto", padding: 0, gap: 0, overflow: "hidden" }}>
-          <div style={{ flex: "0 0 auto", padding: "20px 20px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
-            <h2 id="sk-review-title" style={{ margin: 0, fontFamily: HEAD, fontSize: 34, lineHeight: 1.05, fontWeight: 700, color: GREEN }}>Check what you have</h2>
-            <p style={{ margin: 0, fontSize: 20, lineHeight: 1.35 }}>
-              Tick each thing you have in your kitchen. Only ticked items are added.
-            </p>
+          <div style={{ flex: "0 0 auto", padding: "16px 16px 10px 20px", display: "flex", flexDirection: "column", gap: 6 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+              <h2 id="sk-review-title" style={{ margin: 0, minWidth: 0, fontFamily: HEAD, fontSize: 34, lineHeight: 1.05, fontWeight: 700, color: GREEN }}>Check what you have</h2>
+              <button type="button" onClick={() => setView("choose")} style={{ ...smallBtn, minHeight: 48, flex: "0 0 auto" }}>Back</button>
+            </div>
             <div role="status" style={{ fontSize: 22, fontWeight: 700, color: GREEN }}>{checkedCount} of {items.length} checked</div>
           </div>
           <div data-scroll="review" style={{ flex: "1 1 auto", minHeight: 0, overflowY: "auto", WebkitOverflowScrolling: "touch", borderTop: "2px solid " + LINE, borderBottom: "2px solid " + LINE }}>
+            <p style={{ margin: 0, padding: "12px 20px", fontSize: 20, lineHeight: 1.35 }}>
+              Tick each thing you have in your kitchen. Only ticked items are added.
+            </p>
             {items.length === 0 ? (
               <div style={{ padding: 16, fontSize: 20 }}>No items found yet. Please go back and try again in a moment.</div>
             ) : groups.map((g) => {
               const inGroup = g.idxs.filter((j) => items[j].checked).length;
               return (
                 <div key={g.name}>
-                  <div style={{ position: "sticky", top: 0, zIndex: 1, background: SAND, padding: "10px 14px", display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 8, borderBottom: "1px solid " + LINE }}>
+                  <div style={{ position: "sticky", top: 0, zIndex: 1, background: SAND, padding: "10px 14px", display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 8, borderTop: "1px solid " + LINE, borderBottom: "1px solid " + LINE }}>
                     <div style={{ fontSize: 22, fontWeight: 700, color: GREEN }}>{g.name} <span style={{ fontSize: 18, fontWeight: 400, color: MUTED }}>({inGroup} of {g.idxs.length})</span></div>
                     <div style={{ display: "flex", gap: 8 }}>
                       <button type="button" onClick={() => setGroup(g.idxs, true)} aria-label={"Select all " + g.name} style={smallBtn}>Select all</button>
@@ -296,7 +308,7 @@ export function KitchenChooser({ cuisines, selected, loadingCount, failedCount =
                     return (
                       <label key={it.id || it.name + j} style={{ display: "flex", alignItems: "center", gap: 14, minHeight: 56, padding: "8px 14px", borderBottom: "1px solid " + LINE, cursor: "pointer", fontSize: 20, background: it.checked ? "#EEF4EE" : "#FFFFFF" }}>
                         <input type="checkbox" checked={it.checked} onChange={(e) => setItems((prev) => prev.map((p, k) => (k === j ? { ...p, checked: e.target.checked } : p)))}
-                          style={{ width: 26, height: 26, flex: "0 0 26px", accentColor: GREEN }} />
+                          style={boxStyle(it.checked)} />
                         <span style={{ flex: 1, minWidth: 0 }}>{it.name}</span>
                       </label>
                     );
@@ -305,11 +317,10 @@ export function KitchenChooser({ cuisines, selected, loadingCount, failedCount =
               );
             })}
           </div>
-          <div style={{ flex: "0 0 auto", padding: "12px 20px calc(14px + env(safe-area-inset-bottom, 0px))", display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ flex: "0 0 auto", padding: "12px 20px calc(14px + env(safe-area-inset-bottom, 0px))" }}>
             <button type="button" disabled={checkedCount === 0} onClick={() => onAddItems(items.filter((i) => i.checked))} style={checkedCount === 0 ? disabledBtn : goldBtn}>
               {checkedCount === 0 ? "Check at least one item" : "Add " + checkedCount + (checkedCount === 1 ? " item" : " items") + " to my kitchen"}
             </button>
-            <button type="button" onClick={() => setView("choose")} style={{ ...outlineBtn, minHeight: 56 }}>Back</button>
           </div>
         </div>
       </div>

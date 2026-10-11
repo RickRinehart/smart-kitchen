@@ -3735,7 +3735,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
     const have=new Set(inventory.map(p=>String(p.name||"").toLowerCase()));
     return [...COMMON_PANTRY,...getCuisineChecklistItems()]
       .filter(i=>!have.has(String(i.name).toLowerCase()))
-      .map(({id,name,category,location,unit})=>({id,name,category,location,unit}));
+      .map(({id,name,category,location,unit})=>{const nm=String(name||"").trim();return {id,name:nm.charAt(0).toUpperCase()+nm.slice(1),category,location,unit};});
   };
   const chooserAddItems=(picked)=>{
     const today=new Date().toISOString().split("T")[0];
