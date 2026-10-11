@@ -109,3 +109,35 @@ code {
   padding: 4px 8px;
   background: var(--code-bg);
 }
+
+/* Account bar buttons (Trial pill, Upgrade / Sign In, Sign Out): one shared size and weight, high contrast in both
+   themes. Dark is the default theme; body.sk-light switches to light. (They used to be tiny 11px text in pale gray,
+   amber or white-on-gold, which was hard to read.) */
+.sk-signout, .sk-gold, .sk-trial {
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+  padding: 6px 14px;
+  min-height: 36px;
+  border-radius: 18px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  white-space: nowrap;
+}
+/* Sign Out: outlined */
+.sk-signout { background: transparent; color: var(--sk-text, #eceaf3); border-color: var(--sk-accent, #f0a500); }
+body.sk-light .sk-signout { background: #ffffff; color: #1B3D2F; border-color: #1B3D2F; }
+/* Upgrade and Sign In: brand gold fill with the brand dark-green text (white on gold was hard to read) */
+.sk-gold { background: #C8963E; color: #12291F; border-color: #C8963E; }
+/* Trial countdown pill: normal, then amber at 10 days or fewer, red at 3 or fewer */
+.sk-trial { background: #24523F; color: #eceaf3; border-color: #3b7f63; }
+body.sk-light .sk-trial { background: #f0f2f8; color: #1B3D2F; border-color: #cdd2e0; }
+.sk-trial--warn { background: #4A3A10; color: #FFD98A; border-color: #f0a500; }
+body.sk-light .sk-trial--warn { background: #FFF1D6; color: #7A4100; border-color: #E0A040; }
+.sk-trial--urgent { background: #5A1C1C; color: #FFD2D2; border-color: #f06060; }
+body.sk-light .sk-trial--urgent { background: #FFE3E3; color: #8A0F0F; border-color: #D32F2F; }
+.sk-signout:focus-visible, .sk-gold:focus-visible, .sk-trial:focus-visible {
+  outline: 3px solid #f0a500;
+  outline-offset: 2px;
+}

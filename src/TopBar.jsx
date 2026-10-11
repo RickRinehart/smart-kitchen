@@ -7,20 +7,13 @@ import React from "react";
 
 function TrialCountdown({ daysLeft, onUpgrade }) {
   if (daysLeft <= 0) return null;
-  const urgent = daysLeft <= 3;
-  const warning = daysLeft <= 10;
-  const color = urgent ? "#cc0000" : warning ? "#e07b39" : "#888";
-  const isDark = document.body.classList.contains("sk-dark");
-  const bg = urgent ? "#fff0f0" : warning ? "#fff8ee" : isDark ? "#24523F" : "#f0f0f0";
-  const border = urgent ? "1px solid #ffcccc" : warning ? "1px solid #f5d9b0" : isDark ? "1px solid #2f6a52" : "1px solid #ccc";
+  // Colors come from the stylesheet (index.css) so they follow the light/dark theme the moment it is toggled:
+  // normal, amber at 10 days or fewer, red at 3 days or fewer.
+  const level = daysLeft <= 3 ? "urgent" : daysLeft <= 10 ? "warn" : "ok";
   return (
-    <span style={{
-      fontSize: "11px", color, background: bg,
-      padding: "3px 8px", borderRadius: "10px", border,
-      fontWeight: urgent ? "700" : "600", cursor: "pointer", whiteSpace: "nowrap",
-    }} onClick={onUpgrade}>
-      {urgent ? "⚠️ " : "🕐 "}Trial — {daysLeft} day{daysLeft !== 1 ? "s" : ""} left
-    </span>
+    <button type="button" className={"sk-trial sk-trial--" + level} onClick={onUpgrade}>
+      {level === "urgent" ? "⚠️ " : "🕐 "}Trial — {daysLeft} day{daysLeft !== 1 ? "s" : ""} left
+    </button>
   );
 }
 
@@ -35,26 +28,14 @@ export function TopBar({ user, isAdmin, inTrial, daysLeft, isActive, effectiveTi
         <>
           {inTrial && !isAdmin && <TrialCountdown daysLeft={daysLeft} onUpgrade={onUpgrade} />}
           {!isActive && !isAdmin && effectiveTier === "free" && (
-            <button onClick={onUpgrade} style={{
-              fontSize: "11px", padding: "4px 10px", borderRadius: "12px",
-              border: "none", background: "#c8963e", color: "#fff",
-              cursor: "pointer", fontWeight: "700",
-            }}>Upgrade</button>
+            <button className="sk-gold" onClick={onUpgrade}>Upgrade</button>
           )}
-          <button onClick={onSignOut} style={{
-            fontSize: "11px", padding: "4px 8px", borderRadius: "10px",
-            border: "1px solid #444", background: "transparent",
-            color: "#888", cursor: "pointer",
-          }}>Sign Out</button>
+          <button className="sk-signout" onClick={onSignOut}>Sign Out</button>
         </>
       ) : (
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           {guestExtras}
-          <button onClick={onSignIn} style={{
-            fontSize: "12px", padding: "5px 14px", borderRadius: "12px",
-            border: "none", background: "#c8963e", color: "#fff",
-            cursor: "pointer", fontWeight: "700",
-          }}>Sign In</button>
+          <button className="sk-gold" onClick={onSignIn}>Sign In</button>
         </div>
       )}
     </div>
