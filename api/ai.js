@@ -102,9 +102,10 @@ export default async function handler(req, res) {
 
   // Hidden "thinking" is on by default for this model. These are short kitchen tasks that never needed it, and when it
   // is on the model sometimes spends the WHOLE token allowance thinking and returns no text at all (seen live: a
-  // 500-token voice request came back empty 5 times out of 5). So it is turned off. Setting AI_THINKING=default in
-  // Vercel restores the model's own behavior without a code change. If the API ever rejects the setting, retry once
-  // without it instead of failing.
+  // 500-token voice request came back empty 5 times out of 5). So it is turned off. This model does NOT accept
+  // {type: 'disabled'}; its API answers "send {type: 'between_tools'} instead" (the model then does not think before
+  // responding). Setting AI_THINKING=default in Vercel restores the model's own behavior without a code change.
+  // If the API ever rejects the setting, retry once without it instead of failing.
   const thinkingOff = (process.env.AI_THINKING || 'disabled') !== 'default';
   const callAnthropic = async (p) => {
     const r = await fetch('https://api.anthropic.com/v1/messages', {
@@ -125,7 +126,7 @@ export default async function handler(req, res) {
 
   let result;
   try {
-    result = await callAnthropic(thinkingOff ? { ...payload, thinking: { type: 'disabled' } } : payload);
+    result = await callAnthropic(thinkingOff ? { ...payload, thinking: { type: 'between_tools' } } : payload);
   } catch (e) { return failUpstream(e); }
   if (thinkingOff && !result.r.ok && result.r.status === 400 && /thinking/i.test(JSON.stringify((result.d && result.d.error) || ''))) {
     console.error('ai: upstream rejected the thinking setting, retrying without it:', result.d && result.d.error && result.d.error.message);
