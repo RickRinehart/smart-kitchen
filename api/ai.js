@@ -100,22 +100,39 @@ export default async function handler(req, res) {
   };
   if (body.system) payload.system = body.system;
 
-  let upstream;
-  try {
-    upstream = await fetch('https://api.anthropic.com/v1/messages', {
+  // Hidden "thinking" is on by default for this model. These are short kitchen tasks that never needed it, and when it
+  // is on the model sometimes spends the WHOLE token allowance thinking and returns no text at all (seen live: a
+  // 500-token voice request came back empty 5 times out of 5). So it is turned off. Setting AI_THINKING=default in
+  // Vercel restores the model's own behavior without a code change. If the API ever rejects the setting, retry once
+  // without it instead of failing.
+  const thinkingOff = (process.env.AI_THINKING || 'disabled') !== 'default';
+  const callAnthropic = async (p) => {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(p),
       signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
     });
-  } catch (e) {
+    let d = null;
+    try { d = await r.json(); } catch (e) { d = null; }
+    return { r, d };
+  };
+  const failUpstream = (e) => {
     const timedOut = e && (e.name === 'TimeoutError' || e.name === 'AbortError');
     console.error('ai upstream fetch failed:', e && e.message);
     return res.status(timedOut ? 504 : 502).json({ error: timedOut ? 'upstream_timeout' : 'upstream_unreachable' });
-  }
+  };
 
-  let data;
-  try { data = await upstream.json(); } catch (e) { data = null; }
+  let result;
+  try {
+    result = await callAnthropic(thinkingOff ? { ...payload, thinking: { type: 'disabled' } } : payload);
+  } catch (e) { return failUpstream(e); }
+  if (thinkingOff && !result.r.ok && result.r.status === 400 && /thinking/i.test(JSON.stringify((result.d && result.d.error) || ''))) {
+    console.error('ai: upstream rejected the thinking setting, retrying without it:', result.d && result.d.error && result.d.error.message);
+    try { result = await callAnthropic(payload); } catch (e) { return failUpstream(e); }
+  }
+  const upstream = result.r;
+  const data = result.d;
   if (!upstream.ok || !data) {
     console.error('ai upstream error', upstream.status, data && data.error && data.error.type, data && data.error && data.error.message);
     // Pass Anthropic's error shape through (the client already reads data.error.message) without ever echoing keys.
