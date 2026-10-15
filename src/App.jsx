@@ -2229,7 +2229,7 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [activeRecipeServings,setActiveRecipeServings]=useState(4);
   const [fetchedRecipeCache,setFetchedRecipeCache]=useState(()=>{try{return JSON.parse(localStorage.getItem("sk_fetchedRecipeCache")||"{}");}catch{return {};}});
   useEffect(()=>{try{localStorage.setItem("sk_fetchedRecipeCache",JSON.stringify(fetchedRecipeCache));}catch{}},[fetchedRecipeCache]);
-  useEffect(()=>{if(activeRecipe)setActiveRecipeServings(activeRecipe.servings||activeProfiles.length||4);},[activeRecipe]);
+  useEffect(()=>{if(activeRecipe)setActiveRecipeServings(activeRecipe.chosenServings||activeRecipe.servings||activeProfiles.length||4);},[activeRecipe]);
   const [familySize,setFamilySize]=useState(()=>loadLocal("sk_familySize",3));
   const [familyProfiles,setFamilyProfiles]=useState(()=>loadLocal("sk_familyProfiles",DEFAULT_PROFILES).map(migrateProfile));
   const [tempProfiles,setTempProfiles]=useState(()=>loadLocal("sk_tempProfiles",[]));
@@ -5732,6 +5732,34 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     });
     setSwapDayModal(null);
   };
+  // Quantities can arrive as numbers or as text like "1/2" or "1 1/2". Returns NaN when it cannot be read as a number.
+  const qtyToNumber=(q)=>{
+    if(typeof q==="number") return q;
+    const t=String(q??"").trim();
+    let m;
+    if(/^\d*\.?\d+$/.test(t)) return parseFloat(t);
+    if((m=t.match(/^(\d+)\s+(\d+)\/(\d+)$/))) return parseInt(m[1])+parseInt(m[2])/parseInt(m[3]);
+    if((m=t.match(/^(\d+)\/(\d+)$/))) return parseInt(m[1])/parseInt(m[2]);
+    return NaN;
+  };
+  // On the recipe screen the person can change how many servings they are cooking (for example 9 instead of 3 so there
+  // are leftovers). That choice is saved with the meal's cached recipe (chosenServings) so the plan card's NEED list,
+  // its Add Missing button and the weekly shopping list all use the SAME scaled amounts. Choosing the recipe's own
+  // serving size again clears it, which restores the plain amounts.
+  const changeRecipeServings=(delta)=>{
+    const v=Math.max(1,activeRecipeServings+delta);
+    setActiveRecipeServings(v);
+    if(!activeRecipe||!activeRecipe.name) return;
+    const nm=String(activeRecipe.name).trim().toLowerCase();
+    setFetchedRecipeCache(prev=>{
+      const key=Object.keys(prev).find(k=>k.trim().toLowerCase()===nm||String((prev[k]||{}).name||"").trim().toLowerCase()===nm);
+      if(!key||!prev[key]) return prev;
+      const entry={...prev[key]};
+      const base=parseFloat(entry.servings)||activeProfiles.length||4;
+      if(v===base) delete entry.chosenServings; else entry.chosenServings=v;
+      return {...prev,[key]:entry};
+    });
+  };
   const mealPlanStillNeeded=(day,cacheOverride)=>{
     const cache=cacheOverride||fetchedRecipeCache;
     // Once a meal's full recipe exists, THAT is the single source of truth for what the meal needs.
@@ -5741,8 +5769,13 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     // estimate below is now just the fallback for days whose recipe hasn't been generated yet.
     const authoritative=cache[day.meal];
     if(authoritative&&Array.isArray(authoritative.ingredients)&&authoritative.ingredients.length>0){
+      // Scale every amount to the serving size chosen on the recipe screen (no choice = scale of 1, i.e. unchanged).
+      const baseServ=parseFloat(authoritative.servings)||4;
+      const chosenServ=parseFloat(authoritative.chosenServings);
+      const mult=chosenServ>0?chosenServ/baseServ:1;
+      const scaleQty=(q)=>{if(mult===1) return q;const n=qtyToNumber(q);return Number.isFinite(n)?Math.round(n*mult*100)/100:q;};
       return authoritative.ingredients
-        .map(ing=>(ing&&typeof ing==="object")?{qty:ing.qty??"",unit:ing.unit||"",name:ing.name||""}:parseIngredientLine(ing))
+        .map(ing=>(ing&&typeof ing==="object")?{qty:scaleQty(ing.qty??""),unit:ing.unit||"",name:ing.name||""}:(p=>({...p,qty:scaleQty(p.qty)}))(parseIngredientLine(ing)))
         .filter(p=>p&&p.name&&!isFreeStaple(p.name)&&!inventory.some(i=>wordsOverlap(p.name,i.name)&&hasStock(i)));
     }
     const stillMissingFromShoppingList=liveNeeded(day.shoppingNeeded||[]);
@@ -5934,7 +5967,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     const cachedFull=fetchedRecipeCache[day.meal];
     if(!force&&cachedFull&&Array.isArray(cachedFull.instructions)&&cachedFull.instructions.length>0){
       setActiveRecipe(cachedFull);
-      setActiveRecipeServings(cachedFull.servings||activeProfiles.length||4);
+      setActiveRecipeServings(cachedFull.chosenServings||cachedFull.servings||activeProfiles.length||4);
       return;
     }
     const baseServings=activeProfiles.length||4;
@@ -6058,8 +6091,10 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     if(!st||!st.preview) return;
     const {recipe:newRecipe,oldIng,newIng,needsToBuy}=st.preview;
     const oldName=st.mealName, newName=newRecipe.name;
-    // 1. the edited recipe becomes this meal's recipe
-    setFetchedRecipeCache(prev=>({...prev,[newName]:newRecipe}));
+    // 1. the edited recipe becomes this meal's recipe (keeping the serving size the person chose, if any)
+    const keptChosen=(fetchedRecipeCache[oldName]||{}).chosenServings;
+    const finalRecipe=(keptChosen&&!newRecipe.chosenServings)?{...newRecipe,chosenServings:keptChosen}:newRecipe;
+    setFetchedRecipeCache(prev=>({...prev,[newName]:finalRecipe}));
     // 2. the day card follows (title, and its own fallback shopping estimate)
     setMealPlan(prev=>prev.map(d=>{
       if(d.day!==st.dayLabel) return d;
@@ -6070,7 +6105,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     // 3. a photo follows a rename; a star rating is for the old dish, so it doesn't
     if(newName!==oldName) setMealPhotos(prev=>(prev[oldName]&&!prev[newName])?{...prev,[newName]:prev[oldName]}:prev);
     // 4. keep an open recipe window in sync
-    if(activeRecipe&&activeRecipe.name===oldName) setActiveRecipe(newRecipe);
+    if(activeRecipe&&activeRecipe.name===oldName) setActiveRecipe(finalRecipe);
     // 5. work out what's left to tidy on the shopping list
     const usedElsewhere=mealPlan.some(d=>{
       if(d.day===st.dayLabel) return false;
@@ -7370,7 +7405,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
                       <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
                         {mealPlanStillNeeded(day).length===0
                           ?<span style={bTag(C.green)}>✅ Ready</span>
-                          :<div style={{width:"100%",marginBottom:4}}><div style={{fontSize:9,color:C.muted,marginBottom:3,fontFamily:FM}}>NEED</div>{mealPlanStillNeeded(day).map((s,j)=><div key={j} style={{fontSize:seniorMode?15:13,color:C.red,marginBottom:2}}>· {s.qty} {s.unit} {s.name}</div>)}</div>}
+                          :<div style={{width:"100%",marginBottom:4}}><div style={{fontSize:9,color:C.muted,marginBottom:3,fontFamily:FM}}>NEED{(fetchedRecipeCache[day.meal]||{}).chosenServings?" · for "+(fetchedRecipeCache[day.meal]||{}).chosenServings+" servings":""}</div>{mealPlanStillNeeded(day).map((s,j)=><div key={j} style={{fontSize:seniorMode?15:13,color:C.red,marginBottom:2}}>· {s.qty} {s.unit} {s.name}</div>)}</div>}
                         <button onClick={()=>madeMeal(day)} style={{background:"#3ecf8e22",border:"1px solid #3ecf8e44",borderRadius:seniorMode?10:6,color:"#3ecf8e",cursor:"pointer",fontFamily:FM,fontSize:seniorMode?18:11,padding:seniorMode?"12px 20px":"8px 14px",flexShrink:0,fontWeight:seniorMode?700:400}} disabled={isViewer}>✅ Made It!</button>
                         {mealPlanStillNeeded(day).length>0&&<button onClick={()=>{
                           const needed=mealPlanStillNeeded(day);
@@ -9580,9 +9615,9 @@ style={{flex:1,minWidth:110,padding:seniorMode?"10px":"7px 8px",borderRadius:8,b
               <div style={{display:"flex",alignItems:"center",gap:6,background:"#fef3c7",borderRadius:20,padding:"4px 10px",border:"1px solid #f59e0b"}}>
                 <span style={{fontSize:13}}>🍽</span>
                 <span style={{fontFamily:FM,fontSize:12,color:"#92400e",fontWeight:700}}>Serves</span>
-                <button onClick={()=>setActiveRecipeServings(s=>Math.max(1,s-1))} style={{background:"#f59e0b",border:"none",borderRadius:"50%",width:20,height:20,cursor:"pointer",fontSize:12,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700}}>−</button>
+                <button onClick={()=>changeRecipeServings(-1)} style={{background:"#f59e0b",border:"none",borderRadius:"50%",width:20,height:20,cursor:"pointer",fontSize:12,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700}}>−</button>
                 <span style={{fontFamily:FM,fontSize:14,color:"#92400e",fontWeight:700,minWidth:16,textAlign:"center"}}>{activeRecipeServings}</span>
-                <button onClick={()=>setActiveRecipeServings(s=>s+1)} style={{background:"#f59e0b",border:"none",borderRadius:"50%",width:20,height:20,cursor:"pointer",fontSize:12,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700}}>+</button>
+                <button onClick={()=>changeRecipeServings(1)} style={{background:"#f59e0b",border:"none",borderRadius:"50%",width:20,height:20,cursor:"pointer",fontSize:12,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700}}>+</button>
               </div>
             </div>
             {(activeRecipe.missingIngredients||[]).length>0&&(
