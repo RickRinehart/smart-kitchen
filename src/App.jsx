@@ -302,9 +302,16 @@ const trimRepeatedIngredient=(name,tail)=>{
   const last=run[run.length-1];
   return {consumed:last.end,descriptors:run.filter(x=>!x.isName).map(x=>x.word.toLowerCase()),keep:last.punct};
 };
+// Keeps a number together with its unit when a step wraps on a narrow screen ("2 lb", "1 tsp", "15 minutes", "1 1/2 cup")
+// and keeps a range like 8-10 from splitting at its dash. Where a line breaks depends on the phone, so the fix is to make
+// those pieces unbreakable instead of trying to control the break. Uses non-breaking spaces and an invisible word joiner;
+// the wording itself never changes.
+const keepNumbersWithUnits=(txt)=>String(txt)
+  .replace(/(\d|[\u00bc-\u00be\u2150-\u215e])[ \t]+(minutes?|mins?|hours?|hrs?|seconds?|secs?|days?|lbs?|pounds?|oz|ounces?|tsp|tbsp|teaspoons?|tablespoons?|cups?|cloves?|inch(?:es)?|quarts?|qts?|pints?|gallons?)\b/gi,"$1\u00a0$2")
+  .replace(/(\d)[ \t]*([-\u2013])[ \t]*(\d)/g,"$1\u2060$2\u2060$3");
 const renderStepText=(stepText,ingredients,scale)=>{
   const text=typeof stepText==="object"?(stepText.text||""):String(stepText||"");
-  if(!text.includes("{{ing:")) return text;
+  if(!text.includes("{{ing:")) return keepNumbersWithUnits(text);
   const re=/\{\{ing:(\d+)\}\}/g;
   let out="",last=0,m;
   while((m=re.exec(text))){
@@ -314,11 +321,17 @@ const renderStepText=(stepText,ingredients,scale)=>{
     const obj=typeof ing==="object"?ing:parseIngredientLine(ing);
     const qty=formatScaledQty((obj.qty||0)*scale);
     const cut=trimRepeatedIngredient(obj.name,text.slice(re.lastIndex));
-    out+=[qty,obj.unit,...cut.descriptors,obj.name].filter(Boolean).join(" ")+cut.keep;
+    const rest=[...cut.descriptors,obj.name].filter(Boolean);
+    const qtyJoined=qty.replace(/ /g,"\u00a0");
+    let piece;
+    if(!qty) piece=[obj.unit,...rest].filter(Boolean).join(" ");
+    else if(obj.unit) piece=qtyJoined+"\u00a0"+obj.unit+(rest.length?" "+rest.join(" "):"");
+    else { const r=rest.slice(); if(r.length) r[0]=qtyJoined+"\u00a0"+r[0]; piece=r.length?r.join(" "):qtyJoined; }
+    out+=piece+cut.keep;
     last=re.lastIndex+cut.consumed;
     re.lastIndex=last;
   }
-  return out+text.slice(last);
+  return keepNumbersWithUnits(out+text.slice(last));
 };
 // Seeded starter recipe -- every new signup's Family Recipes list starts with this one instead of
 // an empty array (added Sept 2026, ties into the vanilla extract craft-fair giveaway program).
