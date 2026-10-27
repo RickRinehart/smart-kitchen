@@ -270,21 +270,55 @@ const scaleIngredientDisplay=(ing,scale)=>{
 // Renders a step's text at the current scale. New-format steps contain {{ing:N}} placeholders that get
 // substituted with the live scaled amount for ingredients[N]. Legacy steps (plain text, no placeholders)
 // render unchanged — they were written for a fixed serving count and can't be scaled after the fact.
+// The AI is asked to write steps with {{ing:N}} placeholders, and a placeholder is filled in with the amount, the unit
+// AND the ingredient's name ("3 lb Potatoes"). Newer models treat the placeholder as only the amount and add the noun
+// again ("3 lb Potatoes of potatoes", "1 cup Frozen Corn of corn"). This removes that repeat when the words after the
+// placeholder just say the same ingredient again, so recipes read correctly (including ones already saved). Words that
+// add information ("sliced mushrooms") are kept and moved in front of the name ("8 oz sliced Mushrooms").
+const STEP_DESCRIPTORS=new Set(["sliced","chopped","diced","minced","fresh","frozen","cooked","shredded","grated","ground","crushed","peeled","cubed","dried","canned","whole","mashed","softened","melted","raw","uncooked","halved","trimmed","julienned","toasted","roasted"]);
+const stepWordStem=(w)=>String(w||"").toLowerCase().replace(/[^a-z0-9\u00e9]/g,"").replace(/ies$/,"y").replace(/(?:es|s)$/,"");
+const trimRepeatedIngredient=(name,tail)=>{
+  const none={consumed:0,descriptors:[],keep:""};
+  const nameStems=new Set(String(name||"").split(/[^A-Za-z0-9\u00e9]+/).filter(Boolean).map(stepWordStem));
+  if(!nameStems.size) return none;
+  const lead=tail.match(/^\s+(?:of\s+)?(?:(?:the|your|some)\s+)?/);
+  if(!lead) return none;
+  const wordRe=/([A-Za-z\u00e9][A-Za-z\u00e9'\u2019\-]*)([,.;:)]*)(\s*)/y;
+  const run=[];
+  let pos=lead[0].length;
+  for(let k=0;k<4;k++){
+    wordRe.lastIndex=pos;
+    const w=wordRe.exec(tail);
+    if(!w) break;
+    const isName=nameStems.has(stepWordStem(w[1]));
+    const isDesc=!isName&&STEP_DESCRIPTORS.has(w[1].toLowerCase());
+    if(!isName&&!isDesc) break;
+    run.push({word:w[1],punct:w[2],isName,end:pos+w[1].length+w[2].length});
+    pos=wordRe.lastIndex;
+    if(w[2]) break;
+  }
+  while(run.length&&!run[run.length-1].isName) run.pop();
+  if(!run.length) return none;
+  const last=run[run.length-1];
+  return {consumed:last.end,descriptors:run.filter(x=>!x.isName).map(x=>x.word.toLowerCase()),keep:last.punct};
+};
 const renderStepText=(stepText,ingredients,scale)=>{
   const text=typeof stepText==="object"?(stepText.text||""):String(stepText||"");
   if(!text.includes("{{ing:")) return text;
-  return text.replace(/\{\{ing:(\d+)\}\}/g,(m,idxStr)=>{
-    const idx=parseInt(idxStr);
-    const ing=(ingredients||[])[idx];
-    if(!ing) return m;
-    if(typeof ing==="object"){
-      const scaledQty=formatScaledQty((ing.qty||0)*scale);
-      return [scaledQty,ing.unit,ing.name].filter(Boolean).join(" ");
-    }
-    const p=parseIngredientLine(ing);
-    const scaledQty=formatScaledQty(p.qty*scale);
-    return [scaledQty,p.unit,p.name].filter(Boolean).join(" ");
-  });
+  const re=/\{\{ing:(\d+)\}\}/g;
+  let out="",last=0,m;
+  while((m=re.exec(text))){
+    out+=text.slice(last,m.index);
+    const ing=(ingredients||[])[parseInt(m[1])];
+    if(!ing){ out+=m[0]; last=re.lastIndex; continue; }
+    const obj=typeof ing==="object"?ing:parseIngredientLine(ing);
+    const qty=formatScaledQty((obj.qty||0)*scale);
+    const cut=trimRepeatedIngredient(obj.name,text.slice(re.lastIndex));
+    out+=[qty,obj.unit,...cut.descriptors,obj.name].filter(Boolean).join(" ")+cut.keep;
+    last=re.lastIndex+cut.consumed;
+    re.lastIndex=last;
+  }
+  return out+text.slice(last);
 };
 // Seeded starter recipe -- every new signup's Family Recipes list starts with this one instead of
 // an empty array (added Sept 2026, ties into the vanilla extract craft-fair giveaway program).
@@ -4431,7 +4465,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
       const cellarInfo=await getCellarCookingBlock();
       const cellarBlock=cellarInfo.block;
       const raw=await callClaude({
-        system:"Return ONLY a JSON array of 4 dinner recipes. No other text. Start with [ end with ]. Each object has exactly these keys: id (number), name (string), time (string like 30 min), difficulty (Easy or Medium or Hard), description (one short sentence), servings (number, default 4), ingredients (array of {name,qty,unit} objects — qty is a NUMBER, unit is a short string like \"cup\",\"tsp\",\"tbsp\",\"oz\",\"lb\" or \"\" for countable items like eggs), usesFromInventory (array of 3 strings max), missingIngredients (array of strings), instructions (array of 4 short strings — CRITICAL: every step that references a measured ingredient MUST use a {{ing:N}} placeholder instead of typing a number, where N is that ingredient's zero-based index in the ingredients array. Never type a literal quantity for a measured ingredient — always use the placeholder.), cellarItem (string or null — the exact name of a cellar/bar item from the provided cellar list ONLY if it is genuinely used in this recipe, otherwise null). Keep all strings short."+(fs?" CRITICAL DIETARY RULES — these are HARD STOPS, never violate them: "+fs:""),
+        system:"Return ONLY a JSON array of 4 dinner recipes. No other text. Start with [ end with ]. Each object has exactly these keys: id (number), name (string), time (string like 30 min), difficulty (Easy or Medium or Hard), description (one short sentence), servings (number, default 4), ingredients (array of {name,qty,unit} objects — qty is a NUMBER, unit is a short string like \"cup\",\"tsp\",\"tbsp\",\"oz\",\"lb\" or \"\" for countable items like eggs), usesFromInventory (array of 3 strings max), missingIngredients (array of strings), instructions (array of 4 short strings — CRITICAL: every step that references a measured ingredient MUST use a {{ing:N}} placeholder instead of typing a number, where N is that ingredient's zero-based index in the ingredients array. Never type a literal quantity for a measured ingredient — always use the placeholder. The placeholder is replaced with the amount, the unit AND the ingredient name (for example '2 cups Rice'), so NEVER write the ingredient name again right after it: write 'Add {{ing:2}} and stir', not 'Add {{ing:2}} of rice'.), cellarItem (string or null — the exact name of a cellar/bar item from the provided cellar list ONLY if it is genuinely used in this recipe, otherwise null). Keep all strings short."+(fs?" CRITICAL DIETARY RULES — these are HARD STOPS, never violate them: "+fs:""),
         prompt:"Proteins: "+proteins+". Saute blend bags: "+(blendItem?.qty||0)+". Make 4 simple weeknight dinners for 3 people. Vary proteins — include beef and pork not just chicken. Pantry/fridge inventory (match case-insensitively): "+inventory.filter(i=>(parseFloat(i.qty)??1)>0).map(i=>String(i.name||"")).filter(Boolean).join(", ")+". For missingIngredients only list items NOT in that inventory."+cellarBlock+(fs?" ENFORCE these dietary rules in every recipe: "+fs:""),
         maxTokens:8000, // four full recipes run about 4,100-4,500 tokens with the newer model
       });
@@ -5945,7 +5979,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
     const cellarInfo=await getCellarCookingBlock();
     const raw=await callClaude({
       system:"Recipe AI. Return ONLY valid JSON, no markdown. Single object.",
-      prompt:`Give a simple home recipe for "${day.meal}" that serves ${baseServings} people. Full inventory on hand: ${invList}.`+(knownIngredients?` Use EXACTLY this ingredient list with its measurements — do not invent a different one: ${knownIngredients}.`:"")+cellarInfo.block+` CRITICAL: if the recipe name itself specifies a cooking method or technique (e.g. "Sous Vide," "Air Fryer," "Slow Cooker," "Grilled," "Instant Pot," "Smoked"), the instructions MUST actually use that exact method with its correct temperatures/times — never keep a technique in the name while writing different, more conventional instructions (e.g. a "Sous Vide" title paired with plain stovetop pan-searing is wrong; sous vide requires stating the water bath temperature and time, with a quick sear only as the finishing step). If a named technique isn't practical for a home kitchen without specialized equipment, rename the recipe to match what the instructions actually do rather than leaving a mismatched name. CRITICAL: every food named in the recipe name — each vegetable, side dish, sauce or topping (e.g. the mushrooms in "with Rice and Mushrooms", or the Brussels sprouts and sweet potatoes in "Roasted Brussels Sprouts and Sweet Potatoes") — MUST be in the ingredients list and used in the instructions, so the recipe actually makes the dish its name promises. Likewise do NOT add ingredients the dish does not need (no unrelated sides or garnishes). Return JSON: {name,description,time,difficulty,servings,ingredients:[{name,qty,unit} objects — qty is a NUMBER (use decimals for fractions, e.g. 0.5 for 1/2 cup, 0.25 for 1/4 tsp), unit is a short string like "cup","tsp","tbsp","oz","lb" or "" for countable items like eggs],instructions:[4-6 short strings — CRITICAL: every step that references a measured ingredient MUST use a {{ing:N}} placeholder instead of typing a number, where N is that ingredient's zero-based index in the ingredients array. Never type a literal quantity or unit for a measured ingredient — always use the placeholder so amounts stay accurate when the recipe is scaled to a different serving size.],usesFromInventory:[items from inventory used],missingIngredients:[items NOT in inventory]`+cellarInfo.schemaField+`}`,
+      prompt:`Give a simple home recipe for "${day.meal}" that serves ${baseServings} people. Full inventory on hand: ${invList}.`+(knownIngredients?` Use EXACTLY this ingredient list with its measurements — do not invent a different one: ${knownIngredients}.`:"")+cellarInfo.block+` CRITICAL: if the recipe name itself specifies a cooking method or technique (e.g. "Sous Vide," "Air Fryer," "Slow Cooker," "Grilled," "Instant Pot," "Smoked"), the instructions MUST actually use that exact method with its correct temperatures/times — never keep a technique in the name while writing different, more conventional instructions (e.g. a "Sous Vide" title paired with plain stovetop pan-searing is wrong; sous vide requires stating the water bath temperature and time, with a quick sear only as the finishing step). If a named technique isn't practical for a home kitchen without specialized equipment, rename the recipe to match what the instructions actually do rather than leaving a mismatched name. CRITICAL: every food named in the recipe name — each vegetable, side dish, sauce or topping (e.g. the mushrooms in "with Rice and Mushrooms", or the Brussels sprouts and sweet potatoes in "Roasted Brussels Sprouts and Sweet Potatoes") — MUST be in the ingredients list and used in the instructions, so the recipe actually makes the dish its name promises. Likewise do NOT add ingredients the dish does not need (no unrelated sides or garnishes). Return JSON: {name,description,time,difficulty,servings,ingredients:[{name,qty,unit} objects — qty is a NUMBER (use decimals for fractions, e.g. 0.5 for 1/2 cup, 0.25 for 1/4 tsp), unit is a short string like "cup","tsp","tbsp","oz","lb" or "" for countable items like eggs],instructions:[4-6 short strings — CRITICAL: every step that references a measured ingredient MUST use a {{ing:N}} placeholder instead of typing a number, where N is that ingredient's zero-based index in the ingredients array. Never type a literal quantity or unit for a measured ingredient — always use the placeholder so amounts stay accurate when the recipe is scaled to a different serving size. The placeholder is replaced with the amount, the unit AND the ingredient name (for example '2 cups Rice'), so NEVER write the ingredient name again right after it: write 'Add {{ing:2}} and stir', not 'Add {{ing:2}} of rice'.],usesFromInventory:[items from inventory used],missingIngredients:[items NOT in inventory]`+cellarInfo.schemaField+`}`,
       maxTokens:4000
     });
     const text=typeof raw==="string"?raw:Array.isArray(raw)?raw.map(r=>r.text||"").join(""):raw?.content?.[0]?.text||"";
@@ -6058,7 +6092,7 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
         prompt:"Here is a recipe as JSON: "+JSON.stringify({name:recipe.name,description:recipe.description||"",servings:recipe.servings,ingredients:recipe.ingredients,instructions:recipe.instructions})
           +" Make exactly ONE change: replace ingredient #"+idx+" (\""+old.name+"\") with \""+rep+"\". Rules: "
           +"(1) Ingredient #"+idx+" becomes a {name,qty,unit} object for the replacement, with a sensible amount for "+(recipe.servings||4)+" servings (qty is a NUMBER). Every other ingredient stays EXACTLY as written, in the same order. "
-          +"(2) Rewrite ONLY the instruction steps that mention the old ingredient, adapting method, temperature and timing to the replacement. Every other step stays word-for-word. Keep the {{ing:N}} placeholders and their indexes valid, and never type a literal quantity for a measured ingredient. "
+          +"(2) Rewrite ONLY the instruction steps that mention the old ingredient, adapting method, temperature and timing to the replacement. Every other step stays word-for-word. Keep the {{ing:N}} placeholders and their indexes valid, and never type a literal quantity for a measured ingredient. The placeholder is replaced with the amount, the unit AND the ingredient name (for example '2 cups Rice'), so NEVER write the ingredient name again right after it: write 'Add {{ing:2}} and stir', not 'Add {{ing:2}} of rice'. "
           +"(3) If the recipe name mentions the old ingredient, change only that part of the name to the replacement; otherwise keep the name exactly. "
           +"(4) Keep the description unchanged unless it mentions the old ingredient. "
           +"Return JSON: {\"name\":\"\",\"description\":\"\",\"ingredients\":[...],\"instructions\":[...]}",
@@ -11690,7 +11724,7 @@ setScaleCalcLoading(false);setTimeout(()=>{if(scaleDevice&&scaleDevice._writeChr
                   setFrLoading(true);
                   try{
                     const photoDesc=frPhotos.map((p,i)=>"Photo "+(i+1)).join(", ");
-                    const prompt="I am sending you "+(frPhotos.length>1?frPhotos.length+" photos of a recipe ("+photoDesc+"). Read all photos together and combine into one complete recipe.":"a photo of a recipe. Read it and extract all details.")+" Return ONLY valid JSON with no markdown: {name,kitchenOf,servings,ingredients:[{name,qty,unit} objects — qty is a NUMBER (use decimals for fractions, e.g. 0.5 for 1/2 cup, 0.25 for 1/4 tsp), unit is a short string like \"cup\",\"tsp\",\"tbsp\",\"oz\",\"lb\" or \"\" for countable items like eggs],steps:[strings — CRITICAL: every step that references a measured ingredient MUST use a {{ing:N}} placeholder instead of typing a number, where N is that ingredient's zero-based index in the ingredients array (e.g. if ingredients[2] is {name:\"granulated sugar\",qty:1,unit:\"cup\"}, write \"Cream {{ing:2}} with the butter\", NEVER \"Cream 1 cup sugar with the butter\"). Never type a literal quantity or unit in a step for a measured ingredient — always use the placeholder so amounts stay accurate when the recipe is scaled to a different serving size.],notes}. kitchenOf is the person's name if written on the recipe — empty string if not present. Combine all pages into one complete recipe.";
+                    const prompt="I am sending you "+(frPhotos.length>1?frPhotos.length+" photos of a recipe ("+photoDesc+"). Read all photos together and combine into one complete recipe.":"a photo of a recipe. Read it and extract all details.")+" Return ONLY valid JSON with no markdown: {name,kitchenOf,servings,ingredients:[{name,qty,unit} objects — qty is a NUMBER (use decimals for fractions, e.g. 0.5 for 1/2 cup, 0.25 for 1/4 tsp), unit is a short string like \"cup\",\"tsp\",\"tbsp\",\"oz\",\"lb\" or \"\" for countable items like eggs],steps:[strings — CRITICAL: every step that references a measured ingredient MUST use a {{ing:N}} placeholder instead of typing a number, where N is that ingredient's zero-based index in the ingredients array (e.g. if ingredients[2] is {name:\"granulated sugar\",qty:1,unit:\"cup\"}, write \"Cream {{ing:2}} with the butter\", NEVER \"Cream 1 cup sugar with the butter\"). Never type a literal quantity or unit in a step for a measured ingredient — always use the placeholder so amounts stay accurate when the recipe is scaled to a different serving size. The placeholder is replaced with the amount, the unit AND the ingredient name (for example '2 cups Rice'), so NEVER write the ingredient name again right after it: write 'Add {{ing:2}} and stir', not 'Add {{ing:2}} of rice'.],notes}. kitchenOf is the person's name if written on the recipe — empty string if not present. Combine all pages into one complete recipe.";
                     const res=await callClaude({
                       system:"You are a recipe reader. Extract recipes from images and return ONLY valid JSON, no markdown, no backticks.",
                       prompt,
@@ -11725,7 +11759,7 @@ setScaleCalcLoading(false);setTimeout(()=>{if(scaleDevice&&scaleDevice._writeChr
                 if(!frIdeaInput.trim())return;
                 setFrLoading(true);
                 try{
-                  const res=await callClaude({system:"You are a recipe creator. Create a complete family-style recipe and return ONLY valid JSON with no markdown: {name,kitchenOf,servings,ingredients:[{name,qty,unit} objects — qty is a NUMBER (use decimals for fractions, e.g. 0.5 for 1/2 cup, 0.25 for 1/4 tsp), unit is a short string like \"cup\",\"tsp\",\"tbsp\",\"oz\",\"lb\" or \"\" for countable items like eggs],steps:[strings — CRITICAL: every step that references a measured ingredient MUST use a {{ing:N}} placeholder instead of typing a number, where N is that ingredient's zero-based index in the ingredients array (e.g. if ingredients[2] is {name:\"granulated sugar\",qty:1,unit:\"cup\"}, write \"Cream {{ing:2}} with the butter\", NEVER \"Cream 1 cup sugar with the butter\"). Never type a literal quantity or unit in a step for a measured ingredient — always use the placeholder so amounts stay accurate when the recipe is scaled to a different serving size.],notes}. kitchenOf should be empty string. Make it warm, homey, and practical.",prompt:"Create a complete recipe for: "+frIdeaInput.trim()+". Inventory available: "+inventory.map(i=>i.name).filter(Boolean).join(", "),maxTokens:5000});
+                  const res=await callClaude({system:"You are a recipe creator. Create a complete family-style recipe and return ONLY valid JSON with no markdown: {name,kitchenOf,servings,ingredients:[{name,qty,unit} objects — qty is a NUMBER (use decimals for fractions, e.g. 0.5 for 1/2 cup, 0.25 for 1/4 tsp), unit is a short string like \"cup\",\"tsp\",\"tbsp\",\"oz\",\"lb\" or \"\" for countable items like eggs],steps:[strings — CRITICAL: every step that references a measured ingredient MUST use a {{ing:N}} placeholder instead of typing a number, where N is that ingredient's zero-based index in the ingredients array (e.g. if ingredients[2] is {name:\"granulated sugar\",qty:1,unit:\"cup\"}, write \"Cream {{ing:2}} with the butter\", NEVER \"Cream 1 cup sugar with the butter\"). Never type a literal quantity or unit in a step for a measured ingredient — always use the placeholder so amounts stay accurate when the recipe is scaled to a different serving size. The placeholder is replaced with the amount, the unit AND the ingredient name (for example '2 cups Rice'), so NEVER write the ingredient name again right after it: write 'Add {{ing:2}} and stir', not 'Add {{ing:2}} of rice'.],notes}. kitchenOf should be empty string. Make it warm, homey, and practical.",prompt:"Create a complete recipe for: "+frIdeaInput.trim()+". Inventory available: "+inventory.map(i=>i.name).filter(Boolean).join(", "),maxTokens:5000});
                   const raw=(typeof res==="string"?res:res?.content?.[0]?.text||"").replace(/```json|```/g,"").trim();
                   const s=raw.indexOf("{"),e=raw.lastIndexOf("}");
                   const parsed=JSON.parse(raw.slice(s,e+1));
