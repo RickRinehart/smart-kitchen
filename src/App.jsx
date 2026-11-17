@@ -3678,24 +3678,31 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
     {msg:"You're all set! 🎉 Smart Kitchen is ready to help your family eat well every week. I'll be right here if you ever have questions, run into anything, or just want to tell us what you think — good, bad, or anything in between. You're never alone in this kitchen! 💛", tab:null, done:true},
   ];
   const addChatMsg=(role,text)=>setChatMessages(prev=>[...prev,{role,text,id:Date.now()}]);
-  const escalateToSupport=(userMsg,tag)=>{
+  // Pending cancel request from a signed-out visitor: we hold the message until they give us an email to follow up on.
+  const pendingCancelRef=useRef(null);
+  const EMAIL_RE=/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/;
+  const escalateToSupport=(userMsg,tag,contactEmail)=>{
     const profile=familySummary();
+    const userEmail=user?.email||contactEmail||"";
+    const userId=user?.id||"";
+    const who=userEmail?`${userName} <${userEmail}>`:userName;
+    const mailFallback=()=>{
+      const subject=`Smart Kitchen ${tag} — ${who} (${tier})`;
+      const body=`User: ${who}%0ATier: ${tier}%0ATag: ${tag}%0A%0AMessage:%0A"${userMsg}"%0A%0AProfile:%0A${profile}`;
+      window.open(`mailto:thesmartkitchenapp@gmail.com?subject=${encodeURIComponent(subject)}&body=${body}`);
+    };
     fetch("/api/send-shopping-list",{
       method:"POST",
       headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({action:"escalation",userName,tier,tag,userMsg,profile})
+      body:JSON.stringify({action:"escalation",userName,userEmail,userId,signedIn:!!user,tier,tag,userMsg,profile})
     }).then(r=>r.json()).then(d=>{
       if(!d.success){
         console.error("Escalation email failed:",d.error);
-        const subject=`Smart Kitchen ${tag} — ${userName} (${tier})`;
-        const body=`User: ${userName}%0ATier: ${tier}%0ATag: ${tag}%0A%0AMessage:%0A"${userMsg}"%0A%0AProfile:%0A${profile}`;
-        window.open(`mailto:thesmartkitchenapp@gmail.com?subject=${encodeURIComponent(subject)}&body=${body}`);
+        mailFallback();
       }
     }).catch(e=>{
       console.error("Escalation email error:",e.message);
-      const subject=`Smart Kitchen ${tag} — ${userName} (${tier})`;
-      const body=`User: ${userName}%0ATier: ${tier}%0ATag: ${tag}%0A%0AMessage:%0A"${userMsg}"%0A%0AProfile:%0A${profile}`;
-      window.open(`mailto:thesmartkitchenapp@gmail.com?subject=${encodeURIComponent(subject)}&body=${body}`);
+      mailFallback();
     });
   };
   const detectEscalation=(msg)=>{
@@ -3703,7 +3710,8 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
     if(m.match(/bug|broken|crash|error|doesn.t work|not working|glitch|freeze/)) return "Bug";
     if(m.match(/scanner|scan|receipt|camera|photo/)) return "Scanner-Issue";
     if(m.match(/allerg|restrict|diabeti|renal|sodium|sugar|carb|kylie|diet/)) return "Dietary-Concern";
-    if(m.match(/too expensive|can.t afford|not worth|won.t upgrade|why pay|cancel/)) return "Upgrade-Objection";
+    if(m.match(/cancel|unsubscribe|delete (my )?account|close (my )?account|stop (my )?(trial|subscription|membership)|end (my )?(trial|subscription|membership)/)) return "Cancel-Request";
+    if(m.match(/too expensive|can.t afford|not worth|won.t upgrade|why pay/)) return "Upgrade-Objection";
     if(m.match(/love|great|amazing|fantastic|helpful|awesome|thank/)) return "Feedback-Positive";
     if(m.match(/confus|lost|don.t understand|how do i|where is|can.t find/)) return "Confusion";
     if(m.match(/feature|wish|would be nice|suggestion|add|could you/)) return "Feature-Request";
@@ -3939,8 +3947,40 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
       // Tour stays paused at the current step until the user says done/next.
     }
     
+    // Signed-out visitor who previously asked to cancel: this reply should contain the email we can follow up on
+    if(pendingCancelRef.current&&!user){
+      const em=text.match(EMAIL_RE);
+      if(em){
+        const original=pendingCancelRef.current;
+        pendingCancelRef.current=null;
+        setTimeout(()=>{
+          escalateToSupport(original,"Cancel-Request",em[0]);
+          addChatMsg("assistant","Thank you! I've passed this to the team and they'll follow up with you at "+em[0]+". And just so you know — the free plan has no card on file, so nothing is being billed. 💛");
+          setChatLoading(false);
+        },700);
+        return;
+      }
+    }
     // Check for escalation tags
     const tag=detectEscalation(text);
+    if(tag==="Cancel-Request"&&!user){
+      // No account means no email on file — ask for one so a human can follow up, and escalate only once we have it
+      const inline=text.match(EMAIL_RE);
+      if(inline){
+        setTimeout(()=>{
+          escalateToSupport(text,tag,inline[0]);
+          addChatMsg("assistant","Got it — I've passed this to the team and they'll follow up with you at "+inline[0]+". The free plan has no card on file, so nothing is being billed. 💛");
+          setChatLoading(false);
+        },700);
+      } else {
+        pendingCancelRef.current=text;
+        setTimeout(()=>{
+          addChatMsg("assistant","I'm sorry to hear that, and I'd like to make sure this gets handled properly. What email address should our team use to follow up with you? (If you're only on the free plan there's no card on file, so nothing is being billed.)");
+          setChatLoading(false);
+        },700);
+      }
+      return;
+    }
     if(tag&&tag!=="Feedback-Positive") setTimeout(()=>escalateToSupport(text,tag),2000);
     // Build system prompt with full user context
     const profile=familySummary();
@@ -3982,6 +4022,8 @@ APP KNOWLEDGE: Smart Kitchen has these features:
 - SMARTER WAY TO SHOP (a-la-carte add-on, $5/mo as a Smart Kitchen member — $10/mo standalone; included free during the 30-day trial): compares your preferred grocery stores' weekly ads against your own inventory and purchase history, surfacing items currently priced below what you usually pay — no manual ad-scanning required, unlike the free Weekly Ad Scanner which requires photographing one ad at a time. Also powers Deep Discount Alerts — a persistent top-of-app banner (separate from the Meal Plan tab banner) when something you actually buy shows up as a steep, often limited-quantity discount at one of your preferred stores. If the user doesn't have it yet, they can add it anytime via the banner in the Meal Plan tab, or select it when subscribing/upgrading.
 
 ESCALATION: If the user reports a bug, scanner problem, dietary concern, frustration, or upgrade objection — acknowledge it warmly and let them know the team has been notified and will follow up. If they give positive feedback — celebrate it genuinely.
+
+CANCELLATIONS: If someone asks how to cancel, be gracious and never pushy. If their tier is free or they are on a trial, tell them there is no card on file and nothing will be billed, and that the team will follow up by email. Do not try to talk them out of it; you may ask once, gently, whether anything could have been better.
 
 RETAILER SUGGESTIONS: If the user mentions a grocery store or retailer that isn't already part of Smart Kitchen's ad-tracking (Smarter Way to Shop), have a real conversation rather than just acknowledging it — naturally draw out what's needed to actually add it later: the store's name, its general location or city, and how they normally see that store's weekly ad (a paper flyer, the store's own app, an email, or their website). Ask for these one at a time as part of the conversation, not as a rigid checklist or form. Once you have what you can, thank them and let them know it's been passed along to the team.
 
