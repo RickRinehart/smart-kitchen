@@ -3682,7 +3682,9 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const pendingCancelRef=useRef(null);
   const EMAIL_RE=/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/;
   const escalateToSupport=(userMsg,tag,contactEmail)=>{
-    const profile=familySummary();
+    // Privacy: escalation emails go to a shared inbox, so send only household size. Look up the rest by user ID when needed.
+    const hh=(familySummary()||"").match(/^HOUSEHOLD:\s*\d+\s*people?/i);
+    const profile=hh?hh[0]+".":"";
     const userEmail=user?.email||contactEmail||"";
     const userId=user?.id||"";
     const who=userEmail?`${userName} <${userEmail}>`:userName;
@@ -3707,14 +3709,14 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   };
   const detectEscalation=(msg)=>{
     const m=msg.toLowerCase();
-    if(m.match(/bug|broken|crash|error|doesn.t work|not working|glitch|freeze/)) return "Bug";
+    if(m.match(/bug|broken|crash|error|does(n.t| not) work|did(n.t| not) work|not working|isn.t working|won.t (work|load|save|open)|glitch|freeze/)) return "Bug";
     if(m.match(/scanner|scan|receipt|camera|photo/)) return "Scanner-Issue";
     if(m.match(/allerg|restrict|diabeti|renal|sodium|sugar|carb|kylie|diet/)) return "Dietary-Concern";
     if(m.match(/cancel|unsubscribe|delete (my )?account|close (my )?account|stop (my )?(trial|subscription|membership)|end (my )?(trial|subscription|membership)/)) return "Cancel-Request";
     if(m.match(/too expensive|can.t afford|not worth|won.t upgrade|why pay/)) return "Upgrade-Objection";
     if(m.match(/love|great|amazing|fantastic|helpful|awesome|thank/)) return "Feedback-Positive";
-    if(m.match(/confus|lost|don.t understand|how do i|where is|can.t find/)) return "Confusion";
-    if(m.match(/feature|wish|would be nice|suggestion|add|could you/)) return "Feature-Request";
+    if(m.match(/confus|lost|don.t understand|how (do|can|to)\b|where (do|can|is|are)\b|can.t find|\badd\b/)) return "Confusion";
+    if(m.match(/feature|wish|would be nice|suggestion|could you/)) return "Feature-Request";
     if(m.match(/frustrat|annoying|hate|useless|terrible|awful/)) return "Feedback-Negative";
     return null;
   };
