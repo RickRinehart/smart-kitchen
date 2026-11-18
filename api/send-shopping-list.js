@@ -428,7 +428,9 @@ export default async function handler(req, res) {
 
   // ── Support Chat Escalation action ───────────────────────────────────────
   if (action === 'escalation') {
-    const { userName, tier, tag, userMsg, profile } = req.body;
+    const { userName, userEmail, userId, signedIn, tier, tag, userMsg, profile } = req.body;
+    const safeEmail = (typeof userEmail === 'string' && /^[^\s@<>"]+@[^\s@<>"]+\.[^\s@<>"]+$/.test(userEmail)) ? userEmail : '';
+    const esc = (v) => String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     if (!tag || !userMsg) return res.status(400).json({ error: 'Missing required fields' });
     const resendKey = process.env.RESEND_API_KEY_RGDL;
     if (!resendKey) return res.status(500).json({ error: 'Missing RESEND_API_KEY_RGDL' });
@@ -438,6 +440,7 @@ export default async function handler(req, res) {
       'Scanner-Issue': '#dc2626',
       'Dietary-Concern': '#b91c1c',
       'Upgrade-Objection': '#d97706',
+      'Cancel-Request': '#d97706',
       'Confusion': '#3b82f6',
       'Feature-Request': '#10b981',
       'Feedback-Negative': '#dc2626',
@@ -452,7 +455,8 @@ export default async function handler(req, res) {
       <div style="border:1px solid #D9E4DC;border-top:none;border-radius:0 0 8px 8px;padding:22px;">
         <div style="display:inline-block;background:${tagColor}18;border:1px solid ${tagColor}55;color:${tagColor};font-weight:bold;font-size:12px;padding:5px 12px;border-radius:20px;margin-bottom:16px;">${tag}</div>
         <table width="100%" style="border-collapse:collapse;margin-bottom:16px;">
-          <tr><td style="padding:4px 0;color:#888;font-size:12px;width:90px;">User</td><td style="padding:4px 0;color:#333;font-size:13px;font-weight:bold;">${userName || 'Unknown'}</td></tr>
+          <tr><td style="padding:4px 0;color:#888;font-size:12px;width:90px;">User</td><td style="padding:4px 0;color:#333;font-size:13px;font-weight:bold;">${esc(userName) || 'Unknown'}</td></tr>
+          <tr><td style="padding:4px 0;color:#888;font-size:12px;">Email</td><td style="padding:4px 0;color:#333;font-size:13px;">${safeEmail ? `<a href="mailto:${safeEmail}" style="color:#1B3D2F;">${esc(safeEmail)}</a>` : '<span style="color:#b91c1c;">No email on file</span>'}${signedIn ? '' : ' <span style="color:#888;">(not signed in)</span>'}</td></tr>
           <tr><td style="padding:4px 0;color:#888;font-size:12px;">Tier</td><td style="padding:4px 0;color:#333;font-size:13px;">${tier || 'Unknown'}</td></tr>
         </table>
         <div style="font-size:11px;font-weight:bold;text-transform:uppercase;color:#888;letter-spacing:1px;border-bottom:1px solid #eee;padding-bottom:4px;margin-bottom:8px;">Message</div>
@@ -465,7 +469,7 @@ export default async function handler(req, res) {
       </div>
     </body></html>`;
 
-    const textBody = `Smart Kitchen Support Escalation\nTag: ${tag}\nUser: ${userName || 'Unknown'}\nTier: ${tier || 'Unknown'}\n\nMessage:\n${userMsg}\n${profile ? `\nProfile:\n${profile}` : ''}`;
+    const textBody = `Smart Kitchen Support Escalation\nTag: ${tag}\nUser: ${userName || 'Unknown'}\nEmail: ${safeEmail || 'No email on file'}${signedIn ? '' : ' (not signed in)'}${userId ? `\nUser ID: ${userId}` : ''}\nTier: ${tier || 'Unknown'}\n\nMessage:\n${userMsg}\n${profile ? `\nProfile:\n${profile}` : ''}`;
 
     try {
       const r = await fetch('https://api.resend.com/emails', {
@@ -474,7 +478,8 @@ export default async function handler(req, res) {
         body: JSON.stringify({
           from: 'Smart Kitchen <hello@mail.rgdigitallabs.com>',
           to: ['thesmartkitchenapp@gmail.com'],
-          subject: `Smart Kitchen ${tag} — ${userName || 'Unknown user'} (${tier || 'Unknown'})`,
+          subject: `Smart Kitchen ${tag} — ${safeEmail || userName || 'Unknown user'} (${tier || 'Unknown'})`,
+          ...(safeEmail ? { reply_to: safeEmail } : {}),
           html,
           text: textBody,
           tags: [{ name: 'category', value: 'support-escalation' }]

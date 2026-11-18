@@ -2316,6 +2316,10 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
   const [profileModalOpen,setProfileModalOpen]=useState(false);
   const [recipeSite,setRecipeSite]=useState(()=>loadLocal("sk_recipeSite","google"));
   const [showSettings,setShowSettings]=useState(false);
+  const [cancelOpen,setCancelOpen]=useState(false);
+  const [cancelReason,setCancelReason]=useState("");
+  const [cancelState,setCancelState]=useState("idle"); // idle | sending | sent | error
+  const [cancelMsg,setCancelMsg]=useState("");
   const [showPricingModal,setShowPricingModal]=useState(false);
   const [livePricing,setLivePricing]=useState(null);
   const [pricingLoading,setPricingLoading]=useState(false);
@@ -3677,38 +3681,64 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
     {msg:"One more thing — see the **⚡ Busy?** button on each day? Tap it on a hectic evening and Smart Kitchen will swap in a quick meal under 20 minutes. Really handy for sports nights! Shall I show you anything else?", tab:"mealplan"},
     {msg:"You're all set! 🎉 Smart Kitchen is ready to help your family eat well every week. I'll be right here if you ever have questions, run into anything, or just want to tell us what you think — good, bad, or anything in between. You're never alone in this kitchen! 💛", tab:null, done:true},
   ];
+  // Cancel: ask the server to email a confirmation link. Nothing changes until the user taps it.
+  const cancelHasSub=!!(userProfile&&(userProfile.stripe_subscription_id||userProfile.stripe_sws_subscription_id)&&["active","trialing","past_due"].includes(userProfile.subscription_status));
+  const cancelTrialActive=!cancelHasSub&&!!(userProfile&&userProfile.trial_ends_at&&new Date(userProfile.trial_ends_at)>new Date());
+  const requestCancel=async()=>{
+    if(cancelState==="sending")return;
+    setCancelState("sending");setCancelMsg("");
+    try{
+      const {data}=await supabase.auth.getSession();
+      const token=data?.session?.access_token;
+      if(!token){setCancelState("error");setCancelMsg("Please sign in again and retry.");return;}
+      const r=await fetch("/api/cancel-subscription?action=request",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},body:JSON.stringify({reason:cancelReason})});
+      const d=await r.json().catch(()=>({}));
+      if(r.ok&&d.success){setCancelState("sent");setCancelMsg(d.email||"");}
+      else{setCancelState("error");setCancelMsg(d.error||"Something went wrong. Please try again.");}
+    }catch(e){setCancelState("error");setCancelMsg("Network error. Please try again.");}
+  };
   // Returning users: the setup wizard covers the page (and the Sign In button), so close it before opening sign-in.
   const openSignIn=()=>{setShowWizard(false);setShowEmailGate(false);if(onSignIn)onSignIn();};
   const addChatMsg=(role,text)=>setChatMessages(prev=>[...prev,{role,text,id:Date.now()}]);
-  const escalateToSupport=(userMsg,tag)=>{
-    const profile=familySummary();
+  // Pending cancel request from a signed-out visitor: we hold the message until they give us an email to follow up on.
+  const pendingCancelRef=useRef(null);
+  const EMAIL_RE=/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/;
+  const escalateToSupport=(userMsg,tag,contactEmail)=>{
+    // Privacy: escalation emails go to a shared inbox, so send only household size. Look up the rest by user ID when needed.
+    const hh=(familySummary()||"").match(/^HOUSEHOLD:\s*\d+\s*people?/i);
+    const profile=hh?hh[0]+".":"";
+    const userEmail=user?.email||contactEmail||"";
+    const userId=user?.id||"";
+    const who=userEmail?`${userName} <${userEmail}>`:userName;
+    const mailFallback=()=>{
+      const subject=`Smart Kitchen ${tag} — ${who} (${tier})`;
+      const body=`User: ${who}%0ATier: ${tier}%0ATag: ${tag}%0A%0AMessage:%0A"${userMsg}"%0A%0AProfile:%0A${profile}`;
+      window.open(`mailto:thesmartkitchenapp@gmail.com?subject=${encodeURIComponent(subject)}&body=${body}`);
+    };
     fetch("/api/send-shopping-list",{
       method:"POST",
       headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({action:"escalation",userName,tier,tag,userMsg,profile})
+      body:JSON.stringify({action:"escalation",userName,userEmail,userId,signedIn:!!user,tier,tag,userMsg,profile})
     }).then(r=>r.json()).then(d=>{
       if(!d.success){
         console.error("Escalation email failed:",d.error);
-        const subject=`Smart Kitchen ${tag} — ${userName} (${tier})`;
-        const body=`User: ${userName}%0ATier: ${tier}%0ATag: ${tag}%0A%0AMessage:%0A"${userMsg}"%0A%0AProfile:%0A${profile}`;
-        window.open(`mailto:thesmartkitchenapp@gmail.com?subject=${encodeURIComponent(subject)}&body=${body}`);
+        mailFallback();
       }
     }).catch(e=>{
       console.error("Escalation email error:",e.message);
-      const subject=`Smart Kitchen ${tag} — ${userName} (${tier})`;
-      const body=`User: ${userName}%0ATier: ${tier}%0ATag: ${tag}%0A%0AMessage:%0A"${userMsg}"%0A%0AProfile:%0A${profile}`;
-      window.open(`mailto:thesmartkitchenapp@gmail.com?subject=${encodeURIComponent(subject)}&body=${body}`);
+      mailFallback();
     });
   };
   const detectEscalation=(msg)=>{
     const m=msg.toLowerCase();
-    if(m.match(/bug|broken|crash|error|doesn.t work|not working|glitch|freeze/)) return "Bug";
+    if(m.match(/bug|broken|crash|error|does(n.t| not) work|did(n.t| not) work|not working|isn.t working|won.t (work|load|save|open)|glitch|freeze/)) return "Bug";
     if(m.match(/scanner|scan|receipt|camera|photo/)) return "Scanner-Issue";
     if(m.match(/allerg|restrict|diabeti|renal|sodium|sugar|carb|kylie|diet/)) return "Dietary-Concern";
-    if(m.match(/too expensive|can.t afford|not worth|won.t upgrade|why pay|cancel/)) return "Upgrade-Objection";
+    if(m.match(/cancel|unsubscribe|delete (my )?account|close (my )?account|stop (my )?(trial|subscription|membership)|end (my )?(trial|subscription|membership)/)) return "Cancel-Request";
+    if(m.match(/too expensive|can.t afford|not worth|won.t upgrade|why pay/)) return "Upgrade-Objection";
     if(m.match(/love|great|amazing|fantastic|helpful|awesome|thank/)) return "Feedback-Positive";
-    if(m.match(/confus|lost|don.t understand|how do i|where is|can.t find/)) return "Confusion";
-    if(m.match(/feature|wish|would be nice|suggestion|add|could you/)) return "Feature-Request";
+    if(m.match(/confus|lost|don.t understand|how (do|can|to)\b|where (do|can|is|are)\b|can.t find|\badd\b/)) return "Confusion";
+    if(m.match(/feature|wish|would be nice|suggestion|could you/)) return "Feature-Request";
     if(m.match(/frustrat|annoying|hate|useless|terrible|awful/)) return "Feedback-Negative";
     return null;
   };
@@ -3941,8 +3971,40 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
       // Tour stays paused at the current step until the user says done/next.
     }
     
+    // Signed-out visitor who previously asked to cancel: this reply should contain the email we can follow up on
+    if(pendingCancelRef.current&&!user){
+      const em=text.match(EMAIL_RE);
+      if(em){
+        const original=pendingCancelRef.current;
+        pendingCancelRef.current=null;
+        setTimeout(()=>{
+          escalateToSupport(original,"Cancel-Request",em[0]);
+          addChatMsg("assistant","Thank you! I've passed this to the team and they'll follow up with you at "+em[0]+". And just so you know — the free plan has no card on file, so nothing is being billed. 💛");
+          setChatLoading(false);
+        },700);
+        return;
+      }
+    }
     // Check for escalation tags
     const tag=detectEscalation(text);
+    if(tag==="Cancel-Request"&&!user){
+      // No account means no email on file — ask for one so a human can follow up, and escalate only once we have it
+      const inline=text.match(EMAIL_RE);
+      if(inline){
+        setTimeout(()=>{
+          escalateToSupport(text,tag,inline[0]);
+          addChatMsg("assistant","Got it — I've passed this to the team and they'll follow up with you at "+inline[0]+". The free plan has no card on file, so nothing is being billed. 💛");
+          setChatLoading(false);
+        },700);
+      } else {
+        pendingCancelRef.current=text;
+        setTimeout(()=>{
+          addChatMsg("assistant","I'm sorry to hear that, and I'd like to make sure this gets handled properly. What email address should our team use to follow up with you? (If you're only on the free plan there's no card on file, so nothing is being billed.)");
+          setChatLoading(false);
+        },700);
+      }
+      return;
+    }
     if(tag&&tag!=="Feedback-Positive") setTimeout(()=>escalateToSupport(text,tag),2000);
     // Build system prompt with full user context
     const profile=familySummary();
@@ -3984,6 +4046,8 @@ APP KNOWLEDGE: Smart Kitchen has these features:
 - SMARTER WAY TO SHOP (a-la-carte add-on, $5/mo as a Smart Kitchen member — $10/mo standalone; included free during the 30-day trial): compares your preferred grocery stores' weekly ads against your own inventory and purchase history, surfacing items currently priced below what you usually pay — no manual ad-scanning required, unlike the free Weekly Ad Scanner which requires photographing one ad at a time. Also powers Deep Discount Alerts — a persistent top-of-app banner (separate from the Meal Plan tab banner) when something you actually buy shows up as a steep, often limited-quantity discount at one of your preferred stores. If the user doesn't have it yet, they can add it anytime via the banner in the Meal Plan tab, or select it when subscribing/upgrading.
 
 ESCALATION: If the user reports a bug, scanner problem, dietary concern, frustration, or upgrade objection — acknowledge it warmly and let them know the team has been notified and will follow up. If they give positive feedback — celebrate it genuinely.
+
+CANCELLATIONS: If someone asks how to cancel, be gracious and never pushy. Tell them to tap the gear icon (Settings) and choose Cancel subscription (or Cancel free trial). We then email them a confirmation link, and nothing changes until they tap it. If they are on the free trial, there is no card on file and nothing will be billed. If they cannot find the button, say the team has been notified and will help by email. Do not try to talk them out of it; you may ask once, gently, whether anything could have been better.
 
 RETAILER SUGGESTIONS: If the user mentions a grocery store or retailer that isn't already part of Smart Kitchen's ad-tracking (Smarter Way to Shop), have a real conversation rather than just acknowledging it — naturally draw out what's needed to actually add it later: the store's name, its general location or city, and how they normally see that store's weekly ad (a paper flyer, the store's own app, an email, or their website). Ask for these one at a time as part of the conversation, not as a rigid checklist or form. Once you have what you can, thank them and let them know it's been passed along to the team.
 
@@ -6340,7 +6404,21 @@ Keep responses concise — 2-4 sentences max unless explaining a feature. Use pl
 }}>🔄 Refresh Member Data</button>}
 </div>
 <button style={{...bBtn("ghost"),width:"100%",marginTop:8,border:"1px solid #7c3aed",color:"#4a1d96"}} onClick={()=>{setShowSettings(false);setShowJoinViewer(true);}}>&#128065; Join as Viewer (enter household code)</button>
-</div><button style={{...bBtn("ghost"),width:"100%",marginTop:8}} onClick={()=>setShowSettings(false)}>Close</button></div></div>}
+</div>{user&&!isViewer&&!isManager&&(cancelHasSub||cancelTrialActive)&&(<div style={{background:"#fff",border:"1px solid #e5e7eb",borderRadius:10,padding:14,marginTop:14}}>
+<div style={{fontFamily:FD,fontSize:16,fontWeight:700,color:"#1B3D2F",marginBottom:6}}>Subscription</div>
+<div style={{fontSize:12,color:"#444",fontFamily:FM,lineHeight:1.5,marginBottom:10}}>{cancelHasSub?"Your plan renews automatically.":"You are on the free trial."}</div>
+{cancelState==="sent"?(<div style={{background:"#f0fdf4",border:"1px solid #86efac",borderRadius:8,padding:"10px 12px",fontSize:12,color:"#065f46",fontFamily:FM,lineHeight:1.5}}>We emailed a confirmation link{cancelMsg?" to "+cancelMsg:""}. Nothing changes until you tap it. The link works for 24 hours.</div>)
+:!cancelOpen?(<button onClick={()=>{setCancelOpen(true);setCancelState("idle");setCancelMsg("");}} style={{...bBtn("ghost"),width:"100%",border:"1px solid #dc2626",color:"#b91c1c",fontWeight:600}}>{cancelHasSub?"Cancel subscription":"Cancel free trial"}</button>)
+:(<div>
+<div style={{fontSize:12,color:"#444",fontFamily:FM,lineHeight:1.5,marginBottom:8}}>We will email you a link to confirm. Nothing changes until you tap it.</div>
+<div style={{fontSize:12,color:"#444",fontFamily:FM,marginBottom:4}}>Why are you leaving? (optional, it helps us improve)</div>
+<textarea value={cancelReason} onChange={e=>setCancelReason(e.target.value)} maxLength={1000} rows={3} style={{width:"100%",background:"#fff",border:"1px solid #ccc",borderRadius:6,padding:"8px 10px",color:"#1B3D2F",fontFamily:FM,fontSize:13,boxSizing:"border-box",marginBottom:8}}/>
+{cancelState==="error"&&<div style={{fontSize:12,color:"#b91c1c",fontFamily:FM,marginBottom:8}}>{cancelMsg}</div>}
+<div style={{display:"flex",gap:8}}>
+<button style={{...bBtn("ghost"),flex:1,border:"1px solid #ccc",color:"#444"}} onClick={()=>setCancelOpen(false)}>Keep my plan</button>
+<button style={{...bBtn("primary"),flex:1}} disabled={cancelState==="sending"} onClick={requestCancel}>{cancelState==="sending"?"Sending...":"Email me the link"}</button>
+</div></div>)}
+</div>)}<button style={{...bBtn("ghost"),width:"100%",marginTop:8}} onClick={()=>setShowSettings(false)}>Close</button></div></div>}
     {showWelcome&&<WelcomeScreen onStart={welcomeStart} onSkip={welcomeSkip} skipLabel={welcomeForced?"Close":"Skip for now"}/>}
     {showThinNudge&&<ThinPlanNudge onAddMore={()=>{setShowThinNudge(false);setShowKitchenChooser(true);}} onBuildAnyway={()=>{setShowThinNudge(false);buildMealPlan();}}/>}
     {showKitchenChooser&&<KitchenChooser cuisines={CUISINE_OPTIONS} selected={cuisinePrefs} loadingCount={chooserLoadingCount} failedCount={chooserFailedCount} onRetry={()=>chooserMissing.forEach(c=>chooserFetch(c))} getStarterItems={chooserStarterItems} existingNames={inventory.map(i=>i.name)} alreadyHaveCount={chooserAlreadyHaveCount()} onToggleCuisine={chooserToggleCuisine} onAddItems={chooserAddItems} onReceipt={()=>chooserScan("receipt")} onShelves={()=>chooserScan("shelf")} onType={chooserType} onClose={()=>setShowKitchenChooser(false)}/>}
