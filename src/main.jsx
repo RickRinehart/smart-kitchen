@@ -720,6 +720,7 @@ document.addEventListener("visibilitychange", handleVisibility);
         isAdmin={isAdmin}
         userProfile={userProfile}
         onShowGuestViewer={() => { setShowAuthModal(false); setShowGuestViewer(true); }}
+        onSignIn={() => { setAuthMode("signin"); setShowAuthModal(true); }}
       />
 
       {showSignOutConfirm && (
