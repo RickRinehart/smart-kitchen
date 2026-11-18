@@ -3681,7 +3681,6 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
     {msg:"One more thing — see the **⚡ Busy?** button on each day? Tap it on a hectic evening and Smart Kitchen will swap in a quick meal under 20 minutes. Really handy for sports nights! Shall I show you anything else?", tab:"mealplan"},
     {msg:"You're all set! 🎉 Smart Kitchen is ready to help your family eat well every week. I'll be right here if you ever have questions, run into anything, or just want to tell us what you think — good, bad, or anything in between. You're never alone in this kitchen! 💛", tab:null, done:true},
   ];
-<<<<<<< HEAD
   // Cancel: ask the server to email a confirmation link. Nothing changes until the user taps it.
   const cancelHasSub=!!(userProfile&&(userProfile.stripe_subscription_id||userProfile.stripe_sws_subscription_id)&&["active","trialing","past_due"].includes(userProfile.subscription_status));
   const cancelTrialActive=!cancelHasSub&&!!(userProfile&&userProfile.trial_ends_at&&new Date(userProfile.trial_ends_at)>new Date());
@@ -3698,10 +3697,8 @@ export default function SmartKitchen({ tier="free", can={}, onUpgrade=()=>{}, us
       else{setCancelState("error");setCancelMsg(d.error||"Something went wrong. Please try again.");}
     }catch(e){setCancelState("error");setCancelMsg("Network error. Please try again.");}
   };
-=======
   // Returning users: the setup wizard covers the page (and the Sign In button), so close it before opening sign-in.
   const openSignIn=()=>{setShowWizard(false);setShowEmailGate(false);if(onSignIn)onSignIn();};
->>>>>>> origin/main
   const addChatMsg=(role,text)=>setChatMessages(prev=>[...prev,{role,text,id:Date.now()}]);
   // Pending cancel request from a signed-out visitor: we hold the message until they give us an email to follow up on.
   const pendingCancelRef=useRef(null);
